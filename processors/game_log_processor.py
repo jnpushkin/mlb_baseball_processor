@@ -57,9 +57,7 @@ class GameLogProcessor:
                 "Venue": b.get("venue", ""),
                 "Attendance": ExcelGeneratorUtils.safe_get_int(b, "attendance_value"),
                 "Game Length": b.get("duration", ""),
-                "Temperature": b.get("temperature_f"),
                 "Weather": b.get("weather", ""),
-                "Doubleheader": b.get("doubleheader", "0"),
                 "HP Umpire": g.get("umpires", {}).get("HP", ""),
                 "GameID": g.get("game_id", "")
             })

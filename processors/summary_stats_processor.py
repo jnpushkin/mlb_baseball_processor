@@ -9,9 +9,13 @@ from ..utils.log import debug
 class SummaryStatsProcessor:
     """Handle summary statistics processing with improved organization."""
     
-    def __init__(self, games, all_players, b2b_only_df, b2b2b_only_df, b2b2b2b_only_df, triple_play_df, hitters_df, pitchers_df, milestones):
+    def __init__(self, games, all_players, b2b_only_df, b2b2b_only_df, b2b2b2b_only_df, triple_play_df, hitters_df, pitchers_df, milestones, weather_tracker=None, saber_tracker=None, situation_tracker=None):
         self.games = games
         self.all_players = all_players
+        # Store enhanced trackers
+        self.weather_tracker = weather_tracker
+        self.saber_tracker = saber_tracker
+        self.situation_tracker = situation_tracker
         self.b2b_only_df = b2b_only_df
         self.b2b2b_only_df = b2b2b_only_df
         self.b2b2b2b_only_df = b2b2b2b_only_df
@@ -1930,6 +1934,111 @@ class SummaryStatsProcessor:
                     })
         
         print(f"   ✅ Added statistical leaders")
+
+        # Add enhanced statistics if trackers are available
+        if self.weather_tracker:
+            weather_stats = self.weather_tracker.get_summary_stats()
+            
+            summary_rows.extend([
+                {
+                    "Record": "Highest Wind Speed",
+                    "Value": weather_stats["highest_wind_speed"],
+                    "Detail": f"{len(self.weather_tracker.highest_wind_games)} games",
+                    "Score": "",
+                    "GameIDs": join_sorted_gameids(self.weather_tracker.highest_wind_games)
+                },
+                {
+                    "Record": "Average Wind Speed",
+                    "Value": weather_stats.get("average_wind_speed", "N/A"),
+                    "Detail": f"Based on {len(self.weather_tracker.wind_conditions)} games with wind data",
+                    "Score": "",
+                    "GameIDs": ""
+                },
+                {
+                    "Record": "Day Games vs Night Games",
+                    "Value": f"{weather_stats['day_games']} day / {weather_stats['night_games']} night",
+                    "Detail": "",
+                    "Score": "",
+                    "GameIDs": ""
+                },
+                {
+                    "Record": "Earliest Start Time",
+                    "Value": weather_stats["earliest_start"],
+                    "Detail": "",
+                    "Score": "",
+                    "GameIDs": join_sorted_gameids(self.weather_tracker.earliest_start_games) if self.weather_tracker.earliest_start_games else ""
+                },
+                {
+                    "Record": "Latest Start Time",
+                    "Value": weather_stats["latest_start"],
+                    "Detail": "",
+                    "Score": "",
+                    "GameIDs": join_sorted_gameids(self.weather_tracker.latest_start_games) if self.weather_tracker.latest_start_games else ""
+                },
+                {
+                    "Record": "Games with Precipitation",
+                    "Value": weather_stats["precipitation_games"],
+                    "Detail": "",
+                    "Score": "",
+                    "GameIDs": join_sorted_gameids(self.weather_tracker.precipitation_games)
+                },
+                {
+                    "Record": "Weekend vs Weekday Games",
+                    "Value": f"{weather_stats['weekend_games']} weekend / {weather_stats['weekday_games']} weekday",
+                    "Detail": "",
+                    "Score": "",
+                    "GameIDs": ""
+                }
+            ])
+        
+        if self.saber_tracker:
+            saber_stats = self.saber_tracker.get_summary_stats()
+            
+            # Most Clutch Single Game
+            most_clutch = saber_stats.get("most_clutch_single_game")
+            if most_clutch:
+                summary_rows.append({
+                    "Record": "Most Clutch Single Game (WPA)",
+                    "Value": f"{most_clutch['wpa']:.3f}",
+                    "Detail": f"{most_clutch['name']} ({most_clutch['team']} vs {most_clutch['opponent']}) on {most_clutch['date']}",
+                    "Score": "",
+                    "GameIDs": most_clutch['game_id']
+                })
+            
+            # Top WPA Leaders
+            wpa_leaders = saber_stats["wpa_leaders"][:3]
+            if wpa_leaders:
+                leader_detail = "; ".join([
+                    f"{p['name']} ({p['total_wpa']:.3f} total, {p['avg_wpa']:.3f} avg)"
+                    for p in wpa_leaders
+                ])
+                summary_rows.append({
+                    "Record": "Career WPA Leaders (Top 3)",
+                    "Value": "",
+                    "Detail": leader_detail,
+                    "Score": "",
+                    "GameIDs": ""
+                })
+        
+        if self.situation_tracker:
+            situation_stats = self.situation_tracker.get_summary_stats()
+            
+            summary_rows.extend([
+                {
+                    "Record": "Players with RISP Opportunities",
+                    "Value": situation_stats["players_with_risp_opportunities"],
+                    "Detail": "Minimum 5 AB with runners in scoring position",
+                    "Score": "",
+                    "GameIDs": ""
+                },
+                {
+                    "Record": "Players with Bases Loaded Opportunities",
+                    "Value": situation_stats["players_with_bases_loaded_opportunities"],
+                    "Detail": "At least 1 AB with bases loaded",
+                    "Score": "",
+                    "GameIDs": ""
+                }
+            ])
 
         return summary_rows
     

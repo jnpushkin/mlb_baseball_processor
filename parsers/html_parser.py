@@ -402,7 +402,7 @@ def extract_footer_sections(soup, home_team, away_team):
 
 def extract_umpires(soup):
     """Extract umpire info from comment blocks like those used by Baseball-Reference."""
-    pattern = r"([HP123LRFB]+)\s*-\s*([A-Za-z\.\' ]+?)(?=,|$)"
+    pattern = r"([HP123LRFB]+)\s*-\s*([\w\s\.\']+?)(?=,|$)"
 
     for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
         if "Umpires:" in comment:

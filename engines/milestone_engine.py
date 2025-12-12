@@ -321,8 +321,56 @@ class MilestoneEngine:
                     'final_score': final_score
                 }
 
+                # DEBUG OUTPUT
+                print(f"\n{'='*60}")
+                print(f"PITCHER: {name} ({team_type})")
+                print(f"{'='*60}")
+                print(f"IP: {ip}, Outs: {outs}, Runs: {runs}, SO: {so}, ER: {er}")
+                print(f"Team innings: {team_innings}, Required outs: {team_innings * 3}")
+                print(f"Check CG: {outs} >= {team_innings * 3}? {outs >= team_innings * 3}")
+                print(f"Check QS: {outs} >= 18 and {er} <= 3? {outs >= 18 and er <= 3}")
+
+                if so >= 10:
+                    print(f"✓ 10+ K Game detected")
+                    milestone_common.update({
+                        'hits': hits,
+                        'walks': walks,
+                        'runs': runs,
+                        'strikeouts': so,
+                        'pitch_count': pitches
+                    })
+                    ms['ten_k_games'].append(dict(milestone_common))
+
+                if outs >= team_innings * 3 and outs >= 27:
+                    print(f"✓✓✓ COMPLETE GAME DETECTED ✓✓✓")
+                    milestone_common.update({
+                        'hits': hits,
+                        'walks': walks,
+                        'runs': runs,
+                        'strikeouts': so,
+                        'pitch_count': pitches
+                    })
+                    ms['complete_games'].append(dict(milestone_common))
+                    print(f"Complete games list now has {len(ms['complete_games'])} items")
+                    
+                    if runs == 0:
+                        print(f"✓✓✓ SHUTOUT DETECTED ✓✓✓")
+                        ms['shutouts'].append(dict(milestone_common))
+                        print(f"Shutouts list now has {len(ms['shutouts'])} items")
+
+                    if hits == 0:
+                        print(f"✓✓✓ NO-HITTER DETECTED ✓✓✓")
+                        ms['no_hitters'].append(dict(milestone_common))
+                        
+                    if runs == 0 and walks == 0 and hits == 0:
+                        print(f"✓✓✓ PERFECT GAME DETECTED ✓✓✓")
+                        ms['perfect_games'].append(dict(milestone_common))
+                else:
+                    print(f"✗ NOT a complete game")
+
                 # Quality starts (6+ IP, ≤3 ER)
                 if outs >= 18 and er <= 3:
+                    print(f"✓ Quality Start detected")
                     milestone_common.update({
                         'hits': hits,
                         'walks': walks,
@@ -332,3 +380,5 @@ class MilestoneEngine:
                         'pitch_count': pitches
                     })
                     ms['quality_starts'].append(dict(milestone_common))
+                
+                print(f"{'='*60}\n")
