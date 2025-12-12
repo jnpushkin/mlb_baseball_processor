@@ -1,0 +1,11 @@
+beautifulsoup4==4.13.4
+bs4==0.0.2
+numpy==2.3.2
+pandas==2.3.2
+python-dateutil==2.9.0.post0
+pytz==2025.2
+six==1.17.0
+soupsieve==2.7
+typing_extensions==4.14.1
+tzdata==2025.2
+xlsxwriter==3.2.5
