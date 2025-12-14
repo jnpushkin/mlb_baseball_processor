@@ -653,9 +653,9 @@ class DataSerializer:
                 for sub in substitutions
             ]
         
-        # Play-by-play (limit to key plays or make it toggleable)
-        play_by_play = raw_game.get('play_by_play', [])
-        if play_by_play:
+        # Play-by-play - use raw_plays to get ALL events including steals
+        raw_plays = raw_game.get('raw_plays', [])
+        if raw_plays:
             details['playByPlay'] = [
                 {
                     'inning': play.get('inning', 0),
@@ -671,9 +671,11 @@ class DataSerializer:
                     'battingTeam': play.get('batting_team', ''),
                     'isHomeRun': play.get('home_run', False),
                     'isStrikeout': play.get('strikeout', False),
-                    'isWalk': play.get('walk', False)
+                    'isWalk': play.get('walk', False),
+                    'isStolenBase': 'steals' in play.get('description', '').lower() or 'stolen base' in play.get('description', '').lower(),
+                    'isCaughtStealing': 'caught stealing' in play.get('description', '').lower()
                 }
-                for play in play_by_play[:200]  # Limit to prevent huge data
+                for play in raw_plays[:300]  # Increased limit for raw plays
             ]
 
         return details

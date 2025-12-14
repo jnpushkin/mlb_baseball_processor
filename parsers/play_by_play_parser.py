@@ -181,7 +181,20 @@ def extract_play_by_play(soup, away_team, home_team):
                 'outs': None
             }
 
-        current_pa['pitch_count'] += play.get('pitch_count', 0)
+        # Only add pitch count if this play involves the batter
+        # (not baserunning events like steals which happen during the at-bat)
+        description = play.get('description', '').lower()
+        is_baserunning_only = any(keyword in description for keyword in [
+            'steals', 'stolen base', 'caught stealing', 'pickoff', 'picked off',
+            'balk', 'wild pitch', 'passed ball'
+        ]) and not any(keyword in description for keyword in [
+            'singled', 'doubled', 'tripled', 'homered', 'walked', 'struck out',
+            'grounded', 'flied', 'lined', 'popped', 'fouled'
+        ])
+        
+        if not is_baserunning_only:
+            current_pa['pitch_count'] += play.get('pitch_count', 0)
+        
         current_pa['description'] = play.get('description', '')
         current_pa['pitcher'] = play.get('pitcher')
         current_pa['outs'] = play.get('outs')

@@ -882,6 +882,8 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, onClose }) => {
                                     <div key={playIdx} className={`p-3 hover:bg-blue-50 ${
                                         play.isHomeRun ? 'bg-orange-50' : 
                                         play.isStrikeout ? 'bg-red-50' : 
+                                        play.isStolenBase ? 'bg-green-50' :
+                                        play.isCaughtStealing ? 'bg-red-50' :
                                         ''
                                     }`}>
                                         <div className="flex items-start gap-3">
@@ -913,6 +915,12 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, onClose }) => {
                                             )}
                                             {play.isStrikeout && (
                                                 <span className="text-xl">🔥</span>
+                                            )}
+                                            {play.isStolenBase && (
+                                                <span className="text-xl">🏃</span>
+                                            )}
+                                            {play.isCaughtStealing && (
+                                                <span className="text-xl">❌</span>
                                             )}
                                         </div>
                                     </div>
@@ -1425,7 +1433,8 @@ const AdvancedFilters = ({ games, onFilterChange }) => {
             
             // Score filters
             if (filters.minScore || filters.maxScore) {
-                const scores = game.score.match(/\d+/g);
+                const cleanScore = game.score.replace(/\s*\(\d+\)\s*$/, '');
+                const scores = cleanScore.match(/\d+/g);
                 if (scores && scores.length === 2) {
                     const totalScore = parseInt(scores[0]) + parseInt(scores[1]);
                     if (filters.minScore && totalScore < parseInt(filters.minScore)) return false;
@@ -2024,8 +2033,13 @@ const SmartInsights = ({ data }) => {
         
         // Highest scoring
         const highestScoring = [...games].sort((a, b) => {
-            const aTotal = (a.score.match(/\d+/g) || []).reduce((sum, n) => sum + parseInt(n), 0);
-            const bTotal = (b.score.match(/\d+/g) || []).reduce((sum, n) => sum + parseInt(n), 0);
+            // Remove innings in parentheses before extracting scores
+            // "LAD 10 - 11 SF (10)" → "LAD 10 - 11 SF"
+            const aScore = a.score.replace(/\s*\(\d+\)\s*$/, '');
+            const bScore = b.score.replace(/\s*\(\d+\)\s*$/, '');
+            
+            const aTotal = (aScore.match(/\d+/g) || []).reduce((sum, n) => sum + parseInt(n), 0);
+            const bTotal = (bScore.match(/\d+/g) || []).reduce((sum, n) => sum + parseInt(n), 0);
             return bTotal - aTotal;
         }).slice(0, 5);
         
@@ -2038,8 +2052,13 @@ const SmartInsights = ({ data }) => {
             return false;
         }).slice(0, 5);
         
-        return { highestScoring, closestGames };
-    }, [data.games]);
+        // Walk-off games
+        const walkoffMilestones = (data.milestones || []).filter(m => m.type === 'Walk-Offs');
+        const walkoffGameIds = new Set(walkoffMilestones.map(m => m.gameId));
+        const walkoffGames = games.filter(game => walkoffGameIds.has(game.gameId));
+        
+        return { highestScoring, closestGames, walkoffGames };
+    }, [data.games, data.milestones]);
     
     // SMART INSIGHT: Attendance Streaks
     const attendanceStreaks = useMemo(() => {
@@ -2486,7 +2505,7 @@ const SmartInsights = ({ data }) => {
                             <h2 className="section-title font-bold">⭐ Most Exciting Games</h2>
                         </div>
                         <div className="p-4">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 <div>
                                     <h3 className="subsection-title font-bold mb-3">🔥 Highest Scoring</h3>
                                     <div className="space-y-2">
@@ -2516,6 +2535,28 @@ const SmartInsights = ({ data }) => {
                                                 <span className="small-text text-gray-500">{game.date}</span>
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <h3 className="subsection-title font-bold mb-3">🎉 Walk-Off Wins</h3>
+                                    <div className="space-y-2">
+                                        {bestGames.walkoffGames.length > 0 ? (
+                                            bestGames.walkoffGames.slice(0, 5).map((game, idx) => (
+                                                <div key={idx} className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="body-text">{game.awayTeam} @ {game.homeTeam}</span>
+                                                        <span className="font-mono body-text bg-green-600 text-white px-2 py-1 rounded font-bold">{game.score}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="small-text text-gray-600">{game.date}</span>
+                                                        <GameLink gameId={game.gameId} />
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="body-text text-gray-500 text-center py-8">No walk-off games yet</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
