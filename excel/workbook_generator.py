@@ -894,7 +894,7 @@ def write_enhanced_stats_sheets(xl, data, workbook, colors):
     except Exception as e:
         print(f"❌ Error writing enhanced stats sheets: {e}")
 
-def write_analysis_sheets(xl, data, games, workbook, colors, umpire_counter):
+def write_analysis_sheets(xl, data, games, workbook, colors, umpire_tracker):
     """Write analysis sheets (Matchup Matrix, Scorigami, Calendar, Summary)."""
     try:
         # Signature HRs
@@ -904,7 +904,7 @@ def write_analysis_sheets(xl, data, games, workbook, colors, umpire_counter):
                            workbook=workbook, colors=colors, sheet_type="default", exclude_cols=[""])
 
         # Umpires
-        write_umpires_sheet(xl, workbook, colors, umpire_counter)
+        write_umpires_sheet(xl, workbook, colors, umpire_tracker)
         
         # Matchup Matrix
         write_matchup_matrix(xl, data['df_matchups'], workbook, colors)
@@ -921,7 +921,7 @@ def write_analysis_sheets(xl, data, games, workbook, colors, umpire_counter):
     except Exception as e:
         print(f"❌ Error writing analysis sheets: {e}")
 
-def write_umpires_sheet(xl, workbook, colors, umpire_trackers):
+def write_umpires_sheet(xl, workbook, colors, umpire_tracker):
     """Write the Umpires sheet."""
     try:
         positions = ["HP", "1B", "2B", "3B", "LF", "RF"]
