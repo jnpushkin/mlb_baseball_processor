@@ -260,7 +260,7 @@ def main():
                 debut_entries, 
                 hof_df,
                 umpire_tracker,  # Pass the tracker
-                write_file=False  # Skip Excel writing
+                write_file=True 
             )
             
             info("\n🎉 Processing complete!")
@@ -283,7 +283,7 @@ def main():
                 debut_entries, 
                 hof_df,
                 umpire_tracker,  # Pass the tracker
-                write_file=False  # Skip Excel writing
+                write_file=True 
             )
             
             info("\n📊 Excel complete, generating website...")
