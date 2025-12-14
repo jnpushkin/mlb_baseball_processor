@@ -1188,6 +1188,171 @@ const PlayerTimeline = ({ playerId, playerName, playerGames }) => {
     );
 };
 
+const PitcherTimeline = ({ playerId, playerName, pitcherGames }) => {
+    const timelineData = useMemo(() => {
+        const gamesForPitcher = pitcherGames.filter(g => g.playerId === playerId);
+        
+        if (gamesForPitcher.length === 0) return [];
+        
+        // Group by year
+        const byYear = {};
+        gamesForPitcher.forEach(game => {
+            const year = game.dateSort.substring(0, 4);
+            if (!byYear[year]) {
+                byYear[year] = [];
+            }
+            byYear[year].push(game);
+        });
+        
+        // Aggregate stats per year
+        const yearlyStats = Object.entries(byYear).map(([year, games]) => {
+            const aggregated = aggregatePitcherStats(games)[0] || {};
+            return { year, ...aggregated };
+        }).sort((a, b) => a.year - b.year);
+        
+        return yearlyStats;
+    }, [playerId, pitcherGames]);
+    
+    if (timelineData.length === 0) {
+        return (
+            <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="subsection-title font-bold mb-4">📊 Career Timeline</h3>
+                <p className="body-text text-gray-500 text-center py-8">No games found for this pitcher</p>
+            </div>
+        );
+    }
+    
+    return (
+        <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="subsection-title font-bold mb-4">📊 Pitching Career Timeline - {playerName}</h3>
+            
+            {/* Career summary stats */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 p-4 bg-purple-50 rounded-lg">
+                {(() => {
+                    const totals = timelineData.reduce((acc, season) => ({
+                        games: acc.games + (season.games || 0),
+                        wins: acc.wins + (season.wins || 0),
+                        losses: acc.losses + (season.losses || 0),
+                        saves: acc.saves + (season.saves || 0),
+                        outs: acc.outs + (season.outs || 0),
+                        so: acc.so + (season.so || 0)
+                    }), { games: 0, wins: 0, losses: 0, saves: 0, outs: 0, so: 0 });
+                    
+                    const ip = `${Math.floor(totals.outs / 3)}.${totals.outs % 3}`;
+                    
+                    return (
+                        <>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-purple-600">{totals.games}</div>
+                                <div className="small-text text-gray-600">Games</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-purple-600">{ip}</div>
+                                <div className="small-text text-gray-600">IP</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-purple-600">{totals.wins}-{totals.losses}</div>
+                                <div className="small-text text-gray-600">W-L</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-purple-600">{totals.saves}</div>
+                                <div className="small-text text-gray-600">Saves</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-purple-600">{totals.so}</div>
+                                <div className="small-text text-gray-600">SO</div>
+                            </div>
+                        </>
+                    );
+                })()}
+            </div>
+            
+            {/* Year-by-year timeline */}
+            <div className="space-y-4">
+                {timelineData.map((season, idx) => (
+                    <div key={idx} className="relative pl-8 pb-4 border-l-2 border-purple-200 last:border-l-0">
+                        <div className="absolute left-0 top-0 -ml-2.5 w-5 h-5 bg-purple-600 rounded-full border-2 border-white"></div>
+                        <div className="bg-gray-50 rounded-lg p-4 hover:bg-purple-50 transition-colors">
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <span className="text-2xl font-bold text-purple-600">{season.year}</span>
+                                    <span className="ml-3 body-text text-gray-600">{season.team || 'Various Teams'}</span>
+                                </div>
+                                <span className="body-text text-gray-600 font-semibold">{season.games} games</span>
+                            </div>
+                            
+                            {/* Stats grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 small-text">
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">GS</div>
+                                    <div className="font-bold text-gray-900">{season.gameStarts || 0}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">IP</div>
+                                    <div className="font-bold text-gray-900">{season.ip}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">W-L</div>
+                                    <div className="font-bold text-gray-900">{season.wins}-{season.losses}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">ERA</div>
+                                    <div className="font-bold text-blue-600">{season.era}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">WHIP</div>
+                                    <div className="font-bold text-purple-600">{season.whip}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">SO</div>
+                                    <div className="font-bold text-orange-600">{season.so}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">H</div>
+                                    <div className="font-bold text-gray-900">{season.h}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">SV</div>
+                                    <div className="font-bold text-green-600">{season.saves || 0}</div>
+                                </div>
+                            </div>
+                            
+                            {/* Notable achievements */}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {season.wins >= 3 && (
+                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                                        🏆 {season.wins} Wins
+                                    </span>
+                                )}
+                                {season.saves >= 3 && (
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
+                                        💾 {season.saves} Saves
+                                    </span>
+                                )}
+                                {season.so >= 20 && (
+                                    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-semibold">
+                                        🔥 {season.so} SO
+                                    </span>
+                                )}
+                                {season.era !== 'N/A' && parseFloat(season.era) <= 3.00 && (
+                                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">
+                                        ⭐ {season.era} ERA
+                                    </span>
+                                )}
+                                {season.whip !== 'N/A' && parseFloat(season.whip) <= 1.20 && (
+                                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-semibold">
+                                        🎯 {season.whip} WHIP
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 const AdvancedFilters = ({ games, onFilterChange }) => {
     const [filters, setFilters] = useState({
         dateRange: { start: '', end: '' },
@@ -3033,6 +3198,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [useFiltered, setUseFiltered] = useState(false);
+    const [selectedPitcher, setSelectedPitcher] = useState(null);
     
     useEffect(() => { setUseFiltered(!!(startDate || endDate)); }, [startDate, endDate]);
     
@@ -3076,7 +3242,22 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
     }, [allPitchers]);
     
     const columns = [
-        { key: 'name', label: 'Name', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
+        { 
+            key: 'name', 
+            label: 'Name', 
+            render: (v, r) => (
+                <div className="flex items-center gap-2">
+                    <PlayerLink playerId={r.playerId} name={v} />
+                    <button 
+                        onClick={() => setSelectedPitcher({ id: r.playerId, name: v })}
+                        className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-semibold whitespace-nowrap"
+                        title="View career timeline"
+                    >
+                        📊
+                    </button>
+                </div>
+            )
+        },
         { key: 'team', label: 'Team' }, { key: 'games', label: 'G' }, { key: 'gameStarts', label: 'GS' },
         { key: 'wins', label: 'W' }, { key: 'losses', label: 'L' }, { key: 'saves', label: 'SV' },
         { key: 'ip', label: 'IP' }, { key: 'era', label: 'ERA' }, { key: 'whip', label: 'WHIP' },
@@ -3119,6 +3300,24 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
                     </tbody>
                 </table>
             </div>
+            
+            {selectedPitcher && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPitcher(null)}>
+                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
+                            <h3 className="section-title font-bold">Career Timeline</h3>
+                            <button onClick={() => setSelectedPitcher(null)} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
+                        </div>
+                        <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                            <PitcherTimeline 
+                                playerId={selectedPitcher.id}
+                                playerName={selectedPitcher.name}
+                                pitcherGames={pitcherGames}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
