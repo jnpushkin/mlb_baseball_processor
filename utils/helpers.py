@@ -217,3 +217,61 @@ def _parse_duration_to_minutes(duration_text):
         return hours * 60 + minutes
     
     return None
+
+def parse_date_from_game_id(game_id):
+    """Extract date from a Retrosheet-style game ID.
+    
+    Args:
+        game_id: Game ID like "BAL202505130" or "SFN202507110"
+        
+    Returns:
+        datetime.date object or None if parsing fails
+        
+    Examples:
+        >>> parse_date_from_game_id("BAL202505130")
+        datetime.date(2025, 5, 13)
+        >>> parse_date_from_game_id("INVALID")
+        None
+    """
+    return _parse_gid_date(game_id)
+
+
+def format_game_id_as_date(game_id, date_format="%m/%d/%Y"):
+    """Convert game ID to formatted date string.
+    
+    Args:
+        game_id: Game ID like "BAL202505130"
+        date_format: strftime format string (default: MM/DD/YYYY)
+        
+    Returns:
+        str: Formatted date or empty string if parsing fails
+        
+    Examples:
+        >>> format_game_id_as_date("BAL202505130")
+        "05/13/2025"
+        >>> format_game_id_as_date("BAL202505130", "%Y-%m-%d")
+        "2025-05-13"
+    """
+    date_obj = parse_date_from_game_id(game_id)
+    if date_obj:
+        return date_obj.strftime(date_format)
+    return ""
+
+
+def get_year_from_game_id(game_id):
+    """Extract year from game ID.
+    
+    Args:
+        game_id: Game ID like "BAL202505130"
+        
+    Returns:
+        int: Year or None if parsing fails
+        
+    Examples:
+        >>> get_year_from_game_id("BAL202505130")
+        2025
+    """
+    date_obj = parse_date_from_game_id(game_id)
+    if date_obj:
+        return date_obj.year
+    return None

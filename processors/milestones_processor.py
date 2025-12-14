@@ -4,11 +4,11 @@ from datetime import datetime
 from ..excel.generators import ExcelGeneratorUtils
 from ..utils.helpers import standardize_team_code, join_sorted_gameids
 from ..utils.stat_utils import StatUtils
-class MilestonesProcessor:
-    """Handle milestone and special events processing with improved organization."""
-    
+from .base_processor import BaseProcessor
+
+class MilestonesProcessor(BaseProcessor):
     def __init__(self, games):
-        self.games = games
+        super().__init__(games)
         
     def process_all_milestones(self):
         """Process all milestones and special events."""
@@ -24,7 +24,7 @@ class MilestonesProcessor:
                 self._extract_game_milestones(game, milestone_tabs)
                 
             except Exception as e:
-                game_id = ExcelGeneratorUtils.safe_get_str(game, "game_id", "UNKNOWN")
+                game_id = self.get_game_id(game)
                 print(f"   ⚠️ Error processing milestones for game {game_id}: {e}")
                 continue
         
@@ -433,9 +433,9 @@ class MilestonesProcessor:
             three_pitch_innings = []
             
             for game in self.games:
-                basic_info = game.get("basic_info", {})
+                basic_info = self.get_basic_info(game)
                 date = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
-                game_id = ExcelGeneratorUtils.safe_get_str(game, "game_id", "UNKNOWN")
+                game_id = self.get_game_id(game)
                 
                 # Track half-inning data
                 half_inning_tracker = {}
@@ -508,9 +508,9 @@ class MilestonesProcessor:
             three_strikeout_innings = []
             
             for game in self.games:
-                basic_info = game.get("basic_info", {})
+                basic_info = self.get_basic_info(game)
                 date = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
-                game_id = ExcelGeneratorUtils.safe_get_str(game, "game_id", "UNKNOWN")
+                game_id = self.get_game_id(game)
                 
                 # Track by individual pitcher within each half-inning
                 pitcher_tracker = {}
@@ -724,9 +724,9 @@ class MilestonesProcessor:
             immaculate_innings = []
             
             for game in self.games:
-                basic_info = game.get("basic_info", {})
+                basic_info = self.get_basic_info(game)
                 date = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
-                game_id = ExcelGeneratorUtils.safe_get_str(game, "game_id", "UNKNOWN")
+                game_id = self.get_game_id(game)
                 
                 pitcher_tracker = {}
 
@@ -843,9 +843,9 @@ class MilestonesProcessor:
         """Detect triple plays from play descriptions."""
         triple_plays = []
         for game in self.games:
-            basic_info = game.get("basic_info", {})
+            basic_info = self.get_basic_info(game)
             date = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
-            game_id = ExcelGeneratorUtils.safe_get_str(game, "game_id", "UNKNOWN")
+            game_id = self.get_game_id(game)
             for play in game.get("play_by_play", []):
                 desc = ExcelGeneratorUtils.safe_get_str(play, "description", "").lower()
                 if "triple play" in desc:
@@ -880,8 +880,8 @@ class MilestonesProcessor:
             longest_hr_chain = 0
 
             for game in self.games:
-                game_id = ExcelGeneratorUtils.safe_get_str(game, "game_id", "UNKNOWN")
-                basic_info = game.get("basic_info", {})
+                game_id = self.get_game_id(game)
+                basic_info = self.get_basic_info(game)
                 date = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
                 all_plays = game.get("raw_plays", [])
                 
@@ -969,7 +969,7 @@ class MilestonesProcessor:
                     })
 
             # Create DataFrames
-            df_b2b2b = pd.DataFrame(b2b_rows)
+            df_b2b2b = self.create_dataframe(b2b_rows)
             
             # Format dates properly
             if not df_b2b2b.empty:
