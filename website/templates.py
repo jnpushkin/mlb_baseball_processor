@@ -199,15 +199,58 @@ const MilestoneChart = ({ milestones }) => {
         const ctx = canvasRef.current.getContext('2d');
         const typeCounts = {};
         milestones.forEach(m => { typeCounts[m.type] = (typeCounts[m.type] || 0) + 1; });
-        const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        
+        // Only top 5 for performance
+        const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        
         const chart = new Chart(ctx, {
             type: 'bar',
-            data: { labels: sortedTypes.map(([type]) => type), datasets: [{ label: 'Count', data: sortedTypes.map(([, count]) => count), backgroundColor: 'rgba(59, 130, 246, 0.8)' }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Top 10 Milestone Types', font: { size: 14 } } }, scales: { y: { beginAtZero: true } } }
+            data: { 
+                labels: sortedTypes.map(([type]) => type), 
+                datasets: [{ 
+                    label: 'Count', 
+                    data: sortedTypes.map(([, count]) => count), 
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(147, 51, 234, 0.8)',
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(34, 197, 94, 0.8)',
+                        'rgba(251, 146, 60, 0.8)'
+                    ]
+                }] 
+            },
+            options: { 
+                indexAxis: 'y',
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.parsed.x} milestone${context.parsed.x !== 1 ? 's' : ''}`;
+                            }
+                        }
+                    }
+                }, 
+                scales: { 
+                    x: { 
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 11 }
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            font: { size: 12 }
+                        }
+                    }
+                } 
+            }
         });
         return () => chart.destroy();
     }, [milestones]);
-    return <canvas ref={canvasRef} className="w-full" style={{ height: '300px' }} />;
+    return <canvas ref={canvasRef} className="w-full" style={{ height: '220px' }} />;
 };
 
 const TeamChart = ({ teams }) => {
@@ -215,21 +258,63 @@ const TeamChart = ({ teams }) => {
     useEffect(() => {
         if (!canvasRef.current || !teams?.length) return;
         const ctx = canvasRef.current.getContext('2d');
-        const topTeams = teams.slice(0, 10);
+        
+        // Top 8 teams by games attended
+        const topTeams = teams.slice(0, 8);
+        
         const chart = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: topTeams.map(t => t.team),
                 datasets: [
-                    { label: 'Runs Scored', data: topTeams.map(t => t.runs), backgroundColor: 'rgba(34, 197, 94, 0.8)' },
-                    { label: 'Runs Allowed', data: topTeams.map(t => t.runsAllowed), backgroundColor: 'rgba(239, 68, 68, 0.8)' }
+                    { 
+                        label: 'Runs Scored', 
+                        data: topTeams.map(t => t.runs), 
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 2
+                    },
+                    { 
+                        label: 'Runs Allowed', 
+                        data: topTeams.map(t => t.runsAllowed), 
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 2
+                    }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Team Performance', font: { size: 14 } } }, scales: { y: { beginAtZero: true } } }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { 
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 },
+                            padding: 12,
+                            usePointStyle: true
+                        }
+                    }
+                }, 
+                scales: { 
+                    y: { 
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 11 }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: { size: 12, weight: 'bold' }
+                        }
+                    }
+                } 
+            }
         });
         return () => chart.destroy();
     }, [teams]);
-    return <canvas ref={canvasRef} className="w-full" style={{ height: '300px' }} />;
+    return <canvas ref={canvasRef} className="w-full" style={{ height: '280px' }} />;
 };
 
 const StatCard = ({ title, value, subtitle, color = 'blue' }) => {
@@ -2697,7 +2782,7 @@ const SmartInsights = ({ data }) => {
                 </div>
             )}
             
-            {/* Summary View - Enhanced */}
+            {/* Summary View - Enhanced with Categories and Charts */}
             {insightsView === 'summary' && (
                 <div className="space-y-6">
                     {/* Quick Highlights */}
@@ -2717,9 +2802,9 @@ const SmartInsights = ({ data }) => {
                                 color: 'orange' 
                             },
                             { 
-                                label: 'Shutouts Seen', 
-                                value: (data.summary || []).find(s => s.record.includes('Shutout'))?.value || '0', 
-                                icon: '🔒', 
+                                label: 'Walk-Off Wins', 
+                                value: (data.milestones || []).filter(m => m.type === 'Walk-Offs').length, 
+                                icon: '🎉', 
                                 color: 'green' 
                             },
                         ].map((stat, idx) => (
@@ -2735,110 +2820,248 @@ const SmartInsights = ({ data }) => {
                         ))}
                     </div>
 
-                    {/* Searchable Summary Table */}
+                    {/* Categorized Summary Stats */}
+                    {(() => {
+                        // Group summary records by category based on keywords
+                        const categories = {
+                            '🟩 Game Format': [],
+                            '🟠 Hitting': [],
+                            '🟤 Pitching': [],
+                            '🟣 Home Runs': [],
+                            '🔵 Offensive': [],
+                            '🔴 Defensive & Runs Allowed': [],
+                            '📊 Team Records': [],
+                            '🟡 Baserunning': [],
+                            '⚫️ Other': []
+                        };
+                        
+                        (data.summary || []).forEach(row => {
+                            const record = row.record.toLowerCase();
+                            
+                            // Categorize based on keywords
+                            if (record.includes('extra inning') || record.includes('doubleheader') || 
+                                record.includes('game length') || record.includes('attendance')) {
+                                categories['🟩 Game Format'].push(row);
+                            }
+                            else if (record.includes('hr') || record.includes('home run') || 
+                                     record.includes('grand slam')) {
+                                categories['🟣 Home Runs'].push(row);
+                            }
+                            else if (record.includes('hit') && !record.includes('pitcher') || 
+                                     record.includes('batting') || record.includes('cycle')) {
+                                categories['🟠 Hitting'].push(row);
+                            }
+                            else if (record.includes('pitch') || record.includes('strikeout') || 
+                                     record.includes(' k ') || record.includes('shutout') || 
+                                     record.includes('complete game') || record.includes('quality start') ||
+                                     record.includes('earned run')) {
+                                categories['🟤 Pitching'].push(row);
+                            }
+                            else if (record.includes('run') && (record.includes('score') || record.includes('inning'))) {
+                                categories['🔵 Offensive'].push(row);
+                            }
+                            else if (record.includes('runs allowed') || record.includes('fewest hit')) {
+                                categories['🔴 Defensive & Runs Allowed'].push(row);
+                            }
+                            else if (record.includes('steal') || record.includes(' sb')) {
+                                categories['🟡 Baserunning'].push(row);
+                            }
+                            else if (record.includes('team') || record.includes('combined')) {
+                                categories['📊 Team Records'].push(row);
+                            }
+                            else {
+                                categories['⚫️ Other'].push(row);
+                            }
+                        });
+                        
+                        // Render category cards
+                        return (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h2 className="section-title font-bold">📋 Summary by Category</h2>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => {
+                                                document.querySelectorAll('.category-card details').forEach(d => d.open = true);
+                                            }}
+                                            className="px-3 py-1.5 body-text bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-semibold"
+                                        >
+                                            Expand All
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                document.querySelectorAll('.category-card details').forEach(d => d.open = false);
+                                            }}
+                                            className="px-3 py-1.5 body-text bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold"
+                                        >
+                                            Collapse All
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {Object.entries(categories).map(([category, records]) => {
+                                    if (records.length === 0) return null;
+                                    
+                                    return (
+                                        <div key={category} className="bg-white rounded-lg shadow category-card">
+                                            <details open>
+                                                <summary className="cursor-pointer p-4 hover:bg-blue-50 transition-colors rounded-lg">
+                                                    <div className="flex items-center justify-between">
+                                                        <h3 className="subsection-title font-bold inline">{category}</h3>
+                                                        <span className="small-text text-gray-500 bg-blue-100 px-3 py-1 rounded-full font-semibold">
+                                                            {records.length} records
+                                                        </span>
+                                                    </div>
+                                                </summary>
+                                                <div className="p-4 pt-0">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                                                        {records.map((record, idx) => {
+                                                            // Extract game data
+                                                            const gameIds = record.gameIds ? record.gameIds.split(', ').map(g => g.trim()) : [];
+                                                            const scores = record.score ? record.score.split('; ').map(s => s.trim()) : [];
+                                                            
+                                                            // Try to parse players from detail
+                                                            // Look for patterns like "Name (stat)" or "Name —"
+                                                            const playerPattern = /([A-Z][a-zÀ-ÿ]+(?:\s+[A-Z][a-zÀ-ÿ'.]+)+)(?:\s+\(|\s+—)/g;
+                                                            const playerMatches = record.detail ? [...record.detail.matchAll(playerPattern)] : [];
+                                                            const players = playerMatches.map(m => m[1].trim());
+                                                            
+                                                            // Try to find player IDs from milestone data if this is a milestone-related record
+                                                            const relatedMilestones = gameIds.length > 0 
+                                                                ? (data.milestones || []).filter(m => gameIds.includes(m.gameId))
+                                                                : [];
+                                                            
+                                                            return (
+                                                                <div key={idx} className="bg-white rounded-xl p-5 border-2 border-gray-200 hover:border-blue-500 hover:shadow-xl transition-all">
+                                                                    {/* Header with title and value */}
+                                                                    <div className="flex items-start justify-between gap-4 mb-4">
+                                                                        <h4 className="text-base font-bold text-gray-900 leading-tight flex-1">
+                                                                            {record.record}
+                                                                        </h4>
+                                                                        <div className="bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-lg px-4 py-2 min-w-[60px] text-center">
+                                                                            <span className="text-3xl font-black leading-none block">{record.value}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    {/* Players involved - clickable */}
+                                                                    {players.length > 0 && (
+                                                                        <div className="mb-3">
+                                                                            <div className="flex flex-wrap gap-2">
+                                                                                {players.map((playerName, pIdx) => {
+                                                                                    // Try to find this player's ID from milestones
+                                                                                    const milestone = relatedMilestones.find(m => 
+                                                                                        m.player && m.player.includes(playerName)
+                                                                                    );
+                                                                                    const playerId = milestone ? milestone.playerId : null;
+                                                                                    
+                                                                                    if (playerId && playerId !== 'UNKNOWN') {
+                                                                                        return (
+                                                                                            <a 
+                                                                                                key={pIdx}
+                                                                                                href={`https://www.baseball-reference.com/players/${playerId.charAt(0).toLowerCase()}/${playerId}.shtml`}
+                                                                                                target="_blank"
+                                                                                                rel="noopener noreferrer"
+                                                                                                className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-full text-xs font-bold inline-flex items-center gap-1 transition-colors"
+                                                                                            >
+                                                                                                👤 {playerName}
+                                                                                            </a>
+                                                                                        );
+                                                                                    } else {
+                                                                                        return (
+                                                                                            <span key={pIdx} className="px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                                                                                👤 {playerName}
+                                                                                            </span>
+                                                                                        );
+                                                                                    }
+                                                                                })}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                    
+                                                                    {/* Team/stat details */}
+                                                                    {record.detail && (
+                                                                        <div className="mb-3 bg-gray-50 rounded-lg p-3">
+                                                                            <div className="small-text text-gray-700 leading-relaxed">
+                                                                                {record.detail}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                    
+                                                                    {/* Clickable score chips that link to games */}
+                                                                    {scores.length > 0 && gameIds.length > 0 && (
+                                                                        <div>
+                                                                            <details open={scores.length <= 4}>
+                                                                                <summary className="cursor-pointer small-text font-bold text-gray-700 mb-2 hover:text-blue-600">
+                                                                                    📊 {scores.length} Game{scores.length !== 1 ? 's' : ''} {scores.length > 4 ? '(click to expand)' : ''}
+                                                                                </summary>
+                                                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                                                    {scores.map((score, sIdx) => {
+                                                                                        const gameId = gameIds[sIdx];
+                                                                                        if (!gameId || gameId === 'UNKNOWN') {
+                                                                                            return (
+                                                                                                <span key={sIdx} className="px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 text-blue-900 rounded-lg font-mono text-xs font-bold">
+                                                                                                    {score}
+                                                                                                </span>
+                                                                                            );
+                                                                                        }
+                                                                                        
+                                                                                        const teamCode = gameId.substring(0, 3);
+                                                                                        const url = `https://www.baseball-reference.com/boxes/${teamCode}/${gameId}.shtml`;
+                                                                                        
+                                                                                        return (
+                                                                                            <a 
+                                                                                                key={sIdx}
+                                                                                                href={url}
+                                                                                                target="_blank"
+                                                                                                rel="noopener noreferrer"
+                                                                                                className="px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-400 text-blue-900 rounded-lg font-mono text-xs font-bold transition-all hover:shadow-md inline-block"
+                                                                                                title={`View game: ${gameId}`}
+                                                                                            >
+                                                                                                {score}
+                                                                                            </a>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+                                                                            </details>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </details>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })()}
+                    {/* Quick Stats Grid - Key Numbers */}
                     <div className="bg-white rounded-lg shadow">
                         <div className="p-4 border-b">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="section-title font-bold">📊 Complete Summary Statistics</h2>
-                                <div className="body-text text-gray-500">{(data.summary || []).length} records</div>
+                            <h2 className="section-title font-bold">⚡ Key Numbers</h2>
+                        </div>
+                        <div className="p-6">
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                {(() => {
+                                    const keyStats = [
+                                        { label: 'Total Games', value: filteredGames.length, color: 'blue' },
+                                        { label: 'Players Seen', value: (data.players || []).length, color: 'green' },
+                                        { label: 'Pitchers Seen', value: (data.pitchers || []).length, color: 'purple' },
+                                        { label: 'Teams Seen', value: (data.teams || []).length, color: 'orange' },
+                                        { label: 'Stadiums', value: (data.stadiums || []).length, color: 'blue' },
+                                        { label: 'Milestones', value: (data.milestones || []).length, color: 'purple' },
+                                    ];
+                                    
+                                    return keyStats.map((stat, idx) => (
+                                        <div key={idx} className={`bg-${stat.color}-50 rounded-lg p-4 text-center border-2 border-${stat.color}-200`}>
+                                            <div className={`text-3xl font-bold text-${stat.color}-600 mb-1`}>{stat.value}</div>
+                                            <div className="small-text text-gray-600 font-medium">{stat.label}</div>
+                                        </div>
+                                    ));
+                                })()}
                             </div>
-                            <input 
-                                type="text" 
-                                placeholder="Search records (e.g., 'home run', 'strikeout', 'runs')..."
-                                className="w-full px-4 py-2 body-text border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                                onInput={(e) => {
-                                    const searchTerm = e.target.value.toLowerCase();
-                                    const rows = document.querySelectorAll('.summary-row');
-                                    rows.forEach(row => {
-                                        const text = row.textContent.toLowerCase();
-                                        row.style.display = text.includes(searchTerm) ? '' : 'none';
-                                    });
-                                }}
-                            />
-                        </div>
-                        <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                            <table className="w-full">
-                                <thead className="bg-gray-50 border-b-2 border-gray-200 sticky top-0">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left small-text font-bold text-gray-600 uppercase w-1/4">Record</th>
-                                        <th className="px-4 py-3 text-left small-text font-bold text-gray-600 uppercase w-1/6">Value</th>
-                                        <th className="px-4 py-3 text-left small-text font-bold text-gray-600 uppercase">Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {(data.summary || []).map((row, idx) => {
-                                        // Check if this is a section header (emoji indicators)
-                                        const isSectionHeader = /^[🟩🟠🟤🟣🔵🔴🧢⚫️⚪️📊🟡🟪]/.test(row.record);
-                                        
-                                        if (isSectionHeader) {
-                                            return (
-                                                <tr key={idx} className="bg-blue-50 summary-row">
-                                                    <td colSpan="3" className="px-4 py-3 body-text font-bold text-blue-900">
-                                                        {row.record}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        }
-                                        
-                                        return (
-                                            <tr key={idx} className="hover:bg-blue-50 summary-row transition-colors">
-                                                <td className="px-4 py-3 body-text font-semibold text-gray-900">{row.record}</td>
-                                                <td className="px-4 py-3 body-text text-blue-600 font-bold">{row.value}</td>
-                                                <td className="px-4 py-3 body-text text-gray-600">
-                                                    {row.detail && row.detail.length > 100 ? (
-                                                        <details>
-                                                            <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
-                                                                Show details...
-                                                            </summary>
-                                                            <div className="mt-2 text-gray-700">{row.detail}</div>
-                                                        </details>
-                                                    ) : row.detail}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    {/* Category Quick Links */}
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <h3 className="subsection-title font-bold mb-3">Jump to Category</h3>
-                        <div className="flex flex-wrap gap-2">
-                            {[
-                                '🟩 Game Format', '🟠 Hitting', '🟤 Pitching', '🟣 Home Runs',
-                                '🔵 Offensive', '🔴 Pitching Records', '📊 Leaders', '🟡 Coverage'
-                            ].map((category, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => {
-                                        const searchInput = document.querySelector('input[placeholder*="Search"]');
-                                        if (searchInput) {
-                                            const categoryText = category.substring(2);
-                                            searchInput.value = categoryText;
-                                            const event = new Event('input', { bubbles: true });
-                                            searchInput.dispatchEvent(event);
-                                        }
-                                    }}
-                                    className="px-3 py-1.5 body-text bg-gray-100 hover:bg-blue-100 rounded-lg transition-colors"
-                                >
-                                    {category}
-                                </button>
-                            ))}
-                            <button
-                                onClick={() => {
-                                    const searchInput = document.querySelector('input[placeholder*="Search"]');
-                                    if (searchInput) {
-                                        searchInput.value = '';
-                                        const event = new Event('input', { bubbles: true });
-                                        searchInput.dispatchEvent(event);
-                                    }
-                                }}
-                                className="px-3 py-1.5 body-text bg-red-100 hover:bg-red-200 rounded-lg transition-colors font-semibold"
-                            >
-                                Clear
-                            </button>
                         </div>
                     </div>
                 </div>
