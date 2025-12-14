@@ -696,10 +696,206 @@ def write_milestone_sheets(xl, data, workbook, colors):
     except Exception as e:
         print(f"❌ Error writing milestone sheets: {e}")
 
+def write_weather_timing_sheet(xl, weather_tracker, workbook, colors):
+    """Write the Weather & Timing statistics sheet."""
+    weather_stats = weather_tracker.get_summary_stats()
+    weather_rows = []
+    for key, value in weather_stats.items():
+        if isinstance(value, dict):
+            for sub_key, sub_value in value.items():
+                weather_rows.append({
+                    "Statistic": f"{key} - {sub_key}".replace('_', ' ').title(),
+                    "Value": str(sub_value)
+                })
+        else:
+            weather_rows.append({
+                "Statistic": key.replace('_', ' ').title(),
+                "Value": str(value)
+            })
+    df_weather = pd.DataFrame(weather_rows)
+    if not df_weather.empty:
+        safe_write_sheet(xl, df_weather, "Weather & Timing", format_sheet_comprehensively,
+                       workbook=workbook, colors=colors, sheet_type="default", exclude_cols=[])
+
+def write_wpa_sheet(xl, saber_tracker, workbook, colors):
+    """Write the WPA Leaders sheet."""
+    df_wpa = saber_tracker.create_wpa_dataframe()
+    if not df_wpa.empty:
+        safe_write_sheet(xl, df_wpa, "WPA Leaders", format_sheet_comprehensively,
+                       workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
+        
+        ws_wpa = xl.sheets["WPA Leaders"]
+        wpa_int_formats = {
+            "Games": ("0", "center")
+        }
+        apply_column_number_formatting(ws_wpa, df_wpa, wpa_int_formats, workbook, colors)
+        apply_advanced_stat_formatting(ws_wpa, df_wpa, ["Total WPA", "Avg WPA", "Positive WPA", "Negative WPA", "Best Game WPA", "Worst Game WPA"], workbook, colors)
+                
+def write_risp_sheet(xl, situation_tracker, workbook, colors):
+    """Write the RISP Performance sheet."""
+    from ..utils.log import debug
+    
+    df_risp = situation_tracker.create_risp_dataframe(min_ab=5)
+    debug(f"\nRISP Debug: {len(df_risp)} rows (min_ab=5)")
+    risp_any = sum(1 for s in situation_tracker.player_situations.values() if s['risp_ab'] > 0)
+    debug(f"   Players with ANY RISP AB: {risp_any}")
+    
+    if not df_risp.empty:
+        safe_write_sheet(xl, df_risp, "RISP Performance", format_sheet_comprehensively,
+                       workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
+        
+        ws_risp = xl.sheets["RISP Performance"]
+        risp_int_formats = {
+            "RISP AB": ("0", "center"),
+            "RISP H": ("0", "center"),
+            "RISP HR": ("0", "center"),
+            "RISP RBI": ("0", "center")
+        }
+        apply_column_number_formatting(ws_risp, df_risp, risp_int_formats, workbook, colors)
+        apply_advanced_stat_formatting(ws_risp, df_risp, ["RISP AVG"], workbook, colors)
+    else:
+        debug(f"   RISP Performance tab is EMPTY (no players with 5+ RISP AB)")
+
+def write_two_out_sheet(xl, situation_tracker, workbook, colors):
+    """Write the 2-Out Performance sheet."""
+    df_two_out = situation_tracker.create_two_out_dataframe(min_ab=5)
+    if not df_two_out.empty:
+        safe_write_sheet(xl, df_two_out, "2-Out Performance", format_sheet_comprehensively,
+                       workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
+        
+        ws_two_out = xl.sheets["2-Out Performance"]
+        two_out_int_formats = {
+            "2-Out AB": ("0", "center"),
+            "2-Out H": ("0", "center"),
+            "2-Out HR": ("0", "center")
+        }
+        apply_column_number_formatting(ws_two_out, df_two_out, two_out_int_formats, workbook, colors)
+        apply_advanced_stat_formatting(ws_two_out, df_two_out, ["2-Out AVG"], workbook, colors)
+
+def write_risp_two_out_sheet(xl, situation_tracker, workbook, colors):
+    """Write the RISP + 2 Outs sheet."""
+    from ..utils.log import debug
+    
+    df_risp_2out = situation_tracker.create_clutch_situations_dataframe(min_ab=3)
+    debug(f"RISP+2Out Debug: {len(df_risp_2out)} rows (min_ab=3)")
+    risp_2out_any = sum(1 for s in situation_tracker.player_situations.values() if s['risp_2out_ab'] > 0)
+    debug(f"   Players with ANY RISP+2Out AB: {risp_2out_any}")
+    
+    if not df_risp_2out.empty:
+        safe_write_sheet(xl, df_risp_2out, "RISP + 2 Outs", format_sheet_comprehensively,
+                       workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
+        
+        ws_risp_2out = xl.sheets["RISP + 2 Outs"]
+        risp_2out_int_formats = {
+            "RISP+2Out AB": ("0", "center"),
+            "RISP+2Out H": ("0", "center"),
+            "RISP+2Out HR": ("0", "center")
+        }
+        apply_column_number_formatting(ws_risp_2out, df_risp_2out, risp_2out_int_formats, workbook, colors)
+        apply_advanced_stat_formatting(ws_risp_2out, df_risp_2out, ["RISP+2Out AVG"], workbook, colors)
+    else:
+        debug(f"   RISP+2Out tab is EMPTY (no players with 3+ RISP+2Out AB)")
+
+def write_bases_loaded_sheet(xl, situation_tracker, workbook, colors):
+    """Write the Bases Loaded sheet."""
+    from ..utils.log import debug
+    
+    df_bases_loaded = situation_tracker.create_bases_loaded_dataframe()
+    debug(f"Bases Loaded Debug: {len(df_bases_loaded)} rows")
+    bases_any = sum(1 for s in situation_tracker.player_situations.values() if s['bases_loaded_ab'] > 0)
+    debug(f"   Players with ANY bases loaded AB: {bases_any}")
+    
+    if not df_bases_loaded.empty:
+        safe_write_sheet(xl, df_bases_loaded, "Bases Loaded", format_sheet_comprehensively,
+                       workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
+        
+        ws_bases = xl.sheets["Bases Loaded"]
+        bases_int_formats = {
+            "Bases Loaded AB": ("0", "center"),
+            "Bases Loaded H": ("0", "center"),
+            "Bases Loaded HR": ("0", "center"),
+            "Grand Slams": ("0", "center")
+        }
+        apply_column_number_formatting(ws_bases, df_bases_loaded, bases_int_formats, workbook, colors)
+        apply_advanced_stat_formatting(ws_bases, df_bases_loaded, ["Bases Loaded AVG"], workbook, colors)
+    else:
+        debug(f"   Bases Loaded tab is EMPTY (no bases loaded opportunities)")
+
+def write_late_close_sheet(xl, situation_tracker, workbook, colors):
+    """Write the Late & Close sheet."""
+    df_late_close = situation_tracker.create_late_close_dataframe(min_ab=5)
+    if not df_late_close.empty:
+        safe_write_sheet(xl, df_late_close, "Late & Close", format_sheet_comprehensively,
+                       workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
+        
+        ws_late = xl.sheets["Late & Close"]
+        late_int_formats = {
+            "Late/Close AB": ("0", "center"),
+            "Late/Close H": ("0", "center"),
+            "Late/Close HR": ("0", "center")
+        }
+        apply_column_number_formatting(ws_late, df_late_close, late_int_formats, workbook, colors)
+        apply_advanced_stat_formatting(ws_late, df_late_close, ["Late/Close AVG"], workbook, colors)
+
+def write_defensive_leaders_sheet(xl, defense_tracker, workbook, colors):
+    """Write the Defensive Leaders sheet."""
+    df_defense = defense_tracker.create_defensive_leaders_dataframe(min_games=1)
+    if not df_defense.empty:
+        safe_write_sheet(xl, df_defense, "Defensive Leaders", format_sheet_comprehensively,
+                       workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
+        
+        ws_defense = xl.sheets["Defensive Leaders"]
+        defense_int_formats = {
+            "Games": ("0", "center"),
+            "PO": ("0", "center"),
+            "A": ("0", "center"),
+            "E": ("0", "center"),
+            "TC": ("0", "center")
+        }
+        apply_column_number_formatting(ws_defense, df_defense, defense_int_formats, workbook, colors)
+        apply_advanced_stat_formatting(ws_defense, df_defense, ["Fielding %"], workbook, colors)
+
+def write_lineup_analysis_sheet(xl, defense_tracker, workbook, colors):
+    """Write the Lineup Analysis sheet."""
+    df_lineup = defense_tracker.create_lineup_analysis_dataframe(min_games=1)
+    if not df_lineup.empty:
+        safe_write_sheet(xl, df_lineup, "Lineup Analysis", format_sheet_comprehensively,
+                       workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
+        
+        ws_lineup = xl.sheets["Lineup Analysis"]
+        lineup_int_formats = {
+            "Games": ("0", "center"),
+            "Most Common Spot": ("0", "center"),
+            "Times in Spot": ("0", "center"),
+            "Pinch Hits": ("0", "center"),
+            "Lineup Versatility": ("0", "center")
+        }
+        apply_column_number_formatting(ws_lineup, df_lineup, lineup_int_formats, workbook, colors)
+        apply_advanced_stat_formatting(ws_lineup, df_lineup, ["AVG", "OBP", "SLG", "OPS"], workbook, colors)
+
+def write_lineup_matrix_sheet(xl, defense_tracker):
+    """Write the Lineup Position Matrix sheet."""
+    df_lineup_matrix = defense_tracker.create_lineup_position_matrix()
+    if not df_lineup_matrix.empty:
+        df_lineup_matrix.to_excel(xl, sheet_name="Lineup Matrix")
+        ws_lineup_matrix = xl.sheets["Lineup Matrix"]
+        
+        # Apply conditional formatting to show lineup patterns
+        if len(df_lineup_matrix) > 0:
+            cell_range = f"B2:{xl_col_to_name(len(df_lineup_matrix.columns))}{len(df_lineup_matrix) + 1}"
+            ws_lineup_matrix.conditional_format(cell_range, {
+                "type": "2_color_scale",
+                "min_type": "num",
+                "min_value": 1,
+                "min_color": "#C6EFCE",
+                "max_type": "max",
+                "max_color": "#66BB6A"
+            })
+
 def write_enhanced_stats_sheets(xl, data, workbook, colors):
     """Write enhanced statistics sheets."""
     try:
-        print("📊 Adding enhanced statistics tabs...")
+        info("📊 Adding enhanced statistics tabs...")
         
         # Get trackers from data
         weather_tracker = data.get('weather_tracker')
@@ -708,193 +904,26 @@ def write_enhanced_stats_sheets(xl, data, workbook, colors):
         defense_tracker = data.get('defense_tracker')
         
         if not all([weather_tracker, saber_tracker, situation_tracker, defense_tracker]):
-            print("   ⚠️ Enhanced trackers not found in data, skipping enhanced sheets")
+            info("   ⚠️ Enhanced trackers not found in data, skipping enhanced sheets")
             return
         
-        # 1. Weather & Timing Summary
-        weather_stats = weather_tracker.get_summary_stats()
-        weather_rows = []
-        for key, value in weather_stats.items():
-            if isinstance(value, dict):
-                for sub_key, sub_value in value.items():
-                    weather_rows.append({
-                        "Statistic": f"{key} - {sub_key}".replace('_', ' ').title(),
-                        "Value": str(sub_value)
-                    })
-            else:
-                weather_rows.append({
-                    "Statistic": key.replace('_', ' ').title(),
-                    "Value": str(value)
-                })
-        df_weather = pd.DataFrame(weather_rows)
-        if not df_weather.empty:
-            safe_write_sheet(xl, df_weather, "Weather & Timing", format_sheet_comprehensively,
-                           workbook=workbook, colors=colors, sheet_type="default", exclude_cols=[])
+        # Write each sheet using dedicated functions
+        write_weather_timing_sheet(xl, weather_tracker, workbook, colors)
+        write_wpa_sheet(xl, saber_tracker, workbook, colors)
+        write_risp_sheet(xl, situation_tracker, workbook, colors)
+        write_two_out_sheet(xl, situation_tracker, workbook, colors)
+        write_risp_two_out_sheet(xl, situation_tracker, workbook, colors)
+        write_bases_loaded_sheet(xl, situation_tracker, workbook, colors)
+        write_late_close_sheet(xl, situation_tracker, workbook, colors)
+        write_defensive_leaders_sheet(xl, defense_tracker, workbook, colors)
+        write_lineup_analysis_sheet(xl, defense_tracker, workbook, colors)
+        write_lineup_matrix_sheet(xl, defense_tracker)
         
-        # 2. WPA Leaders
-        df_wpa = saber_tracker.create_wpa_dataframe()
-        if not df_wpa.empty:
-            safe_write_sheet(xl, df_wpa, "WPA Leaders", format_sheet_comprehensively,
-                           workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
-            
-            ws_wpa = xl.sheets["WPA Leaders"]
-            wpa_int_formats = {
-                "Games": ("0", "center")
-            }
-            apply_column_number_formatting(ws_wpa, df_wpa, wpa_int_formats, workbook, colors)
-            apply_advanced_stat_formatting(ws_wpa, df_wpa, ["Total WPA", "Avg WPA", "Positive WPA", "Negative WPA", "Best Game WPA", "Worst Game WPA"], workbook, colors)
-        
-        # 3. RISP Performance (with debug)
-        df_risp = situation_tracker.create_risp_dataframe(min_ab=5)
-        debug(f"\nRISP Debug: {len(df_risp)} rows (min_ab=5)")
-        risp_any = sum(1 for s in situation_tracker.player_situations.values() if s['risp_ab'] > 0)
-        debug(f"   Players with ANY RISP AB: {risp_any}")
-        
-        if not df_risp.empty:
-            safe_write_sheet(xl, df_risp, "RISP Performance", format_sheet_comprehensively,
-                           workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
-            
-            ws_risp = xl.sheets["RISP Performance"]
-            risp_int_formats = {
-                "RISP AB": ("0", "center"),
-                "RISP H": ("0", "center"),
-                "RISP HR": ("0", "center"),
-                "RISP RBI": ("0", "center")
-            }
-            apply_column_number_formatting(ws_risp, df_risp, risp_int_formats, workbook, colors)
-            apply_advanced_stat_formatting(ws_risp, df_risp, ["RISP AVG"], workbook, colors)
-        else:
-            debug(f"   RISP Performance tab is EMPTY (no players with 5+ RISP AB)")
-
-        # 4. 2-Out Performance
-        df_two_out = situation_tracker.create_two_out_dataframe(min_ab=5)
-        if not df_two_out.empty:
-            safe_write_sheet(xl, df_two_out, "2-Out Performance", format_sheet_comprehensively,
-                           workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
-            
-            ws_two_out = xl.sheets["2-Out Performance"]
-            two_out_int_formats = {
-                "2-Out AB": ("0", "center"),
-                "2-Out H": ("0", "center"),
-                "2-Out HR": ("0", "center")
-            }
-            apply_column_number_formatting(ws_two_out, df_two_out, two_out_int_formats, workbook, colors)
-            apply_advanced_stat_formatting(ws_two_out, df_two_out, ["2-Out AVG"], workbook, colors)
-        
-        # 5. RISP + 2 Outs (with debug)
-        df_risp_2out = situation_tracker.create_clutch_situations_dataframe(min_ab=3)
-        debug(f"RISP+2Out Debug: {len(df_risp_2out)} rows (min_ab=3)")
-        risp_2out_any = sum(1 for s in situation_tracker.player_situations.values() if s['risp_2out_ab'] > 0)
-        debug(f"   Players with ANY RISP+2Out AB: {risp_2out_any}")
-        
-        if not df_risp_2out.empty:
-            safe_write_sheet(xl, df_risp_2out, "RISP + 2 Outs", format_sheet_comprehensively,
-                           workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
-            
-            ws_risp_2out = xl.sheets["RISP + 2 Outs"]
-            risp_2out_int_formats = {
-                "RISP+2Out AB": ("0", "center"),
-                "RISP+2Out H": ("0", "center"),
-                "RISP+2Out HR": ("0", "center")
-            }
-            apply_column_number_formatting(ws_risp_2out, df_risp_2out, risp_2out_int_formats, workbook, colors)
-            apply_advanced_stat_formatting(ws_risp_2out, df_risp_2out, ["RISP+2Out AVG"], workbook, colors)
-        else:
-            debug(f"   RISP+2Out tab is EMPTY (no players with 3+ RISP+2Out AB)")
-        
-        # 6. Bases Loaded (with debug)
-        df_bases_loaded = situation_tracker.create_bases_loaded_dataframe()
-        debug(f"Bases Loaded Debug: {len(df_bases_loaded)} rows")
-        bases_any = sum(1 for s in situation_tracker.player_situations.values() if s['bases_loaded_ab'] > 0)
-        debug(f"   Players with ANY bases loaded AB: {bases_any}")
-        
-        if not df_bases_loaded.empty:
-            safe_write_sheet(xl, df_bases_loaded, "Bases Loaded", format_sheet_comprehensively,
-                           workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
-            
-            ws_bases = xl.sheets["Bases Loaded"]
-            bases_int_formats = {
-                "Bases Loaded AB": ("0", "center"),
-                "Bases Loaded H": ("0", "center"),
-                "Bases Loaded HR": ("0", "center"),
-                "Grand Slams": ("0", "center")
-            }
-            apply_column_number_formatting(ws_bases, df_bases_loaded, bases_int_formats, workbook, colors)
-            apply_advanced_stat_formatting(ws_bases, df_bases_loaded, ["Bases Loaded AVG"], workbook, colors)
-        else:
-            debug(f"   Bases Loaded tab is EMPTY (no bases loaded opportunities)")
-        
-        # 7. Late & Close
-        df_late_close = situation_tracker.create_late_close_dataframe(min_ab=5)
-        if not df_late_close.empty:
-            safe_write_sheet(xl, df_late_close, "Late & Close", format_sheet_comprehensively,
-                           workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
-            
-            ws_late = xl.sheets["Late & Close"]
-            late_int_formats = {
-                "Late/Close AB": ("0", "center"),
-                "Late/Close H": ("0", "center"),
-                "Late/Close HR": ("0", "center")
-            }
-            apply_column_number_formatting(ws_late, df_late_close, late_int_formats, workbook, colors)
-            apply_advanced_stat_formatting(ws_late, df_late_close, ["Late/Close AVG"], workbook, colors)
-        
-        # 9. Defensive Leaders
-        df_defense = defense_tracker.create_defensive_leaders_dataframe(min_games=1)
-        if not df_defense.empty:
-            safe_write_sheet(xl, df_defense, "Defensive Leaders", format_sheet_comprehensively,
-                           workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
-            
-            ws_defense = xl.sheets["Defensive Leaders"]
-            defense_int_formats = {
-                "Games": ("0", "center"),
-                "PO": ("0", "center"),
-                "A": ("0", "center"),
-                "E": ("0", "center"),
-                "TC": ("0", "center")
-            }
-            apply_column_number_formatting(ws_defense, df_defense, defense_int_formats, workbook, colors)
-            apply_advanced_stat_formatting(ws_defense, df_defense, ["Fielding %"], workbook, colors)
-        
-        # 10. Lineup Analysis
-        df_lineup = defense_tracker.create_lineup_analysis_dataframe(min_games=1)
-        if not df_lineup.empty:
-            safe_write_sheet(xl, df_lineup, "Lineup Analysis", format_sheet_comprehensively,
-                           workbook=workbook, colors=colors, sheet_type="stats", exclude_cols=[])
-            
-            ws_lineup = xl.sheets["Lineup Analysis"]
-            lineup_int_formats = {
-                "Games": ("0", "center"),
-                "Most Common Spot": ("0", "center"),
-                "Times in Spot": ("0", "center"),
-                "Pinch Hits": ("0", "center"),
-                "Lineup Versatility": ("0", "center")
-            }
-            apply_column_number_formatting(ws_lineup, df_lineup, lineup_int_formats, workbook, colors)
-        
-        # 11. Lineup Position Matrix
-        df_lineup_matrix = defense_tracker.create_lineup_position_matrix()
-        if not df_lineup_matrix.empty:
-            df_lineup_matrix.to_excel(xl, sheet_name="Lineup Matrix")
-            ws_lineup_matrix = xl.sheets["Lineup Matrix"]
-            
-            # Apply conditional formatting to show lineup patterns
-            if len(df_lineup_matrix) > 0:
-                cell_range = f"B2:{xl_col_to_name(len(df_lineup_matrix.columns))}{len(df_lineup_matrix) + 1}"
-                ws_lineup_matrix.conditional_format(cell_range, {
-                    "type": "2_color_scale",
-                    "min_type": "num",
-                    "min_value": 1,
-                    "min_color": "#C6EFCE",
-                    "max_type": "max",
-                    "max_color": "#66BB6A"
-                })
-        
-        print("✅ Enhanced statistics tabs added!")
+        info("✅ Enhanced statistics tabs added!")
         
     except Exception as e:
         print(f"❌ Error writing enhanced stats sheets: {e}")
-
+        
 def write_analysis_sheets(xl, data, games, workbook, colors, umpire_tracker):
     """Write analysis sheets (Matchup Matrix, Scorigami, Calendar, Summary)."""
     try:
