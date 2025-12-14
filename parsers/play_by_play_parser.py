@@ -1,5 +1,6 @@
 import re
 from bs4 import BeautifulSoup, Comment
+from ..utils.log import debug
 
 def extract_play_by_play(soup, away_team, home_team):
     """Parse the play-by-play table.
@@ -331,7 +332,7 @@ def extract_substitutions_from_html(soup):
                         
                         # Type 1: Initial pinch hit substitution
                         if 'pinch hits for' in div_text.lower():
-                            print(f"🔄 Found pinch hit: '{div_text}'")
+                            debug(f"Found pinch hit: '{div_text}'")
                             
                             match = re.search(r'([^,\n]+?)\s+pinch hits for\s+([^,\(\n]+)', div_text, re.IGNORECASE)
                             if match:
@@ -397,7 +398,7 @@ def extract_substitutions_from_html(soup):
                                 except Exception as e:
                                     print(f"   ⚠️ Could not extract inning from HTML structure: {e}")
 
-                                print(f"   🔍 Extracted inning {actual_inning} for {pinch_hitter}")
+                                debug(f"Extracted inning {actual_inning} for {pinch_hitter}")
 
                                 substitutions.append({
                                     'type': 'pinch_hit',
@@ -407,11 +408,11 @@ def extract_substitutions_from_html(soup):
                                     'text': div_text
                                 })
                                 
-                                print(f"✅ Extracted pinch hit: {pinch_hitter} replaces {replaced_player}")
+                                debug(f"Extracted pinch hit: {pinch_hitter} replaces {replaced_player}")
                         
                         # Type 2: Pinch hitter moves to defensive position (NO LONGER PINCH HITTING)
                         elif 'moves from PH to' in div_text:
-                            print(f"🔄 Found PH→defense move: '{div_text}'")
+                            debug(f"Found PH→defense move: '{div_text}'")
                             
                             match = re.search(r'([^,\n]+?)\s+moves from PH to\s+([A-Z0-9]+)', div_text, re.IGNORECASE)
                             if match:
@@ -428,13 +429,13 @@ def extract_substitutions_from_html(soup):
                                     'text': div_text
                                 })
                                 
-                                print(f"✅ Extracted PH→defense: {player_name} moves to {new_position}")
+                                debug(f"Extracted PH→defense: {player_name} moves to {new_position}")
                 
             except Exception as e:
-                print(f"   ❌ Error parsing comment {i}: {e}")
+                debug(f"Error parsing comment {i}: {e}")
                 continue
     
-    print(f"📊 Total substitutions found: {len(substitutions)}")
+    debug(f"Total substitutions found: {len(substitutions)}")
     return substitutions
 
 
@@ -506,7 +507,7 @@ def extract_play_features(play_description):
                     if re.search(r'[A-Z][\w\.\-\']+(?: [A-Z][\w\.\-\']+)*\s+Scores\b', part):
                         scores_count += 1
                         if features.get('inside_the_park_hr'):
-                            print(f"      Found runner scoring: {part.strip()}")
+                            debug(f"Found runner scoring: {part.strip()}")
                 
                 # Also check for lowercase "scored"
                 scored_pattern = r'([A-Z][\w\.\-\']+(?: [A-Z][\w\.\-\']+)*)\s+scored\b'
@@ -517,9 +518,9 @@ def extract_play_features(play_description):
                 features['rbi'] += scores_count
                 
                 if features.get('inside_the_park_hr'):
-                    print(f"      Batter scores: 1 RBI")
-                    print(f"      Additional runners: {scores_count}")
-                    print(f"      Total RBIs: {features['rbi']}")
+                    debug(f"Batter scores: 1 RBI")
+                    debug(f"Additional runners: {scores_count}")
+                    debug(f"Total RBIs: {features['rbi']}")
                 
                 # Fallback patterns
                 if features['rbi'] == 1:  # Only if we haven't found other runners

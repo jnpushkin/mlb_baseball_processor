@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup, Comment
 
 from ..utils.constants import RETROSHEET_CODES, LABEL_MAP
 from ..utils.helpers import standardize_team_code, normalize_name, normalize_umpire_name
+from ..utils.log import debug, warn
 from ..engines.milestone_engine import MilestoneEngine
 from ..engines.special_events_engine import SpecialEventsEngine
 from .stats_parser import extract_batting_stats, extract_pitching_stats, assign_pitcher_decisions
@@ -112,7 +113,7 @@ def extract_basic_info(soup):
         info['away_team'] = teams_match.group(1).strip().split(',')[-1].strip()
         info['home_team'] = teams_match.group(2).strip()
     else:
-        print("⚠️ Could not extract teams from title:", title)
+        warn(f"Could not extract teams from title: {title}")
 
     scorebox_meta = soup.select_one('.scorebox_meta')
     if scorebox_meta:
@@ -191,10 +192,10 @@ def extract_basic_info(soup):
                                 info['temperature_f'] = temp_val
                                 break
                             except Exception as e:
-                                print(f"❌ Error converting temperature: {e}")
+                                debug(f"Error converting temperature: {e}")
                     
                     if 'temperature_f' not in info:
-                        print(f"❌ No temperature found in weather: '{weather_text}'")
+                        debug(f"No temperature found in weather: '{weather_text}'")
                         
         except Exception as e:
             # Skip malformed comments

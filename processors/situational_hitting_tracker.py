@@ -5,6 +5,7 @@ Analyzes performance with runners in scoring position, 2 outs, bases loaded, etc
 
 import pandas as pd
 from collections import defaultdict
+from ..utils.log import debug
 
 class SituationalHittingTracker:
     """Track hitting performance in different game situations."""
@@ -159,7 +160,7 @@ class SituationalHittingTracker:
             if risp and not hasattr(self, '_debug_count'):
                 self._debug_count = 0
             if risp and self._debug_count < 5:
-                print(f"   DEBUG RISP situation: runners='{runners}', batter={batter_name_normalized}, is_pa={is_pa}")
+                debug(f"RISP situation: runners='{runners}', batter={batter_name_normalized}, is_pa={is_pa}")
                 self._debug_count += 1
             
             # Track RISP situations

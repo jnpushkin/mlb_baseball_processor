@@ -3,6 +3,7 @@ import unicodedata
 from ..utils.stat_utils import StatUtils
 from ..utils.helpers import standardize_team_code
 from ..excel.generators import ExcelGeneratorUtils
+from ..utils.log import debug
 
 class MilestoneEngine:
     def __init__(self, game_data):
@@ -83,7 +84,7 @@ class MilestoneEngine:
             footer_count = self.get_footer_stat_count(player_name, team_type, stat_key)
             if footer_count > 0:
                 stats[stat_key] = footer_count
-                print(f"DEBUG: Using footer {stat_key} for {player_name}: {footer_count}")
+                debug(f"Using footer {stat_key} for {player_name}: {footer_count}")
         
         return stats
 
@@ -155,15 +156,14 @@ class MilestoneEngine:
         hr_count = stats['home_runs']
 
         if stats['home_runs'] >= 2:
-            print(f"DEBUG: Found multi-HR game for {stats['player']}: {stats['home_runs']} HRs")
+            debug(f"Found multi-HR game for {stats['player']}: {stats['home_runs']} HRs")
             ms['multi_hr_games'].append(stats)
 
         if all(stats[k] > 0 for k in ['singles', 'doubles', 'triples', 'home_runs']):
             ms['cycles'].append(stats)
 
         if stats['hits'] >= 4:
-            # DEBUG: Check what stats are being passed for 4+ hit games
-            print(f"DEBUG: 4+ Hit Game - {player_name}: HR={stats.get('home_runs', 'MISSING')}, 2B={stats.get('doubles', 'MISSING')}, 3B={stats.get('triples', 'MISSING')}, H={stats.get('hits', 'MISSING')}")
+            debug(f"4+ Hit Game - {player_name}: HR={stats.get('home_runs', 'MISSING')}, 2B={stats.get('doubles', 'MISSING')}, 3B={stats.get('triples', 'MISSING')}, H={stats.get('hits', 'MISSING')}")
             ms['four_hit_games'].append(stats)
 
         if stats['rbi'] >= 5:
@@ -206,7 +206,7 @@ class MilestoneEngine:
                         if batting_name_normalized == footer_name_normalized:
                             player_id = player.get('player_id', '')
                             player_box_stats = player
-                            print(f"DEBUG: Matched footer '{name}' to batting '{player.get('name', '')}' via normalization")
+                            debug(f"Matched footer '{name}' to batting '{player.get('name', '')}' via normalization")
                             break
                     
                     # FIXED: Skip if already processed
@@ -225,7 +225,7 @@ class MilestoneEngine:
                     bb = enhanced_stats.get('BB', 0)
                     so = enhanced_stats.get('SO', 0)
                     
-                    print(f"DEBUG: Found multi-HR from footer for {name}: {count} HRs, {doubles} 2B, {triples} 3B")
+                    debug(f"Found multi-HR from footer for {name}: {count} HRs, {doubles} 2B, {triples} 3B")
                     self.game_data['milestone_stats']['multi_hr_games'].append({
                         "player": name,
                         "player_id": player_id,
@@ -321,17 +321,17 @@ class MilestoneEngine:
                     'final_score': final_score
                 }
 
-                # DEBUG OUTPUT
-                print(f"\n{'='*60}")
-                print(f"PITCHER: {name} ({team_type})")
-                print(f"{'='*60}")
-                print(f"IP: {ip}, Outs: {outs}, Runs: {runs}, SO: {so}, ER: {er}")
-                print(f"Team innings: {team_innings}, Required outs: {team_innings * 3}")
-                print(f"Check CG: {outs} >= {team_innings * 3}? {outs >= team_innings * 3}")
-                print(f"Check QS: {outs} >= 18 and {er} <= 3? {outs >= 18 and er <= 3}")
+                # Debug output for pitcher analysis
+                debug(f"\n{'='*60}")
+                debug(f"PITCHER: {name} ({team_type})")
+                debug(f"{'='*60}")
+                debug(f"IP: {ip}, Outs: {outs}, Runs: {runs}, SO: {so}, ER: {er}")
+                debug(f"Team innings: {team_innings}, Required outs: {team_innings * 3}")
+                debug(f"Check CG: {outs} >= {team_innings * 3}? {outs >= team_innings * 3}")
+                debug(f"Check QS: {outs} >= 18 and {er} <= 3? {outs >= 18 and er <= 3}")
 
                 if so >= 10:
-                    print(f"✓ 10+ K Game detected")
+                    debug(f"✓ 10+ K Game detected")
                     milestone_common.update({
                         'hits': hits,
                         'walks': walks,
@@ -342,7 +342,7 @@ class MilestoneEngine:
                     ms['ten_k_games'].append(dict(milestone_common))
 
                 if outs >= team_innings * 3 and outs >= 27:
-                    print(f"✓✓✓ COMPLETE GAME DETECTED ✓✓✓")
+                    debug(f"✓✓✓ COMPLETE GAME DETECTED ✓✓✓")
                     milestone_common.update({
                         'hits': hits,
                         'walks': walks,
@@ -351,26 +351,26 @@ class MilestoneEngine:
                         'pitch_count': pitches
                     })
                     ms['complete_games'].append(dict(milestone_common))
-                    print(f"Complete games list now has {len(ms['complete_games'])} items")
+                    debug(f"Complete games list now has {len(ms['complete_games'])} items")
                     
                     if runs == 0:
-                        print(f"✓✓✓ SHUTOUT DETECTED ✓✓✓")
+                        debug(f"✓✓✓ SHUTOUT DETECTED ✓✓✓")
                         ms['shutouts'].append(dict(milestone_common))
-                        print(f"Shutouts list now has {len(ms['shutouts'])} items")
+                        debug(f"Shutouts list now has {len(ms['shutouts'])} items")
 
                     if hits == 0:
-                        print(f"✓✓✓ NO-HITTER DETECTED ✓✓✓")
+                        debug(f"✓✓✓ NO-HITTER DETECTED ✓✓✓")
                         ms['no_hitters'].append(dict(milestone_common))
                         
                     if runs == 0 and walks == 0 and hits == 0:
-                        print(f"✓✓✓ PERFECT GAME DETECTED ✓✓✓")
+                        debug(f"✓✓✓ PERFECT GAME DETECTED ✓✓✓")
                         ms['perfect_games'].append(dict(milestone_common))
                 else:
-                    print(f"✗ NOT a complete game")
+                    debug(f"✗ NOT a complete game")
 
                 # Quality starts (6+ IP, ≤3 ER)
                 if outs >= 18 and er <= 3:
-                    print(f"✓ Quality Start detected")
+                    debug(f"✓ Quality Start detected")
                     milestone_common.update({
                         'hits': hits,
                         'walks': walks,
@@ -381,4 +381,4 @@ class MilestoneEngine:
                     })
                     ms['quality_starts'].append(dict(milestone_common))
                 
-                print(f"{'='*60}\n")
+                debug(f"{'='*60}\n")

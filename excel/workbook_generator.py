@@ -21,6 +21,7 @@ from ..processors.defensive_lineup_tracker import DefensiveLineupTracker
 from ..utils.constants import BIOFILE_PATH, REGISTER_DIR
 from ..utils.helpers import load_final_game_dates, load_id_mapping, standardize_team_code, join_sorted_gameids, ensure_sorted_gameids
 from ..utils.stat_utils import StatUtils
+from ..utils.log import info, warn, debug
 
 # Constants
 GAMEID_WIDTH = 15
@@ -191,18 +192,18 @@ def process_all_game_data(games, debut_entries, hof_df):
         milestones, b2b_game_ids, b2b2b_game_ids, b2b2b2b_gameids, b2b_only_df, b2b2b_only_df, b2b2b2b_only_df, triple_play_df = milestone_processor.process_all_milestones()
         
         # DEBUG: Check 10+ K Games
-        print(f"\n🔍 10+ K GAMES DEBUG:")
+        debug(f"\n10+ K GAMES DEBUG:")
         ten_k_df = milestones.get("10+ K Games", pd.DataFrame())
-        print(f"   Rows in 10+ K Games: {len(ten_k_df)}")
+        debug(f"   Rows in 10+ K Games: {len(ten_k_df)}")
         if len(ten_k_df) > 0:
-            print(f"   Sample: {ten_k_df.head(1).to_dict('records')}")
+            debug(f"   Sample: {ten_k_df.head(1).to_dict('records')}")
         else:
             # Check if raw data exists
             sample_game = games[0] if games else {}
             milestone_stats = sample_game.get("milestone_stats", {})
             ten_k_raw = milestone_stats.get("ten_k_games", [])
-            print(f"   Raw ten_k_games in first game: {len(ten_k_raw)}")
-            print(f"   Sample game has milestone_stats: {'milestone_stats' in sample_game}")
+            debug(f"   Raw ten_k_games in first game: {len(ten_k_raw)}")
+            debug(f"   Sample game has milestone_stats: {'milestone_stats' in sample_game}")
 
         # Stadium and team records
         stadium_processor = StadiumRecordsProcessor(games)
@@ -745,9 +746,9 @@ def write_enhanced_stats_sheets(xl, data, workbook, colors):
         
         # 3. RISP Performance (with debug)
         df_risp = situation_tracker.create_risp_dataframe(min_ab=5)
-        print(f"\n   🔍 RISP Debug: {len(df_risp)} rows (min_ab=5)")
+        debug(f"\nRISP Debug: {len(df_risp)} rows (min_ab=5)")
         risp_any = sum(1 for s in situation_tracker.player_situations.values() if s['risp_ab'] > 0)
-        print(f"      Players with ANY RISP AB: {risp_any}")
+        debug(f"   Players with ANY RISP AB: {risp_any}")
         
         if not df_risp.empty:
             safe_write_sheet(xl, df_risp, "RISP Performance", format_sheet_comprehensively,
@@ -763,8 +764,8 @@ def write_enhanced_stats_sheets(xl, data, workbook, colors):
             apply_column_number_formatting(ws_risp, df_risp, risp_int_formats, workbook, colors)
             apply_advanced_stat_formatting(ws_risp, df_risp, ["RISP AVG"], workbook, colors)
         else:
-            print(f"      ⚠️ RISP Performance tab is EMPTY (no players with 5+ RISP AB)")
-        
+            debug(f"   RISP Performance tab is EMPTY (no players with 5+ RISP AB)")
+
         # 4. 2-Out Performance
         df_two_out = situation_tracker.create_two_out_dataframe(min_ab=5)
         if not df_two_out.empty:
@@ -782,9 +783,9 @@ def write_enhanced_stats_sheets(xl, data, workbook, colors):
         
         # 5. RISP + 2 Outs (with debug)
         df_risp_2out = situation_tracker.create_clutch_situations_dataframe(min_ab=3)
-        print(f"   🔍 RISP+2Out Debug: {len(df_risp_2out)} rows (min_ab=3)")
+        debug(f"RISP+2Out Debug: {len(df_risp_2out)} rows (min_ab=3)")
         risp_2out_any = sum(1 for s in situation_tracker.player_situations.values() if s['risp_2out_ab'] > 0)
-        print(f"      Players with ANY RISP+2Out AB: {risp_2out_any}")
+        debug(f"   Players with ANY RISP+2Out AB: {risp_2out_any}")
         
         if not df_risp_2out.empty:
             safe_write_sheet(xl, df_risp_2out, "RISP + 2 Outs", format_sheet_comprehensively,
@@ -799,13 +800,13 @@ def write_enhanced_stats_sheets(xl, data, workbook, colors):
             apply_column_number_formatting(ws_risp_2out, df_risp_2out, risp_2out_int_formats, workbook, colors)
             apply_advanced_stat_formatting(ws_risp_2out, df_risp_2out, ["RISP+2Out AVG"], workbook, colors)
         else:
-            print(f"      ⚠️ RISP+2Out tab is EMPTY (no players with 3+ RISP+2Out AB)")
+            debug(f"   RISP+2Out tab is EMPTY (no players with 3+ RISP+2Out AB)")
         
         # 6. Bases Loaded (with debug)
         df_bases_loaded = situation_tracker.create_bases_loaded_dataframe()
-        print(f"   🔍 Bases Loaded Debug: {len(df_bases_loaded)} rows")
+        debug(f"Bases Loaded Debug: {len(df_bases_loaded)} rows")
         bases_any = sum(1 for s in situation_tracker.player_situations.values() if s['bases_loaded_ab'] > 0)
-        print(f"      Players with ANY bases loaded AB: {bases_any}")
+        debug(f"   Players with ANY bases loaded AB: {bases_any}")
         
         if not df_bases_loaded.empty:
             safe_write_sheet(xl, df_bases_loaded, "Bases Loaded", format_sheet_comprehensively,
@@ -821,7 +822,7 @@ def write_enhanced_stats_sheets(xl, data, workbook, colors):
             apply_column_number_formatting(ws_bases, df_bases_loaded, bases_int_formats, workbook, colors)
             apply_advanced_stat_formatting(ws_bases, df_bases_loaded, ["Bases Loaded AVG"], workbook, colors)
         else:
-            print(f"      ⚠️ Bases Loaded tab is EMPTY (no bases loaded opportunities)")
+            debug(f"   Bases Loaded tab is EMPTY (no bases loaded opportunities)")
         
         # 7. Late & Close
         df_late_close = situation_tracker.create_late_close_dataframe(min_ab=5)

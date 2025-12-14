@@ -1,6 +1,7 @@
 import re
 from bs4 import BeautifulSoup, Comment
 from ..utils.constants import LABEL_MAP
+from ..utils.log import warn
 
 def get_team_defensive_innings(game_data, team_side):
     """Return the number of innings the team pitched based on linescore and opponent's innings played."""
@@ -20,7 +21,7 @@ def extract_batting_stats(soup, team_name, is_home=False):
     batting_table = find_team_table(soup, team_name, "batting")
 
     if not batting_table:
-        print(f"Warning: Could not find batting table for {team_name}")
+        warn(f"Could not find batting table for {team_name}")
         return []
 
     players_stats = []
@@ -91,7 +92,7 @@ def extract_pitching_stats(soup, team_name, is_home=False):
     pitching_table = find_team_table(soup, team_name, "pitching")
     
     if not pitching_table:
-        print(f"Warning: Could not find pitching table for {team_name}")
+        warn(f"Could not find pitching table for {team_name}")
         return []
     
     pitchers_stats = []
