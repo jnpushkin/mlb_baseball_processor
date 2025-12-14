@@ -6,6 +6,7 @@ import traceback
 import re
 import pandas as pd
 from pathlib import Path
+from datetime import datetime, timedelta
 
 from .excel.workbook_generator import generate_excel_workbook
 from .parsers.html_parser import parse_baseball_reference_boxscore
@@ -70,26 +71,33 @@ def process_html_file(file_path, index=None, total=None):
         return game_data
 
     except Exception as e:
-        warn(f"❌ Error processing {file_path}: {str(e)}")
+        error_msg = str(e)
+        warn(f"❌ Error processing {file_path}: {error_msg}")
         traceback.print_exc()
-        return None
+        # Return a special dict to indicate failure
+        return {"_error": True, "file": file_path, "error": error_msg}
   
 def process_directory_or_file(input_path, umpire_tracker):
     """Process HTML files from directory or single file."""
     all_games_data = []
     games_missing_umpires = []
+    failed_files = []
 
     if os.path.isfile(input_path):
         if input_path.endswith('.html'):
             game_data = process_html_file(input_path)
             if game_data:
-                game_id = game_data.get("game_id", "UNKNOWN")
-                if not game_data.get("umpires"):
-                    games_missing_umpires.append(game_id)
+                # Check if this is an error result
+                if game_data.get("_error"):
+                    failed_files.append(game_data)
                 else:
-                    for pos, name in game_data.get("umpires", {}).items():
-                        umpire_tracker.record_umpire(name, pos, game_id)
-                all_games_data.append(game_data)
+                    game_id = game_data.get("game_id", "UNKNOWN")
+                    if not game_data.get("umpires"):
+                        games_missing_umpires.append(game_id)
+                    else:
+                        for pos, name in game_data.get("umpires", {}).items():
+                            umpire_tracker.record_umpire(name, pos, game_id)
+                    all_games_data.append(game_data)
         else:
             warn(f"❌ File must be an HTML file: {input_path}")
     elif os.path.isdir(input_path):
@@ -102,25 +110,64 @@ def process_directory_or_file(input_path, umpire_tracker):
             file_path = os.path.join(input_path, filename)
             game_data = process_html_file(file_path, idx, total)
             if game_data:
-                game_id = game_data.get("game_id", "UNKNOWN")
-                if not game_data.get("umpires"):
-                    games_missing_umpires.append(game_id)
+                # Check if this is an error result
+                if game_data.get("_error"):
+                    failed_files.append(game_data)
                 else:
-                    for pos, name in game_data.get("umpires", {}).items():
-                        umpire_tracker.record_umpire(name, pos, game_id)
-                all_games_data.append(game_data)
+                    game_id = game_data.get("game_id", "UNKNOWN")
+                    if not game_data.get("umpires"):
+                        games_missing_umpires.append(game_id)
+                    else:
+                        for pos, name in game_data.get("umpires", {}).items():
+                            umpire_tracker.record_umpire(name, pos, game_id)
+                    all_games_data.append(game_data)
     else:
         warn(f"❌ Invalid path: {input_path}")
         return []
     
     info(f"✅ Successfully processed {len(all_games_data)} games")
+    
+    # Report failed files
+    if failed_files:
+        warn(f"\n❌ Failed to process {len(failed_files)} file(s):")
+        for failed in failed_files:
+            file_name = os.path.basename(failed["file"])
+            error_msg = failed["error"]
+            warn(f"   • {file_name}")
+            warn(f"     Error: {error_msg}")
+        warn(f"\n💡 Tip: Check these files for corruption or formatting issues")
+    
+        # Save detailed report
+        output_dir = os.path.dirname(input_path) if os.path.isfile(input_path) else input_path
+        save_failed_files_report(failed_files, output_dir)
+
+    # Report umpire data status
     if games_missing_umpires:
-        warn(f"⚠️ Missing umpire data in {len(games_missing_umpires)} game(s):")
+        warn(f"\n⚠️ Missing umpire data in {len(games_missing_umpires)} game(s):")
         for gid in games_missing_umpires:
-            warn(f" - {gid}")
+            warn(f"   • {gid}")
     else:
         info("✅ All games include umpire data.")
+    
     return all_games_data
+
+def save_failed_files_report(failed_files, output_dir):
+    """Save a report of failed files for later investigation."""
+    if not failed_files:
+        return
+    
+    report_path = os.path.join(output_dir, "failed_files_report.txt")
+    with open(report_path, 'w') as f:
+        f.write("Failed Files Report\n")
+        f.write("=" * 60 + "\n\n")
+        f.write(f"Total failed: {len(failed_files)}\n")
+        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        
+        for i, failed in enumerate(failed_files, 1):
+            f.write(f"{i}. {failed['file']}\n")
+            f.write(f"   Error: {failed['error']}\n\n")
+    
+    info(f"📝 Failed files report saved to: {report_path}")
 
 def main():
     parser = argparse.ArgumentParser(
