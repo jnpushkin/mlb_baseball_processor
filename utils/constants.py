@@ -6,8 +6,47 @@ import os
 # Resolve project root as:
 # 1) MLB_TRACKER_DIR env var (if set)
 # 2) otherwise, the repository root (derived from this file location)
-_ENV_BASE = os.environ.get("MLB_TRACKER_DIR")
-BASE_DIR = Path(_ENV_BASE).expanduser() if _ENV_BASE else Path(__file__).resolve().parent.parent.parent
+def _find_project_root():
+    """Find the project root directory by looking for .project_root marker file.
+    
+    Searches upward from this file's location until finding .project_root,
+    falls back to MLB_TRACKER_DIR environment variable, or uses parent.parent.parent
+    as last resort.
+    
+    Returns:
+        Path: Project root directory
+    """
+    # Method 1: Check environment variable first (highest priority)
+    env_base = os.environ.get("MLB_TRACKER_DIR")
+    if env_base:
+        path = Path(env_base).expanduser()
+        if path.exists():
+            return path
+    
+    # Method 2: Look for .project_root marker file (recommended)
+    current = Path(__file__).resolve()
+    for parent in [current] + list(current.parents):
+        marker = parent / ".project_root"
+        if marker.exists():
+            return parent
+    
+    # Method 3: Fall back to parent.parent.parent (legacy behavior)
+    return Path(__file__).resolve().parent.parent.parent
+
+
+# Set BASE_DIR using the robust finder
+BASE_DIR = _find_project_root()
+
+# Validate that BASE_DIR looks correct (has expected subdirectories)
+_EXPECTED_DIRS = ["cache", "mlb_references", "baseball_processor"]
+if not all((BASE_DIR / dirname).exists() for dirname in _EXPECTED_DIRS if dirname != "cache"):
+    import warnings
+    warnings.warn(
+        f"BASE_DIR may be incorrect: {BASE_DIR}\n"
+        f"Expected to find: {_EXPECTED_DIRS}\n"
+        f"Consider creating a .project_root marker file or setting MLB_TRACKER_DIR environment variable",
+        RuntimeWarning
+    )
 
 CACHE_DIR = BASE_DIR / "cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
