@@ -252,9 +252,7 @@ const PlayerComparison = ({ players, playerGames }) => {
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
     
-    const aggregatedPlayers = useMemo(() => 
-        aggregateHitterStats(playerGames), [playerGames]
-    );
+    const aggregatedPlayers = useMemo(() => players || [], [players]);
     
     useEffect(() => {
         if (selectedPlayers.length > 0) {
@@ -285,15 +283,15 @@ const PlayerComparison = ({ players, playerGames }) => {
         chartInstance.current = new Chart(ctx, {
             type: 'radar',
             data: {
-                labels: ['AVG', 'OBP', 'SLG', 'HR Rate', 'RBI Rate'],
+                labels: ['AVG', 'OBP', 'SLG', 'HR', 'RBI'],
                 datasets: comparisonStats.map((player, idx) => ({
                     label: player.name,
                     data: [
-                        parseFloat(player.avg) * 1000,
-                        parseFloat(player.obp) * 1000,
-                        parseFloat(player.slg) * 1000,
-                        player.pa > 0 ? (player.hr / player.pa) * 100 : 0,
-                        player.pa > 0 ? (player.rbi / player.pa) * 100 : 0
+                        parseFloat(player.avg) * 1000,      // .300 → 300
+                        parseFloat(player.obp) * 1000,      // .380 → 380
+                        parseFloat(player.slg) * 1000,      // .450 → 450
+                        player.hr * 20,                      // 25 HR → 500
+                        player.rbi * 7                       // 80 RBI → 560
                     ],
                     backgroundColor: colors[idx].bg,
                     borderColor: colors[idx].border,
@@ -309,11 +307,37 @@ const PlayerComparison = ({ players, playerGames }) => {
                 scales: {
                     r: {
                         beginAtZero: true,
-                        ticks: { backdropColor: 'transparent' }
+                        max: 800,
+                        ticks: { 
+                            backdropColor: 'transparent',
+                            stepSize: 200
+                        }
                     }
                 },
                 plugins: {
-                    legend: { position: 'top' }
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const dataIndex = context.dataIndex;
+                                const player = comparisonStats[context.datasetIndex];
+                                
+                                // Show actual values in tooltips
+                                let value;
+                                switch(dataIndex) {
+                                    case 0: value = player.avg; break;
+                                    case 1: value = player.obp; break;
+                                    case 2: value = player.slg; break;
+                                    case 3: value = `${player.hr} HR`; break;
+                                    case 4: value = `${player.rbi} RBI`; break;
+                                    default: value = context.parsed.r;
+                                }
+                                
+                                return `${label}: ${value}`;
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -324,43 +348,6 @@ const PlayerComparison = ({ players, playerGames }) => {
             }
         };
     }, [comparisonStats]);
-    
-    // DEBUG: Check what's actually in the raw data
-    useEffect(() => {
-        console.log('=== DEBUGGING SB ISSUE ===');
-        
-        // Sample a few playerGames to see structure
-        const sample = playerGames.slice(0, 5);
-        console.log('Sample playerGames structure:', sample);
-        
-        // Check if ANY game has sb defined (even as 0)
-        const hasSbKey = playerGames.some(g => 'sb' in g);
-        console.log('Does playerGames have "sb" key?', hasSbKey);
-        
-        // Find games with sb > 0
-        const withSB = playerGames.filter(g => g.sb && g.sb > 0);
-        console.log('Games with sb > 0:', withSB.length);
-        if (withSB.length > 0) {
-            console.log('First 3 games with SB:', withSB.slice(0, 3));
-        }
-        
-        // Check aggregated results
-        const aggWithSB = aggregatedPlayers.filter(p => p.sb > 0);
-        console.log('Aggregated players with sb > 0:', aggWithSB.length);
-        if (aggWithSB.length > 0) {
-            console.log('First 3 aggregated with SB:', aggWithSB.slice(0, 3));
-        }
-        
-        // Also check what data.players shows
-        console.log('=== Checking data.players (what Hitters tab uses) ===');
-        const playersWithSB = (BASEBALL_DATA.players || []).filter(p => p.sb > 0);
-        console.log('Players with sb > 0 in data.players:', playersWithSB.length);
-        if (playersWithSB.length > 0) {
-            console.log('First 3 from data.players:', playersWithSB.slice(0, 3));
-        }
-        
-        console.log('=== END DEBUG ===');
-    }, [playerGames, aggregatedPlayers]);
 
     const handlePlayerToggle = (playerId) => {
         setSelectedPlayers(prev => {
@@ -464,7 +451,7 @@ const PlayerComparison = ({ players, playerGames }) => {
                                                         <td 
                                                             key={p.playerId} 
                                                             className={`px-4 py-2 text-center body-text ${
-                                                                (isMax || isMin) ? 'bg-green-100 font-bold' : ''
+                                                                (isMax) ? 'bg-green-100 font-bold' : ''
                                                             }`}
                                                         >
                                                             {format(val)}
