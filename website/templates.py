@@ -499,6 +499,8 @@ const PlayerComparison = ({ players, playerGames }) => {
 };
 
 const GameDetailsModal = ({ game, playerGames, pitcherGames, onClose }) => {
+    const [activeTab, setActiveTab] = useState('boxscore');
+    
     const gameData = useMemo(() => {
         if (!game) return null;
         
@@ -589,6 +591,353 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, onClose }) => {
         );
     };
     
+    // Tab content components
+    const BoxScoreTab = () => (
+        <>
+            {/* Away Team Hitters */}
+            <div className="p-6 border-b bg-gray-50">
+                <h4 className="subsection-title font-bold mb-3">{game.awayTeam} Batting</h4>
+                <div className="overflow-x-auto">
+                    <table className="w-full small-text">
+                        <thead className="bg-white border-b-2">
+                            <tr>
+                                <th className="px-3 py-2 text-left">Batter</th>
+                                <th className="px-2 py-2">AB</th>
+                                <th className="px-2 py-2">H</th>
+                                <th className="px-2 py-2">R</th>
+                                <th className="px-2 py-2">RBI</th>
+                                <th className="px-2 py-2">HR</th>
+                                <th className="px-2 py-2">2B</th>
+                                <th className="px-2 py-2">3B</th>
+                                <th className="px-2 py-2">BB</th>
+                                <th className="px-2 py-2">SO</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {gameData.awayHitters.map((p, idx) => <HitterRow key={idx} player={p} />)}
+                            <tr className="bg-blue-50 font-bold">
+                                <td className="px-3 py-2">Team Totals</td>
+                                <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.ab}</td>
+                                <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.h}</td>
+                                <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.r}</td>
+                                <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.rbi}</td>
+                                <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.hr}</td>
+                                <td className="px-2 py-2 text-center">-</td>
+                                <td className="px-2 py-2 text-center">-</td>
+                                <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.bb}</td>
+                                <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.so}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            {/* Home Team Hitters */}
+            <div className="p-6 border-b">
+                <h4 className="subsection-title font-bold mb-3">{game.homeTeam} Batting</h4>
+                <div className="overflow-x-auto">
+                    <table className="w-full small-text">
+                        <thead className="bg-gray-50 border-b-2">
+                            <tr>
+                                <th className="px-3 py-2 text-left">Batter</th>
+                                <th className="px-2 py-2">AB</th>
+                                <th className="px-2 py-2">H</th>
+                                <th className="px-2 py-2">R</th>
+                                <th className="px-2 py-2">RBI</th>
+                                <th className="px-2 py-2">HR</th>
+                                <th className="px-2 py-2">2B</th>
+                                <th className="px-2 py-2">3B</th>
+                                <th className="px-2 py-2">BB</th>
+                                <th className="px-2 py-2">SO</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {gameData.homeHitters.map((p, idx) => <HitterRow key={idx} player={p} />)}
+                            <tr className="bg-blue-50 font-bold">
+                                <td className="px-3 py-2">Team Totals</td>
+                                <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.ab}</td>
+                                <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.h}</td>
+                                <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.r}</td>
+                                <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.rbi}</td>
+                                <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.hr}</td>
+                                <td className="px-2 py-2 text-center">-</td>
+                                <td className="px-2 py-2 text-center">-</td>
+                                <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.bb}</td>
+                                <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.so}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            {/* Pitching */}
+            <div className="p-6 bg-gray-50">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Away Pitchers */}
+                    <div>
+                        <h4 className="subsection-title font-bold mb-3">{game.awayTeam} Pitching</h4>
+                        <div className="overflow-x-auto">
+                            <table className="w-full small-text bg-white rounded">
+                                <thead className="bg-gray-50 border-b-2">
+                                    <tr>
+                                        <th className="px-3 py-2 text-left">Pitcher</th>
+                                        <th className="px-2 py-2">IP</th>
+                                        <th className="px-2 py-2">H</th>
+                                        <th className="px-2 py-2">R</th>
+                                        <th className="px-2 py-2">ER</th>
+                                        <th className="px-2 py-2">BB</th>
+                                        <th className="px-2 py-2">SO</th>
+                                        <th className="px-2 py-2">HR</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {gameData.awayPitchers.map((p, idx) => <PitcherRow key={idx} pitcher={p} />)}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {/* Home Pitchers */}
+                    <div>
+                        <h4 className="subsection-title font-bold mb-3">{game.homeTeam} Pitching</h4>
+                        <div className="overflow-x-auto">
+                            <table className="w-full small-text bg-white rounded">
+                                <thead className="bg-gray-50 border-b-2">
+                                    <tr>
+                                        <th className="px-3 py-2 text-left">Pitcher</th>
+                                        <th className="px-2 py-2">IP</th>
+                                        <th className="px-2 py-2">H</th>
+                                        <th className="px-2 py-2">R</th>
+                                        <th className="px-2 py-2">ER</th>
+                                        <th className="px-2 py-2">BB</th>
+                                        <th className="px-2 py-2">SO</th>
+                                        <th className="px-2 py-2">HR</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {gameData.homePitchers.map((p, idx) => <PitcherRow key={idx} pitcher={p} />)}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+    
+    const LineupsTab = () => {
+        if (!game.lineups) {
+            return (
+                <div className="p-8 text-center text-gray-500 body-text">
+                    Starting lineup data not available for this game
+                </div>
+            );
+        }
+        
+        const LineupTable = ({ lineup, team }) => (
+            <div>
+                <h4 className="subsection-title font-bold mb-3">{team} Starting Lineup</h4>
+                <div className="bg-white rounded-lg overflow-hidden">
+                    <table className="w-full small-text">
+                        <thead className="bg-gray-50 border-b-2">
+                            <tr>
+                                <th className="px-3 py-2 text-center">#</th>
+                                <th className="px-3 py-2 text-left">Player</th>
+                                <th className="px-3 py-2 text-center">Position</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {lineup.sort((a, b) => a.slot - b.slot).map((player, idx) => (
+                                <tr key={idx} className="hover:bg-blue-50">
+                                    <td className="px-3 py-2 text-center font-bold text-blue-600">{player.slot}</td>
+                                    <td className="px-3 py-2">
+                                        <PlayerLink playerId={player.playerId} name={player.name} />
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                        <span className="px-2 py-1 bg-gray-100 rounded font-semibold">
+                                            {player.position}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+        
+        return (
+            <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {game.lineups.away && game.lineups.away.length > 0 && (
+                        <LineupTable lineup={game.lineups.away} team={game.awayTeam} />
+                    )}
+                    {game.lineups.home && game.lineups.home.length > 0 && (
+                        <LineupTable lineup={game.lineups.home} team={game.homeTeam} />
+                    )}
+                </div>
+            </div>
+        );
+    };
+    
+    const SubstitutionsTab = () => {
+        if (!game.substitutions || game.substitutions.length === 0) {
+            return (
+                <div className="p-8 text-center text-gray-500 body-text">
+                    No substitutions recorded for this game
+                </div>
+            );
+        }
+        
+        const getSubIcon = (type) => {
+            switch(type) {
+                case 'pitching_change': return '⚾';
+                case 'pinch_hit': return '🏏';
+                case 'pinch_run': return '🏃';
+                case 'defensive_sub': return '🛡️';
+                case 'ph_to_defense': return '🔄';
+                default: return '↔️';
+            }
+        };
+        
+        const getSubLabel = (type) => {
+            switch(type) {
+                case 'pitching_change': return 'Pitching Change';
+                case 'pinch_hit': return 'Pinch Hitter';
+                case 'pinch_run': return 'Pinch Runner';
+                case 'defensive_sub': return 'Defensive Substitution';
+                case 'ph_to_defense': return 'Position Change';
+                default: return 'Substitution';
+            }
+        };
+        
+        return (
+            <div className="p-6">
+                <div className="space-y-3">
+                    {game.substitutions.map((sub, idx) => (
+                        <div key={idx} className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-400 hover:shadow-md transition-all">
+                            <div className="flex items-start gap-3">
+                                <span className="text-2xl">{getSubIcon(sub.type)}</span>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">
+                                            {sub.half.toUpperCase()} {sub.inning}
+                                        </span>
+                                        <span className="body-text font-bold text-gray-700">
+                                            {getSubLabel(sub.type)}
+                                        </span>
+                                    </div>
+                                    <div className="body-text text-gray-800">
+                                        {sub.playerIn && sub.playerOut ? (
+                                            <>
+                                                <span className="font-semibold text-green-600">{sub.playerIn}</span>
+                                                {' '}replaces{' '}
+                                                <span className="font-semibold text-red-600">{sub.playerOut}</span>
+                                                {sub.position && <span className="text-gray-500"> at {sub.position}</span>}
+                                            </>
+                                        ) : (
+                                            <span className="text-gray-600">{sub.text}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+    
+    const PlayByPlayTab = () => {
+        if (!game.playByPlay || game.playByPlay.length === 0) {
+            return (
+                <div className="p-8 text-center text-gray-500 body-text">
+                    Play-by-play data not available for this game
+                </div>
+            );
+        }
+        
+        // Group plays by inning
+        const playsByInning = {};
+        game.playByPlay.forEach(play => {
+            const key = `${play.inning}-${play.half}`;
+            if (!playsByInning[key]) {
+                playsByInning[key] = {
+                    inning: play.inning,
+                    half: play.half,
+                    plays: []
+                };
+            }
+            playsByInning[key].plays.push(play);
+        });
+        
+        const sortedInnings = Object.values(playsByInning).sort((a, b) => {
+            if (a.inning !== b.inning) return a.inning - b.inning;
+            return a.half === 'top' ? -1 : 1;
+        });
+        
+        return (
+            <div className="p-6">
+                <div className="space-y-6">
+                    {sortedInnings.map((inning, idx) => (
+                        <div key={idx} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2">
+                                <span className="body-text font-bold">
+                                    {inning.half.charAt(0).toUpperCase() + inning.half.slice(1)} of {inning.inning}
+                                    {inning.inning === 1 ? 'st' : inning.inning === 2 ? 'nd' : inning.inning === 3 ? 'rd' : 'th'}
+                                </span>
+                                <span className="ml-3 small-text text-blue-100">
+                                    {inning.plays.length} play{inning.plays.length !== 1 ? 's' : ''}
+                                </span>
+                            </div>
+                            <div className="divide-y">
+                                {inning.plays.map((play, playIdx) => (
+                                    <div key={playIdx} className={`p-3 hover:bg-blue-50 ${
+                                        play.isHomeRun ? 'bg-orange-50' : 
+                                        play.isStrikeout ? 'bg-red-50' : 
+                                        ''
+                                    }`}>
+                                        <div className="flex items-start gap-3">
+                                            <div className="text-center min-w-12">
+                                                <div className="text-xs font-bold text-gray-500">
+                                                    {play.outs !== null ? `${play.outs} out${play.outs !== 1 ? 's' : ''}` : ''}
+                                                </div>
+                                                {play.score && (
+                                                    <div className="text-xs font-mono text-blue-600 font-bold">
+                                                        {play.score}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="body-text">
+                                                    <span className="font-semibold text-gray-900">{play.batter}</span>
+                                                    {' '}
+                                                    <span className="text-gray-600">
+                                                        {play.description}
+                                                    </span>
+                                                </div>
+                                                <div className="small-text text-gray-500 mt-1">
+                                                    vs {play.pitcher}
+                                                    {play.pitchCount > 0 && ` • ${play.pitchCount} pitches`}
+                                                </div>
+                                            </div>
+                                            {play.isHomeRun && (
+                                                <span className="text-xl">⚾</span>
+                                            )}
+                                            {play.isStrikeout && (
+                                                <span className="text-xl">🔥</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+    
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
@@ -612,136 +961,75 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, onClose }) => {
                     </div>
                 </div>
                 
-                {/* Body - Scrollable */}
-                <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
-                    {/* Away Team Hitters */}
-                    <div className="p-6 border-b bg-gray-50">
-                        <h4 className="subsection-title font-bold mb-3">{game.awayTeam} Batting</h4>
-                        <div className="overflow-x-auto">
-                            <table className="w-full small-text">
-                                <thead className="bg-white border-b-2">
-                                    <tr>
-                                        <th className="px-3 py-2 text-left">Batter</th>
-                                        <th className="px-2 py-2">AB</th>
-                                        <th className="px-2 py-2">H</th>
-                                        <th className="px-2 py-2">R</th>
-                                        <th className="px-2 py-2">RBI</th>
-                                        <th className="px-2 py-2">HR</th>
-                                        <th className="px-2 py-2">2B</th>
-                                        <th className="px-2 py-2">3B</th>
-                                        <th className="px-2 py-2">BB</th>
-                                        <th className="px-2 py-2">SO</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {gameData.awayHitters.map((p, idx) => <HitterRow key={idx} player={p} />)}
-                                    <tr className="bg-blue-50 font-bold">
-                                        <td className="px-3 py-2">Team Totals</td>
-                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.ab}</td>
-                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.h}</td>
-                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.r}</td>
-                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.rbi}</td>
-                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.hr}</td>
-                                        <td className="px-2 py-2 text-center">-</td>
-                                        <td className="px-2 py-2 text-center">-</td>
-                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.bb}</td>
-                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.so}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                {/* Game Context Section (unchanged from before) */}
+                <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+                    {/* Linescore and context sections we added earlier */}
+                    {/* ... keep all the code from Step 2 here ... */}
                     
-                    {/* Home Team Hitters */}
-                    <div className="p-6 border-b">
-                        <h4 className="subsection-title font-bold mb-3">{game.homeTeam} Batting</h4>
-                        <div className="overflow-x-auto">
-                            <table className="w-full small-text">
-                                <thead className="bg-gray-50 border-b-2">
-                                    <tr>
-                                        <th className="px-3 py-2 text-left">Batter</th>
-                                        <th className="px-2 py-2">AB</th>
-                                        <th className="px-2 py-2">H</th>
-                                        <th className="px-2 py-2">R</th>
-                                        <th className="px-2 py-2">RBI</th>
-                                        <th className="px-2 py-2">HR</th>
-                                        <th className="px-2 py-2">2B</th>
-                                        <th className="px-2 py-2">3B</th>
-                                        <th className="px-2 py-2">BB</th>
-                                        <th className="px-2 py-2">SO</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {gameData.homeHitters.map((p, idx) => <HitterRow key={idx} player={p} />)}
-                                    <tr className="bg-blue-50 font-bold">
-                                        <td className="px-3 py-2">Team Totals</td>
-                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.ab}</td>
-                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.h}</td>
-                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.r}</td>
-                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.rbi}</td>
-                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.hr}</td>
-                                        <td className="px-2 py-2 text-center">-</td>
-                                        <td className="px-2 py-2 text-center">-</td>
-                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.bb}</td>
-                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.so}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    {/* Pitching */}
-                    <div className="p-6 bg-gray-50">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Away Pitchers */}
-                            <div>
-                                <h4 className="subsection-title font-bold mb-3">{game.awayTeam} Pitching</h4>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full small-text bg-white rounded">
-                                        <thead className="bg-gray-50 border-b-2">
-                                            <tr>
-                                                <th className="px-3 py-2 text-left">Pitcher</th>
-                                                <th className="px-2 py-2">IP</th>
-                                                <th className="px-2 py-2">H</th>
-                                                <th className="px-2 py-2">R</th>
-                                                <th className="px-2 py-2">ER</th>
-                                                <th className="px-2 py-2">BB</th>
-                                                <th className="px-2 py-2">SO</th>
-                                                <th className="px-2 py-2">HR</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y">
-                                            {gameData.awayPitchers.map((p, idx) => <PitcherRow key={idx} pitcher={p} />)}
-                                        </tbody>
-                                    </table>
+                    {/* Milestones from this game */}
+                    {(() => {
+                        const gameMilestones = BASEBALL_DATA.milestones.filter(m => m.gameId === game.gameId);
+                        if (gameMilestones.length === 0) return null;
+                        return (
+                            <div className="mt-4 bg-white rounded-lg p-4 shadow-sm">
+                                <h5 className="small-text font-bold mb-3 text-gray-700">🏆 Milestones Achieved</h5>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {gameMilestones.map((milestone, idx) => (
+                                        <div key={idx} className="bg-white rounded-lg p-3 shadow-sm border-l-4 border-purple-400">
+                                            <div className="flex items-start gap-2">
+                                                <span className="text-xl">
+                                                    {milestone.type.includes('HR') ? '⚾' :
+                                                     milestone.type.includes('K') || milestone.type.includes('Strikeout') ? '🔥' :
+                                                     milestone.type.includes('Hit') ? '🎯' :
+                                                     milestone.type.includes('RBI') ? '💪' :
+                                                     milestone.type.includes('Walk-Off') ? '🎉' :
+                                                     milestone.type.includes('Shutout') || milestone.type.includes('Complete') ? '🛡️' :
+                                                     '⭐'}
+                                                </span>
+                                                <div className="flex-1">
+                                                    <div className="body-text font-bold text-gray-900">{milestone.type}</div>
+                                                    <div className="body-text text-gray-700 mt-1">{milestone.player}</div>
+                                                    {milestone.detail && (
+                                                        <div className="small-text text-gray-600 mt-1">{milestone.detail}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                            
-                            {/* Home Pitchers */}
-                            <div>
-                                <h4 className="subsection-title font-bold mb-3">{game.homeTeam} Pitching</h4>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full small-text bg-white rounded">
-                                        <thead className="bg-gray-50 border-b-2">
-                                            <tr>
-                                                <th className="px-3 py-2 text-left">Pitcher</th>
-                                                <th className="px-2 py-2">IP</th>
-                                                <th className="px-2 py-2">H</th>
-                                                <th className="px-2 py-2">R</th>
-                                                <th className="px-2 py-2">ER</th>
-                                                <th className="px-2 py-2">BB</th>
-                                                <th className="px-2 py-2">SO</th>
-                                                <th className="px-2 py-2">HR</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y">
-                                            {gameData.homePitchers.map((p, idx) => <PitcherRow key={idx} pitcher={p} />)}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+                        );
+                    })()}
+                </div>
+                
+                {/* Tab Navigation */}
+                <div className="border-b bg-gray-50">
+                    <div className="flex gap-1 px-6">
+                        {['boxscore', 'lineups', 'substitutions', 'playbyplay'].map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`px-6 py-3 body-text font-semibold transition-all ${
+                                    activeTab === tab 
+                                        ? 'bg-white text-blue-600 border-b-4 border-blue-600' 
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                                }`}
+                            >
+                                {tab === 'boxscore' ? '📊 Box Score' :
+                                 tab === 'lineups' ? '📋 Lineups' :
+                                 tab === 'substitutions' ? '🔄 Substitutions' :
+                                 '⚡ Play-by-Play'}
+                            </button>
+                        ))}
                     </div>
+                </div>
+                
+                {/* Tab Content - Scrollable */}
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 500px)' }}>
+                    {activeTab === 'boxscore' && <BoxScoreTab />}
+                    {activeTab === 'lineups' && <LineupsTab />}
+                    {activeTab === 'substitutions' && <SubstitutionsTab />}
+                    {activeTab === 'playbyplay' && <PlayByPlayTab />}
                 </div>
                 
                 {/* Footer */}

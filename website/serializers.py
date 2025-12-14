@@ -11,6 +11,9 @@ class DataSerializer:
         """Convert all data structures to JSON format."""
         print("   🔄 Serializing data for website...")
         
+        # Store reference to data for use in other methods
+        self.data = data
+        
         # Get the raw games for game-by-game breakdown
         raw_games = data.get('_raw_games', [])
         json_data = {
@@ -20,7 +23,7 @@ class DataSerializer:
             "pitchers": self._serialize_pitchers(data.get('pitchers')),
             "playersWithoutStats": self._serialize_players_without_stats(data.get('players_without_stats')),
             "teams": self._serialize_teams(data.get('team_records')),
-            "games": self._serialize_games(data.get('game_log')),
+            "games": self._serialize_games(data.get('game_log'), data.get('_raw_games', [])),
             "stadiums": self._serialize_stadiums(data.get('stadiums')),
             "orioles": self._serialize_orioles(data.get('ori_stads')),
             "debuts": self._serialize_debuts(data.get('mlb_debut_rows', [])),
@@ -485,10 +488,16 @@ class DataSerializer:
                 continue
         return teams
     
-    def _serialize_games(self, df):
-        """Convert ALL games from game log."""
+    def _serialize_games(self, df, raw_games=None):
+        """Convert ALL games from game log with enhanced details."""
         if df is None or df.empty:
             return []
+        
+        # Use provided raw_games or try to get from stored data
+        if raw_games is None:
+            raw_games = getattr(self, 'data', {}).get('_raw_games', [])
+        
+        raw_games_by_id = {g.get('game_id', ''): g for g in raw_games}
         
         games = []
         for _, row in df.iterrows():
@@ -506,7 +515,7 @@ class DataSerializer:
                     if match:
                         game_id = match.group(1)
                 
-                games.append({
+                game_obj = {
                     "date": date_str,
                     "startTime": str(row.get("Start Time", "")),
                     "awayTeam": str(row.get("Away Team", "")),
@@ -514,12 +523,195 @@ class DataSerializer:
                     "score": str(row.get("Score", "")),
                     "venue": str(row.get("Venue", "")),
                     "attendance": int(row.get("Attendance", 0)) if pd.notna(row.get("Attendance")) else 0,
-                    "gameLength": str(row.get("Game Length", "")),
+                    "gameLength": self._format_game_length(row.get("Game Length", "")),
                     "gameId": game_id
-                })
+                }
+                
+                # Add enhanced details from raw game data if available
+                raw_game = raw_games_by_id.get(game_id)
+                if raw_game:
+                    game_obj.update(self._extract_game_details(raw_game))
+                
+                games.append(game_obj)
             except:
                 continue
         return games
+    
+    def _extract_game_details(self, raw_game):
+        """Extract detailed information from raw game data."""
+        details = {}
+        
+        # Weather info
+        basic_info = raw_game.get('basic_info', {})
+        if basic_info.get('weather'):
+            details['weather'] = str(basic_info.get('weather', ''))
+        if basic_info.get('temperature_f'):
+            details['temperature'] = int(basic_info.get('temperature_f', 0))
+        
+        # Umpires
+        umpires = raw_game.get('umpires', {})
+        if umpires:
+            details['umpires'] = {
+                'hp': str(umpires.get('HP', '')),
+                '1b': str(umpires.get('1B', '')),
+                '2b': str(umpires.get('2B', '')),
+                '3b': str(umpires.get('3B', '')),
+                'lf': str(umpires.get('LF', '')),
+                'rf': str(umpires.get('RF', ''))
+            }
+        
+        # Linescore (inning by inning)
+        linescore = raw_game.get('linescore', {})
+        if linescore:
+            details['linescore'] = {
+                'away': {
+                    'innings': linescore.get('away', {}).get('innings', []),
+                    'runs': linescore.get('away', {}).get('R', 0),
+                    'hits': linescore.get('away', {}).get('H', 0),
+                    'errors': linescore.get('away', {}).get('E', 0)
+                },
+                'home': {
+                    'innings': linescore.get('home', {}).get('innings', []),
+                    'runs': linescore.get('home', {}).get('R', 0),
+                    'hits': linescore.get('home', {}).get('H', 0),
+                    'errors': linescore.get('home', {}).get('E', 0)
+                }
+            }
+        
+        # Key plays/moments from play-by-play
+        key_plays = []
+        for play in raw_game.get('play_by_play', []):
+            # Home runs
+            if play.get('home_run'):
+                key_plays.append({
+                    'type': 'home_run',
+                    'inning': f"{play.get('half', '').title()} {play.get('inning', '')}",
+                    'batter': play.get('batter', ''),
+                    'pitcher': play.get('pitcher', ''),
+                    'description': play.get('description', ''),
+                    'rbi': play.get('rbi', 1)
+                })
+            # Grand slams
+            elif play.get('grand_slam'):
+                key_plays.append({
+                    'type': 'grand_slam',
+                    'inning': f"{play.get('half', '').title()} {play.get('inning', '')}",
+                    'batter': play.get('batter', ''),
+                    'pitcher': play.get('pitcher', ''),
+                    'description': play.get('description', '')
+                })
+        
+        if key_plays:
+            details['keyPlays'] = key_plays[:10]  # Limit to 10 most important
+        
+        # Pitcher decisions
+        decisions = raw_game.get('pitcher_decisions', {})
+        if decisions:
+            details['decisions'] = {
+                'winner': str(decisions.get('winning_pitcher', '')),
+                'loser': str(decisions.get('losing_pitcher', '')),
+                'save': str(decisions.get('save_pitcher', ''))
+            }
+        
+        # Starting lineups
+        lineups = raw_game.get('lineups', {})
+        if lineups and (lineups.get('away') or lineups.get('home')):
+            details['lineups'] = {
+                'away': [
+                    {
+                        'slot': p.get('slot', 0),
+                        'name': p.get('name', ''),
+                        'playerId': p.get('player_id', ''),
+                        'position': p.get('pos', '')
+                    }
+                    for p in lineups.get('away', [])
+                ],
+                'home': [
+                    {
+                        'slot': p.get('slot', 0),
+                        'name': p.get('name', ''),
+                        'playerId': p.get('player_id', ''),
+                        'position': p.get('pos', '')
+                    }
+                    for p in lineups.get('home', [])
+                ]
+            }
+        
+        # Substitutions
+        substitutions = raw_game.get('substitutions', [])
+        if substitutions:
+            details['substitutions'] = [
+                {
+                    'type': sub.get('type', 'substitution'),
+                    'inning': sub.get('inning', 0),
+                    'half': sub.get('half', ''),
+                    'playerIn': sub.get('player_in', ''),
+                    'playerOut': sub.get('player_out', ''),
+                    'position': sub.get('pos', ''),
+                    'text': sub.get('raw', '') or sub.get('text', '')
+                }
+                for sub in substitutions
+            ]
+        
+        # Play-by-play (limit to key plays or make it toggleable)
+        play_by_play = raw_game.get('play_by_play', [])
+        if play_by_play:
+            details['playByPlay'] = [
+                {
+                    'inning': play.get('inning', 0),
+                    'half': play.get('half', ''),
+                    'batter': play.get('batter', ''),
+                    'batterId': play.get('batter_id', ''),
+                    'pitcher': play.get('pitcher', ''),
+                    'pitcherId': play.get('pitcher_id', ''),
+                    'description': play.get('description', ''),
+                    'outs': play.get('outs'),
+                    'score': play.get('score', ''),
+                    'pitchCount': play.get('pitch_count', 0),
+                    'battingTeam': play.get('batting_team', ''),
+                    'isHomeRun': play.get('home_run', False),
+                    'isStrikeout': play.get('strikeout', False),
+                    'isWalk': play.get('walk', False)
+                }
+                for play in play_by_play[:200]  # Limit to prevent huge data
+            ]
+
+        return details
+    
+    def _format_game_length(self, game_length):
+        """Format game length from Excel time format to readable string.
+        
+        Args:
+            game_length: Can be a decimal (Excel format), string like "2:39", or empty
+            
+        Returns:
+            str: Formatted time like "2:39" or empty string
+        """
+        if not game_length or pd.isna(game_length):
+            return ""
+        
+        # If it's already a string in correct format (HH:MM), return it
+        if isinstance(game_length, str):
+            if ':' in game_length:
+                return game_length
+            # Try to parse if it's a decimal string
+            try:
+                game_length = float(game_length)
+            except ValueError:
+                return game_length
+        
+        # If it's a decimal (Excel stores time as fraction of a day)
+        if isinstance(game_length, (int, float)):
+            try:
+                # Convert fraction of day to hours
+                total_hours = game_length * 24
+                hours = int(total_hours)
+                minutes = int((total_hours - hours) * 60)
+                return f"{hours}:{minutes:02d}"
+            except:
+                return ""
+        
+        return str(game_length)
     
     def _serialize_stadiums(self, df):
         """Convert stadiums DataFrame to JSON."""
