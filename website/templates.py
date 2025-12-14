@@ -85,15 +85,15 @@ const aggregateHitterStats = (playerGames) => {
         grouped[key].h += game.h;
         grouped[key].r += game.r;
         grouped[key].rbi += game.rbi;
-        grouped[key].hr += game.hr;
-        grouped[key].doubles += game.doubles;
-        grouped[key].triples += game.triples;
-        grouped[key].sb += game.sb;
-        grouped[key].cs += game.cs;
-        grouped[key].bb += game.bb;
-        grouped[key].so += game.so;
-        grouped[key].hbp += game.hbp;
-        grouped[key].gidp += game.gidp;
+        grouped[key].hr += (game.hr || 0);
+        grouped[key].doubles += (game.doubles || 0);
+        grouped[key].triples += (game.triples || 0);
+        grouped[key].sb += (game.sb || 0);
+        grouped[key].cs += (game.cs || 0);
+        grouped[key].bb += (game.bb || 0);
+        grouped[key].so += (game.so || 0);
+        grouped[key].hbp += (game.hbp || 0);
+        grouped[key].gidp += (game.gidp || 0);
     });
     
     return Object.values(grouped).map(p => {
@@ -130,17 +130,17 @@ const aggregatePitcherStats = (pitcherGames) => {
         
         grouped[key].teams.add(game.team);
         grouped[key].games += 1;
-        grouped[key].gameStarts += game.gameStarts || 0;
-        grouped[key].wins += game.wins;
-        grouped[key].losses += game.losses;
-        grouped[key].saves += game.saves;
-        grouped[key].outs += game.outs;
-        grouped[key].h += game.h;
-        grouped[key].r += game.r;
-        grouped[key].er += game.er;
-        grouped[key].bb += game.bb;
-        grouped[key].so += game.so;
-        grouped[key].hr += game.hr;
+        grouped[key].gameStarts += (game.gameStarts || 0);
+        grouped[key].wins += (game.wins || 0);
+        grouped[key].losses += (game.losses || 0);
+        grouped[key].saves += (game.saves || 0);
+        grouped[key].outs += (game.outs || 0);
+        grouped[key].h += (game.h || 0);
+        grouped[key].r += (game.r || 0);
+        grouped[key].er += (game.er || 0);
+        grouped[key].bb += (game.bb || 0);
+        grouped[key].so += (game.so || 0);
+        grouped[key].hr += (game.hr || 0);
     });
     
     return Object.values(grouped).map(p => {
@@ -242,6 +242,955 @@ const StatCard = ({ title, value, subtitle, color = 'blue' }) => {
             <h3 className="small-text font-medium text-gray-600 mb-2">{title}</h3>
             <p className="text-3xl font-bold text-gray-900">{value}</p>
             {subtitle && <p className="body-text text-gray-500 mt-1">{subtitle}</p>}
+        </div>
+    );
+};
+
+const PlayerComparison = ({ players, playerGames }) => {
+    const [selectedPlayers, setSelectedPlayers] = useState([]);
+    const [comparisonStats, setComparisonStats] = useState([]);
+    const chartRef = useRef(null);
+    const chartInstance = useRef(null);
+    
+    const aggregatedPlayers = useMemo(() => 
+        aggregateHitterStats(playerGames), [playerGames]
+    );
+    
+    useEffect(() => {
+        if (selectedPlayers.length > 0) {
+            const stats = selectedPlayers.map(playerId => 
+                aggregatedPlayers.find(p => p.playerId === playerId)
+            ).filter(Boolean);
+            setComparisonStats(stats);
+        } else {
+            setComparisonStats([]);
+        }
+    }, [selectedPlayers, aggregatedPlayers]);
+    
+    useEffect(() => {
+        if (comparisonStats.length === 0 || !chartRef.current) return;
+        
+        // Destroy previous chart
+        if (chartInstance.current) {
+            chartInstance.current.destroy();
+        }
+        
+        const ctx = chartRef.current.getContext('2d');
+        const colors = [
+            { border: 'rgb(59, 130, 246)', bg: 'rgba(59, 130, 246, 0.2)' },
+            { border: 'rgb(239, 68, 68)', bg: 'rgba(239, 68, 68, 0.2)' },
+            { border: 'rgb(34, 197, 94)', bg: 'rgba(34, 197, 94, 0.2)' }
+        ];
+        
+        chartInstance.current = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['AVG', 'OBP', 'SLG', 'HR Rate', 'RBI Rate'],
+                datasets: comparisonStats.map((player, idx) => ({
+                    label: player.name,
+                    data: [
+                        parseFloat(player.avg) * 1000,
+                        parseFloat(player.obp) * 1000,
+                        parseFloat(player.slg) * 1000,
+                        player.pa > 0 ? (player.hr / player.pa) * 100 : 0,
+                        player.pa > 0 ? (player.rbi / player.pa) * 100 : 0
+                    ],
+                    backgroundColor: colors[idx].bg,
+                    borderColor: colors[idx].border,
+                    pointBackgroundColor: colors[idx].border,
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: colors[idx].border
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        ticks: { backdropColor: 'transparent' }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'top' }
+                }
+            }
+        });
+        
+        return () => {
+            if (chartInstance.current) {
+                chartInstance.current.destroy();
+            }
+        };
+    }, [comparisonStats]);
+    
+    // DEBUG: Check what's actually in the raw data
+    useEffect(() => {
+        console.log('=== DEBUGGING SB ISSUE ===');
+        
+        // Sample a few playerGames to see structure
+        const sample = playerGames.slice(0, 5);
+        console.log('Sample playerGames structure:', sample);
+        
+        // Check if ANY game has sb defined (even as 0)
+        const hasSbKey = playerGames.some(g => 'sb' in g);
+        console.log('Does playerGames have "sb" key?', hasSbKey);
+        
+        // Find games with sb > 0
+        const withSB = playerGames.filter(g => g.sb && g.sb > 0);
+        console.log('Games with sb > 0:', withSB.length);
+        if (withSB.length > 0) {
+            console.log('First 3 games with SB:', withSB.slice(0, 3));
+        }
+        
+        // Check aggregated results
+        const aggWithSB = aggregatedPlayers.filter(p => p.sb > 0);
+        console.log('Aggregated players with sb > 0:', aggWithSB.length);
+        if (aggWithSB.length > 0) {
+            console.log('First 3 aggregated with SB:', aggWithSB.slice(0, 3));
+        }
+        
+        // Also check what data.players shows
+        console.log('=== Checking data.players (what Hitters tab uses) ===');
+        const playersWithSB = (BASEBALL_DATA.players || []).filter(p => p.sb > 0);
+        console.log('Players with sb > 0 in data.players:', playersWithSB.length);
+        if (playersWithSB.length > 0) {
+            console.log('First 3 from data.players:', playersWithSB.slice(0, 3));
+        }
+        
+        console.log('=== END DEBUG ===');
+    }, [playerGames, aggregatedPlayers]);
+
+    const handlePlayerToggle = (playerId) => {
+        setSelectedPlayers(prev => {
+            if (prev.includes(playerId)) {
+                return prev.filter(id => id !== playerId);
+            } else if (prev.length < 3) {
+                return [...prev, playerId];
+            }
+            return prev;
+        });
+    };
+    
+    return (
+        <div className="bg-white rounded-lg shadow">
+            <div className="p-4 border-b">
+                <h2 className="section-title font-bold">⚖️ Player Comparison</h2>
+                <p className="body-text text-gray-500 mt-1">Select up to 3 players to compare (minimum 10 PA)</p>
+            </div>
+            
+            <div className="p-4">
+                {/* Player selection grid */}
+                <div className="mb-6">
+                    <label className="body-text font-semibold mb-2 block">Select Players:</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-64 overflow-y-auto border rounded p-2">
+                        {aggregatedPlayers
+                            .filter(p => p.pa >= 10)
+                            .sort((a, b) => b.pa - a.pa)
+                            .map(p => (
+                                <label 
+                                    key={p.playerId} 
+                                    className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${
+                                        selectedPlayers.includes(p.playerId) ? 'bg-blue-50 border-2 border-blue-500' : 'border-2 border-transparent'
+                                    }`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedPlayers.includes(p.playerId)}
+                                        onChange={() => handlePlayerToggle(p.playerId)}
+                                        disabled={!selectedPlayers.includes(p.playerId) && selectedPlayers.length >= 3}
+                                        className="rounded"
+                                    />
+                                    <div className="small-text">
+                                        <div className="font-semibold">{p.name}</div>
+                                        <div className="text-gray-500">{p.team} • {p.pa} PA</div>
+                                    </div>
+                                </label>
+                            ))
+                        }
+                    </div>
+                </div>
+                
+                {comparisonStats.length > 0 && (
+                    <>
+                        {/* Side-by-side stats table */}
+                        <div className="overflow-x-auto mb-6">
+                            <table className="w-full">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left small-text font-bold">Stat</th>
+                                        {comparisonStats.map(p => (
+                                            <th key={p.playerId} className="px-4 py-2 text-center body-text font-bold">
+                                                <div>{p.name}</div>
+                                                <div className="small-text text-gray-500 font-normal">{p.team}</div>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {[
+                                        { key: 'games', label: 'Games', format: v => v },
+                                        { key: 'pa', label: 'PA', format: v => v },
+                                        { key: 'ab', label: 'AB', format: v => v },
+                                        { key: 'avg', label: 'AVG', format: v => v },
+                                        { key: 'obp', label: 'OBP', format: v => v },
+                                        { key: 'slg', label: 'SLG', format: v => v },
+                                        { key: 'ops', label: 'OPS', format: v => v },
+                                        { key: 'h', label: 'Hits', format: v => v },
+                                        { key: 'hr', label: 'HR', format: v => v },
+                                        { key: 'rbi', label: 'RBI', format: v => v },
+                                        { key: 'r', label: 'Runs', format: v => v },
+                                        { key: 'doubles', label: '2B', format: v => v },
+                                        { key: 'triples', label: '3B', format: v => v },
+                                        { key: 'sb', label: 'SB', format: v => v },
+                                        { key: 'bb', label: 'BB', format: v => v },
+                                        { key: 'so', label: 'SO', format: v => v },
+                                    ].map(({ key, label, format }) => {
+                                        const values = comparisonStats.map(p => parseFloat(String(p[key]).replace(/[^0-9.-]/g, '')) || 0);
+                                        const maxVal = Math.max(...values);
+                                        const minVal = Math.min(...values);
+                                        
+                                        return (
+                                            <tr key={key}>
+                                                <td className="px-4 py-2 body-text font-semibold">{label}</td>
+                                                {comparisonStats.map(p => {
+                                                    const val = p[key];
+                                                    const numVal = parseFloat(String(val).replace(/[^0-9.-]/g, '')) || 0;
+                                                    const isMax = numVal === maxVal && comparisonStats.length > 1;
+                                                    const isMin = numVal === minVal && comparisonStats.length > 1 && key === 'so';
+                                                    
+                                                    return (
+                                                        <td 
+                                                            key={p.playerId} 
+                                                            className={`px-4 py-2 text-center body-text ${
+                                                                (isMax || isMin) ? 'bg-green-100 font-bold' : ''
+                                                            }`}
+                                                        >
+                                                            {format(val)}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {/* Radar chart */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <h3 className="subsection-title font-bold mb-4 text-center">Performance Radar</h3>
+                            <div style={{ height: '400px' }}>
+                                <canvas ref={chartRef} />
+                            </div>
+                        </div>
+                    </>
+                )}
+                
+                {selectedPlayers.length === 0 && (
+                    <div className="text-center py-12 text-gray-500 body-text">
+                        Select players above to begin comparison
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const GameDetailsModal = ({ game, playerGames, pitcherGames, onClose }) => {
+    const gameData = useMemo(() => {
+        if (!game) return null;
+        
+        // Get all players/pitchers from this game
+        const gamePlayers = playerGames.filter(pg => pg.gameId === game.gameId);
+        const gamePitchers = pitcherGames.filter(pg => pg.gameId === game.gameId);
+        
+        // Separate by team
+        const homeHitters = gamePlayers.filter(p => p.team === game.homeTeam).sort((a, b) => b.pa - a.pa);
+        const awayHitters = gamePlayers.filter(p => p.team === game.awayTeam).sort((a, b) => b.pa - a.pa);
+        const homePitchers = gamePitchers.filter(p => p.team === game.homeTeam).sort((a, b) => b.outs - a.outs);
+        const awayPitchers = gamePitchers.filter(p => p.team === game.awayTeam).sort((a, b) => b.outs - a.outs);
+        
+        // Calculate team totals
+        const homeHittingTotals = homeHitters.reduce((acc, p) => ({
+            ab: acc.ab + p.ab,
+            h: acc.h + p.h,
+            r: acc.r + p.r,
+            rbi: acc.rbi + p.rbi,
+            hr: acc.hr + p.hr,
+            bb: acc.bb + p.bb,
+            so: acc.so + p.so
+        }), { ab: 0, h: 0, r: 0, rbi: 0, hr: 0, bb: 0, so: 0 });
+        
+        const awayHittingTotals = awayHitters.reduce((acc, p) => ({
+            ab: acc.ab + p.ab,
+            h: acc.h + p.h,
+            r: acc.r + p.r,
+            rbi: acc.rbi + p.rbi,
+            hr: acc.hr + p.hr,
+            bb: acc.bb + p.bb,
+            so: acc.so + p.so
+        }), { ab: 0, h: 0, r: 0, rbi: 0, hr: 0, bb: 0, so: 0 });
+        
+        return { 
+            homeHitters, awayHitters, homePitchers, awayPitchers,
+            homeHittingTotals, awayHittingTotals
+        };
+    }, [game, playerGames, pitcherGames]);
+    
+    if (!game || !gameData) return null;
+    
+    const HitterRow = ({ player }) => (
+        <tr className="hover:bg-gray-50">
+            <td className="px-3 py-2">
+                <PlayerLink playerId={player.playerId} name={player.name} />
+            </td>
+            <td className="px-2 py-2 text-center">{player.ab}</td>
+            <td className="px-2 py-2 text-center font-semibold">{player.h}</td>
+            <td className="px-2 py-2 text-center">{player.r}</td>
+            <td className="px-2 py-2 text-center">{player.rbi}</td>
+            <td className="px-2 py-2 text-center font-bold text-blue-600">{player.hr > 0 ? player.hr : '-'}</td>
+            <td className="px-2 py-2 text-center">{player.doubles > 0 ? player.doubles : '-'}</td>
+            <td className="px-2 py-2 text-center">{player.triples > 0 ? player.triples : '-'}</td>
+            <td className="px-2 py-2 text-center">{player.bb}</td>
+            <td className="px-2 py-2 text-center">{player.so}</td>
+        </tr>
+    );
+    
+    const PitcherRow = ({ pitcher }) => {
+        const ip = `${Math.floor(pitcher.outs / 3)}.${pitcher.outs % 3}`;
+        const decision = pitcher.wins ? 'W' : pitcher.losses ? 'L' : pitcher.saves ? 'SV' : '';
+        
+        return (
+            <tr className="hover:bg-gray-50">
+                <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                        <PlayerLink playerId={pitcher.playerId} name={pitcher.name} />
+                        {decision && (
+                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                                decision === 'W' ? 'bg-green-100 text-green-700' :
+                                decision === 'L' ? 'bg-red-100 text-red-700' :
+                                'bg-blue-100 text-blue-700'
+                            }`}>
+                                {decision}
+                            </span>
+                        )}
+                    </div>
+                </td>
+                <td className="px-2 py-2 text-center font-semibold">{ip}</td>
+                <td className="px-2 py-2 text-center">{pitcher.h}</td>
+                <td className="px-2 py-2 text-center">{pitcher.r}</td>
+                <td className="px-2 py-2 text-center">{pitcher.er}</td>
+                <td className="px-2 py-2 text-center">{pitcher.bb}</td>
+                <td className="px-2 py-2 text-center font-semibold">{pitcher.so}</td>
+                <td className="px-2 py-2 text-center">{pitcher.hr > 0 ? pitcher.hr : '-'}</td>
+            </tr>
+        );
+    };
+    
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-white rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                {/* Header */}
+                <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="section-title font-bold">{game.awayTeam} @ {game.homeTeam}</h3>
+                        <button onClick={onClose} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
+                    </div>
+                    <div className="flex items-center gap-4 body-text text-blue-100">
+                        <span>{game.date}</span>
+                        <span>•</span>
+                        <span>{game.startTime}</span>
+                        <span>•</span>
+                        <span className="font-mono text-2xl text-white font-bold">{game.score}</span>
+                    </div>
+                    <div className="body-text text-blue-100 mt-2">
+                        📍 {game.venue} 
+                        {game.attendance > 0 && <> • 👥 {game.attendance.toLocaleString()} fans</>}
+                        {game.gameLength && <> • ⏱️ {game.gameLength}</>}
+                    </div>
+                </div>
+                
+                {/* Body - Scrollable */}
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+                    {/* Away Team Hitters */}
+                    <div className="p-6 border-b bg-gray-50">
+                        <h4 className="subsection-title font-bold mb-3">{game.awayTeam} Batting</h4>
+                        <div className="overflow-x-auto">
+                            <table className="w-full small-text">
+                                <thead className="bg-white border-b-2">
+                                    <tr>
+                                        <th className="px-3 py-2 text-left">Batter</th>
+                                        <th className="px-2 py-2">AB</th>
+                                        <th className="px-2 py-2">H</th>
+                                        <th className="px-2 py-2">R</th>
+                                        <th className="px-2 py-2">RBI</th>
+                                        <th className="px-2 py-2">HR</th>
+                                        <th className="px-2 py-2">2B</th>
+                                        <th className="px-2 py-2">3B</th>
+                                        <th className="px-2 py-2">BB</th>
+                                        <th className="px-2 py-2">SO</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {gameData.awayHitters.map((p, idx) => <HitterRow key={idx} player={p} />)}
+                                    <tr className="bg-blue-50 font-bold">
+                                        <td className="px-3 py-2">Team Totals</td>
+                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.ab}</td>
+                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.h}</td>
+                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.r}</td>
+                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.rbi}</td>
+                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.hr}</td>
+                                        <td className="px-2 py-2 text-center">-</td>
+                                        <td className="px-2 py-2 text-center">-</td>
+                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.bb}</td>
+                                        <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.so}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {/* Home Team Hitters */}
+                    <div className="p-6 border-b">
+                        <h4 className="subsection-title font-bold mb-3">{game.homeTeam} Batting</h4>
+                        <div className="overflow-x-auto">
+                            <table className="w-full small-text">
+                                <thead className="bg-gray-50 border-b-2">
+                                    <tr>
+                                        <th className="px-3 py-2 text-left">Batter</th>
+                                        <th className="px-2 py-2">AB</th>
+                                        <th className="px-2 py-2">H</th>
+                                        <th className="px-2 py-2">R</th>
+                                        <th className="px-2 py-2">RBI</th>
+                                        <th className="px-2 py-2">HR</th>
+                                        <th className="px-2 py-2">2B</th>
+                                        <th className="px-2 py-2">3B</th>
+                                        <th className="px-2 py-2">BB</th>
+                                        <th className="px-2 py-2">SO</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {gameData.homeHitters.map((p, idx) => <HitterRow key={idx} player={p} />)}
+                                    <tr className="bg-blue-50 font-bold">
+                                        <td className="px-3 py-2">Team Totals</td>
+                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.ab}</td>
+                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.h}</td>
+                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.r}</td>
+                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.rbi}</td>
+                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.hr}</td>
+                                        <td className="px-2 py-2 text-center">-</td>
+                                        <td className="px-2 py-2 text-center">-</td>
+                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.bb}</td>
+                                        <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.so}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {/* Pitching */}
+                    <div className="p-6 bg-gray-50">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Away Pitchers */}
+                            <div>
+                                <h4 className="subsection-title font-bold mb-3">{game.awayTeam} Pitching</h4>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full small-text bg-white rounded">
+                                        <thead className="bg-gray-50 border-b-2">
+                                            <tr>
+                                                <th className="px-3 py-2 text-left">Pitcher</th>
+                                                <th className="px-2 py-2">IP</th>
+                                                <th className="px-2 py-2">H</th>
+                                                <th className="px-2 py-2">R</th>
+                                                <th className="px-2 py-2">ER</th>
+                                                <th className="px-2 py-2">BB</th>
+                                                <th className="px-2 py-2">SO</th>
+                                                <th className="px-2 py-2">HR</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {gameData.awayPitchers.map((p, idx) => <PitcherRow key={idx} pitcher={p} />)}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            {/* Home Pitchers */}
+                            <div>
+                                <h4 className="subsection-title font-bold mb-3">{game.homeTeam} Pitching</h4>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full small-text bg-white rounded">
+                                        <thead className="bg-gray-50 border-b-2">
+                                            <tr>
+                                                <th className="px-3 py-2 text-left">Pitcher</th>
+                                                <th className="px-2 py-2">IP</th>
+                                                <th className="px-2 py-2">H</th>
+                                                <th className="px-2 py-2">R</th>
+                                                <th className="px-2 py-2">ER</th>
+                                                <th className="px-2 py-2">BB</th>
+                                                <th className="px-2 py-2">SO</th>
+                                                <th className="px-2 py-2">HR</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {gameData.homePitchers.map((p, idx) => <PitcherRow key={idx} pitcher={p} />)}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {/* Footer */}
+                <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
+                    <GameLink gameId={game.gameId} />
+                    <button onClick={onClose} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 body-text font-medium">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const PlayerTimeline = ({ playerId, playerName, playerGames }) => {
+    const timelineData = useMemo(() => {
+        const gamesForPlayer = playerGames.filter(g => g.playerId === playerId);
+        
+        if (gamesForPlayer.length === 0) return [];
+        
+        // Group by year
+        const byYear = {};
+        gamesForPlayer.forEach(game => {
+            const year = game.dateSort.substring(0, 4);
+            if (!byYear[year]) {
+                byYear[year] = [];
+            }
+            byYear[year].push(game);
+        });
+        
+        // Aggregate stats per year
+        const yearlyStats = Object.entries(byYear).map(([year, games]) => {
+            const aggregated = aggregateHitterStats(games)[0] || {};
+            return { year, ...aggregated };
+        }).sort((a, b) => a.year - b.year);
+        
+        return yearlyStats;
+    }, [playerId, playerGames]);
+    
+    if (timelineData.length === 0) {
+        return (
+            <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="subsection-title font-bold mb-4">📊 Career Timeline</h3>
+                <p className="body-text text-gray-500 text-center py-8">No games found for this player</p>
+            </div>
+        );
+    }
+    
+    return (
+        <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="subsection-title font-bold mb-4">📊 Career Timeline - {playerName}</h3>
+            
+            {/* Career summary stats */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 p-4 bg-blue-50 rounded-lg">
+                {(() => {
+                    const totals = timelineData.reduce((acc, season) => ({
+                        games: acc.games + (season.games || 0),
+                        pa: acc.pa + (season.pa || 0),
+                        hr: acc.hr + (season.hr || 0),
+                        rbi: acc.rbi + (season.rbi || 0),
+                        h: acc.h + (season.h || 0)
+                    }), { games: 0, pa: 0, hr: 0, rbi: 0, h: 0 });
+                    
+                    return (
+                        <>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-blue-600">{totals.games}</div>
+                                <div className="small-text text-gray-600">Games</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-blue-600">{totals.pa}</div>
+                                <div className="small-text text-gray-600">PA</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-blue-600">{totals.h}</div>
+                                <div className="small-text text-gray-600">Hits</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-blue-600">{totals.hr}</div>
+                                <div className="small-text text-gray-600">HR</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-blue-600">{totals.rbi}</div>
+                                <div className="small-text text-gray-600">RBI</div>
+                            </div>
+                        </>
+                    );
+                })()}
+            </div>
+            
+            {/* Year-by-year timeline */}
+            <div className="space-y-4">
+                {timelineData.map((season, idx) => (
+                    <div key={idx} className="relative pl-8 pb-4 border-l-2 border-blue-200 last:border-l-0">
+                        <div className="absolute left-0 top-0 -ml-2.5 w-5 h-5 bg-blue-600 rounded-full border-2 border-white"></div>
+                        <div className="bg-gray-50 rounded-lg p-4 hover:bg-blue-50 transition-colors">
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <span className="text-2xl font-bold text-blue-600">{season.year}</span>
+                                    <span className="ml-3 body-text text-gray-600">{season.team || 'Various Teams'}</span>
+                                </div>
+                                <span className="body-text text-gray-600 font-semibold">{season.games} games</span>
+                            </div>
+                            
+                            {/* Stats grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 small-text">
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">PA</div>
+                                    <div className="font-bold text-gray-900">{season.pa}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">AVG</div>
+                                    <div className="font-bold text-gray-900">{season.avg}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">HR</div>
+                                    <div className="font-bold text-orange-600">{season.hr}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">RBI</div>
+                                    <div className="font-bold text-gray-900">{season.rbi}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">H</div>
+                                    <div className="font-bold text-gray-900">{season.h}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">R</div>
+                                    <div className="font-bold text-gray-900">{season.r}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">OBP</div>
+                                    <div className="font-bold text-blue-600">{season.obp}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded">
+                                    <div className="text-gray-500">OPS</div>
+                                    <div className="font-bold text-purple-600">{season.ops}</div>
+                                </div>
+                            </div>
+                            
+                            {/* Notable achievements */}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {season.hr >= 5 && (
+                                    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-semibold">
+                                        💥 {season.hr} HR
+                                    </span>
+                                )}
+                                {parseFloat(season.avg) >= 0.300 && (
+                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                                        🎯 .300+ AVG
+                                    </span>
+                                )}
+                                {parseFloat(season.ops) >= 0.800 && (
+                                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">
+                                        ⭐ .800+ OPS
+                                    </span>
+                                )}
+                                {season.sb >= 5 && (
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
+                                        🏃 {season.sb} SB
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const AdvancedFilters = ({ games, onFilterChange }) => {
+    const [filters, setFilters] = useState({
+        dateRange: { start: '', end: '' },
+        teams: [],
+        venues: [],
+        dayOfWeek: [],
+        homeAway: 'all',
+        minScore: '',
+        maxScore: '',
+        extraInnings: false
+    });
+    
+    const [showFilters, setShowFilters] = useState(false);
+    
+    const availableTeams = useMemo(() => {
+        const teams = new Set();
+        games.forEach(g => {
+            teams.add(g.homeTeam);
+            teams.add(g.awayTeam);
+        });
+        return Array.from(teams).sort();
+    }, [games]);
+    
+    const availableVenues = useMemo(() => {
+        const venues = new Set();
+        games.forEach(g => venues.add(g.venue));
+        return Array.from(venues).sort();
+    }, [games]);
+    
+    const applyFilters = () => {
+        const filtered = games.filter(game => {
+            // Date range
+            if (filters.dateRange.start) {
+                const gameDate = new Date(game.date);
+                const startDate = new Date(filters.dateRange.start);
+                if (gameDate < startDate) return false;
+            }
+            if (filters.dateRange.end) {
+                const gameDate = new Date(game.date);
+                const endDate = new Date(filters.dateRange.end);
+                if (gameDate > endDate) return false;
+            }
+            
+            // Teams
+            if (filters.teams.length > 0) {
+                if (!filters.teams.includes(game.homeTeam) && !filters.teams.includes(game.awayTeam)) {
+                    return false;
+                }
+            }
+            
+            // Venues
+            if (filters.venues.length > 0) {
+                if (!filters.venues.includes(game.venue)) return false;
+            }
+            
+            // Day of week
+            if (filters.dayOfWeek.length > 0) {
+                const gameDate = new Date(game.date);
+                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const gameDayName = dayNames[gameDate.getDay()];
+                if (!filters.dayOfWeek.includes(gameDayName)) return false;
+            }
+            
+            // Home/Away
+            if (filters.homeAway !== 'all') {
+                const favoriteTeam = 'BAL'; // You could make this configurable
+                if (filters.homeAway === 'home' && game.homeTeam !== favoriteTeam) return false;
+                if (filters.homeAway === 'away' && game.awayTeam !== favoriteTeam) return false;
+            }
+            
+            // Score filters
+            if (filters.minScore || filters.maxScore) {
+                const scores = game.score.match(/\d+/g);
+                if (scores && scores.length === 2) {
+                    const totalScore = parseInt(scores[0]) + parseInt(scores[1]);
+                    if (filters.minScore && totalScore < parseInt(filters.minScore)) return false;
+                    if (filters.maxScore && totalScore > parseInt(filters.maxScore)) return false;
+                }
+            }
+            
+            // Extra innings
+            if (filters.extraInnings) {
+                // Check if game went to extra innings (you might need to add this to your data)
+                // For now, we'll skip this filter
+            }
+            
+            return true;
+        });
+        
+        onFilterChange(filtered);
+    };
+    
+    const resetFilters = () => {
+        const resetState = {
+            dateRange: { start: '', end: '' },
+            teams: [],
+            venues: [],
+            dayOfWeek: [],
+            homeAway: 'all',
+            minScore: '',
+            maxScore: '',
+            extraInnings: false
+        };
+        setFilters(resetState);
+        onFilterChange(games); // Reset to all games
+    };
+    
+    const activeFilterCount = useMemo(() => {
+        let count = 0;
+        if (filters.dateRange.start || filters.dateRange.end) count++;
+        if (filters.teams.length > 0) count++;
+        if (filters.venues.length > 0) count++;
+        if (filters.dayOfWeek.length > 0) count++;
+        if (filters.homeAway !== 'all') count++;
+        if (filters.minScore || filters.maxScore) count++;
+        if (filters.extraInnings) count++;
+        return count;
+    }, [filters]);
+    
+    return (
+        <div className="bg-white rounded-lg shadow mb-6">
+            <div className="p-4 border-b flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <h3 className="subsection-title font-bold">🔍 Advanced Filters</h3>
+                    {activeFilterCount > 0 && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                            {activeFilterCount} active
+                        </span>
+                    )}
+                </div>
+                <button 
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 body-text"
+                >
+                    {showFilters ? 'Hide Filters' : 'Show Filters'}
+                </button>
+            </div>
+            
+            {showFilters && (
+                <div className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                        {/* Date Range */}
+                        <div>
+                            <label className="small-text font-semibold block mb-2">📅 Date Range</label>
+                            <input 
+                                type="date" 
+                                value={filters.dateRange.start}
+                                onChange={(e) => setFilters({...filters, dateRange: {...filters.dateRange, start: e.target.value}})}
+                                className="w-full px-3 py-2 border rounded small-text mb-2"
+                                placeholder="Start date"
+                            />
+                            <input 
+                                type="date" 
+                                value={filters.dateRange.end}
+                                onChange={(e) => setFilters({...filters, dateRange: {...filters.dateRange, end: e.target.value}})}
+                                className="w-full px-3 py-2 border rounded small-text"
+                                placeholder="End date"
+                            />
+                        </div>
+                        
+                        {/* Teams */}
+                        <div>
+                            <label className="small-text font-semibold block mb-2">⚾ Teams (select multiple)</label>
+                            <select 
+                                multiple
+                                size="5"
+                                value={filters.teams}
+                                onChange={(e) => {
+                                    const selected = Array.from(e.target.selectedOptions, opt => opt.value);
+                                    setFilters({...filters, teams: selected});
+                                }}
+                                className="w-full px-3 py-2 border rounded small-text"
+                            >
+                                {availableTeams.map(team => (
+                                    <option key={team} value={team}>{team}</option>
+                                ))}
+                            </select>
+                        </div>
+                        
+                        {/* Day of Week */}
+                        <div>
+                            <label className="small-text font-semibold block mb-2">📆 Day of Week</label>
+                            <div className="space-y-1">
+                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                                    <label key={day} className="flex items-center small-text hover:bg-gray-50 p-1 rounded cursor-pointer">
+                                        <input 
+                                            type="checkbox"
+                                            checked={filters.dayOfWeek.includes(day)}
+                                            onChange={(e) => {
+                                                const newDays = e.target.checked 
+                                                    ? [...filters.dayOfWeek, day]
+                                                    : filters.dayOfWeek.filter(d => d !== day);
+                                                setFilters({...filters, dayOfWeek: newDays});
+                                            }}
+                                            className="mr-2"
+                                        />
+                                        {day}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {/* Venues */}
+                        <div>
+                            <label className="small-text font-semibold block mb-2">🏟️ Venues (select multiple)</label>
+                            <select 
+                                multiple
+                                size="5"
+                                value={filters.venues}
+                                onChange={(e) => {
+                                    const selected = Array.from(e.target.selectedOptions, opt => opt.value);
+                                    setFilters({...filters, venues: selected});
+                                }}
+                                className="w-full px-3 py-2 border rounded small-text"
+                            >
+                                {availableVenues.map(venue => (
+                                    <option key={venue} value={venue} title={venue}>
+                                        {venue.length > 30 ? venue.substring(0, 30) + '...' : venue}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        
+                        {/* Home/Away */}
+                        <div>
+                            <label className="small-text font-semibold block mb-2">🏠 Home/Away (Orioles)</label>
+                            <select 
+                                value={filters.homeAway}
+                                onChange={(e) => setFilters({...filters, homeAway: e.target.value})}
+                                className="w-full px-3 py-2 border rounded small-text"
+                            >
+                                <option value="all">All Games</option>
+                                <option value="home">Home Games Only</option>
+                                <option value="away">Away Games Only</option>
+                            </select>
+                        </div>
+                        
+                        {/* Score Range */}
+                        <div>
+                            <label className="small-text font-semibold block mb-2">🎯 Total Score Range</label>
+                            <input 
+                                type="number"
+                                value={filters.minScore}
+                                onChange={(e) => setFilters({...filters, minScore: e.target.value})}
+                                placeholder="Min total runs"
+                                className="w-full px-3 py-2 border rounded small-text mb-2"
+                            />
+                            <input 
+                                type="number"
+                                value={filters.maxScore}
+                                onChange={(e) => setFilters({...filters, maxScore: e.target.value})}
+                                placeholder="Max total runs"
+                                className="w-full px-3 py-2 border rounded small-text"
+                            />
+                        </div>
+                    </div>
+                    
+                    {/* Action buttons */}
+                    <div className="flex gap-3 pt-4 border-t">
+                        <button 
+                            onClick={applyFilters}
+                            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 body-text font-semibold"
+                        >
+                            Apply Filters
+                        </button>
+                        <button 
+                            onClick={resetFilters}
+                            className="px-6 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 body-text font-semibold"
+                        >
+                            Reset All
+                        </button>
+                        <div className="flex-1"></div>
+                        <div className="body-text text-gray-600 flex items-center">
+                            Showing <strong className="mx-1">{games.length}</strong> games
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -1676,6 +2625,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [useFiltered, setUseFiltered] = useState(false);
+    const [selectedPlayer, setSelectedPlayer] = useState(null);
     
     useEffect(() => { setUseFiltered(!!(startDate || endDate)); }, [startDate, endDate]);
     
@@ -1720,7 +2670,22 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
     }, [allPlayers]);
     
     const columns = [
-        { key: 'name', label: 'Name', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
+        { 
+            key: 'name', 
+            label: 'Name', 
+            render: (v, r) => (
+                <div className="flex items-center gap-2">
+                    <PlayerLink playerId={r.playerId} name={v} />
+                    <button 
+                        onClick={() => setSelectedPlayer({ id: r.playerId, name: v })}
+                        className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-semibold whitespace-nowrap"
+                        title="View career timeline"
+                    >
+                        📊
+                    </button>
+                </div>
+            )
+        },
         { key: 'team', label: 'Team' }, { key: 'games', label: 'G' }, { key: 'ab', label: 'AB' }, { key: 'pa', label: 'PA' },
         { key: 'h', label: 'H' }, { key: 'avg', label: 'AVG' }, { key: 'r', label: 'R' }, { key: 'rbi', label: 'RBI' },
         { key: 'hr', label: 'HR' }, { key: 'doubles', label: '2B' }, { key: 'triples', label: '3B' }, { key: 'sb', label: 'SB' },
@@ -1763,6 +2728,24 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
                     </tbody>
                 </table>
             </div>
+            
+            {selectedPlayer && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPlayer(null)}>
+                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
+                            <h3 className="section-title font-bold">Career Timeline</h3>
+                            <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
+                        </div>
+                        <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                            <PlayerTimeline 
+                                playerId={selectedPlayer.id}
+                                playerName={selectedPlayer.name}
+                                playerGames={playerGames}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -2114,10 +3097,19 @@ const Leaderboards = ({ data }) => {
     );
 };
 
-const Dashboard = ({ data }) => (
-    <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard title="Games" value={data.games?.length || 0} color="blue" />
+const Dashboard = ({ data }) => {
+    const [filteredGames, setFilteredGames] = useState(data.games || []);
+    
+    return (
+        <div className="space-y-6">
+            {/* Advanced Filters */}
+            <AdvancedFilters 
+                games={data.games || []} 
+                onFilterChange={setFilteredGames}
+            />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard title="Filtered Games" value={filteredGames.length} subtitle={filteredGames.length < data.games?.length ? `of ${data.games?.length} total` : ''} color="blue" />
             <StatCard title="Players" value={data.players?.length || 0} color="green" />
             <StatCard title="Milestones" value={data.milestones?.length || 0} color="purple" />
             <StatCard title="Teams" value={data.teams?.length || 0} color="orange" />
@@ -2127,7 +3119,54 @@ const Dashboard = ({ data }) => (
             <div className="bg-white rounded-lg shadow p-6"><TeamChart teams={data.teams} /></div>
         </div>
     </div>
-);
+    );
+};
+
+const GameLogWithDetails = ({ games, playerGames, pitcherGames }) => {
+    const [selectedGame, setSelectedGame] = useState(null);
+    
+    return (
+        <>
+            <DataTable 
+                title="📋 Game Log" 
+                data={games} 
+                defaultSortKey="date" 
+                enableDateFilter={true} 
+                columns={[
+                    { key: 'date', label: 'Date' }, 
+                    { key: 'awayTeam', label: 'Away' }, 
+                    { key: 'homeTeam', label: 'Home' }, 
+                    { key: 'score', label: 'Score' }, 
+                    { key: 'venue', label: 'Venue' }, 
+                    { 
+                        key: 'gameId', 
+                        label: 'Game', 
+                        render: (v, row) => (
+                            <div className="flex items-center gap-2">
+                                <GameLink gameId={v} />
+                                <button 
+                                    onClick={() => setSelectedGame(row)}
+                                    className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-semibold"
+                                >
+                                    Details
+                                </button>
+                            </div>
+                        )
+                    }
+                ]} 
+            />
+            
+            {selectedGame && (
+                <GameDetailsModal 
+                    game={selectedGame}
+                    playerGames={playerGames}
+                    pitcherGames={pitcherGames}
+                    onClose={() => setSelectedGame(null)}
+                />
+            )}
+        </>
+    );
+};
 
 const App = () => {
     const [tab, setTab] = useState('dashboard');
@@ -2150,6 +3189,7 @@ const App = () => {
         { id: 'finals', label: 'Final Games', icon: '👋' }, 
         { id: 'signature', label: 'Signature HRs', icon: '💦' },
         { id: 'nostats', label: 'No Stats', icon: '👥' },
+        { id: 'comparison', label: 'Compare', icon: '⚖️' },
     ];
     
     return (
@@ -2177,10 +3217,7 @@ const App = () => {
                 {tab === 'leaderboards' && <Leaderboards data={data} />}
                 {tab === 'calendar' && <Calendar games={data.games || []} />}
                 {tab === 'matchups' && <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} />}
-                {tab === 'gamelog' && <DataTable title="📋 Game Log" data={data.games || []} defaultSortKey="date" enableDateFilter={true} columns={[
-                    { key: 'date', label: 'Date' }, { key: 'awayTeam', label: 'Away' }, { key: 'homeTeam', label: 'Home' }, 
-                    { key: 'score', label: 'Score' }, { key: 'venue', label: 'Venue' }, { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
-                ]} />}
+                {tab === 'gamelog' && <GameLogWithDetails games={data.games || []} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} />}
                 {tab === 'milestones' && <DataTable title="🏆 Milestones" data={data.milestones || []} defaultSortKey="date" filterOptions={{ key: 'type', label: 'Types' }} enableDateFilter={true} columns={[
                     { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => r.playerId ? <PlayerLink playerId={r.playerId} name={v} /> : v }, 
                     { key: 'team', label: 'Team' }, { key: 'type', label: 'Type' }, { key: 'detail', label: 'Details' }, { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
@@ -2249,6 +3286,7 @@ const App = () => {
                     { key: 'name', label: 'Name', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> }, 
                     { key: 'teams', label: 'Teams' }, { key: 'games', label: 'G' }, { key: 'positions', label: 'Positions' }
                 ]} />}
+                {tab === 'comparison' && <PlayerComparison players={data.players || []} playerGames={data.playerGames || []} />}
             </main>
             <footer className="bg-white border-t mt-12">
                 <div className="max-w-7xl mx-auto px-4 py-8 text-center">
