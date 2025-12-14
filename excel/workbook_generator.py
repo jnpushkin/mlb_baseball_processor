@@ -20,7 +20,6 @@ from ..processors.situational_hitting_tracker import SituationalHittingTracker
 from ..processors.defensive_lineup_tracker import DefensiveLineupTracker
 from ..utils.constants import BIOFILE_PATH, REGISTER_DIR
 from ..utils.helpers import load_final_game_dates, load_id_mapping, standardize_team_code, join_sorted_gameids, ensure_sorted_gameids
-from ..utils.globals import umpire_counter
 from ..utils.stat_utils import StatUtils
 
 # Constants
@@ -895,7 +894,7 @@ def write_enhanced_stats_sheets(xl, data, workbook, colors):
     except Exception as e:
         print(f"❌ Error writing enhanced stats sheets: {e}")
 
-def write_analysis_sheets(xl, data, games, workbook, colors):
+def write_analysis_sheets(xl, data, games, workbook, colors, umpire_counter):
     """Write analysis sheets (Matchup Matrix, Scorigami, Calendar, Summary)."""
     try:
         # Signature HRs
@@ -905,7 +904,7 @@ def write_analysis_sheets(xl, data, games, workbook, colors):
                            workbook=workbook, colors=colors, sheet_type="default", exclude_cols=[""])
 
         # Umpires
-        write_umpires_sheet(xl, workbook, colors)
+        write_umpires_sheet(xl, workbook, colors, umpire_counter)
         
         # Matchup Matrix
         write_matchup_matrix(xl, data['df_matchups'], workbook, colors)
@@ -922,13 +921,13 @@ def write_analysis_sheets(xl, data, games, workbook, colors):
     except Exception as e:
         print(f"❌ Error writing analysis sheets: {e}")
 
-def write_umpires_sheet(xl, workbook, colors):
+def write_umpires_sheet(xl, workbook, colors, umpire_trackers):
     """Write the Umpires sheet."""
     try:
         positions = ["HP", "1B", "2B", "3B", "LF", "RF"]
         umpire_rows = []
 
-        for umpire, counts in umpire_counter.items():
+        for umpire, counts in umpire_tracker.get_counter().items():
             row = {"Umpire": umpire}
             total = 0
             all_game_ids = set()
@@ -1602,7 +1601,7 @@ def check_final_mlb_games(all_players, games, final_game_dates, bbref_to_retro):
     
     return final_game_rows
 
-def generate_excel_workbook(games, output_file, debut_entries, hof_df, write_file=True):
+def generate_excel_workbook(games, output_file, debut_entries, hof_df, umpire_tracker, write_file=True):
     """
     Generate Excel workbook from parsed games data.
     
@@ -1611,6 +1610,7 @@ def generate_excel_workbook(games, output_file, debut_entries, hof_df, write_fil
         output_file: Path to output Excel file (can be None if write_file=False)
         debut_entries: MLB debut reference data
         hof_df: Hall of Fame DataFrame
+        umpire_tracker: UmpireTracker instance for recording umpire data
         write_file: If False, processes data but skips Excel file creation (default: True)
     
     Returns:
@@ -1628,7 +1628,7 @@ def generate_excel_workbook(games, output_file, debut_entries, hof_df, write_fil
                 raise ValueError("output_file must be provided when write_file=True")
             
             print(f"📊 Creating Excel workbook: {output_file}")
-            create_excel_file(data, output_file, hof_df, games)
+            create_excel_file(data, output_file, hof_df, games, umpire_tracker)
             print(f"✅ Excel workbook created successfully: {output_file}")
         else:
             print(f"⏭️  Skipping Excel file creation (write_file=False)")
@@ -1643,7 +1643,7 @@ def generate_excel_workbook(games, output_file, debut_entries, hof_df, write_fil
         print(f"❌ Failed to process game data: {e}")
         raise
     
-def create_excel_file(data, output_file, hof_df, games):
+def create_excel_file(data, output_file, hof_df, games, umpire_tracker):
     """Create the Excel file with all sheets."""
     with pd.ExcelWriter(output_file, engine="xlsxwriter", datetime_format="mm/dd/yyyy") as xl:
         workbook = xl.book
@@ -1670,7 +1670,7 @@ def create_excel_file(data, output_file, hof_df, games):
         write_enhanced_stats_sheets(xl, data, workbook, colors)
 
         # Write analysis sheets
-        write_analysis_sheets(xl, data, games, workbook, colors)
+        write_analysis_sheets(xl, data, games, workbook, colors, umpire_tracker)
 
 def write_enhanced_hof_sheet(xl, hof_df, data, workbook, colors):
     """Write the enhanced Hall of Fame sheet."""

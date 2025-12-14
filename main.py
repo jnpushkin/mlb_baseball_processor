@@ -11,7 +11,7 @@ from .excel.workbook_generator import generate_excel_workbook
 from .parsers.html_parser import parse_baseball_reference_boxscore
 from .utils.constants import BASE_DIR, DEFAULT_INPUT_DIR, REFERENCES_DIR, HOF_FILE, CACHE_DIR
 from .utils.helpers import load_mlb_debuts
-from .utils.globals import umpire_counter
+from .utils.globals import UmpireTracker
 from .utils.log import info, warn, set_verbosity, set_use_emoji
 from .website import generate_website_from_data
 
@@ -74,7 +74,7 @@ def process_html_file(file_path, index=None, total=None):
         traceback.print_exc()
         return None
   
-def process_directory_or_file(input_path):
+def process_directory_or_file(input_path, umpire_tracker):
     """Process HTML files from directory or single file."""
     all_games_data = []
     games_missing_umpires = []
@@ -88,10 +88,7 @@ def process_directory_or_file(input_path):
                     games_missing_umpires.append(game_id)
                 else:
                     for pos, name in game_data.get("umpires", {}).items():
-                        umpire_counter[name][pos]["count"] += 1
-                        umpire_counter[name][pos]["game_ids"].add(game_id)
-                        umpire_counter[name]["Total"]["count"] += 1
-                        umpire_counter[name]["Total"]["game_ids"].add(game_id)
+                        umpire_tracker.record_umpire(name, pos, game_id)
                 all_games_data.append(game_data)
         else:
             warn(f"❌ File must be an HTML file: {input_path}")
@@ -110,10 +107,7 @@ def process_directory_or_file(input_path):
                     games_missing_umpires.append(game_id)
                 else:
                     for pos, name in game_data.get("umpires", {}).items():
-                        umpire_counter[name][pos]["count"] += 1
-                        umpire_counter[name][pos]["game_ids"].add(game_id)
-                        umpire_counter[name]["Total"]["count"] += 1
-                        umpire_counter[name]["Total"]["game_ids"].add(game_id)
+                        umpire_tracker.record_umpire(name, pos, game_id)
                 all_games_data.append(game_data)
     else:
         warn(f"❌ Invalid path: {input_path}")
@@ -191,6 +185,10 @@ def main():
 
     info("⚾️ Starting Baseball Game Processor...")
     info(f"📂 Input: {args.input_path}")
+    
+    # Create a fresh umpire tracker for this run
+    umpire_tracker = UmpireTracker()
+    
     if not args.website_only:
         info(f"📊 Output Excel: {args.output_excel}")
         args.output_excel = os.path.expanduser(args.output_excel)
@@ -211,7 +209,7 @@ def main():
             with open(file, 'r', encoding='utf-8') as f:
                 games_data.append(json.load(f))
     else:
-        games_data = process_directory_or_file(args.input_path)
+        games_data = process_directory_or_file(args.input_path, umpire_tracker)
 
     if not games_data:
         warn("❌ No games data to process. Exiting.")
@@ -234,7 +232,8 @@ def main():
                 games_data, 
                 args.output_excel,  # Still pass the path (needed for html naming)
                 debut_entries, 
-                hof_df, 
+                hof_df,
+                umpire_tracker,  # Pass the tracker
                 write_file=False  # Skip Excel writing
             )
             
@@ -257,10 +256,11 @@ def main():
             
             processed_data = generate_excel_workbook(
                 games_data, 
-                args.output_excel, 
+                args.output_excel,  # Still pass the path (needed for html naming)
                 debut_entries, 
                 hof_df,
-                write_file=True
+                umpire_tracker,  # Pass the tracker
+                write_file=False  # Skip Excel writing
             )
             
             info("\n🎉 Processing complete!")
@@ -279,10 +279,11 @@ def main():
             
             processed_data = generate_excel_workbook(
                 games_data, 
-                args.output_excel, 
+                args.output_excel,  # Still pass the path (needed for html naming)
                 debut_entries, 
                 hof_df,
-                write_file=True
+                umpire_tracker,  # Pass the tracker
+                write_file=False  # Skip Excel writing
             )
             
             info("\n📊 Excel complete, generating website...")
