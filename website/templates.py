@@ -1123,7 +1123,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, onClose }) => {
                 </div>
                 
                 {/* Game Context Section */}
-                <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50 overflow-y-auto max-h-[40vh]">
                     {/* Linescore */}
                     {game.linescore && (
                         <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
@@ -2418,9 +2418,9 @@ const SmartInsights = ({ data }) => {
             
             matchups[pair].games.push(game);
             
-            // Determine winner
+            // Determine winner (use first 2 numbers, handles extra innings like "5 - 4 (10)")
             const scores = game.score.match(/\d+/g);
-            if (scores && scores.length === 2) {
+            if (scores && scores.length >= 2) {
                 const awayScore = parseInt(scores[0]);
                 const homeScore = parseInt(scores[1]);
                 const winner = homeScore > awayScore ? normalizeTeamCode(game.homeTeam) : 
