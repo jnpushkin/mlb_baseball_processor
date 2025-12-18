@@ -1,6 +1,16 @@
+"""HTML parser for Baseball-Reference box score pages.
+
+This module parses Baseball-Reference.com HTML box score files and extracts
+game data including teams, scores, batting/pitching stats, play-by-play, and more.
+"""
+
+from __future__ import annotations
+
 import re
 from datetime import datetime
-from bs4 import BeautifulSoup, Comment
+from typing import Dict, List, Any, Optional, Tuple
+
+from bs4 import BeautifulSoup, Comment, Tag
 
 from ..utils.constants import RETROSHEET_CODES, LABEL_MAP
 from ..utils.helpers import standardize_team_code, normalize_name, normalize_umpire_name
@@ -10,8 +20,21 @@ from ..engines.special_events_engine import SpecialEventsEngine
 from .stats_parser import extract_batting_stats, extract_pitching_stats, assign_pitcher_decisions
 from .play_by_play_parser import extract_play_by_play, extract_play_features
 
-def parse_baseball_reference_boxscore(html_content):
-    """Parse a Baseball-Reference.com box score HTML file into game_data dict."""
+def parse_baseball_reference_boxscore(html_content: str) -> Dict[str, Any]:
+    """Parse a Baseball-Reference.com box score HTML file into game_data dict.
+
+    Args:
+        html_content: Raw HTML content from a Baseball-Reference box score page.
+
+    Returns:
+        A dictionary containing all extracted game data including:
+        - basic_info: Teams, scores, date, venue, etc.
+        - batting: Batting stats for both teams
+        - pitching: Pitching stats for both teams
+        - linescore: Inning-by-inning scoring
+        - play_by_play: Play-by-play data
+        - And more (see GameData type for full structure)
+    """
     soup = BeautifulSoup(html_content, 'html.parser')
     umpires = extract_umpires(soup)
     game_data = {
@@ -68,9 +91,9 @@ def parse_baseball_reference_boxscore(html_content):
     try:
         game_data['lineups'] = extract_lineups(soup, away_team=away, home_team=home)
         _attach_lineup_metadata(game_data)
-    except Exception:
+    except (AttributeError, KeyError, TypeError, ValueError) as e:
         # Lineups are a "nice to have"; avoid failing the entire parse.
-        pass
+        debug(f"Could not extract lineups: {e}")
 
     game_data['linescore'] = extract_linescore(soup)
     plate_appearances, raw_plays, substitutions = extract_play_by_play(soup, away, home)
@@ -101,8 +124,15 @@ def parse_baseball_reference_boxscore(html_content):
 
     return game_data
 
-def extract_basic_info(soup):
-    """Extract basic game information like teams, date, location, etc."""
+def extract_basic_info(soup: BeautifulSoup) -> Dict[str, Any]:
+    """Extract basic game information like teams, date, location, etc.
+
+    Args:
+        soup: BeautifulSoup object of the parsed HTML.
+
+    Returns:
+        Dictionary containing basic game info (teams, scores, venue, etc.)
+    """
     info = {}
 
     # Get teams from title using a more flexible pattern
@@ -191,14 +221,15 @@ def extract_basic_info(soup):
                                 temp_val = int(m.group(1))
                                 info['temperature_f'] = temp_val
                                 break
-                            except Exception as e:
+                            except (ValueError, TypeError) as e:
                                 debug(f"Error converting temperature: {e}")
                     
                     if 'temperature_f' not in info:
                         debug(f"No temperature found in weather: '{weather_text}'")
                         
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError) as e:
             # Skip malformed comments
+            debug(f"Skipping malformed comment: {e}")
             continue
 
     # Extract scores
@@ -217,7 +248,7 @@ def extract_basic_info(soup):
     return info
 
 
-def extract_lineups(soup, away_team: str, home_team: str):
+def extract_lineups(soup: BeautifulSoup, away_team: str, home_team: str) -> Dict[str, List[Dict[str, Any]]]:
     """Extract starting lineups (batting order + positions) from BBRef.
 
     BBRef commonly includes a hidden comment block containing:
@@ -306,7 +337,7 @@ def extract_lineups(soup, away_team: str, home_team: str):
     return out
 
 
-def _attach_lineup_metadata(game_data: dict) -> None:
+def _attach_lineup_metadata(game_data: Dict[str, Any]) -> None:
     """Attach lineup_slot / starter_pos onto batting rows when possible."""
     lineups = (game_data or {}).get('lineups') or {}
     batting = (game_data or {}).get('batting') or {}
@@ -333,8 +364,15 @@ def _attach_lineup_metadata(game_data: dict) -> None:
             b['is_starter'] = True
 
 
-def extract_linescore(soup):
-    """Extract the linescore (inning-by-inning scoring)."""
+def extract_linescore(soup: BeautifulSoup) -> Dict[str, Any]:
+    """Extract the linescore (inning-by-inning scoring).
+
+    Args:
+        soup: BeautifulSoup object of the parsed HTML.
+
+    Returns:
+        Dictionary with 'away' and 'home' keys containing innings, R, H, E.
+    """
     linescore_table = soup.select_one('table.linescore')
     if not linescore_table:
         return {}
@@ -368,8 +406,17 @@ def extract_linescore(soup):
     
     return linescore_data
 
-def extract_footer_sections(soup, home_team, away_team):
-    """Extract HR, RBI, TB, 2B, etc. from hidden HTML comment blocks under batting tables."""
+def extract_footer_sections(soup: BeautifulSoup, home_team: str, away_team: str) -> Dict[str, Dict[str, str]]:
+    """Extract HR, RBI, TB, 2B, etc. from hidden HTML comment blocks under batting tables.
+
+    Args:
+        soup: BeautifulSoup object of the parsed HTML.
+        home_team: Name of the home team.
+        away_team: Name of the away team.
+
+    Returns:
+        Dictionary with 'home' and 'away' keys containing footer statistics.
+    """
     footers = {}
     for team_name, side in [(home_team, "home"), (away_team, "away")]:
         team_id = team_name.replace(" ", "").replace(".", "").replace("'", "")
@@ -401,8 +448,15 @@ def extract_footer_sections(soup, home_team, away_team):
             break
     return footers
 
-def extract_umpires(soup):
-    """Extract umpire info from comment blocks like those used by Baseball-Reference."""
+def extract_umpires(soup: BeautifulSoup) -> Dict[str, str]:
+    """Extract umpire info from comment blocks like those used by Baseball-Reference.
+
+    Args:
+        soup: BeautifulSoup object of the parsed HTML.
+
+    Returns:
+        Dictionary mapping position codes (HP, 1B, 2B, 3B) to umpire names.
+    """
     pattern = r"([HP123LRFB]+)\s*-\s*([\w\s\.\']+?)(?=,|$)"
 
     for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
@@ -421,10 +475,23 @@ def extract_umpires(soup):
     return {}
 
 
-def generate_retrosheet_game_id(game_data):
+def generate_retrosheet_game_id(game_data: Dict[str, Any]) -> Optional[str]:
+    """Generate a Retrosheet-compatible game ID.
+
+    Args:
+        game_data: Parsed game data dictionary.
+
+    Returns:
+        Game ID in format "TEAMYYYYMMDD#" (e.g., "BAL202404150") or None if
+        required data is missing.
+    """
     date_str = game_data.get("basic_info", {}).get("date_yyyymmdd")
     home_name = game_data.get("home_team") or game_data.get("basic_info", {}).get("home_team")
     dh = game_data.get("doubleheader") or "0"
+
+    # Return None if required data is missing
+    if not date_str or not home_name:
+        return None
 
     # Special handling for post-2025 Athletics name change
     try:

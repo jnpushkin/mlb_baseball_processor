@@ -13,8 +13,10 @@ from .parsers.html_parser import parse_baseball_reference_boxscore
 from .utils.constants import BASE_DIR, DEFAULT_INPUT_DIR, REFERENCES_DIR, HOF_FILE, CACHE_DIR
 from .utils.helpers import load_mlb_debuts
 from .utils.globals import UmpireTracker
-from .utils.log import info, warn, set_verbosity, set_use_emoji
+from .utils.log import info, warn, error, set_verbosity, set_use_emoji, configure_file_logging
 from .website import generate_website_from_data
+from .reports.quick_stats import generate_quick_stats_report, print_quick_stats_report
+from .exporters.csv_exporter import export_all_to_csv, export_raw_games_to_csv
 
 def process_html_file(file_path, index=None, total=None):
     """Process a single Baseball-Reference HTML file, with filename-based caching."""
@@ -214,12 +216,45 @@ def main():
         action='store_true',
         help='Disable emoji in console output'
     )
+    parser.add_argument(
+        '--log-file',
+        type=str,
+        default=None,
+        help='Path to log file for detailed logging (creates timestamped log if no path given)'
+    )
+    parser.add_argument(
+        '--parallel',
+        action='store_true',
+        help='Use parallel processing for faster parsing (recommended for 50+ games)'
+    )
+    parser.add_argument(
+        '--workers',
+        type=int,
+        default=None,
+        help='Number of worker processes for parallel mode (default: CPU count - 1)'
+    )
+    parser.add_argument(
+        '--export-csv',
+        type=str,
+        default=None,
+        help='Export all data to CSV files in the specified directory'
+    )
+    parser.add_argument(
+        '--quick-stats',
+        action='store_true',
+        help='Print quick statistics summary without generating full reports'
+    )
 
     args = parser.parse_args()
 
-    # Configure lightweight logging
+    # Configure logging
     set_verbosity(args.verbose)
     set_use_emoji(not args.no_emoji)
+
+    # Enable file logging if requested
+    if args.log_file is not None:
+        log_path = configure_file_logging(args.log_file if args.log_file else None)
+        info(f"📝 Logging to: {log_path}")
     
     # Validate conflicting flags
     if args.excel_only and args.website_only:
@@ -255,11 +290,51 @@ def main():
         for file in CACHE_DIR.glob("*.json"):
             with open(file, 'r', encoding='utf-8') as f:
                 games_data.append(json.load(f))
+    elif args.parallel:
+        # Use parallel processing
+        from .utils.parallel import process_files_parallel, default_progress_callback
+
+        html_files = []
+        if os.path.isfile(args.input_path) and args.input_path.endswith('.html'):
+            html_files = [args.input_path]
+        elif os.path.isdir(args.input_path):
+            html_files = [
+                os.path.join(args.input_path, f)
+                for f in os.listdir(args.input_path)
+                if f.endswith('.html')
+            ]
+
+        if html_files:
+            games_data, failed_files = process_files_parallel(
+                html_files,
+                max_workers=args.workers,
+                progress_callback=default_progress_callback if args.verbose else None
+            )
+
+            # Process umpire data from successful games
+            for game_data in games_data:
+                game_id = game_data.get("game_id", "UNKNOWN")
+                if game_data.get("umpires"):
+                    for pos, name in game_data.get("umpires", {}).items():
+                        umpire_tracker.record_umpire(name, pos, game_id)
+
+            if failed_files:
+                warn(f"\n❌ Failed to process {len(failed_files)} file(s)")
+                save_failed_files_report(failed_files, args.input_path)
+        else:
+            games_data = []
     else:
         games_data = process_directory_or_file(args.input_path, umpire_tracker)
 
     if not games_data:
         warn("❌ No games data to process. Exiting.")
+        return
+
+    # Quick stats mode - just print summary and exit
+    if args.quick_stats:
+        info("\n📊 Generating quick statistics report...")
+        report = generate_quick_stats_report(games_data)
+        print_quick_stats_report(report)
         return
 
     # Step 3: Save intermediate JSON (optional)
@@ -344,10 +419,17 @@ def main():
             info(f"✅ Website: {os.path.abspath(html_path)}")
             if args.save_json:
                 info(f"📄 JSON: {json_output}")
-        
+
+        # Export to CSV if requested
+        if args.export_csv:
+            info(f"\n📄 Exporting to CSV...")
+            csv_dir = Path(args.export_csv)
+            export_all_to_csv(processed_data, csv_dir)
+            export_raw_games_to_csv(games_data, csv_dir / "mlb_tracker_raw_games.csv")
+            info(f"✅ CSV files exported to: {csv_dir}")
+
     except Exception as e:
-        warn(f"❌ Error during processing: {str(e)}")
-        traceback.print_exc()
+        error(f"❌ Error during processing: {str(e)}", exc_info=True)
 
 
 

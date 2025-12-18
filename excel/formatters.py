@@ -296,7 +296,7 @@ def format_sheet_comprehensively(writer, df, sheet_name, workbook, colors, sheet
                     content_width = max(header_width, content_length + CONTENT_PADDING)
                 else:
                     content_width = header_width
-            except:
+            except (ValueError, TypeError, AttributeError):
                 content_width = header_width
         
         # Calculate optimal width based on column type
@@ -343,7 +343,7 @@ def format_sheet_comprehensively(writer, df, sheet_name, workbook, colors, sheet
                     temp_num = value.replace("°F", "").strip()
                     try:
                         value = safe_temperature_format(int(temp_num))
-                    except:
+                    except (ValueError, TypeError):
                         value = str(value)
             
             # Write the cell
@@ -656,7 +656,8 @@ def _freeze_header(ws):
     """Freeze the header row."""
     try:
         ws.freeze_panes(1, 0)
-    except Exception:
+    except (AttributeError, RuntimeError):
+        # Worksheet doesn't support freeze_panes or is closed
         pass
 
 def _autofit_columns(ws, df, workbook, min_width=6, max_width=60, pad=2, wrap_cols=None, date_cols=("Date",)):
@@ -670,7 +671,8 @@ def _autofit_columns(ws, df, workbook, min_width=6, max_width=60, pad=2, wrap_co
     for colx, colname in enumerate(df.columns):
         try:
             ws.write(0, colx, colname, header_fmt)
-        except Exception:
+        except (AttributeError, RuntimeError, TypeError):
+            # Worksheet write failed, skip this column header
             pass
     
     for colx, colname in enumerate(df.columns):
@@ -680,7 +682,7 @@ def _autofit_columns(ws, df, workbook, min_width=6, max_width=60, pad=2, wrap_co
             sample = series.head(500)
             try:
                 width = max(width, min(max(sample.str.len().max() + pad, min_width), max_width))
-            except Exception:
+            except (ValueError, TypeError, AttributeError):
                 width = max(width, min_width)
         
         cell_format = None
@@ -694,7 +696,8 @@ def _autofit_columns(ws, df, workbook, min_width=6, max_width=60, pad=2, wrap_co
                 ws.set_column(colx, colx, width, cell_format)
             else:
                 ws.set_column(colx, colx, width)
-        except Exception:
+        except (AttributeError, RuntimeError, TypeError):
+            # Worksheet column formatting failed
             pass
 
 def _format_common_columns(ws, df, workbook):
@@ -718,7 +721,8 @@ def _format_common_columns(ws, df, workbook):
             try:
                 fmt = workbook.add_format({"num_format": num_format})
                 ws.set_column(colx, colx, 12, fmt)
-            except Exception:
+            except (AttributeError, RuntimeError, TypeError):
+                # Format creation or application failed
                 pass
 
 def _wrap_long_text(ws, df, workbook, columns=("Detail", "Description", "Plays")):
@@ -730,7 +734,8 @@ def _wrap_long_text(ws, df, workbook, columns=("Detail", "Description", "Plays")
         if str(colname) in columns:
             try:
                 ws.set_column(colx, colx, 40, fmt)
-            except Exception:
+            except (AttributeError, RuntimeError, TypeError):
+                # Column wrapping failed
                 pass
 
 def polish_last_sheet(writer, df, sheet_name, wrap_cols=("Detail","Description","Plays"), date_cols=("Date",)):
@@ -747,6 +752,8 @@ def polish_last_sheet(writer, df, sheet_name, wrap_cols=("Detail","Description",
         _autofit_columns(ws, df, workbook, wrap_cols=wrap_cols, date_cols=date_cols)
         _format_common_columns(ws, df, workbook)
         _wrap_long_text(ws, df, workbook, columns=wrap_cols)
-    except Exception:
+    except (AttributeError, KeyError, RuntimeError, TypeError) as e:
         # formatting is best-effort; never break the export
-        pass
+        # but log for debugging
+        import sys
+        print(f"Warning: Sheet formatting failed for {sheet_name}: {e}", file=sys.stderr)

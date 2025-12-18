@@ -180,10 +180,12 @@ class DataSerializer:
                     "firstGame": first_date,
                     "lastGame": last_date,
                 })
-            except:
+            except (KeyError, TypeError, ValueError) as e:
+                # Log error but continue processing other players
+                print(f"   Warning: Could not serialize player data: {e}")
                 continue
         return players
-    
+
     def _serialize_pitchers(self, df):
         """Convert ALL pitchers DataFrame to JSON with complete stats and date range."""
         if df is None or df.empty:
@@ -218,7 +220,9 @@ class DataSerializer:
                     "firstGame": first_date,
                     "lastGame": last_date,
                 })
-            except:
+            except (KeyError, TypeError, ValueError) as e:
+                # Log error but continue processing other pitchers
+                print(f"   Warning: Could not serialize pitcher data: {e}")
                 continue
         return pitchers
     
@@ -390,7 +394,7 @@ class DataSerializer:
                                 outs = int(parts[0]) * 3 + int(parts[1])
                             else:
                                 outs = int(float(ip_str) * 3)
-                        except:
+                        except (ValueError, TypeError):
                             outs = 0
                         
                         if outs == 0:
@@ -414,7 +418,7 @@ class DataSerializer:
                             'wins': 1 if pitcher.get('win') else 0,
                             'losses': 1 if pitcher.get('loss') else 0,
                             'saves': 1 if pitcher.get('save') else 0,
-                            'gameStarts': 1 if pitcher == game.get('pitching', {}).get(side, [{}])[0] else 0,
+                            'gameStarts': 1 if pitcher.get('player_id') == game.get('pitching', {}).get(side, [{}])[0].get('player_id') else 0,
                         })
             except Exception as e:
                 print(f"   ⚠️ Error serializing pitcher game: {e}")
@@ -442,7 +446,7 @@ class DataSerializer:
                 return ''
             
             return extract_date(first_game), extract_date(last_game)
-        except:
+        except (IndexError, ValueError, TypeError, AttributeError):
             return '', ''
     
     def _serialize_players_without_stats(self, df):
@@ -460,10 +464,11 @@ class DataSerializer:
                     "games": int(row.get("Games", 0)),
                     "positions": str(row.get("Position(s)", "")),
                 })
-            except:
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"   Warning: Could not serialize player without stats: {e}")
                 continue
         return players
-    
+
     def _serialize_teams(self, df):
         """Convert team records DataFrame to JSON."""
         if df is None or df.empty:
@@ -484,7 +489,8 @@ class DataSerializer:
                     "oneRunGames": str(row.get("1-Run Games", "")),
                     "blowouts": str(row.get("Blowouts (5+)", "")),
                 })
-            except:
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"   Warning: Could not serialize team data: {e}")
                 continue
         return teams
     
@@ -533,7 +539,8 @@ class DataSerializer:
                     game_obj.update(self._extract_game_details(raw_game))
                 
                 games.append(game_obj)
-            except:
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"   Warning: Could not serialize game data: {e}")
                 continue
         return games
     
@@ -738,7 +745,8 @@ class DataSerializer:
                     "teamsSeen": int(row.get("Teams Seen", 0)) if pd.notna(row.get("Teams Seen")) else 0,
                     "homeTeamRecord": str(row.get("Home Team Record", "")),
                 })
-            except:
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"   Warning: Could not serialize stadium data: {e}")
                 continue
         return stadiums
     
@@ -762,7 +770,8 @@ class DataSerializer:
                     "homeRunsHit": int(row.get("Home Runs Hit", 0)) if pd.notna(row.get("Home Runs Hit")) else 0,
                     "oneRunGames": str(row.get("1-Run Games", "")),
                 })
-            except:
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"   Warning: Could not serialize Orioles data: {e}")
                 continue
         return orioles
     
@@ -803,7 +812,8 @@ class DataSerializer:
                     "decision": str(row.get("Decision", "")) if "Decision" in row else "",
                     "gameId": str(row.get("GameID", "")),
                 })
-            except:
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"   Warning: Could not serialize debut data: {e}")
                 continue
         return debuts
     
@@ -843,7 +853,8 @@ class DataSerializer:
                     "decision": str(row.get("Decision", "")) if "Decision" in row else "",
                     "gameId": str(row.get("GameID", "")),
                 })
-            except:
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"   Warning: Could not serialize final game data: {e}")
                 continue
         return finals
     
@@ -872,7 +883,8 @@ class DataSerializer:
                     "signatureNumber": str(row.get("Signature HR Number", "")),
                     "gameId": str(row.get("GameID", "")),
                 })
-            except:
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"   Warning: Could not serialize signature HR data: {e}")
                 continue
         return hrs
     

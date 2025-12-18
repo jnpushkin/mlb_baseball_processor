@@ -162,7 +162,8 @@ def get_player_rbi_from_box(game, player_id=None, player_name=None):
                 # Fallback to name matching
                 if player_name and player.get("name") == player_name:
                     return player.get("RBI", 0)
-    except Exception:
+    except (KeyError, TypeError, AttributeError):
+        # Game data structure is invalid or missing expected fields
         pass
     return None
 

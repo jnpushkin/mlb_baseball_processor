@@ -43,6 +43,53 @@ class HTMLTemplate:
         thead th {{ font-size: 0.75rem; }}
         button {{ font-size: 0.875rem; }}
         input, select {{ font-size: 0.875rem; }}
+
+        /* Loading spinner animation */
+        @keyframes spin {{
+            to {{ transform: rotate(360deg); }}
+        }}
+
+        /* Dark mode styles */
+        .dark body {{
+            background-color: #111827;
+            color: #e5e7eb;
+        }}
+        .dark .bg-white {{
+            background-color: #1f2937 !important;
+        }}
+        .dark .bg-gray-50 {{
+            background-color: #111827 !important;
+        }}
+        .dark .bg-gray-100 {{
+            background-color: #1f2937 !important;
+        }}
+        .dark .text-gray-600 {{
+            color: #9ca3af !important;
+        }}
+        .dark .text-gray-700 {{
+            color: #d1d5db !important;
+        }}
+        .dark .text-gray-900 {{
+            color: #f3f4f6 !important;
+        }}
+        .dark .border-gray-200 {{
+            border-color: #374151 !important;
+        }}
+        .dark .border-gray-300 {{
+            border-color: #4b5563 !important;
+        }}
+        .dark table {{
+            color: #e5e7eb;
+        }}
+        .dark thead {{
+            background-color: #374151 !important;
+        }}
+        .dark tbody tr {{
+            border-color: #374151;
+        }}
+        .dark tbody tr:hover {{
+            background-color: #374151 !important;
+        }}
     </style>
 </head>
 <body>
@@ -191,6 +238,25 @@ const GameLink = ({ gameId }) => {
     const url = `https://www.baseball-reference.com/boxes/${teamCode}/${gameId}.shtml`;
     return <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-mono small-text">{gameId}</a>;
 };
+
+const LoadingSpinner = ({ size = 'md', text = 'Loading...' }) => {
+    const sizes = { sm: 'w-4 h-4', md: 'w-8 h-8', lg: 'w-12 h-12' };
+    return (
+        <div className="flex flex-col items-center justify-center p-8">
+            <div className={`${sizes[size]} border-4 border-blue-200 border-t-blue-600 rounded-full`}
+                 style={{ animation: 'spin 1s linear infinite' }}></div>
+            {text && <p className="mt-3 body-text text-gray-500">{text}</p>}
+        </div>
+    );
+};
+
+const EmptyState = ({ icon = '📭', title = 'No data', message = 'There is nothing to display.' }) => (
+    <div className="flex flex-col items-center justify-center p-12 text-center">
+        <span className="text-5xl mb-4">{icon}</span>
+        <h3 className="subsection-title font-bold text-gray-700 mb-2">{title}</h3>
+        <p className="body-text text-gray-500 max-w-md">{message}</p>
+    </div>
+);
 
 const MilestoneChart = ({ milestones }) => {
     const canvasRef = useRef(null);
@@ -1035,17 +1101,139 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, onClose }) => {
                         <span className="font-mono text-2xl text-white font-bold">{game.score}</span>
                     </div>
                     <div className="body-text text-blue-100 mt-2">
-                        📍 {game.venue} 
+                        📍 {game.venue}
                         {game.attendance > 0 && <> • 👥 {game.attendance.toLocaleString()} fans</>}
                         {game.gameLength && <> • ⏱️ {game.gameLength}</>}
                     </div>
+                    {/* Weather and Temperature */}
+                    {(game.weather || game.temperature) && (
+                        <div className="body-text text-blue-100 mt-1">
+                            {game.weather && <span>🌤️ {game.weather}</span>}
+                            {game.temperature && <span> • 🌡️ {game.temperature}°F</span>}
+                        </div>
+                    )}
+                    {/* Pitcher Decisions */}
+                    {game.decisions && (game.decisions.winner || game.decisions.loser) && (
+                        <div className="body-text text-blue-100 mt-1">
+                            {game.decisions.winner && <span className="mr-3">W: {game.decisions.winner}</span>}
+                            {game.decisions.loser && <span className="mr-3">L: {game.decisions.loser}</span>}
+                            {game.decisions.save && <span>SV: {game.decisions.save}</span>}
+                        </div>
+                    )}
                 </div>
                 
-                {/* Game Context Section (unchanged from before) */}
+                {/* Game Context Section */}
                 <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
-                    {/* Linescore and context sections we added earlier */}
-                    {/* ... keep all the code from Step 2 here ... */}
-                    
+                    {/* Linescore */}
+                    {game.linescore && (
+                        <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
+                            <h5 className="small-text font-bold mb-3 text-gray-700">📊 Line Score</h5>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-center small-text">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-3 py-2 text-left">Team</th>
+                                            {Array.from({ length: Math.max(game.linescore.away?.innings?.length || 9, game.linescore.home?.innings?.length || 9, 9) }, (_, i) => (
+                                                <th key={i} className="px-2 py-2 w-8">{i + 1}</th>
+                                            ))}
+                                            <th className="px-3 py-2 font-bold border-l-2">R</th>
+                                            <th className="px-3 py-2 font-bold">H</th>
+                                            <th className="px-3 py-2 font-bold">E</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr className="border-b">
+                                            <td className="px-3 py-2 text-left font-semibold">{game.awayTeam}</td>
+                                            {Array.from({ length: Math.max(game.linescore.away?.innings?.length || 9, game.linescore.home?.innings?.length || 9, 9) }, (_, i) => (
+                                                <td key={i} className="px-2 py-2">
+                                                    {game.linescore.away?.innings?.[i] !== undefined ? game.linescore.away.innings[i] : '-'}
+                                                </td>
+                                            ))}
+                                            <td className="px-3 py-2 font-bold border-l-2">{game.linescore.away?.runs || 0}</td>
+                                            <td className="px-3 py-2 font-bold">{game.linescore.away?.hits || 0}</td>
+                                            <td className="px-3 py-2 font-bold">{game.linescore.away?.errors || 0}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="px-3 py-2 text-left font-semibold">{game.homeTeam}</td>
+                                            {Array.from({ length: Math.max(game.linescore.away?.innings?.length || 9, game.linescore.home?.innings?.length || 9, 9) }, (_, i) => (
+                                                <td key={i} className="px-2 py-2">
+                                                    {game.linescore.home?.innings?.[i] !== undefined ? game.linescore.home.innings[i] : '-'}
+                                                </td>
+                                            ))}
+                                            <td className="px-3 py-2 font-bold border-l-2">{game.linescore.home?.runs || 0}</td>
+                                            <td className="px-3 py-2 font-bold">{game.linescore.home?.hits || 0}</td>
+                                            <td className="px-3 py-2 font-bold">{game.linescore.home?.errors || 0}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Umpires */}
+                    {game.umpires && Object.values(game.umpires).some(u => u) && (
+                        <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
+                            <h5 className="small-text font-bold mb-3 text-gray-700">👨‍⚖️ Umpires</h5>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                                {game.umpires.hp && (
+                                    <div className="small-text">
+                                        <span className="text-gray-500">HP:</span> <span className="font-medium">{game.umpires.hp}</span>
+                                    </div>
+                                )}
+                                {game.umpires['1b'] && (
+                                    <div className="small-text">
+                                        <span className="text-gray-500">1B:</span> <span className="font-medium">{game.umpires['1b']}</span>
+                                    </div>
+                                )}
+                                {game.umpires['2b'] && (
+                                    <div className="small-text">
+                                        <span className="text-gray-500">2B:</span> <span className="font-medium">{game.umpires['2b']}</span>
+                                    </div>
+                                )}
+                                {game.umpires['3b'] && (
+                                    <div className="small-text">
+                                        <span className="text-gray-500">3B:</span> <span className="font-medium">{game.umpires['3b']}</span>
+                                    </div>
+                                )}
+                                {game.umpires.lf && (
+                                    <div className="small-text">
+                                        <span className="text-gray-500">LF:</span> <span className="font-medium">{game.umpires.lf}</span>
+                                    </div>
+                                )}
+                                {game.umpires.rf && (
+                                    <div className="small-text">
+                                        <span className="text-gray-500">RF:</span> <span className="font-medium">{game.umpires.rf}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Key Plays (Home Runs) */}
+                    {game.keyPlays && game.keyPlays.length > 0 && (
+                        <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
+                            <h5 className="small-text font-bold mb-3 text-gray-700">⚾ Key Plays</h5>
+                            <div className="space-y-2">
+                                {game.keyPlays.map((play, idx) => (
+                                    <div key={idx} className="flex items-start gap-2 p-2 bg-orange-50 rounded border-l-4 border-orange-400">
+                                        <span className="text-lg">
+                                            {play.type === 'grand_slam' ? '💣' : '🏠'}
+                                        </span>
+                                        <div className="flex-1">
+                                            <div className="body-text font-semibold">
+                                                {play.batter} {play.type === 'grand_slam' ? 'Grand Slam' : 'Home Run'}
+                                            </div>
+                                            <div className="small-text text-gray-600">
+                                                {play.inning} • off {play.pitcher}
+                                                {play.rbi > 1 && ` (${play.rbi} RBI)`}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Milestones from this game */}
                     {(() => {
                         const gameMilestones = BASEBALL_DATA.milestones.filter(m => m.gameId === game.gameId);
@@ -1767,8 +1955,19 @@ const Calendar = ({ games }) => {
         return intensity > 0.5 ? 'text-white' : 'text-gray-700';
     };
     
+    const year = useMemo(() => {
+        // Use most recent year with games, fallback to current year
+        const currentYear = new Date().getFullYear();
+        const yearsWithGames = new Set();
+        games.forEach(game => {
+            const date = new Date(game.date);
+            if (!isNaN(date)) yearsWithGames.add(date.getFullYear());
+        });
+        if (yearsWithGames.size === 0) return currentYear;
+        return Math.max(...yearsWithGames);
+    }, [games]);
+
     const calendarDays = useMemo(() => {
-        const year = 2024;
         const firstDay = new Date(year, selectedMonth, 1);
         const lastDay = new Date(year, selectedMonth + 1, 0);
         const startingDayOfWeek = firstDay.getDay();
@@ -1781,7 +1980,7 @@ const Calendar = ({ games }) => {
             days.push({ day, games: gamesOnDate, key });
         }
         return days;
-    }, [selectedMonth, gamesByMonthDay]);
+    }, [selectedMonth, gamesByMonthDay, year]);
     
     const monthNames = ['March', 'April', 'May', 'June', 'July', 'August', 'September', 'October'];
     const monthIndices = [2, 3, 4, 5, 6, 7, 8, 9];
@@ -3135,7 +3334,7 @@ const SmartInsights = ({ data }) => {
                                             <div key={idx} className="flex items-center justify-between p-2 bg-white rounded border">
                                                 <div className="flex items-center gap-2">
                                                     <span className="small-text text-gray-500 w-6">{idx + 1}.</span>
-                                                    <span className="body-text text-gray-700">{venue.length > 30 ? venue.substring(0, 30) + '...' : venue}</span>
+                                                    <span className="body-text text-gray-700" title={venue}>{venue.length > 30 ? venue.substring(0, 30) + '...' : venue}</span>
                                                 </div>
                                                 <span className="small-text font-bold text-blue-600">{count}</span>
                                             </div>
@@ -3340,7 +3539,6 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
             if (endDate && game.dateSort > endDate) return false;
             return true;
         });
-        console.log(`Aggregating from ${filteredGames.length} games`);
         return aggregateHitterStats(filteredGames);
     }, [allPlayers, playerGames, startDate, endDate, useFiltered]);
     
@@ -3908,8 +4106,19 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames }) => {
 
 const App = () => {
     const [tab, setTab] = useState('dashboard');
+    const [darkMode, setDarkMode] = useState(() => {
+        const saved = localStorage.getItem('baseballDarkMode');
+        if (saved !== null) return saved === 'true';
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    });
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', darkMode);
+        localStorage.setItem('baseballDarkMode', darkMode);
+    }, [darkMode]);
+
     const data = BASEBALL_DATA;
-    
+
     const tabs = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' }, 
         { id: 'insights', label: 'Insights', icon: '💡' },
@@ -3931,18 +4140,31 @@ const App = () => {
     ];
     
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-            <header className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white shadow-2xl">
-                <div className="max-w-7xl mx-auto px-4 py-8">
-                    <h1 className="page-title font-bold">⚾ Baseball Statistics Portal</h1>
-                    <p className="body-text text-blue-100 mt-2">{data.games?.length || 0} games • {data.playerGames?.length || 0} player-games</p>
+        <div className={`min-h-screen transition-colors duration-200 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
+            <header className={`shadow-2xl ${darkMode ? 'bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800' : 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'} text-white`}>
+                <div className="max-w-7xl mx-auto px-4 py-8 flex justify-between items-start">
+                    <div>
+                        <h1 className="page-title font-bold">⚾ Baseball Statistics Portal</h1>
+                        <p className={`body-text mt-2 ${darkMode ? 'text-gray-300' : 'text-blue-100'}`}>{data.games?.length || 0} games • {data.playerGames?.length || 0} player-games</p>
+                    </div>
+                    <button
+                        onClick={() => setDarkMode(!darkMode)}
+                        className={`px-4 py-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white/20 hover:bg-white/30'}`}
+                        title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                    >
+                        {darkMode ? '☀️' : '🌙'}
+                    </button>
                 </div>
             </header>
-            <nav className="bg-white shadow-md sticky top-0 z-50 border-b-2 border-blue-100 overflow-x-auto">
+            <nav className={`shadow-md sticky top-0 z-50 border-b-2 overflow-x-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-100'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="flex space-x-1">
                         {tabs.map(t => (
-                            <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-3 font-medium body-text whitespace-nowrap transition-all ${tab === t.id ? 'bg-blue-50 text-blue-600 border-b-4 border-blue-600' : 'text-gray-600 hover:bg-gray-50 border-b-4 border-transparent'}`}>
+                            <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-3 font-medium body-text whitespace-nowrap transition-all ${
+                                tab === t.id
+                                    ? (darkMode ? 'bg-gray-700 text-blue-400 border-b-4 border-blue-400' : 'bg-blue-50 text-blue-600 border-b-4 border-blue-600')
+                                    : (darkMode ? 'text-gray-300 hover:bg-gray-700 border-b-4 border-transparent' : 'text-gray-600 hover:bg-gray-50 border-b-4 border-transparent')
+                            }`}>
                                 <span className="mr-1">{t.icon}</span>{t.label}
                             </button>
                         ))}
