@@ -164,7 +164,7 @@ def process_all_game_data(games, debut_entries, hof_df):
     
     try:
         # Core data processing
-        game_log = GameLogProcessor.create_game_log_dataframe(games)
+        game_log = GameLogProcessor(games).create_game_log_dataframe()
         
         # Player statistics
         player_processor = PlayerStatsProcessor(games)

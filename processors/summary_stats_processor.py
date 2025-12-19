@@ -5,12 +5,14 @@ import pandas as pd
 from ..excel.generators import ExcelGeneratorUtils
 from ..utils.helpers import standardize_team_code, join_sorted_gameids, _normalize_team_code_for_counts, _parse_duration_to_minutes, unify_team_code
 from ..utils.log import debug
+from .base_processor import BaseProcessor
 
-class SummaryStatsProcessor:
+
+class SummaryStatsProcessor(BaseProcessor):
     """Handle summary statistics processing with improved organization."""
-    
+
     def __init__(self, games, all_players, b2b_only_df, b2b2b_only_df, b2b2b2b_only_df, triple_play_df, hitters_df, pitchers_df, milestones, weather_tracker=None, saber_tracker=None, situation_tracker=None):
-        self.games = games
+        super().__init__(games)
         self.all_players = all_players
         # Store enhanced trackers
         self.weather_tracker = weather_tracker

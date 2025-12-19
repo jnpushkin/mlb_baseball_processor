@@ -2,15 +2,19 @@ import pandas as pd
 import re
 from ..excel.generators import ExcelGeneratorUtils
 from ..utils.helpers import join_sorted_gameids, unify_team_code, safe_get_int, safe_get_str
+from .base_processor import BaseProcessor
 
-class GameLogProcessor:
+
+class GameLogProcessor(BaseProcessor):
     """Handle game log creation."""
-    
-    @staticmethod
-    def create_game_log_dataframe(games):
+
+    def __init__(self, games):
+        super().__init__(games)
+
+    def create_game_log_dataframe(self):
         """Create the game log DataFrame."""
         print("📊 Creating game log...")
-        
+
         def to_excel_time(val):
             try:
                 if isinstance(val, str) and ":" in val:
@@ -19,10 +23,10 @@ class GameLogProcessor:
             except Exception:
                 pass
             return None
-        
+
         game_log_data = []
-        
-        for g in games:
+
+        for g in self.games:
             b = g["basic_info"]
             
             # Calculate innings

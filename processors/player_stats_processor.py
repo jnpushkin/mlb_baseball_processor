@@ -3,12 +3,14 @@ from collections import defaultdict
 from ..excel.generators import ExcelGeneratorUtils
 from ..utils.helpers import standardize_team_code, normalize_name, join_sorted_gameids, unify_team_code, safe_get_int, safe_get_str
 from ..utils.stat_utils import StatUtils
+from .base_processor import BaseProcessor
 
-class PlayerStatsProcessor:
+
+class PlayerStatsProcessor(BaseProcessor):
     """Handle player statistics processing with improved organization and error handling."""
-    
+
     def __init__(self, games):
-        self.games = games
+        super().__init__(games)
     
     def process_all_player_stats(self):
         """Process all player statistics and return DataFrames."""

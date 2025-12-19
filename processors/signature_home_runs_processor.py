@@ -3,12 +3,14 @@ import pandas as pd
 from ..excel.generators import ExcelGeneratorUtils
 from ..utils.helpers import standardize_team_code, safe_get_int, safe_get_str
 from ..utils.constants import SPLASH_HITS_FILE, MCCOVEY_COVE_FILE, EUTAW_FILE, POOL_HR_FILE
+from .base_processor import BaseProcessor
 
-class SignatureHomeRunsProcessor:
+
+class SignatureHomeRunsProcessor(BaseProcessor):
     """Handle signature home runs (splash hits, Eutaw Street, pool HRs) with improved organization."""
-    
+
     def __init__(self, games):
-        self.games = games
+        super().__init__(games)
         
     def process_signature_home_runs(self):
         """Process splash hits, Eutaw Street HRs, and pool HRs."""

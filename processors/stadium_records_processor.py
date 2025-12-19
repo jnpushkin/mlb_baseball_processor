@@ -5,12 +5,14 @@ from collections import defaultdict, Counter
 from datetime import datetime
 from ..excel.generators import ExcelGeneratorUtils
 from ..utils.helpers import standardize_team_code, join_sorted_gameids, unify_team_code, safe_get_int, safe_get_str
+from .base_processor import BaseProcessor
 
-class StadiumRecordsProcessor:
+
+class StadiumRecordsProcessor(BaseProcessor):
     """Handle stadium and team records processing with enhanced stadium information."""
-    
+
     def __init__(self, games):
-        self.games = games
+        super().__init__(games)
         
     def process_stadium_and_team_records(self):
         """Process stadium and team records for Stadiums, Orioles, and Team Records tabs."""
@@ -779,11 +781,11 @@ class StadiumRecordsProcessor:
         return None
 
 
-class EnhancedTeamRecordsProcessor:
+class EnhancedTeamRecordsProcessor(BaseProcessor):
     """Enhanced team records processing with comprehensive statistics."""
-    
+
     def __init__(self, games):
-        self.games = games
+        super().__init__(games)
 
     def _normalize_team_code(self, team_code):
         """Normalize team codes to handle franchise moves and name changes."""
