@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import join_sorted_gameids, unify_team_code
+from ..utils.helpers import join_sorted_gameids, unify_team_code, safe_get_int, safe_get_str
 
 class GameLogProcessor:
     """Handle game log creation."""
@@ -37,8 +37,8 @@ class GameLogProcessor:
 
             away_code = unify_team_code(away_code_raw)
             home_code = unify_team_code(home_code_raw)
-            away_score = ExcelGeneratorUtils.safe_get_int(b, 'away_score_value', 0)
-            home_score = ExcelGeneratorUtils.safe_get_int(b, 'home_score_value', 0)
+            away_score = safe_get_int(b, 'away_score_value', 0)
+            home_score = safe_get_int(b, 'home_score_value', 0)
             
             score_str = f"{away_code} {away_score} - {home_score} {home_code}"
             if max_innings != 9:
@@ -55,7 +55,7 @@ class GameLogProcessor:
                 "Home Team": home_code,
                 "Score": score_str,
                 "Venue": b.get("venue", ""),
-                "Attendance": ExcelGeneratorUtils.safe_get_int(b, "attendance_value"),
+                "Attendance": safe_get_int(b, "attendance_value"),
                 "Game Length": b.get("duration", ""),
                 "Weather": b.get("weather", ""),
                 "HP Umpire": g.get("umpires", {}).get("HP", ""),

@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import standardize_team_code
+from ..utils.helpers import standardize_team_code, safe_get_int, safe_get_str
 from ..utils.constants import SPLASH_HITS_FILE, MCCOVEY_COVE_FILE, EUTAW_FILE, POOL_HR_FILE
 
 class SignatureHomeRunsProcessor:
@@ -242,9 +242,9 @@ class SignatureHomeRunsProcessor:
     def _process_game_for_signature_hrs(self, game, reference_data):
         """Process a single game for signature home run matches."""
         basic_info = game.get("basic_info", {})
-        game_id = ExcelGeneratorUtils.safe_get_str(game, "game_id", "UNKNOWN")
-        date_str = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "").strip()
-        venue = ExcelGeneratorUtils.safe_get_str(basic_info, "venue", "").lower()
+        game_id = safe_get_str(game, "game_id", "UNKNOWN")
+        date_str = safe_get_str(basic_info, "date_yyyymmdd", "").strip()
+        venue = safe_get_str(basic_info, "venue", "").lower()
         
         matches = []
         
@@ -276,7 +276,7 @@ class SignatureHomeRunsProcessor:
             date_matches = giants_hits[giants_hits["Date_yyyymmdd"] == date_str]
             
             for _, row in date_matches.iterrows():
-                player_id = ExcelGeneratorUtils.safe_get_str(row, "PlayerID", "").strip()
+                player_id = safe_get_str(row, "PlayerID", "").strip()
                 
                 # Only match by PlayerID
                 if player_id and player_id in batter_ids:
@@ -291,7 +291,7 @@ class SignatureHomeRunsProcessor:
             date_matches = visitor_hits[visitor_hits["Date_yyyymmdd"] == date_str]
             
             for _, row in date_matches.iterrows():
-                player_id = ExcelGeneratorUtils.safe_get_str(row, "PlayerID", "").strip()
+                player_id = safe_get_str(row, "PlayerID", "").strip()
                 
                 # Only match by PlayerID
                 if player_id and player_id in batter_ids:
@@ -315,7 +315,7 @@ class SignatureHomeRunsProcessor:
         ]
         
         for _, row in eutaw_hits.iterrows():
-            player_id = ExcelGeneratorUtils.safe_get_str(row, "PlayerID", "").strip()
+            player_id = safe_get_str(row, "PlayerID", "").strip()
             
             # Only match by PlayerID
             if player_id and player_id in batter_ids:
@@ -324,13 +324,13 @@ class SignatureHomeRunsProcessor:
                 
                 match = {
                     "Date": date_value,
-                    "Player": ExcelGeneratorUtils.safe_get_str(row, "Player", ""),
-                    "Team": standardize_team_code(ExcelGeneratorUtils.safe_get_str(row, "Team", "")),
-                    "Opponent": standardize_team_code(ExcelGeneratorUtils.safe_get_str(row, "Pitcher Team", "")),
-                    "Pitcher": ExcelGeneratorUtils.safe_get_str(row, "Pitcher", ""),
+                    "Player": safe_get_str(row, "Player", ""),
+                    "Team": standardize_team_code(safe_get_str(row, "Team", "")),
+                    "Opponent": standardize_team_code(safe_get_str(row, "Pitcher Team", "")),
+                    "Pitcher": safe_get_str(row, "Pitcher", ""),
                     "GameID": game_id,
                     "Type": "Eutaw HR",
-                    "HitNumber": ExcelGeneratorUtils.safe_get_int(row, "EutawNumber", None)
+                    "HitNumber": safe_get_int(row, "EutawNumber", None)
                 }
                 matches.append(match)
         
@@ -351,7 +351,7 @@ class SignatureHomeRunsProcessor:
         ]
         
         for _, row in pool_hits.iterrows():
-            player_id = ExcelGeneratorUtils.safe_get_str(row, "PlayerID", "").strip()
+            player_id = safe_get_str(row, "PlayerID", "").strip()
             
             # Only match by PlayerID (since you're adding this column)
             if player_id and player_id in batter_ids:
@@ -360,13 +360,13 @@ class SignatureHomeRunsProcessor:
                 
                 match = {
                     "Date": date_value,
-                    "Player": ExcelGeneratorUtils.safe_get_str(row, "Player", ""),
-                    "Team": standardize_team_code(ExcelGeneratorUtils.safe_get_str(row, "Team", "")),
-                    "Opponent": standardize_team_code(ExcelGeneratorUtils.safe_get_str(row, "Opponent", "")),
-                    "Pitcher": ExcelGeneratorUtils.safe_get_str(row, "Pitcher", ""),
+                    "Player": safe_get_str(row, "Player", ""),
+                    "Team": standardize_team_code(safe_get_str(row, "Team", "")),
+                    "Opponent": standardize_team_code(safe_get_str(row, "Opponent", "")),
+                    "Pitcher": safe_get_str(row, "Pitcher", ""),
                     "GameID": game_id,
                     "Type": "Pool HR",
-                    "HitNumber": ExcelGeneratorUtils.safe_get_int(row, "No", None)
+                    "HitNumber": safe_get_int(row, "No", None)
                 }
                 matches.append(match)
         
@@ -395,17 +395,17 @@ class SignatureHomeRunsProcessor:
     def _create_signature_match(self, row, game_id, hr_type, is_visitor=False):
         """Create a signature HR match record."""
         try:
-            player = ExcelGeneratorUtils.safe_get_str(row, "Player", "")
+            player = safe_get_str(row, "Player", "")
             if not player:
                 return None
             
             # Determine team codes based on whether this is a visitor HR
             if is_visitor:
-                team = ExcelGeneratorUtils.safe_get_str(row, "Team", "SF")
+                team = safe_get_str(row, "Team", "SF")
                 opponent = "SF"
             else:
                 team = "SF"  # Giants splash hits
-                opponent = ExcelGeneratorUtils.safe_get_str(row, "Opponent", "")
+                opponent = safe_get_str(row, "Opponent", "")
             
             hit_number = None
             if "SplashNumber" in row and pd.notnull(row["SplashNumber"]):
@@ -421,7 +421,7 @@ class SignatureHomeRunsProcessor:
                 "Player": player,
                 "Team": standardize_team_code(team),
                 "Opponent": standardize_team_code(opponent),
-                "Pitcher": ExcelGeneratorUtils.safe_get_str(row, "Pitcher", ""),
+                "Pitcher": safe_get_str(row, "Pitcher", ""),
                 "GameID": game_id,
                 "Type": hr_type,
                 "HitNumber": hit_number

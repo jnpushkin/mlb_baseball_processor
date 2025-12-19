@@ -2,7 +2,7 @@ import re
 import pandas as pd
 from datetime import datetime
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import standardize_team_code, join_sorted_gameids, unify_team_code
+from ..utils.helpers import standardize_team_code, join_sorted_gameids, unify_team_code, safe_get_int, safe_get_str
 from ..utils.stat_utils import StatUtils
 from .base_processor import BaseProcessor
 
@@ -281,22 +281,22 @@ class MilestonesProcessor(BaseProcessor):
                 # CUSTOM: Add pinch hit HR with special columns instead of using generic _add_milestone
                 player = pinch_hr.get("player", "Unknown")
                 team_code = unify_team_code(
-                    pinch_hr.get("team_code", "") or ExcelGeneratorUtils.safe_get_str(basic_info, "home_team_code", "")
+                    pinch_hr.get("team_code", "") or safe_get_str(basic_info, "home_team_code", "")
                 )
                 opponent_code = unify_team_code(
-                    pinch_hr.get("opponent_code", "") or ExcelGeneratorUtils.safe_get_str(basic_info, "away_team_code", "")
+                    pinch_hr.get("opponent_code", "") or safe_get_str(basic_info, "away_team_code", "")
                 )
                 score = self._create_score_string(basic_info, max_innings)
                 
                 milestone_tabs["Pinch Hit HRs"].append({
-                    "Date": ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", ""),
+                    "Date": safe_get_str(basic_info, "date_yyyymmdd", ""),
                     "Player": player,
                     "Team": team_code,
                     "Opponent": opponent_code,
                     "Score": score,
                     "Detail": detail,
                     "Replaced Player": replaced_player,  # ← PRESERVE THIS SPECIAL FIELD
-                    "GameID": pinch_hr.get("game_id", ExcelGeneratorUtils.safe_get_str(basic_info, "game_id", ""))
+                    "GameID": pinch_hr.get("game_id", safe_get_str(basic_info, "game_id", ""))
                 })
        
         except Exception as e:
@@ -307,7 +307,7 @@ class MilestonesProcessor(BaseProcessor):
         """Process multi-HR games from footer data as backup."""
         try:
             footer_summary = game.get("footer_summary", {})
-            game_id = ExcelGeneratorUtils.safe_get_str(game, "game_id", "UNKNOWN")
+            game_id = safe_get_str(game, "game_id", "UNKNOWN")
             
             for side in ("home", "away"):
                 side_data = footer_summary.get(side, {})
@@ -343,14 +343,14 @@ class MilestonesProcessor(BaseProcessor):
         try:
             # Get player name from various possible sources
             player = (item.get("player") or item.get("batter") or 
-                    ExcelGeneratorUtils.safe_get_str(item, "name", "Unknown"))
+                    safe_get_str(item, "name", "Unknown"))
             
             # Get team codes
             team_code = unify_team_code(
-                item.get("team_code", "") or ExcelGeneratorUtils.safe_get_str(basic_info, "home_team_code", "")
+                item.get("team_code", "") or safe_get_str(basic_info, "home_team_code", "")
             )
             opponent_code = unify_team_code(
-                item.get("opponent_code", "") or ExcelGeneratorUtils.safe_get_str(basic_info, "away_team_code", "")
+                item.get("opponent_code", "") or safe_get_str(basic_info, "away_team_code", "")
             )
             
             # Create score string
@@ -358,13 +358,13 @@ class MilestonesProcessor(BaseProcessor):
             
             # Base milestone record
             milestone_record = {
-                "Date": ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", ""),
+                "Date": safe_get_str(basic_info, "date_yyyymmdd", ""),
                 "Player": player,
                 "Team": team_code,
                 "Opponent": opponent_code,
                 "Score": score,
                 "Detail": detail,
-                "GameID": item.get("game_id", ExcelGeneratorUtils.safe_get_str(basic_info, "game_id", ""))
+                "GameID": item.get("game_id", safe_get_str(basic_info, "game_id", ""))
             }
             
             # CONSISTENT APPROACH: All hitting milestones preserve complete stat lines
@@ -412,10 +412,10 @@ class MilestonesProcessor(BaseProcessor):
             return ExcelGeneratorUtils.format_score_string(basic_info, max_innings)
         except Exception:
             # Fallback to basic format
-            away_code = ExcelGeneratorUtils.safe_get_str(basic_info, "away_team_code", "UNK")
-            home_code = ExcelGeneratorUtils.safe_get_str(basic_info, "home_team_code", "UNK")
-            away_score = ExcelGeneratorUtils.safe_get_int(basic_info, "away_score_value", 0)
-            home_score = ExcelGeneratorUtils.safe_get_int(basic_info, "home_score_value", 0)
+            away_code = safe_get_str(basic_info, "away_team_code", "UNK")
+            home_code = safe_get_str(basic_info, "home_team_code", "UNK")
+            away_score = safe_get_int(basic_info, "away_score_value", 0)
+            home_score = safe_get_int(basic_info, "home_score_value", 0)
             return f"{away_code} {away_score} – {home_score} {home_code}"
     
     def _calculate_max_innings(self, linescore):
@@ -434,7 +434,7 @@ class MilestonesProcessor(BaseProcessor):
             
             for game in self.games:
                 basic_info = self.get_basic_info(game)
-                date = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
+                date = safe_get_str(basic_info, "date_yyyymmdd", "")
                 game_id = self.get_game_id(game)
                 
                 # Track half-inning data
@@ -444,10 +444,10 @@ class MilestonesProcessor(BaseProcessor):
                     if not isinstance(play, dict):
                         continue
                         
-                    inning = ExcelGeneratorUtils.safe_get_int(play, "inning", 0)
-                    half = ExcelGeneratorUtils.safe_get_str(play, "half", "")
-                    pitching_team = ExcelGeneratorUtils.safe_get_str(play, "pitching_team", "")
-                    batting_team = ExcelGeneratorUtils.safe_get_str(play, "batting_team", "")
+                    inning = safe_get_int(play, "inning", 0)
+                    half = safe_get_str(play, "half", "")
+                    pitching_team = safe_get_str(play, "pitching_team", "")
+                    batting_team = safe_get_str(play, "batting_team", "")
                     
                     if not all([inning, half, pitching_team]):
                         continue
@@ -458,16 +458,16 @@ class MilestonesProcessor(BaseProcessor):
                             "pitches": 0,
                             "outs": 0,
                             "plays": [],
-                            "pitcher": ExcelGeneratorUtils.safe_get_str(play, "pitcher", "Unknown"),
+                            "pitcher": safe_get_str(play, "pitcher", "Unknown"),
                             "team": pitching_team,
                             "opponent": batting_team,
                         }
 
-                    pitch_count = ExcelGeneratorUtils.safe_get_int(play, "pitch_count", 0)
+                    pitch_count = safe_get_int(play, "pitch_count", 0)
                     if pitch_count > 0:
                         half_inning_tracker[key]["pitches"] += pitch_count
 
-                    description = ExcelGeneratorUtils.safe_get_str(play, "description", "").lower()
+                    description = safe_get_str(play, "description", "").lower()
                     if any(keyword in description for keyword in 
                            ["flyball", "groundout", "lineout", "popfly", "strikeout", "double play", "triple play"]):
                         half_inning_tracker[key]["outs"] += 1
@@ -509,7 +509,7 @@ class MilestonesProcessor(BaseProcessor):
             
             for game in self.games:
                 basic_info = self.get_basic_info(game)
-                date = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
+                date = safe_get_str(basic_info, "date_yyyymmdd", "")
                 game_id = self.get_game_id(game)
                 
                 # Track by individual pitcher within each half-inning
@@ -519,12 +519,12 @@ class MilestonesProcessor(BaseProcessor):
                     if not isinstance(play, dict):
                         continue
                         
-                    inning = ExcelGeneratorUtils.safe_get_int(play, "inning", 0)
-                    half = ExcelGeneratorUtils.safe_get_str(play, "half", "")
-                    pitching_team = ExcelGeneratorUtils.safe_get_str(play, "pitching_team", "")
-                    batting_team = ExcelGeneratorUtils.safe_get_str(play, "batting_team", "")
-                    pitcher_name = ExcelGeneratorUtils.safe_get_str(play, "pitcher", "Unknown")
-                    batter_name = ExcelGeneratorUtils.safe_get_str(play, "batter", "Unknown")  # ADD: Get batter name
+                    inning = safe_get_int(play, "inning", 0)
+                    half = safe_get_str(play, "half", "")
+                    pitching_team = safe_get_str(play, "pitching_team", "")
+                    batting_team = safe_get_str(play, "batting_team", "")
+                    pitcher_name = safe_get_str(play, "pitcher", "Unknown")
+                    batter_name = safe_get_str(play, "batter", "Unknown")  # ADD: Get batter name
                     
                     if not all([inning, half, pitching_team, pitcher_name]):
                         continue
@@ -550,12 +550,12 @@ class MilestonesProcessor(BaseProcessor):
                     pitcher_tracker[key]["total_batters_faced"] += 1
 
                     # ✅ ADD: Track pitch count for this plate appearance
-                    pitch_count = ExcelGeneratorUtils.safe_get_int(play, "pitch_count", 0)
+                    pitch_count = safe_get_int(play, "pitch_count", 0)
                     if pitch_count > 0:
                         pitcher_tracker[key]["total_pitches"] += pitch_count
 
                     # Track strikeouts vs other types of outs
-                    description = ExcelGeneratorUtils.safe_get_str(play, "description", "").lower()
+                    description = safe_get_str(play, "description", "").lower()
                     
                     if play.get("strikeout", False) or "struck out" in description or "strikeout" in description:
                         pitcher_tracker[key]["strikeouts"] += 1
@@ -725,7 +725,7 @@ class MilestonesProcessor(BaseProcessor):
             
             for game in self.games:
                 basic_info = self.get_basic_info(game)
-                date = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
+                date = safe_get_str(basic_info, "date_yyyymmdd", "")
                 game_id = self.get_game_id(game)
                 
                 pitcher_tracker = {}
@@ -734,12 +734,12 @@ class MilestonesProcessor(BaseProcessor):
                     if not isinstance(play, dict):
                         continue
                         
-                    inning = ExcelGeneratorUtils.safe_get_int(play, "inning", 0)
-                    half = ExcelGeneratorUtils.safe_get_str(play, "half", "")
-                    pitching_team = ExcelGeneratorUtils.safe_get_str(play, "pitching_team", "")
-                    batting_team = ExcelGeneratorUtils.safe_get_str(play, "batting_team", "")
-                    pitcher_name = ExcelGeneratorUtils.safe_get_str(play, "pitcher", "Unknown")
-                    batter_name = ExcelGeneratorUtils.safe_get_str(play, "batter", "Unknown")  # ADD: Get batter name
+                    inning = safe_get_int(play, "inning", 0)
+                    half = safe_get_str(play, "half", "")
+                    pitching_team = safe_get_str(play, "pitching_team", "")
+                    batting_team = safe_get_str(play, "batting_team", "")
+                    pitcher_name = safe_get_str(play, "pitcher", "Unknown")
+                    batter_name = safe_get_str(play, "batter", "Unknown")  # ADD: Get batter name
                     
                     if not all([inning, half, pitching_team, pitcher_name]):
                         continue
@@ -760,13 +760,13 @@ class MilestonesProcessor(BaseProcessor):
                             "opponent": batting_team,
                         }
 
-                    pitch_count = ExcelGeneratorUtils.safe_get_int(play, "pitch_count", 0)
+                    pitch_count = safe_get_int(play, "pitch_count", 0)
                     if pitch_count > 0:
                         pitcher_tracker[key]["pitches"] += pitch_count
 
                     pitcher_tracker[key]["total_batters_faced"] += 1
 
-                    description = ExcelGeneratorUtils.safe_get_str(play, "description", "").lower()
+                    description = safe_get_str(play, "description", "").lower()
                     
                     if play.get("strikeout", False) or "struck out" in description or "strikeout" in description:
                         pitcher_tracker[key]["strikeouts"] += 1
@@ -844,17 +844,17 @@ class MilestonesProcessor(BaseProcessor):
         triple_plays = []
         for game in self.games:
             basic_info = self.get_basic_info(game)
-            date = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
+            date = safe_get_str(basic_info, "date_yyyymmdd", "")
             game_id = self.get_game_id(game)
             for play in game.get("play_by_play", []):
-                desc = ExcelGeneratorUtils.safe_get_str(play, "description", "").lower()
+                desc = safe_get_str(play, "description", "").lower()
                 if "triple play" in desc:
                     inning = play.get("inning", "")
                     half = play.get("half", "")
-                    team = ExcelGeneratorUtils.safe_get_str(play, "fielding_team", "")
-                    opp_team = ExcelGeneratorUtils.safe_get_str(play, "batting_team", "")
-                    batter = ExcelGeneratorUtils.safe_get_str(play, "batter", "")
-                    pitcher = ExcelGeneratorUtils.safe_get_str(play, "pitcher", "")
+                    team = safe_get_str(play, "fielding_team", "")
+                    opp_team = safe_get_str(play, "batting_team", "")
+                    batter = safe_get_str(play, "batter", "")
+                    pitcher = safe_get_str(play, "pitcher", "")
                     triple_plays.append({
                         "Date": date,
                         "Inning": f"{half.title()} {inning}",
@@ -882,14 +882,14 @@ class MilestonesProcessor(BaseProcessor):
             for game in self.games:
                 game_id = self.get_game_id(game)
                 basic_info = self.get_basic_info(game)
-                date = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
+                date = safe_get_str(basic_info, "date_yyyymmdd", "")
                 all_plays = game.get("raw_plays", [])
                 
                 if not all_plays:
                     continue
 
-                home_team = ExcelGeneratorUtils.safe_get_str(basic_info, "home_team", "")
-                away_team = ExcelGeneratorUtils.safe_get_str(basic_info, "away_team", "")
+                home_team = safe_get_str(basic_info, "home_team", "")
+                away_team = safe_get_str(basic_info, "away_team", "")
 
                 current_team = None
                 current_inning = None
@@ -897,13 +897,13 @@ class MilestonesProcessor(BaseProcessor):
                 hr_chain = []
 
                 for play in all_plays:
-                    desc = ExcelGeneratorUtils.safe_get_str(play, "description", "").lower()
+                    desc = safe_get_str(play, "description", "").lower()
                     event_is_hr = any(keyword in desc for keyword in ["homered", "home run"])
-                    team = ExcelGeneratorUtils.safe_get_str(play, "batting_team", "")
-                    inning = ExcelGeneratorUtils.safe_get_int(play, "inning", 0)
-                    half = ExcelGeneratorUtils.safe_get_str(play, "half", "")
-                    batter = ExcelGeneratorUtils.safe_get_str(play, "batter", "Unknown")
-                    pitcher = ExcelGeneratorUtils.safe_get_str(play, "pitcher", "Unknown")
+                    team = safe_get_str(play, "batting_team", "")
+                    inning = safe_get_int(play, "inning", 0)
+                    half = safe_get_str(play, "half", "")
+                    batter = safe_get_str(play, "batter", "Unknown")
+                    pitcher = safe_get_str(play, "pitcher", "Unknown")
 
                     # Apply team code standardization
                     team_code = unify_team_code(standardize_team_code(team))

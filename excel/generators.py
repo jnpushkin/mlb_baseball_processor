@@ -3,11 +3,11 @@ import unicodedata
 import re
 from datetime import datetime
 
-from ..utils.helpers import unify_team_code
+from ..utils.helpers import unify_team_code, safe_get_int, safe_get_str
 
 
 class ExcelGeneratorUtils:
-    """Utility methods for Excel generation (will be moved to excel module later)."""
+    """Utility methods for Excel generation."""
 
     @staticmethod
     def finalize_date_column(df, col='Date', in_format=None, out_format="%m/%d/%Y", sort=True):
@@ -31,27 +31,12 @@ class ExcelGeneratorUtils:
             return df
 
     @staticmethod
-    def safe_get_int(data: dict, key: str, default: int = 0) -> int:
-        """Safely extract integer from dictionary."""
-        try:
-            value = data.get(key, default)
-            return int(value) if value is not None else default
-        except (ValueError, TypeError):
-            return default
-    
-    @staticmethod
-    def safe_get_str(data: dict, key: str, default: str = "") -> str:
-        """Safely extract string from dictionary."""
-        value = data.get(key, default)
-        return str(value) if value is not None else default
-    
-    @staticmethod
     def format_score_string(basic_info: dict, max_innings: int = 9) -> str:
         """Create standardized score string."""
         away_code = unify_team_code(basic_info.get('away_team_code', 'UNK'))
         home_code = unify_team_code(basic_info.get('home_team_code', 'UNK'))
-        away_score = ExcelGeneratorUtils.safe_get_int(basic_info, 'away_score_value', 0)
-        home_score = ExcelGeneratorUtils.safe_get_int(basic_info, 'home_score_value', 0)
+        away_score = safe_get_int(basic_info, 'away_score_value', 0)
+        home_score = safe_get_int(basic_info, 'home_score_value', 0)
         
         score_str = f"{away_code} {away_score} – {home_score} {home_code}"
         if max_innings != 9:

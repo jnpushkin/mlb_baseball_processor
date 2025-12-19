@@ -1,7 +1,7 @@
 import pandas as pd
 from collections import defaultdict
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import standardize_team_code, normalize_name, join_sorted_gameids, unify_team_code
+from ..utils.helpers import standardize_team_code, normalize_name, join_sorted_gameids, unify_team_code, safe_get_int, safe_get_str
 from ..utils.stat_utils import StatUtils
 
 class PlayerStatsProcessor:
@@ -70,12 +70,12 @@ class PlayerStatsProcessor:
                             players_with_stats, hit_tot, hit_team, hit_games, name_to_id):
         """Process batting statistics for one side of a game."""
         for player in game.get("batting", {}).get(side, []):
-            player_id = ExcelGeneratorUtils.safe_get_str(player, "player_id", "")
+            player_id = safe_get_str(player, "player_id", "")
             if not player_id:
                 continue
 
-            name = ExcelGeneratorUtils.safe_get_str(player, "name", "")
-            position = ExcelGeneratorUtils.safe_get_str(player, "position", "")
+            name = safe_get_str(player, "name", "")
+            position = safe_get_str(player, "position", "")
             name_to_id[name] = player_id
 
             # ✅ Always track player, regardless of stats
@@ -93,7 +93,7 @@ class PlayerStatsProcessor:
             # Process individual stats
             has_meaningful_stats = False
             for stat in ("AB", "R", "H", "RBI", "BB", "SO", "PA"):
-                value = ExcelGeneratorUtils.safe_get_int(player, stat, 0)
+                value = safe_get_int(player, stat, 0)
                 hit_tot[player_id][stat] += value
                 if value > 0:
                     has_meaningful_stats = True
@@ -111,11 +111,11 @@ class PlayerStatsProcessor:
         starter_id = pitching_staff[0].get("player_id") if pitching_staff else None
         
         for pitcher in pitching_staff:
-            player_id = ExcelGeneratorUtils.safe_get_str(pitcher, "player_id", "")
+            player_id = safe_get_str(pitcher, "player_id", "")
             if not player_id:
                 continue
             
-            name = ExcelGeneratorUtils.safe_get_str(pitcher, "name", "")
+            name = safe_get_str(pitcher, "name", "")
             
             # Track player across all games
             self._track_player(player_id, name, team_code, game_id, "P", all_players)
@@ -145,7 +145,7 @@ class PlayerStatsProcessor:
             # Process other pitching stats
             has_meaningful_stats = False
             for stat in ("H", "R", "ER", "BB", "SO", "HR"):
-                value = ExcelGeneratorUtils.safe_get_int(pitcher, stat, 0)
+                value = safe_get_int(pitcher, stat, 0)
                 pit_tot[player_id][stat] += value
                 if value > 0:
                     has_meaningful_stats = True

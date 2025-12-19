@@ -4,7 +4,7 @@ import pandas as pd
 from collections import defaultdict, Counter
 from datetime import datetime
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import standardize_team_code, join_sorted_gameids, unify_team_code
+from ..utils.helpers import standardize_team_code, join_sorted_gameids, unify_team_code, safe_get_int, safe_get_str
 
 class StadiumRecordsProcessor:
     """Handle stadium and team records processing with enhanced stadium information."""
@@ -53,8 +53,8 @@ class StadiumRecordsProcessor:
             try:
                 # DEBUG: Track team codes
                 basic_info = game.get("basic_info", {})
-                away_code = ExcelGeneratorUtils.safe_get_str(basic_info, "away_team_code", "UNK")
-                home_code = ExcelGeneratorUtils.safe_get_str(basic_info, "home_team_code", "UNK")
+                away_code = safe_get_str(basic_info, "away_team_code", "UNK")
+                home_code = safe_get_str(basic_info, "home_team_code", "UNK")
                 unified_away = unify_team_code(away_code)
                 unified_home = unify_team_code(home_code)
                 
@@ -66,7 +66,7 @@ class StadiumRecordsProcessor:
                 
                 self._process_game_records_enhanced(game, stadium_tracker, orioles_tracker, team_tracker)
             except Exception as e:
-                game_id = ExcelGeneratorUtils.safe_get_str(game, "game_id", "UNKNOWN")
+                game_id = safe_get_str(game, "game_id", "UNKNOWN")
                 print(f"   ⚠️ Error processing records for game {game_id}: {e}")
                 continue
 
@@ -86,17 +86,17 @@ class StadiumRecordsProcessor:
         if not basic_info:
             return
             
-        game_id = ExcelGeneratorUtils.safe_get_str(game, "game_id", "UNKNOWN")
+        game_id = safe_get_str(game, "game_id", "UNKNOWN")
         
         # Get venue information
-        raw_venue = ExcelGeneratorUtils.safe_get_str(basic_info, "venue", "Unknown Venue")
+        raw_venue = safe_get_str(basic_info, "venue", "Unknown Venue")
         venue = self._unify_stadium_name(raw_venue)
         
         # Get team information
-        away_team_code = ExcelGeneratorUtils.safe_get_str(basic_info, "away_team_code", "UNK")
-        home_team_code = ExcelGeneratorUtils.safe_get_str(basic_info, "home_team_code", "UNK")
-        away_score = ExcelGeneratorUtils.safe_get_int(basic_info, "away_score_value", 0)
-        home_score = ExcelGeneratorUtils.safe_get_int(basic_info, "home_score_value", 0)
+        away_team_code = safe_get_str(basic_info, "away_team_code", "UNK")
+        home_team_code = safe_get_str(basic_info, "home_team_code", "UNK")
+        away_score = safe_get_int(basic_info, "away_score_value", 0)
+        home_score = safe_get_int(basic_info, "home_score_value", 0)
         
         # Unify team codes
         away_team_code = unify_team_code(away_team_code)
@@ -109,7 +109,7 @@ class StadiumRecordsProcessor:
         
         # Collect additional stadium data
         # Date information
-        date_str = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
+        date_str = safe_get_str(basic_info, "date_yyyymmdd", "")
         if date_str:
             try:
                 game_date = datetime.strptime(date_str, "%Y%m%d")
@@ -396,7 +396,7 @@ class StadiumRecordsProcessor:
                 orioles_record["Losses"] += 1
             
             # Visit History
-            date_str = ExcelGeneratorUtils.safe_get_str(basic_info, "date_yyyymmdd", "")
+            date_str = safe_get_str(basic_info, "date_yyyymmdd", "")
             if date_str:
                 try:
                     game_date = datetime.strptime(date_str, "%Y%m%d")
@@ -897,8 +897,8 @@ class EnhancedTeamRecordsProcessor:
             home_team_raw = unify_team_code(basic_info.get("home_team_code", ""))
             away_team = self._normalize_team_code(away_team_raw)
             home_team = self._normalize_team_code(home_team_raw)
-            away_score = ExcelGeneratorUtils.safe_get_int(basic_info, "away_score_value", 0)
-            home_score = ExcelGeneratorUtils.safe_get_int(basic_info, "home_score_value", 0)
+            away_score = safe_get_int(basic_info, "away_score_value", 0)
+            home_score = safe_get_int(basic_info, "home_score_value", 0)
             
             # Get game date for monthly tracking
             date_str = basic_info.get("date_yyyymmdd", "")
@@ -1049,9 +1049,9 @@ class EnhancedTeamRecordsProcessor:
         try:
             # Offensive stats from batting
             for player in game.get("batting", {}).get(side, []):
-                stats["walks_taken"] += ExcelGeneratorUtils.safe_get_int(player, "BB", 0)
-                stats["strikeouts_by"] += ExcelGeneratorUtils.safe_get_int(player, "SO", 0)
-                stats["home_runs"] += ExcelGeneratorUtils.safe_get_int(player, "HR", 0)
+                stats["walks_taken"] += safe_get_int(player, "BB", 0)
+                stats["strikeouts_by"] += safe_get_int(player, "SO", 0)
+                stats["home_runs"] += safe_get_int(player, "HR", 0)
             
             # Get hits from linescore
             linescore = game.get("linescore", {})
@@ -1059,10 +1059,10 @@ class EnhancedTeamRecordsProcessor:
             
             # Pitching stats (what this team's pitchers allowed)
             for pitcher in game.get("pitching", {}).get(side, []):
-                stats["walks_allowed"] += ExcelGeneratorUtils.safe_get_int(pitcher, "BB", 0)
-                stats["strikeouts_for"] += ExcelGeneratorUtils.safe_get_int(pitcher, "SO", 0)
-                stats["hits_allowed"] += ExcelGeneratorUtils.safe_get_int(pitcher, "H", 0)
-                stats["home_runs_allowed"] += ExcelGeneratorUtils.safe_get_int(pitcher, "HR", 0)
+                stats["walks_allowed"] += safe_get_int(pitcher, "BB", 0)
+                stats["strikeouts_for"] += safe_get_int(pitcher, "SO", 0)
+                stats["hits_allowed"] += safe_get_int(pitcher, "H", 0)
+                stats["home_runs_allowed"] += safe_get_int(pitcher, "HR", 0)
             
             # Stolen bases from footer summary
             footer_summary = game.get("footer_summary", {})
