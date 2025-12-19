@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import join_sorted_gameids
+from ..utils.helpers import join_sorted_gameids, unify_team_code
 
 class GameLogProcessor:
     """Handle game log creation."""
@@ -35,8 +35,8 @@ class GameLogProcessor:
             away_code_raw = b.get('away_team_code', '')
             home_code_raw = b.get('home_team_code', '')
 
-            away_code = ExcelGeneratorUtils.unify_team_code(away_code_raw)
-            home_code = ExcelGeneratorUtils.unify_team_code(home_code_raw)
+            away_code = unify_team_code(away_code_raw)
+            home_code = unify_team_code(home_code_raw)
             away_score = ExcelGeneratorUtils.safe_get_int(b, 'away_score_value', 0)
             home_score = ExcelGeneratorUtils.safe_get_int(b, 'home_score_value', 0)
             

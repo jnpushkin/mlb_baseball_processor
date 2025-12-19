@@ -88,36 +88,58 @@ def normalize_name(name):
     """Normalize name to ASCII for reliable matching (e.g., Urías → Urias)."""
     return unicodedata.normalize("NFKD", name).encode("ASCII", "ignore").decode("utf-8").strip().lower()
 
-def standardize_team_code(team_name):
-    """Convert full team names to standard 2-3 letter codes used in baseball stats"""
-    team_mapping = {
-        'Los Angeles Angels': 'LAA', 'Baltimore Orioles': 'BAL', 'Boston Red Sox': 'BOS',
-        'Chicago White Sox': 'CWS', 'Cleveland Guardians': 'CLE', 'Cleveland Indians': 'CLE',
-        'Detroit Tigers': 'DET', 'Houston Astros': 'HOU', 'Kansas City Royals': 'KC',
-        'Minnesota Twins': 'MIN', 'New York Yankees': 'NYY', 'Oakland Athletics': 'OAK',
-        'Seattle Mariners': 'SEA', 'Tampa Bay Rays': 'TB', 'Texas Rangers': 'TEX',
-        'Toronto Blue Jays': 'TOR', 'Arizona Diamondbacks': 'ARI', 'Atlanta Braves': 'ATL',
-        'Chicago Cubs': 'CHC', 'Cincinnati Reds': 'CIN', 'Colorado Rockies': 'COL',
-        'Miami Marlins': 'MIA', 'Los Angeles Dodgers': 'LAD', 'Milwaukee Brewers': 'MIL',
-        'Washington Nationals': 'WSH', 'New York Mets': 'NYM', 'Philadelphia Phillies': 'PHI',
-        'Pittsburgh Pirates': 'PIT', 'San Diego Padres': 'SD', 'San Francisco Giants': 'SF',
-        'St. Louis Cardinals': 'STL', 'Florida Marlins': 'FLA', 'Tampa Bay Devil Rays': 'TB', 
-        'Athletics': 'ATH'
-    }
+# Team code mappings - centralized for consistency
+_TEAM_CODE_ALIASES = {
+    # Legacy team codes -> modern equivalents
+    "FLA": "MIA",  # Florida Marlins -> Miami Marlins
+    "Tampa Bay Devil Rays": "TB",
+}
 
+_TEAM_NAME_TO_CODE = {
+    'Los Angeles Angels': 'LAA', 'Baltimore Orioles': 'BAL', 'Boston Red Sox': 'BOS',
+    'Chicago White Sox': 'CWS', 'Cleveland Guardians': 'CLE', 'Cleveland Indians': 'CLE',
+    'Detroit Tigers': 'DET', 'Houston Astros': 'HOU', 'Kansas City Royals': 'KC',
+    'Minnesota Twins': 'MIN', 'New York Yankees': 'NYY', 'Oakland Athletics': 'OAK',
+    'Seattle Mariners': 'SEA', 'Tampa Bay Rays': 'TB', 'Texas Rangers': 'TEX',
+    'Toronto Blue Jays': 'TOR', 'Arizona Diamondbacks': 'ARI', 'Atlanta Braves': 'ATL',
+    'Chicago Cubs': 'CHC', 'Cincinnati Reds': 'CIN', 'Colorado Rockies': 'COL',
+    'Miami Marlins': 'MIA', 'Los Angeles Dodgers': 'LAD', 'Milwaukee Brewers': 'MIL',
+    'Washington Nationals': 'WSH', 'New York Mets': 'NYM', 'Philadelphia Phillies': 'PHI',
+    'Pittsburgh Pirates': 'PIT', 'San Diego Padres': 'SD', 'San Francisco Giants': 'SF',
+    'St. Louis Cardinals': 'STL', 'Florida Marlins': 'MIA', 'Tampa Bay Devil Rays': 'TB',
+    'Athletics': 'ATH'
+}
+
+
+def unify_team_code(code: str) -> str:
+    """Map old team codes to their modern equivalents.
+
+    Use this when you have a team code (e.g., 'FLA') and want the modern equivalent ('MIA').
+    """
+    if not code:
+        return code
+    return _TEAM_CODE_ALIASES.get(code, code)
+
+
+def standardize_team_code(team_name):
+    """Convert full team names to standard 2-3 letter codes used in baseball stats.
+
+    Use this when you have a full team name (e.g., 'Baltimore Orioles') and want the code ('BAL').
+    """
     if not isinstance(team_name, str) or not team_name.strip():
         return ""
 
     team_name = team_name.strip()
 
-    if team_name in team_mapping:
-        return team_mapping[team_name]
+    if team_name in _TEAM_NAME_TO_CODE:
+        return _TEAM_NAME_TO_CODE[team_name]
 
-    for full_name, code in team_mapping.items():
+    for full_name, code in _TEAM_NAME_TO_CODE.items():
         if full_name in team_name or team_name in full_name:
             return code
 
     return team_name
+
 
 def _normalize_team_code_for_counts(code: str) -> str:
     """Normalize team codes for aggregation counts (e.g., ATH and OAK are the same)."""

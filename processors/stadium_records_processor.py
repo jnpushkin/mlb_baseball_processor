@@ -4,7 +4,7 @@ import pandas as pd
 from collections import defaultdict, Counter
 from datetime import datetime
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import standardize_team_code, join_sorted_gameids
+from ..utils.helpers import standardize_team_code, join_sorted_gameids, unify_team_code
 
 class StadiumRecordsProcessor:
     """Handle stadium and team records processing with enhanced stadium information."""
@@ -55,8 +55,8 @@ class StadiumRecordsProcessor:
                 basic_info = game.get("basic_info", {})
                 away_code = ExcelGeneratorUtils.safe_get_str(basic_info, "away_team_code", "UNK")
                 home_code = ExcelGeneratorUtils.safe_get_str(basic_info, "home_team_code", "UNK")
-                unified_away = ExcelGeneratorUtils.unify_team_code(away_code)
-                unified_home = ExcelGeneratorUtils.unify_team_code(home_code)
+                unified_away = unify_team_code(away_code)
+                unified_home = unify_team_code(home_code)
                 
                 all_team_codes.add(f"{away_code}->{unified_away}")
                 all_team_codes.add(f"{home_code}->{unified_home}")
@@ -99,8 +99,8 @@ class StadiumRecordsProcessor:
         home_score = ExcelGeneratorUtils.safe_get_int(basic_info, "home_score_value", 0)
         
         # Unify team codes
-        away_team_code = ExcelGeneratorUtils.unify_team_code(away_team_code)
-        home_team_code = ExcelGeneratorUtils.unify_team_code(home_team_code)
+        away_team_code = unify_team_code(away_team_code)
+        home_team_code = unify_team_code(home_team_code)
         
         # Enhanced stadium tracking
         stadium_record = stadium_tracker[venue]
@@ -893,8 +893,8 @@ class EnhancedTeamRecordsProcessor:
             game_id = game.get("game_id", "")
             
             # Get team info
-            away_team_raw = ExcelGeneratorUtils.unify_team_code(basic_info.get("away_team_code", ""))
-            home_team_raw = ExcelGeneratorUtils.unify_team_code(basic_info.get("home_team_code", ""))
+            away_team_raw = unify_team_code(basic_info.get("away_team_code", ""))
+            home_team_raw = unify_team_code(basic_info.get("home_team_code", ""))
             away_team = self._normalize_team_code(away_team_raw)
             home_team = self._normalize_team_code(home_team_raw)
             away_score = ExcelGeneratorUtils.safe_get_int(basic_info, "away_score_value", 0)
@@ -1292,97 +1292,6 @@ class EnhancedTeamRecordsProcessor:
         except Exception as e:
             print(f"   ⚠️ Error creating enhanced team DataFrame: {e}")
             return pd.DataFrame()
-    
-    def _extract_team_stats(self, game, side):
-        """Extract comprehensive statistics for one team in a game."""
-        stats = {
-            "hits": 0,
-            "home_runs": 0,
-            "walks_taken": 0,
-            "strikeouts_by": 0,
-            "stolen_bases": 0,
-            "walks_allowed": 0,
-            "strikeouts_for": 0,
-            "hits_allowed": 0,
-            "home_runs_allowed": 0
-        }
-        
-        try:
-            # Offensive stats from batting
-            for player in game.get("batting", {}).get(side, []):
-                stats["walks_taken"] += ExcelGeneratorUtils.safe_get_int(player, "BB", 0)
-                stats["strikeouts_by"] += ExcelGeneratorUtils.safe_get_int(player, "SO", 0)
-                stats["home_runs"] += ExcelGeneratorUtils.safe_get_int(player, "HR", 0)
-            
-            # Get hits from linescore
-            linescore = game.get("linescore", {})
-            stats["hits"] = linescore.get(side, {}).get("H", 0)
-            
-            # Pitching stats (what this team's pitchers allowed)
-            for pitcher in game.get("pitching", {}).get(side, []):
-                stats["walks_allowed"] += ExcelGeneratorUtils.safe_get_int(pitcher, "BB", 0)
-                stats["strikeouts_for"] += ExcelGeneratorUtils.safe_get_int(pitcher, "SO", 0)
-                stats["hits_allowed"] += ExcelGeneratorUtils.safe_get_int(pitcher, "H", 0)
-                stats["home_runs_allowed"] += ExcelGeneratorUtils.safe_get_int(pitcher, "HR", 0)
-            
-            # Stolen bases from footer summary
-            footer_summary = game.get("footer_summary", {})
-            sb_blob = footer_summary.get(side, {}).get("SB", "")
-            if sb_blob:
-                stats["stolen_bases"] = sum(count for _, count in ExcelGeneratorUtils.extract_stat_counts(sb_blob))
-            
-            # Home runs from footer (more accurate than box score)
-            hr_blob = footer_summary.get(side, {}).get("HR", "")
-            if hr_blob:
-                hr_count = sum(count for _, count in ExcelGeneratorUtils.extract_stat_counts(hr_blob))
-                if hr_count > stats["home_runs"]:
-                    stats["home_runs"] = hr_count
-                    
-        except Exception as e:
-            print(f"   ⚠️ Error extracting team stats: {e}")
-        
-        return stats
-    
-    def _update_streak(self, record, won, is_tie):
-        """Update current and longest win/loss streaks."""
-        if is_tie:
-            # Ties break streaks
-            record["current_streak"] = {"type": None, "count": 0}
-            return
-        
-        current = record["current_streak"]
-        
-        if won:
-            if current["type"] == "W":
-                current["count"] += 1
-            else:
-                current = {"type": "W", "count": 1}
-            
-            # Update longest win streak
-            if current["count"] > record["longest_win_streak"]:
-                record["longest_win_streak"] = current["count"]
-        else:
-            if current["type"] == "L":
-                current["count"] += 1
-            else:
-                current = {"type": "L", "count": 1}
-            
-            # Update longest loss streak  
-            if current["count"] > record["longest_loss_streak"]:
-                record["longest_loss_streak"] = current["count"]
-        
-        record["current_streak"] = current
-    
-    def _finalize_team_records(self, team_records):
-        """Calculate final derived statistics."""
-        for team_code, record in team_records.items():
-            # Calculate additional rate stats
-            games = record["games"]
-            if games > 0:
-                record["runs_per_game"] = round(record["runs_scored"] / games, 2)
-                record["runs_allowed_per_game"] = round(record["runs_allowed"] / games, 2)
-                record["run_differential"] = record["runs_scored"] - record["runs_allowed"]
-                record["run_diff_per_game"] = round(record["run_differential"] / games, 2)
 
     def _parse_duration_to_minutes(self, duration_text):
         """Convert duration string to minutes."""

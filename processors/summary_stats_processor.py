@@ -3,7 +3,7 @@ from collections import defaultdict, Counter
 from datetime import datetime
 import pandas as pd
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import standardize_team_code, join_sorted_gameids, _normalize_team_code_for_counts, _parse_duration_to_minutes
+from ..utils.helpers import standardize_team_code, join_sorted_gameids, _normalize_team_code_for_counts, _parse_duration_to_minutes, unify_team_code
 from ..utils.log import debug
 
 class SummaryStatsProcessor:
@@ -191,8 +191,8 @@ class SummaryStatsProcessor:
                         opponent = basic_info.get("home_team", "")
 
                     # Create score strings using standardized team codes
-                    away_team_code = ExcelGeneratorUtils.unify_team_code(basic_info.get('away_team_code', ''))
-                    home_team_code = ExcelGeneratorUtils.unify_team_code(basic_info.get('home_team_code', ''))
+                    away_team_code = unify_team_code(basic_info.get('away_team_code', ''))
+                    home_team_code = unify_team_code(basic_info.get('home_team_code', ''))
                     score_at_deficit = f"{away_team_code} {comeback_info.get('away_score_at_deficit', 0)} - {comeback_info.get('home_score_at_deficit', 0)} {home_team_code}"
                     final_score = f"{away_team_code} {basic_info.get('away_score_value', 0)} - {basic_info.get('home_score_value', 0)} {home_team_code}"
 
@@ -1197,7 +1197,7 @@ class SummaryStatsProcessor:
                 "Value": value,
                 "Detail": "; ".join(r["Detail"] for r in rows),
                 "Score": "; ".join(r["Score"] for r in rows),
-                "GameIDs": join_sorted_gameids(r["GameIDs"] for r in rows)
+                "GameIDs": ", ".join(r["GameIDs"] for r in rows)  # Keep same order as Detail/Score
             })
         
         # --- Most pitches by one pitcher (per game): Detail = pitcher + stat line, Score column has score ---
@@ -1260,9 +1260,9 @@ class SummaryStatsProcessor:
                 "Value": value,
                 "Detail": "; ".join(r["Detail"] for r in rows),
                 "Score": "; ".join(r["Score"] for r in rows),
-                "GameIDs": join_sorted_gameids(r["GameIDs"] for r in rows)
+                "GameIDs": ", ".join(r["GameIDs"] for r in rows)
             })
-        
+
         # Fewest combined strikeouts
         if self.fewest_strikeouts != float('inf'):
             rows = group_games_by_value(
@@ -1276,7 +1276,7 @@ class SummaryStatsProcessor:
                 "Value": self.fewest_strikeouts,
                 "Detail": "; ".join(r["Detail"] for r in rows),
                 "Score": "; ".join(r["Score"] for r in rows),
-                "GameIDs": join_sorted_gameids(r["GameIDs"] for r in rows)
+                "GameIDs": ", ".join(r["GameIDs"] for r in rows)
             })
 
         # Fewest hits by one team
@@ -1297,7 +1297,7 @@ class SummaryStatsProcessor:
                 "Value": self.fewest_hits,
                 "Detail": "; ".join(r["Detail"] for r in rows),
                 "Score": "; ".join(r["Score"] for r in rows),
-                "GameIDs": join_sorted_gameids(r["GameIDs"] for r in rows)
+                "GameIDs": ", ".join(r["GameIDs"] for r in rows)
             })
 
         # Fewest combined hits
@@ -1313,7 +1313,7 @@ class SummaryStatsProcessor:
                 "Value": self.fewest_combined_hits,
                 "Detail": "; ".join(r["Detail"] for r in rows),
                 "Score": "; ".join(r["Score"] for r in rows),
-                "GameIDs": join_sorted_gameids(r["GameIDs"] for r in rows)
+                "GameIDs": ", ".join(r["GameIDs"] for r in rows)
             })
 
         # Inside-the-Park HRs
@@ -1618,7 +1618,7 @@ class SummaryStatsProcessor:
                     "Value": self.fewest_combined_bb,
                     "Detail": "; ".join(r["Detail"] for r in rows),
                     "Score": "; ".join(r["Score"] for r in rows),
-                    "GameIDs": join_sorted_gameids(r["GameIDs"] for r in rows)
+                    "GameIDs": ", ".join(r["GameIDs"] for r in rows)
                 })
 
         # --- Game Environment summary rows ---

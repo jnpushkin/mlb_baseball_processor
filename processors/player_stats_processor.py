@@ -1,7 +1,7 @@
 import pandas as pd
 from collections import defaultdict
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import standardize_team_code, normalize_name, join_sorted_gameids
+from ..utils.helpers import standardize_team_code, normalize_name, join_sorted_gameids, unify_team_code
 from ..utils.stat_utils import StatUtils
 
 class PlayerStatsProcessor:
@@ -53,7 +53,7 @@ class PlayerStatsProcessor:
         
         # Process batting and pitching stats
         for side in ("home", "away"):
-            team_code = ExcelGeneratorUtils.unify_team_code(basic_info.get(f"{side}_team_code", ""))
+            team_code = unify_team_code(basic_info.get(f"{side}_team_code", ""))
             
             # Process batting stats
             self._process_batting_stats(game, side, team_code, game_id, all_players, 

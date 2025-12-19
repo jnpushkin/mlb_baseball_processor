@@ -2,7 +2,7 @@ import re
 import pandas as pd
 from datetime import datetime
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import standardize_team_code, join_sorted_gameids
+from ..utils.helpers import standardize_team_code, join_sorted_gameids, unify_team_code
 from ..utils.stat_utils import StatUtils
 from .base_processor import BaseProcessor
 
@@ -280,10 +280,10 @@ class MilestonesProcessor(BaseProcessor):
                 
                 # CUSTOM: Add pinch hit HR with special columns instead of using generic _add_milestone
                 player = pinch_hr.get("player", "Unknown")
-                team_code = ExcelGeneratorUtils.unify_team_code(
+                team_code = unify_team_code(
                     pinch_hr.get("team_code", "") or ExcelGeneratorUtils.safe_get_str(basic_info, "home_team_code", "")
                 )
-                opponent_code = ExcelGeneratorUtils.unify_team_code(
+                opponent_code = unify_team_code(
                     pinch_hr.get("opponent_code", "") or ExcelGeneratorUtils.safe_get_str(basic_info, "away_team_code", "")
                 )
                 score = self._create_score_string(basic_info, max_innings)
@@ -318,8 +318,8 @@ class MilestonesProcessor(BaseProcessor):
                 if not hr_blob:
                     continue
                 
-                team_code = ExcelGeneratorUtils.unify_team_code(basic_info.get(f"{side}_team_code", ""))
-                opponent_code = ExcelGeneratorUtils.unify_team_code(
+                team_code = unify_team_code(basic_info.get(f"{side}_team_code", ""))
+                opponent_code = unify_team_code(
                     basic_info.get("home_team_code" if side == "away" else "away_team_code", "")
                 )
                 
@@ -346,10 +346,10 @@ class MilestonesProcessor(BaseProcessor):
                     ExcelGeneratorUtils.safe_get_str(item, "name", "Unknown"))
             
             # Get team codes
-            team_code = ExcelGeneratorUtils.unify_team_code(
+            team_code = unify_team_code(
                 item.get("team_code", "") or ExcelGeneratorUtils.safe_get_str(basic_info, "home_team_code", "")
             )
-            opponent_code = ExcelGeneratorUtils.unify_team_code(
+            opponent_code = unify_team_code(
                 item.get("opponent_code", "") or ExcelGeneratorUtils.safe_get_str(basic_info, "away_team_code", "")
             )
             
@@ -482,8 +482,8 @@ class MilestonesProcessor(BaseProcessor):
                         three_pitch_innings.append({
                             "Date": date,
                             "Player": result["pitcher"],
-                            "Team": ExcelGeneratorUtils.unify_team_code(standardize_team_code(result["team"])),
-                            "Opponent": ExcelGeneratorUtils.unify_team_code(standardize_team_code(result["opponent"])),
+                            "Team": unify_team_code(standardize_team_code(result["team"])),
+                            "Opponent": unify_team_code(standardize_team_code(result["opponent"])),
                             "Inning": f"{half.capitalize()} {inning}",
                             "Pitches": result["pitches"],
                             "Outs": result["outs"],
@@ -601,8 +601,8 @@ class MilestonesProcessor(BaseProcessor):
                         three_strikeout_innings.append({
                             "Date": date,
                             "Player": result["pitcher"],
-                            "Team": ExcelGeneratorUtils.unify_team_code(standardize_team_code(result["team"])),
-                            "Opponent": ExcelGeneratorUtils.unify_team_code(standardize_team_code(result["opponent"])),
+                            "Team": unify_team_code(standardize_team_code(result["team"])),
+                            "Opponent": unify_team_code(standardize_team_code(result["opponent"])),
                             "Inning": f"{half.capitalize()} {inning}",
                             "Batters Struck Out": batters_formatted,  # ADD: New column
                             "Strikeout Breakdown": ko_breakdown,     # ADD: New column  
@@ -804,8 +804,8 @@ class MilestonesProcessor(BaseProcessor):
                         immaculate_innings.append({
                             "Date": date,
                             "Player": result["pitcher"],
-                            "Team": ExcelGeneratorUtils.unify_team_code(standardize_team_code(result["team"])),
-                            "Opponent": ExcelGeneratorUtils.unify_team_code(standardize_team_code(result["opponent"])),
+                            "Team": unify_team_code(standardize_team_code(result["team"])),
+                            "Opponent": unify_team_code(standardize_team_code(result["opponent"])),
                             "Inning": f"{half.capitalize()} {inning}",
                             "Batters Struck Out": batters_formatted,  # ADD: New column
                             "Pitches": result["pitches"],
@@ -906,9 +906,9 @@ class MilestonesProcessor(BaseProcessor):
                     pitcher = ExcelGeneratorUtils.safe_get_str(play, "pitcher", "Unknown")
 
                     # Apply team code standardization
-                    team_code = ExcelGeneratorUtils.unify_team_code(standardize_team_code(team))
+                    team_code = unify_team_code(standardize_team_code(team))
                     opp_name = home_team if team == away_team else away_team
-                    opp_code = ExcelGeneratorUtils.unify_team_code(standardize_team_code(opp_name))
+                    opp_code = unify_team_code(standardize_team_code(opp_name))
 
                     is_same_context = (
                         team == current_team and
@@ -1131,11 +1131,12 @@ class MilestonesProcessor(BaseProcessor):
                         new_items = df.tail(new_count)
                         
                         for _, row in new_items.iterrows():
-                            player = row.get('Player', 'Unknown')
+                            # Handle both 'Player' (singular) and 'Players' (plural, for consecutive HRs)
+                            player = row.get('Player', row.get('Players', 'Unknown'))
                             date = row.get('Date', 'Unknown')
                             team = row.get('Team', '')
                             opponent = row.get('Opponent', '')
-                            
+
                             if category in ["3 Strikeout Innings", "Immaculate Innings"]:
                                 inning = row.get('Inning', '')
                                 batters = row.get('Batters Struck Out', '')
@@ -1203,11 +1204,12 @@ class MilestonesProcessor(BaseProcessor):
                 print(f"\n{category} ({len(events_2025)} in 2025):")
                 
                 for _, row in events_2025.iterrows():
-                    player = row.get('Player', 'Unknown')
+                    # Handle both 'Player' (singular) and 'Players' (plural, for consecutive HRs)
+                    player = row.get('Player', row.get('Players', 'Unknown'))
                     date = row['Date'].strftime('%m/%d/%Y')
                     team = row.get('Team', '')
                     opponent = row.get('Opponent', '')
-                    
+
                     if category in ["3 Strikeout Innings", "Immaculate Innings"]:
                         inning = row.get('Inning', '')
                         batters = row.get('Batters Struck Out', '')
@@ -1749,8 +1751,8 @@ class PracticalMilestoneEnhancer:
             return "Unknown"
         
         basic_info = game.get("basic_info", {})
-        home_team = ExcelGeneratorUtils.unify_team_code(basic_info.get("home_team_code", ""))
-        away_team = ExcelGeneratorUtils.unify_team_code(basic_info.get("away_team_code", ""))
+        home_team = unify_team_code(basic_info.get("home_team_code", ""))
+        away_team = unify_team_code(basic_info.get("away_team_code", ""))
         
         if team_code == home_team:
             return "Home"

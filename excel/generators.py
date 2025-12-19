@@ -3,6 +3,7 @@ import unicodedata
 import re
 from datetime import datetime
 
+from ..utils.helpers import unify_team_code
 
 
 class ExcelGeneratorUtils:
@@ -28,16 +29,7 @@ class ExcelGeneratorUtils:
             return df2
         except Exception:
             return df
-    
-    @staticmethod
-    def unify_team_code(code: str) -> str:
-        """Map old team codes to their modern equivalents."""
-        team_aliases = {
-            "Tampa Bay Devil Rays": "TB",
-            "FLA": "MIA",
-        }
-        return team_aliases.get(code, code)
-    
+
     @staticmethod
     def safe_get_int(data: dict, key: str, default: int = 0) -> int:
         """Safely extract integer from dictionary."""
@@ -56,8 +48,8 @@ class ExcelGeneratorUtils:
     @staticmethod
     def format_score_string(basic_info: dict, max_innings: int = 9) -> str:
         """Create standardized score string."""
-        away_code = ExcelGeneratorUtils.unify_team_code(basic_info.get('away_team_code', 'UNK'))
-        home_code = ExcelGeneratorUtils.unify_team_code(basic_info.get('home_team_code', 'UNK'))
+        away_code = unify_team_code(basic_info.get('away_team_code', 'UNK'))
+        home_code = unify_team_code(basic_info.get('home_team_code', 'UNK'))
         away_score = ExcelGeneratorUtils.safe_get_int(basic_info, 'away_score_value', 0)
         home_score = ExcelGeneratorUtils.safe_get_int(basic_info, 'home_score_value', 0)
         
