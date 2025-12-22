@@ -28,9 +28,12 @@ This project processes Baseball Reference HTML files for games you've attended a
 - Stadium visit tracking
 
 ### Website Generation
-- Interactive calendar heatmaps showing attendance patterns
+- Interactive calendar showing all months (March-October)
 - Team matchup matrices
-- Stadium mapping and visit statistics
+- Division checklist (track teams/stadiums by division)
+- Badges and achievements system
+- Companions tracking (games attended with others)
+- Team-specific dashboards (e.g., Orioles with streaks, opponent breakdowns)
 - Smart insights and analytics
 - Statistical leaders and trends
 - Responsive design for mobile and desktop
@@ -94,14 +97,34 @@ pip install -r requirements.txt
 
 ## Usage
 
-1. Place Baseball Reference HTML files for games you've attended in the designated input directory
+1. Place Baseball Reference HTML files for games you've attended in the input directory (e.g., `Current Season Games/`)
 2. Run the processor:
 ```bash
-python main.py
+python3 -m baseball_processor "Current Season Games"
 ```
 3. Generated outputs:
-   - Excel reports in the output directory
-   - Website files for hosting/viewing
+   - Excel workbook: `MLB Game Passport - BREF.xlsx`
+   - Interactive website: `MLB Game Passport - BREF.html`
+
+### Command Line Options
+
+| Option | Description |
+|--------|-------------|
+| `--output-excel FILE` | Custom Excel filename |
+| `--save-json` | Save intermediate JSON data |
+| `--from-cache-only` | Load from cache (skip HTML parsing) |
+| `--excel-only` | Generate only Excel |
+| `--website-only` | Generate only website |
+| `--verbose` | Enable debug output |
+
+### Companions Tracking
+
+Create a `companions.csv` file to track who you attended games with:
+```csv
+GameID,Companions
+BAL202505130,Dad
+SFN202507110,Dad|Mom
+```
 
 ## Technologies
 
