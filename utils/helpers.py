@@ -105,10 +105,11 @@ def normalize_name(name):
     return unicodedata.normalize("NFKD", name).encode("ASCII", "ignore").decode("utf-8").strip().lower()
 
 # Team code mappings - centralized for consistency
+# NOTE: Keep this minimal - we want original codes (FLA, ATH, LAA, etc.) to display in game logs
+# Normalization for tracking purposes happens separately in serializers.py and react_app.py
 _TEAM_CODE_ALIASES = {
-    # Legacy team codes -> modern equivalents
-    "FLA": "MIA",  # Florida Marlins -> Miami Marlins
-    "Tampa Bay Devil Rays": "TB",
+    # Only include non-standard codes that should always be converted
+    "Tampa Bay Devil Rays": "TB",  # This is a name, not a code
 }
 
 _TEAM_NAME_TO_CODE = {

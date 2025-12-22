@@ -244,6 +244,17 @@ def main():
         action='store_true',
         help='Print quick statistics summary without generating full reports'
     )
+    parser.add_argument(
+        '--skip-debut-update',
+        action='store_true',
+        help='Skip auto-updating MLB debut data from Baseball-Reference'
+    )
+    parser.add_argument(
+        '--debut-year',
+        type=int,
+        default=None,
+        help='Year to update debuts for (default: current year)'
+    )
 
     args = parser.parse_args()
 
@@ -276,6 +287,23 @@ def main():
         args.output_excel = os.path.expanduser(args.output_excel)
         info(f"▶ Excel will be written to: {os.path.abspath(args.output_excel)}")
     info(f"▶ Current working directory: {os.getcwd()}")
+
+    # Step 0: Auto-update debuts (unless skipped)
+    if not args.skip_debut_update:
+        try:
+            from .scrapers.debut_scraper import scrape_debuts, save_debuts_csv
+            debut_year = args.debut_year or datetime.now().year
+            info(f"🔄 Updating {debut_year} MLB debuts from Baseball-Reference...")
+
+            df = scrape_debuts(debut_year, verbose=args.verbose)
+            if not df.empty:
+                filepath = save_debuts_csv(df, debut_year, REFERENCES_DIR)
+                info(f"✅ Updated debuts: {filepath} ({len(df)} entries)")
+            else:
+                warn(f"⚠️ Could not fetch {debut_year} debuts, using cached data")
+        except Exception as e:
+            warn(f"⚠️ Failed to update debuts: {e}")
+            info("   Continuing with existing debut data...")
 
     # Step 1: Load static references
     debut_entries = load_mlb_debuts(REFERENCES_DIR)

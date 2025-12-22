@@ -2038,10 +2038,13 @@ const AdvancedFilters = ({ games, onFilterChange }) => {
 };
 
 const Calendar = ({ games }) => {
-    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [selectedDate, setSelectedDate] = useState(null);
     const [showModal, setShowModal] = useState(false);
-    
+    const [selectedMonthForModal, setSelectedMonthForModal] = useState(null);
+
+    const monthNames = ['March', 'April', 'May', 'June', 'July', 'August', 'September', 'October'];
+    const monthIndices = [2, 3, 4, 5, 6, 7, 8, 9];
+
     const gamesByMonthDay = useMemo(() => {
         const aggregated = {};
         games.forEach(game => {
@@ -2055,11 +2058,11 @@ const Calendar = ({ games }) => {
         });
         return aggregated;
     }, [games]);
-    
+
     const maxGamesOnDate = useMemo(() => {
         return Math.max(...Object.values(gamesByMonthDay).map(g => g.length), 1);
     }, [gamesByMonthDay]);
-    
+
     const getHeatmapColor = (gameCount) => {
         if (gameCount === 0) return 'bg-gray-50 border-gray-200';
         const intensity = Math.min(gameCount / maxGamesOnDate, 1);
@@ -2068,15 +2071,14 @@ const Calendar = ({ games }) => {
         if (intensity <= 0.75) return 'bg-blue-400 border-blue-500';
         return 'bg-blue-600 border-blue-700';
     };
-    
+
     const getTextColor = (gameCount) => {
         if (gameCount === 0) return 'text-gray-700';
         const intensity = Math.min(gameCount / maxGamesOnDate, 1);
         return intensity > 0.5 ? 'text-white' : 'text-gray-700';
     };
-    
+
     const year = useMemo(() => {
-        // Use most recent year with games, fallback to current year
         const currentYear = new Date().getFullYear();
         const yearsWithGames = new Set();
         games.forEach(game => {
@@ -2087,107 +2089,116 @@ const Calendar = ({ games }) => {
         return Math.max(...yearsWithGames);
     }, [games]);
 
-    const calendarDays = useMemo(() => {
-        const firstDay = new Date(year, selectedMonth, 1);
-        const lastDay = new Date(year, selectedMonth + 1, 0);
+    const getCalendarDaysForMonth = (monthIndex) => {
+        const firstDay = new Date(year, monthIndex, 1);
+        const lastDay = new Date(year, monthIndex + 1, 0);
         const startingDayOfWeek = firstDay.getDay();
         const daysInMonth = lastDay.getDate();
         const days = [];
         for (let i = 0; i < startingDayOfWeek; i++) days.push(null);
         for (let day = 1; day <= daysInMonth; day++) {
-            const key = `${selectedMonth}-${day}`;
+            const key = `${monthIndex}-${day}`;
             const gamesOnDate = gamesByMonthDay[key] || [];
-            days.push({ day, games: gamesOnDate, key });
+            days.push({ day, games: gamesOnDate, key, month: monthIndex });
         }
         return days;
-    }, [selectedMonth, gamesByMonthDay, year]);
-    
-    const monthNames = ['March', 'April', 'May', 'June', 'July', 'August', 'September', 'October'];
-    const monthIndices = [2, 3, 4, 5, 6, 7, 8, 9];
-    
-    const handleDateClick = (day) => {
+    };
+
+    const handleDateClick = (day, monthIndex) => {
         if (day && day.games.length > 0) {
             setSelectedDate(day);
+            setSelectedMonthForModal(monthIndex);
             setShowModal(true);
         }
     };
-    
-    const monthStats = useMemo(() => {
-        const gamesThisMonth = games.filter(game => {
-            const date = new Date(game.date);
-            return !isNaN(date) && date.getMonth() === selectedMonth;
+
+    const totalStats = useMemo(() => {
+        const uniqueDates = new Set();
+        games.forEach(g => {
+            const date = new Date(g.date);
+            if (!isNaN(date)) uniqueDates.add(g.date);
         });
-        const uniqueDates = new Set(gamesThisMonth.map(g => new Date(g.date).getDate()));
         return {
-            totalGames: gamesThisMonth.length,
-            uniqueDates: uniqueDates.size,
-            avgPerDate: uniqueDates.size > 0 ? (gamesThisMonth.length / uniqueDates.size).toFixed(1) : 0
+            totalGames: games.length,
+            uniqueDates: uniqueDates.size
         };
-    }, [games, selectedMonth]);
-    
+    }, [games]);
+
+    const MonthCalendar = ({ monthIndex }) => {
+        const days = getCalendarDaysForMonth(monthIndex);
+        const gamesInMonth = games.filter(g => {
+            const date = new Date(g.date);
+            return !isNaN(date) && date.getMonth() === monthIndex;
+        }).length;
+
+        return (
+            <div className="bg-white rounded-lg border border-gray-200 p-2">
+                <div className="text-center mb-2">
+                    <h3 className="font-bold text-gray-800" style={{ fontSize: '13px' }}>{monthNames[monthIndices.indexOf(monthIndex)]}</h3>
+                    <span className="text-gray-500" style={{ fontSize: '11px' }}>{gamesInMonth} game{gamesInMonth !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="grid grid-cols-7 gap-0.5">
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                        <div key={i} className="text-center text-gray-500 font-medium" style={{ fontSize: '9px' }}>{day}</div>
+                    ))}
+                    {days.map((day, idx) => {
+                        if (!day) return <div key={idx} className="aspect-square" />;
+                        const hasGames = day.games.length > 0;
+                        const bgColor = getHeatmapColor(day.games.length);
+                        const textColor = getTextColor(day.games.length);
+                        return (
+                            <div
+                                key={idx}
+                                onClick={() => handleDateClick(day, monthIndex)}
+                                className={`aspect-square border rounded flex items-center justify-center transition-all ${bgColor} ${hasGames ? 'cursor-pointer hover:scale-110 hover:shadow-md' : ''}`}
+                                title={hasGames ? `${day.games.length} game${day.games.length > 1 ? 's' : ''}` : ''}
+                            >
+                                <span className={`font-medium ${textColor}`} style={{ fontSize: '10px' }}>{day.day}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <>
             <div className="bg-white rounded-lg shadow">
                 <div className="p-4 border-b">
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex justify-between items-center">
                         <div>
-                            <h2 className="section-title font-bold">📅 Game Calendar Heatmap</h2>
+                            <h2 className="section-title font-bold">📅 Season Calendar Heatmap</h2>
                             <p className="small-text text-gray-500 mt-1">
-                                {monthStats.totalGames} games in {monthNames[monthIndices.indexOf(selectedMonth)]} 
-                                {monthStats.uniqueDates > 0 && ` • ${monthStats.uniqueDates} unique dates • ${monthStats.avgPerDate} avg per date`}
+                                {totalStats.totalGames} games • {totalStats.uniqueDates} unique dates • Click any date with games for details
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="small-text text-gray-600">Legend:</span>
                             <div className="flex items-center gap-1">
-                                <div className="w-6 h-6 bg-gray-50 border border-gray-200 rounded"></div>
-                                <span className="small-text text-gray-500">0</span>
+                                <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded"></div>
+                                <span style={{ fontSize: '10px' }} className="text-gray-500">0</span>
                             </div>
                             <div className="flex items-center gap-1">
-                                <div className="w-6 h-6 bg-blue-100 border border-blue-200 rounded"></div>
-                                <span className="small-text text-gray-500">1</span>
+                                <div className="w-4 h-4 bg-blue-100 border border-blue-200 rounded"></div>
+                                <span style={{ fontSize: '10px' }} className="text-gray-500">1</span>
                             </div>
                             <div className="flex items-center gap-1">
-                                <div className="w-6 h-6 bg-blue-400 border border-blue-500 rounded"></div>
-                                <span className="small-text text-gray-500">2-3</span>
+                                <div className="w-4 h-4 bg-blue-400 border border-blue-500 rounded"></div>
+                                <span style={{ fontSize: '10px' }} className="text-gray-500">2-3</span>
                             </div>
                             <div className="flex items-center gap-1">
-                                <div className="w-6 h-6 bg-blue-600 border border-blue-700 rounded"></div>
-                                <span className="small-text text-gray-500">4+</span>
+                                <div className="w-4 h-4 bg-blue-600 border border-blue-700 rounded"></div>
+                                <span style={{ fontSize: '10px' }} className="text-gray-500">4+</span>
                             </div>
                         </div>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                        {monthIndices.map((idx) => (
-                            <button key={idx} onClick={() => setSelectedMonth(idx)} className={`px-4 py-2 body-text rounded-lg font-medium transition-all ${selectedMonth === idx ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
-                                {monthNames[monthIndices.indexOf(idx)]}
-                            </button>
-                        ))}
-                    </div>
                 </div>
-                <div className="p-6">
-                    <div className="grid grid-cols-7 gap-2">
-                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                            <div key={day} className="text-center small-text font-semibold text-gray-600 pb-2">{day}</div>
+                <div className="p-4">
+                    <div className="grid grid-cols-4 gap-3">
+                        {monthIndices.map((monthIndex) => (
+                            <MonthCalendar key={monthIndex} monthIndex={monthIndex} />
                         ))}
-                        {calendarDays.map((day, idx) => {
-                            if (!day) return <div key={idx} className="aspect-square" />;
-                            const hasGames = day.games.length > 0;
-                            const bgColor = getHeatmapColor(day.games.length);
-                            const textColor = getTextColor(day.games.length);
-                            return (
-                                <div key={idx} onClick={() => handleDateClick(day)} className={`aspect-square border-2 rounded-lg p-2 transition-all ${bgColor} ${hasGames ? 'cursor-pointer hover:scale-105 hover:shadow-lg' : ''}`}>
-                                    <div className="flex flex-col h-full justify-between">
-                                        <span className={`body-text font-semibold ${textColor}`}>{day.day}</span>
-                                        {hasGames && (
-                                            <div className="text-center">
-                                                <span className={`small-text font-bold ${textColor}`}>{day.games.length}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
                     </div>
                 </div>
             </div>
@@ -2195,7 +2206,7 @@ const Calendar = ({ games }) => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
                     <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-                            <h3 className="section-title font-bold">{monthNames[monthIndices.indexOf(selectedMonth)]} {selectedDate.day} • All Years</h3>
+                            <h3 className="section-title font-bold">{monthNames[monthIndices.indexOf(selectedMonthForModal)]} {selectedDate.day} • All Years</h3>
                             <p className="body-text text-blue-100 mt-1">{selectedDate.games.length} game{selectedDate.games.length !== 1 ? 's' : ''} attended</p>
                         </div>
                         <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
@@ -2236,51 +2247,84 @@ const Calendar = ({ games }) => {
 const MatchupMatrix = ({ matchupData, games }) => {
     const [selectedMatchup, setSelectedMatchup] = useState(null);
     const [showModal, setShowModal] = useState(false);
-    
+
     if (!matchupData || !matchupData.teams || matchupData.teams.length === 0) {
         return <div className="bg-white rounded-lg shadow p-6 body-text">No matchup data available</div>;
     }
-    
+
     const { teams, matrix } = matchupData;
-    
+
+    // Calculate matchup completion stats
+    const totalPossibleMatchups = 30 * 29 / 2; // 435 unique matchups for 30 MLB teams
+    const seenMatchups = new Set();
+
+    matrix.forEach((row, i) => {
+        teams.forEach((opponent, j) => {
+            if (i < j) {
+                const count = row[opponent];
+                if (count !== 'X' && count > 0) {
+                    const key = [row.team, opponent].sort().join('-');
+                    seenMatchups.add(key);
+                }
+            }
+        });
+    });
+
+    const uniqueMatchupsSeen = seenMatchups.size;
+    const completionPercent = Math.round((uniqueMatchupsSeen / totalPossibleMatchups) * 100);
+
     const handleCellClick = (team, opponent, count) => {
         if (count === 'X' || count === 0) return;
-        const matchupGames = games.filter(game => 
+        const matchupGames = games.filter(game =>
             (game.homeTeam === team && game.awayTeam === opponent) ||
             (game.homeTeam === opponent && game.awayTeam === team)
         ).sort((a, b) => new Date(b.date) - new Date(a.date));
         setSelectedMatchup({ team, opponent, games: matchupGames, count });
         setShowModal(true);
     };
-    
+
     return (
         <>
             <div className="bg-white rounded-lg shadow">
                 <div className="p-4 border-b">
-                    <h2 className="section-title font-bold">🎯 Team Matchup Matrix</h2>
-                    <p className="body-text text-gray-500 mt-1">Click any cell to see games between those teams</p>
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <h2 className="section-title font-bold">🎯 Team Matchup Matrix</h2>
+                            <p className="body-text text-gray-500 mt-1">Click any cell to see games between those teams</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="text-center px-4 py-2 bg-blue-50 rounded-lg">
+                                <div className="text-xl font-bold text-blue-600">{uniqueMatchupsSeen}/{totalPossibleMatchups}</div>
+                                <div className="text-xs text-gray-500">Matchups Seen</div>
+                            </div>
+                            <div className="text-center px-4 py-2 bg-green-50 rounded-lg">
+                                <div className="text-xl font-bold text-green-600">{completionPercent}%</div>
+                                <div className="text-xs text-gray-500">Complete</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div className="overflow-x-auto p-4">
-                    <table className="w-full border-collapse">
+                <div className="p-2">
+                    <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                         <thead>
                             <tr>
-                                <th className="border p-2 bg-gray-100 small-text font-bold sticky left-0 z-10">Team</th>
+                                <th className="border bg-gray-100 font-bold" style={{ fontSize: '9px', padding: '2px', width: '28px' }}></th>
                                 {teams.map(team => (
-                                    <th key={team} className="border p-2 bg-gray-50 small-text font-medium">{team}</th>
+                                    <th key={team} className="border bg-gray-50 font-medium" style={{ fontSize: '8px', padding: '1px', width: '24px' }}>{team}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {matrix.map((row, idx) => (
-                                <tr key={idx} className="hover:bg-blue-50">
-                                    <td className="border p-2 body-text font-bold bg-gray-100 sticky left-0 z-10">{row.team}</td>
+                                <tr key={idx}>
+                                    <td className="border font-bold bg-gray-100" style={{ fontSize: '8px', padding: '1px' }}>{row.team}</td>
                                     {teams.map(opponent => {
                                         const value = row[opponent];
                                         const isX = value === 'X';
                                         const hasGames = !isX && value > 0;
                                         return (
-                                            <td key={opponent} onClick={() => hasGames && handleCellClick(row.team, opponent, value)} className={`border p-2 text-center body-text ${isX ? 'bg-gray-200 text-gray-400' : hasGames ? 'bg-blue-50 font-semibold cursor-pointer hover:bg-blue-100 hover:shadow-md transition-all' : ''}`}>
-                                                {value === 'X' ? '—' : value}
+                                            <td key={opponent} onClick={() => hasGames && handleCellClick(row.team, opponent, value)} className={`border text-center ${isX ? 'bg-gray-300' : hasGames ? 'bg-blue-100 font-bold cursor-pointer hover:bg-blue-300' : 'bg-white'}`} style={{ fontSize: '9px', padding: '1px' }}>
+                                                {isX ? '' : (value || '')}
                                             </td>
                                         );
                                     })}
@@ -2289,11 +2333,11 @@ const MatchupMatrix = ({ matchupData, games }) => {
                         </tbody>
                     </table>
                 </div>
-                <div className="p-4 border-t bg-gray-50">
-                    <div className="flex items-center gap-6 justify-center small-text text-gray-600">
-                        <div className="flex items-center gap-2"><div className="w-6 h-6 bg-gray-200 border rounded"></div><span>Same team</span></div>
-                        <div className="flex items-center gap-2"><div className="w-6 h-6 bg-white border rounded"></div><span>No games</span></div>
-                        <div className="flex items-center gap-2"><div className="w-6 h-6 bg-blue-50 border rounded"></div><span>Click to view games</span></div>
+                <div className="p-2 border-t bg-gray-50">
+                    <div className="flex items-center gap-4 justify-center text-gray-600" style={{ fontSize: '10px' }}>
+                        <div className="flex items-center gap-1"><div className="w-4 h-4 bg-gray-300 border rounded"></div><span>Same team</span></div>
+                        <div className="flex items-center gap-1"><div className="w-4 h-4 bg-white border rounded"></div><span>No games</span></div>
+                        <div className="flex items-center gap-1"><div className="w-4 h-4 bg-blue-100 border rounded"></div><span>Has games (click)</span></div>
                     </div>
                 </div>
             </div>
@@ -2343,6 +2387,545 @@ const MatchupMatrix = ({ matchupData, games }) => {
                 </div>
             )}
         </>
+    );
+};
+
+const OriolesDashboard = ({ orioles, games }) => {
+    // Filter to only Orioles games
+    const oriolesGames = useMemo(() => {
+        return (games || []).filter(g => g.homeTeam === 'BAL' || g.awayTeam === 'BAL')
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+    }, [games]);
+
+    // Helper to parse score from format like "BOS 6 - 5 BAL" or "6-5"
+    const parseScore = (scoreStr, homeTeam, awayTeam) => {
+        if (!scoreStr) return null;
+        // Try format: "AWAY # - # HOME" (e.g., "BOS 6 - 5 BAL")
+        const match1 = scoreStr.match(/(\w+)\s+(\d+)\s*-\s*(\d+)\s+(\w+)/);
+        if (match1) {
+            const [_, team1, score1, score2, team2] = match1;
+            // Determine which score belongs to home/away
+            if (team2 === homeTeam || team2.includes(homeTeam)) {
+                return { awayScore: parseInt(score1), homeScore: parseInt(score2) };
+            } else {
+                return { awayScore: parseInt(score2), homeScore: parseInt(score1) };
+            }
+        }
+        // Try simple format: "#-#"
+        const match2 = scoreStr.match(/(\d+)\s*-\s*(\d+)/);
+        if (match2) {
+            return { awayScore: parseInt(match2[1]), homeScore: parseInt(match2[2]) };
+        }
+        return null;
+    };
+
+    // Calculate summary stats
+    const summaryStats = useMemo(() => {
+        let wins = 0, losses = 0, runsScored = 0, runsAllowed = 0, homeRuns = 0;
+        let homeWins = 0, homeLosses = 0, awayWins = 0, awayLosses = 0;
+
+        oriolesGames.forEach(game => {
+            const isHome = game.homeTeam === 'BAL';
+            const scores = parseScore(game.score, game.homeTeam, game.awayTeam);
+            if (!scores) return;
+
+            const { awayScore, homeScore } = scores;
+            const oRuns = isHome ? homeScore : awayScore;
+            const oppRuns = isHome ? awayScore : homeScore;
+            const won = oRuns > oppRuns;
+
+            runsScored += oRuns;
+            runsAllowed += oppRuns;
+
+            if (won) {
+                wins++;
+                if (isHome) homeWins++; else awayWins++;
+            } else {
+                losses++;
+                if (isHome) homeLosses++; else awayLosses++;
+            }
+        });
+
+        return {
+            record: `${wins}-${losses}`,
+            winPct: wins + losses > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : '0.0',
+            runsScored,
+            runsAllowed,
+            runDiff: runsScored - runsAllowed,
+            homeRecord: `${homeWins}-${homeLosses}`,
+            awayRecord: `${awayWins}-${awayLosses}`,
+            totalGames: oriolesGames.length
+        };
+    }, [oriolesGames]);
+
+    // Normalize team codes (OAK and ATH are the same franchise)
+    const normalizeTeam = (code) => {
+        if (code === 'ATH' || code === 'OAK') return 'OAK';
+        return code;
+    };
+
+    // Calculate opponent breakdown
+    const opponentStats = useMemo(() => {
+        const stats = {};
+        const alEast = ['NYY', 'NYA', 'BOS', 'TOR', 'TB', 'TBA'];
+
+        oriolesGames.forEach(game => {
+            const isHome = game.homeTeam === 'BAL';
+            const rawOpponent = isHome ? game.awayTeam : game.homeTeam;
+            const opponent = normalizeTeam(rawOpponent);
+            const scores = parseScore(game.score, game.homeTeam, game.awayTeam);
+            if (!scores) return;
+
+            const { awayScore, homeScore } = scores;
+            const oRuns = isHome ? homeScore : awayScore;
+            const oppRuns = isHome ? awayScore : homeScore;
+            const won = oRuns > oppRuns;
+
+            if (!stats[opponent]) {
+                stats[opponent] = { wins: 0, losses: 0, runsScored: 0, runsAllowed: 0, isAlEast: alEast.includes(opponent) };
+            }
+            if (won) stats[opponent].wins++;
+            else stats[opponent].losses++;
+            stats[opponent].runsScored += oRuns;
+            stats[opponent].runsAllowed += oppRuns;
+        });
+
+        return Object.entries(stats)
+            .map(([team, s]) => ({
+                team,
+                record: `${s.wins}-${s.losses}`,
+                wins: s.wins,
+                losses: s.losses,
+                games: s.wins + s.losses,
+                runsScored: s.runsScored,
+                runsAllowed: s.runsAllowed,
+                runDiff: s.runsScored - s.runsAllowed,
+                isAlEast: s.isAlEast
+            }))
+            .sort((a, b) => b.games - a.games);
+    }, [oriolesGames]);
+
+    // Calculate streaks and timeline
+    const streaksData = useMemo(() => {
+        let currentStreak = { type: null, count: 0 };
+        let longestWinStreak = 0, longestLossStreak = 0;
+        let tempWinStreak = 0, tempLossStreak = 0;
+        const recentGames = [];
+
+        oriolesGames.forEach(game => {
+            const isHome = game.homeTeam === 'BAL';
+            const scores = parseScore(game.score, game.homeTeam, game.awayTeam);
+            if (!scores) return;
+
+            const { awayScore, homeScore } = scores;
+            const oRuns = isHome ? homeScore : awayScore;
+            const oppRuns = isHome ? awayScore : homeScore;
+            const won = oRuns > oppRuns;
+
+            recentGames.push({
+                date: game.date,
+                opponent: isHome ? game.awayTeam : game.homeTeam,
+                result: won ? 'W' : 'L',
+                score: `${oRuns}-${oppRuns}`,
+                venue: game.venue,
+                isHome
+            });
+
+            if (won) {
+                tempWinStreak++;
+                tempLossStreak = 0;
+                longestWinStreak = Math.max(longestWinStreak, tempWinStreak);
+            } else {
+                tempLossStreak++;
+                tempWinStreak = 0;
+                longestLossStreak = Math.max(longestLossStreak, tempLossStreak);
+            }
+        });
+
+        // Current streak from most recent games
+        if (recentGames.length > 0) {
+            const lastResult = recentGames[recentGames.length - 1].result;
+            let streakCount = 0;
+            for (let i = recentGames.length - 1; i >= 0; i--) {
+                if (recentGames[i].result === lastResult) streakCount++;
+                else break;
+            }
+            currentStreak = { type: lastResult, count: streakCount };
+        }
+
+        // Monthly breakdown - handle both YYYY-MM-DD and MM/DD/YYYY formats
+        const monthlyStats = {};
+        const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        recentGames.forEach(g => {
+            if (!g.date) return;
+            let year, monthNum;
+            if (g.date.includes('/')) {
+                // MM/DD/YYYY format
+                const parts = g.date.split('/');
+                monthNum = parseInt(parts[0]);
+                year = parts[2]?.length === 2 ? '20' + parts[2] : parts[2];
+            } else if (g.date.includes('-')) {
+                // YYYY-MM-DD format
+                const parts = g.date.split('-');
+                year = parts[0];
+                monthNum = parseInt(parts[1]);
+            }
+            if (!year || !monthNum) return;
+            const monthKey = `${year}-${String(monthNum).padStart(2, '0')}`;
+            if (!monthlyStats[monthKey]) monthlyStats[monthKey] = { wins: 0, losses: 0, year, monthNum };
+            if (g.result === 'W') monthlyStats[monthKey].wins++;
+            else monthlyStats[monthKey].losses++;
+        });
+
+        return {
+            currentStreak,
+            longestWinStreak,
+            longestLossStreak,
+            recentGames: recentGames.slice(-10).reverse(),
+            monthlyStats: Object.entries(monthlyStats).map(([key, s]) => ({
+                month: `${monthNames[s.monthNum]} ${s.year}`,
+                sortKey: key,
+                record: `${s.wins}-${s.losses}`,
+                wins: s.wins,
+                losses: s.losses
+            })).sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+        };
+    }, [oriolesGames]);
+
+    const alEastOpponents = opponentStats.filter(o => o.isAlEast);
+    const otherOpponents = opponentStats.filter(o => !o.isAlEast);
+
+    return (
+        <div className="space-y-6">
+            {/* Summary Stats */}
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
+                <h2 className="text-2xl font-bold mb-4">🧡 Orioles Dashboard</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                        <div className="text-3xl font-bold">{summaryStats.record}</div>
+                        <div className="text-sm opacity-90">Record</div>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                        <div className="text-3xl font-bold">{summaryStats.winPct}%</div>
+                        <div className="text-sm opacity-90">Win %</div>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                        <div className="text-3xl font-bold">{summaryStats.runsScored}</div>
+                        <div className="text-sm opacity-90">Runs Scored</div>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                        <div className="text-3xl font-bold">{summaryStats.runsAllowed}</div>
+                        <div className="text-sm opacity-90">Runs Allowed</div>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                        <div className={`text-3xl font-bold ${summaryStats.runDiff >= 0 ? 'text-green-200' : 'text-red-200'}`}>
+                            {summaryStats.runDiff >= 0 ? '+' : ''}{summaryStats.runDiff}
+                        </div>
+                        <div className="text-sm opacity-90">Run Diff</div>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                        <div className="text-3xl font-bold">{summaryStats.homeRecord}</div>
+                        <div className="text-sm opacity-90">Home</div>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                        <div className="text-3xl font-bold">{summaryStats.awayRecord}</div>
+                        <div className="text-sm opacity-90">Away</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Streaks & Recent Games */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-lg shadow">
+                    <div className="p-4 border-b">
+                        <h3 className="font-bold text-lg">📈 Streaks</h3>
+                    </div>
+                    <div className="p-4">
+                        <div className="grid grid-cols-3 gap-4 mb-4">
+                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                                <div className={`text-2xl font-bold ${streaksData.currentStreak.type === 'W' ? 'text-green-600' : 'text-red-600'}`}>
+                                    {streaksData.currentStreak.type}{streaksData.currentStreak.count}
+                                </div>
+                                <div className="text-xs text-gray-500">Current</div>
+                            </div>
+                            <div className="text-center p-3 bg-green-50 rounded-lg">
+                                <div className="text-2xl font-bold text-green-600">W{streaksData.longestWinStreak}</div>
+                                <div className="text-xs text-gray-500">Longest Win Streak</div>
+                            </div>
+                            <div className="text-center p-3 bg-red-50 rounded-lg">
+                                <div className="text-2xl font-bold text-red-600">L{streaksData.longestLossStreak}</div>
+                                <div className="text-xs text-gray-500">Longest Loss Streak</div>
+                            </div>
+                        </div>
+                        <h4 className="font-semibold text-sm text-gray-600 mb-2">Last 10 Games</h4>
+                        <div className="flex gap-1 flex-wrap">
+                            {streaksData.recentGames.map((g, i) => (
+                                <div key={i} className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold text-white ${g.result === 'W' ? 'bg-green-500' : 'bg-red-500'}`} title={`${g.date}: ${g.result} ${g.score} vs ${g.opponent}`}>
+                                    {g.result}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow">
+                    <div className="p-4 border-b">
+                        <h3 className="font-bold text-lg">📅 Monthly Breakdown</h3>
+                    </div>
+                    <div className="p-4">
+                        <div className="space-y-2">
+                            {streaksData.monthlyStats.map(m => {
+                                const total = m.wins + m.losses;
+                                const winPct = total > 0 ? (m.wins / total) * 100 : 0;
+                                return (
+                                    <div key={m.month} className="flex items-center gap-3">
+                                        <span className="w-20 text-sm font-medium">{m.month}</span>
+                                        <div className="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
+                                            <div className="bg-green-500 h-full" style={{ width: `${winPct}%` }}></div>
+                                        </div>
+                                        <span className="w-16 text-sm font-semibold text-right">{m.record}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Opponent Breakdown */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-lg shadow">
+                    <div className="p-4 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
+                        <h3 className="font-bold text-lg">⚔️ vs AL East</h3>
+                    </div>
+                    <div className="p-4">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="text-left text-sm text-gray-500 border-b">
+                                    <th className="pb-2">Team</th>
+                                    <th className="pb-2 text-center">G</th>
+                                    <th className="pb-2 text-center">Record</th>
+                                    <th className="pb-2 text-center">RS</th>
+                                    <th className="pb-2 text-center">RA</th>
+                                    <th className="pb-2 text-center">Diff</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {alEastOpponents.map(o => (
+                                    <tr key={o.team} className="border-b last:border-0 hover:bg-gray-50">
+                                        <td className="py-2 font-semibold">{o.team}</td>
+                                        <td className="py-2 text-center">{o.games}</td>
+                                        <td className="py-2 text-center font-mono">{o.record}</td>
+                                        <td className="py-2 text-center">{o.runsScored}</td>
+                                        <td className="py-2 text-center">{o.runsAllowed}</td>
+                                        <td className={`py-2 text-center font-semibold ${o.runDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {o.runDiff >= 0 ? '+' : ''}{o.runDiff}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow">
+                    <div className="p-4 border-b">
+                        <h3 className="font-bold text-lg">🏟️ vs Other Teams</h3>
+                    </div>
+                    <div className="p-4 max-h-64 overflow-y-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="text-left text-sm text-gray-500 border-b">
+                                    <th className="pb-2">Team</th>
+                                    <th className="pb-2 text-center">G</th>
+                                    <th className="pb-2 text-center">Record</th>
+                                    <th className="pb-2 text-center">Diff</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {otherOpponents.map(o => (
+                                    <tr key={o.team} className="border-b last:border-0 hover:bg-gray-50">
+                                        <td className="py-2 font-semibold">{o.team}</td>
+                                        <td className="py-2 text-center">{o.games}</td>
+                                        <td className="py-2 text-center font-mono">{o.record}</td>
+                                        <td className={`py-2 text-center font-semibold ${o.runDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {o.runDiff >= 0 ? '+' : ''}{o.runDiff}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* Stadium Table */}
+            <DataTable
+                title="🏟️ Orioles by Stadium"
+                data={orioles || []}
+                defaultSortKey="games"
+                columns={[
+                    { key: 'stadium', label: 'Stadium' },
+                    { key: 'games', label: 'G' },
+                    { key: 'record', label: 'Record' },
+                    { key: 'firstVisit', label: 'First' },
+                    { key: 'lastVisit', label: 'Last' },
+                    { key: 'runsScored', label: 'RS' },
+                    { key: 'runsAllowed', label: 'RA' },
+                    { key: 'runDiff', label: 'Diff' },
+                    { key: 'homeRunsHit', label: 'HR' },
+                    { key: 'oneRunGames', label: '1-Run' }
+                ]}
+            />
+        </div>
+    );
+};
+
+const CompanionsView = ({ companionData }) => {
+    const [selectedCompanion, setSelectedCompanion] = useState(null);
+    const [showGames, setShowGames] = useState(false);
+
+    if (!companionData || !companionData.companions || Object.keys(companionData.companions).length === 0) {
+        return (
+            <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="section-title font-bold mb-4">👥 Games With Companions</h2>
+                <div className="text-center py-8">
+                    <p className="body-text text-gray-600 mb-4">No companion data found.</p>
+                    <div className="bg-gray-50 rounded-lg p-4 max-w-lg mx-auto text-left">
+                        <p className="font-semibold text-gray-800 mb-2">To track games with companions:</p>
+                        <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600">
+                            <li>Edit <code className="bg-gray-200 px-1 rounded">companions.csv</code> in your MLB Game Tracker folder</li>
+                            <li>Add rows with format: <code className="bg-gray-200 px-1 rounded">GameID,Companion1|Companion2</code></li>
+                            <li>Example: <code className="bg-gray-200 px-1 rounded">BAL202505090,Dad</code></li>
+                            <li>Regenerate the website</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const companions = Object.values(companionData.companions);
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow">
+                <div className="p-4 border-b">
+                    <h2 className="section-title font-bold">👥 Games With Companions</h2>
+                    <p className="body-text text-gray-500 mt-1">Track who you've attended games with</p>
+                </div>
+                <div className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {companions.map(companion => (
+                            <div key={companion.name} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="font-bold text-lg text-blue-800">{companion.name}</h3>
+                                    <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                                        {companion.totalGames} game{companion.totalGames !== 1 ? 's' : ''}
+                                    </span>
+                                </div>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Stadiums visited:</span>
+                                        <span className="font-semibold">{companion.uniqueStadiums}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Orioles games:</span>
+                                        <span className="font-semibold text-orange-600">{companion.oriolesGames}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">O's stadiums:</span>
+                                        <span className="font-semibold text-orange-600">{companion.oriolesStadiums}</span>
+                                    </div>
+                                </div>
+                                <div className="mt-3 pt-3 border-t border-blue-200">
+                                    <button
+                                        onClick={() => { setSelectedCompanion(companion); setShowGames(true); }}
+                                        className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                    >
+                                        View all games →
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Detailed stats per companion */}
+            {companions.map(companion => (
+                <div key={companion.name} className="bg-white rounded-lg shadow">
+                    <div className="p-4 border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+                        <h3 className="font-bold text-lg">📊 {companion.name} - Detailed Stats</h3>
+                    </div>
+                    <div className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Stadiums visited */}
+                            <div>
+                                <h4 className="font-semibold text-gray-800 mb-2">🏟️ Stadiums Visited ({companion.uniqueStadiums})</h4>
+                                <div className="flex flex-wrap gap-1">
+                                    {companion.stadiumsList.map(stadium => (
+                                        <span key={stadium} className="px-2 py-1 bg-gray-100 rounded text-xs">{stadium}</span>
+                                    ))}
+                                </div>
+                            </div>
+                            {/* Orioles stadiums */}
+                            <div>
+                                <h4 className="font-semibold text-orange-700 mb-2">🧡 Orioles Stadiums ({companion.oriolesStadiums})</h4>
+                                <div className="flex flex-wrap gap-1">
+                                    {companion.oriolesStadiumsList.map(stadium => (
+                                        <span key={stadium} className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">{stadium}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        {/* Recent games */}
+                        <div className="mt-4">
+                            <h4 className="font-semibold text-gray-800 mb-2">📋 Recent Games (last 5)</h4>
+                            <div className="space-y-1">
+                                {companion.games.slice(0, 5).map(game => (
+                                    <div key={game.gameId} className="flex items-center justify-between text-sm bg-gray-50 px-3 py-2 rounded">
+                                        <span className="font-medium">{game.date}</span>
+                                        <span>{game.awayTeam} @ {game.homeTeam}</span>
+                                        <span className="text-gray-500">{game.venue}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+
+            {/* Modal for all games */}
+            {showGames && selectedCompanion && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowGames(false)}>
+                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                            <h3 className="section-title font-bold">Games with {selectedCompanion.name}</h3>
+                            <p className="body-text text-blue-100 mt-1">{selectedCompanion.totalGames} total games</p>
+                        </div>
+                        <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
+                            <div className="divide-y">
+                                {selectedCompanion.games.map((game, idx) => (
+                                    <div key={idx} className="p-4 hover:bg-blue-50 transition-colors">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <span className="font-bold text-blue-600">{game.date}</span>
+                                                <span className="font-semibold">{game.awayTeam} @ {game.homeTeam}</span>
+                                            </div>
+                                            <span className="text-gray-600">{game.venue}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="p-4 border-t bg-gray-50">
+                            <button onClick={() => setShowGames(false)} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium w-full">Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 
@@ -4744,29 +5327,83 @@ const Dashboard = ({ data }) => {
     );
 };
 
+// Expandable badge cell component
+const BadgeCell = ({ badges, badgeColors }) => {
+    const [expanded, setExpanded] = useState(false);
+    if (!badges || badges.length === 0) return null;
+    const displayBadges = expanded ? badges : badges.slice(0, 3);
+    return (
+        <div className="flex flex-wrap gap-1 max-w-xs">
+            {displayBadges.map((badge, i) => (
+                <span
+                    key={i}
+                    className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-gray-100 text-gray-700'}`}
+                    title={badge.title}
+                >
+                    {badge.text}
+                </span>
+            ))}
+            {badges.length > 3 && (
+                <button
+                    onClick={() => setExpanded(!expanded)}
+                    className="px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-600 hover:bg-gray-300 cursor-pointer"
+                >
+                    {expanded ? '−' : `+${badges.length - 3}`}
+                </button>
+            )}
+        </div>
+    );
+};
+
 const GameLogWithDetails = ({ games, playerGames, pitcherGames }) => {
     const [selectedGame, setSelectedGame] = useState(null);
-    
+
+    // Compute milestones for badge display
+    const milestoneData = useMemo(() => computeGameMilestones(games), [games]);
+    const gameMilestones = milestoneData.milestones || {};
+
+    // Badge colors by type
+    const badgeColors = {
+        'game-count': 'bg-purple-100 text-purple-700',
+        'team': 'bg-blue-100 text-blue-700',
+        'venue': 'bg-green-100 text-green-700',
+        'div-first': 'bg-orange-100 text-orange-700',
+        'div-complete': 'bg-yellow-100 text-yellow-800 font-bold',
+        'div-stadiums': 'bg-indigo-100 text-indigo-700 font-bold',
+        'matchup': 'bg-gray-100 text-gray-700',
+        'holiday': 'bg-red-100 text-red-700'
+    };
+
     return (
         <>
-            <DataTable 
-                title="📋 Game Log" 
-                data={games} 
-                defaultSortKey="date" 
-                enableDateFilter={true} 
+            <DataTable
+                title="📋 Game Log"
+                data={games}
+                defaultSortKey="date"
+                enableDateFilter={true}
                 columns={[
-                    { key: 'date', label: 'Date' }, 
-                    { key: 'awayTeam', label: 'Away' }, 
-                    { key: 'homeTeam', label: 'Home' }, 
-                    { key: 'score', label: 'Score' }, 
-                    { key: 'venue', label: 'Venue' }, 
-                    { 
-                        key: 'gameId', 
-                        label: 'Game', 
+                    { key: 'date', label: 'Date' },
+                    { key: 'awayTeam', label: 'Away' },
+                    { key: 'homeTeam', label: 'Home' },
+                    { key: 'score', label: 'Score' },
+                    { key: 'venue', label: 'Venue' },
+                    {
+                        key: 'badges',
+                        label: 'Badges',
+                        render: (_, row) => (
+                            <BadgeCell
+                                badges={gameMilestones[row.gameId]?.badges}
+                                badgeColors={badgeColors}
+                            />
+                        )
+                    },
+                    {
+                        key: 'gameId',
+                        label: 'Game',
                         render: (v, row) => (
                             <div className="flex items-center gap-2">
                                 <GameLink gameId={v} />
-                                <button 
+                                <button
                                     onClick={() => setSelectedGame(row)}
                                     className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-semibold"
                                 >
@@ -4775,7 +5412,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames }) => {
                             </div>
                         )
                     }
-                ]} 
+                ]}
             />
             
             {selectedGame && (
@@ -5303,6 +5940,634 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
     );
 };
 
+// === MLB DIVISIONS CONSTANT ===
+const MLB_DIVISIONS = {
+    'AL East': ['BAL', 'BOS', 'NYA', 'TBA', 'TOR'],
+    'AL Central': ['CHA', 'CLE', 'DET', 'KCA', 'MIN'],
+    'AL West': ['ANA', 'HOU', 'OAK', 'SEA', 'TEX'],
+    'NL East': ['ATL', 'MIA', 'NYN', 'PHI', 'WAS'],
+    'NL Central': ['CHN', 'CIN', 'MIL', 'PIT', 'SLN'],
+    'NL West': ['ARI', 'COL', 'LAN', 'SDN', 'SFN'],
+};
+
+const TEAM_CODE_TO_NAME = {
+    // Retrosheet codes
+    'BAL': 'Baltimore Orioles', 'BOS': 'Boston Red Sox', 'NYA': 'New York Yankees',
+    'TBA': 'Tampa Bay Rays', 'TOR': 'Toronto Blue Jays', 'CHA': 'Chicago White Sox',
+    'CLE': 'Cleveland Guardians', 'DET': 'Detroit Tigers', 'KCA': 'Kansas City Royals',
+    'MIN': 'Minnesota Twins', 'ANA': 'Los Angeles Angels', 'HOU': 'Houston Astros',
+    'OAK': 'Oakland Athletics', 'SEA': 'Seattle Mariners', 'TEX': 'Texas Rangers',
+    'ATL': 'Atlanta Braves', 'MIA': 'Miami Marlins', 'NYN': 'New York Mets',
+    'PHI': 'Philadelphia Phillies', 'WAS': 'Washington Nationals', 'CHN': 'Chicago Cubs',
+    'CIN': 'Cincinnati Reds', 'MIL': 'Milwaukee Brewers', 'PIT': 'Pittsburgh Pirates',
+    'SLN': 'St. Louis Cardinals', 'ARI': 'Arizona Diamondbacks', 'COL': 'Colorado Rockies',
+    'LAN': 'Los Angeles Dodgers', 'SDN': 'San Diego Padres', 'SFN': 'San Francisco Giants',
+    // Common abbreviations (for display when these appear in data)
+    'NYY': 'New York Yankees', 'NYM': 'New York Mets', 'SF': 'San Francisco Giants',
+    'LAD': 'Los Angeles Dodgers', 'SD': 'San Diego Padres', 'STL': 'St. Louis Cardinals',
+    'TB': 'Tampa Bay Rays', 'KC': 'Kansas City Royals', 'CWS': 'Chicago White Sox',
+    'CHC': 'Chicago Cubs', 'WSH': 'Washington Nationals', 'LAA': 'Los Angeles Angels',
+    'ATH': 'Athletics', 'FLA': 'Florida Marlins',
+};
+
+// Team code aliases - map common abbreviations to Retrosheet codes for tracking
+const TEAM_CODE_ALIASES = {
+    // Relocated/renamed teams
+    'ATH': 'OAK',  // Athletics (Sacramento 2025) -> Oakland Athletics
+    'FLA': 'MIA',  // Florida Marlins -> Miami Marlins
+    'FLO': 'MIA',  // Florida Marlins alternate code
+    'MON': 'WAS',  // Montreal Expos -> Washington Nationals
+    // Common abbreviations -> Retrosheet codes
+    'NYY': 'NYA',  // New York Yankees
+    'NYM': 'NYN',  // New York Mets
+    'SF': 'SFN',   // San Francisco Giants
+    'LAD': 'LAN',  // Los Angeles Dodgers
+    'SD': 'SDN',   // San Diego Padres
+    'STL': 'SLN',  // St. Louis Cardinals
+    'TB': 'TBA',   // Tampa Bay Rays
+    'KC': 'KCA',   // Kansas City Royals
+    'CWS': 'CHA',  // Chicago White Sox
+    'CHC': 'CHN',  // Chicago Cubs
+    'WSH': 'WAS',  // Washington Nationals
+    'LAA': 'ANA',  // Los Angeles Angels
+    'CAL': 'ANA',  // California Angels
+};
+
+const normalizeTeamCode = (code) => TEAM_CODE_ALIASES[code] || code;
+
+// Milestone thresholds
+const MILESTONE_COUNTS = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 75, 100, 150, 200];
+const GAME_MILESTONES = [1, 10, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000];
+
+// Holiday detection
+const getHoliday = (dateStr) => {
+    if (!dateStr) return null;
+    let month, day;
+    if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        month = parts[0].padStart(2, '0');
+        day = parts[1].padStart(2, '0');
+    } else if (dateStr.length >= 8) {
+        month = dateStr.substring(4, 6);
+        day = dateStr.substring(6, 8);
+    } else {
+        return null;
+    }
+    const mmdd = month + day;
+
+    const holidays = {
+        '0704': 'July 4th',
+        '1031': 'Halloween',
+        '0317': "St. Patrick's Day",
+        '0214': "Valentine's Day",
+        '0101': "New Year's Day",
+    };
+
+    return holidays[mmdd] || null;
+};
+
+const ordinal = (n) => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+
+// Compute badges/milestones for each game
+const computeGameMilestones = (games) => {
+    if (!games || games.length === 0) return { milestones: {}, tracking: {} };
+
+    // Sort games chronologically
+    const sortedGames = [...games].sort((a, b) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        const parseDate = (d) => {
+            if (!d) return '';
+            if (d.includes('/')) {
+                const [m, dd, y] = d.split('/');
+                return `${y}${(m || '').padStart(2, '0')}${(dd || '').padStart(2, '0')}`;
+            }
+            return d;
+        };
+        return parseDate(dateA).localeCompare(parseDate(dateB));
+    });
+
+    const gameMilestones = {};
+    let gameCount = 0;
+    const teamCounts = {};
+    const venueCounts = {};
+    const matchupsSeen = {};
+    const divisionTeamsSeen = {};
+    const divisionTeamsCompleted = {};
+    const divisionStadiumsVisited = {};
+    const divisionStadiumsCompleted = {};
+    const venueOrder = [];
+
+    // Initialize division tracking
+    Object.keys(MLB_DIVISIONS).forEach(div => {
+        divisionTeamsSeen[div] = new Set();
+        divisionStadiumsVisited[div] = new Set();
+    });
+
+    sortedGames.forEach(game => {
+        const gameId = game.gameId;
+        if (!gameId) return;
+
+        gameMilestones[gameId] = { badges: [] };
+        gameCount++;
+
+        // awayTeam and homeTeam are team codes - normalize for relocated teams (ATH -> OAK, etc.)
+        const awayCode = normalizeTeamCode(game.awayTeam || '');
+        const homeCode = normalizeTeamCode(game.homeTeam || '');
+        const venue = game.venue || '';
+        const dateStr = game.date || '';
+
+        // Get team names for display
+        const awayName = TEAM_CODE_TO_NAME[awayCode] || awayCode;
+        const homeName = TEAM_CODE_TO_NAME[homeCode] || homeCode;
+
+        // Get divisions
+        const getDivision = (code) => {
+            for (const [div, teams] of Object.entries(MLB_DIVISIONS)) {
+                if (teams.includes(code)) return div;
+            }
+            return null;
+        };
+
+        const awayDiv = getDivision(awayCode);
+        const homeDiv = getDivision(homeCode);
+
+        // Game count milestone
+        if (GAME_MILESTONES.includes(gameCount)) {
+            gameMilestones[gameId].badges.push({
+                type: 'game-count',
+                text: `Game #${gameCount}`,
+                title: `${ordinal(gameCount)} game attended`
+            });
+        }
+
+        // Holiday badge
+        const holiday = getHoliday(dateStr);
+        if (holiday) {
+            gameMilestones[gameId].badges.push({
+                type: 'holiday',
+                text: holiday,
+                title: `${holiday} game`
+            });
+        }
+
+        // Track first team from each division
+        if (awayDiv && divisionTeamsSeen[awayDiv].size === 0) {
+            gameMilestones[gameId].badges.push({
+                type: 'div-first',
+                text: `1st ${awayDiv}`,
+                title: `First ${awayDiv} team seen: ${awayName}`
+            });
+        }
+        if (homeDiv && homeDiv !== awayDiv && divisionTeamsSeen[homeDiv].size === 0) {
+            gameMilestones[gameId].badges.push({
+                type: 'div-first',
+                text: `1st ${homeDiv}`,
+                title: `First ${homeDiv} team seen: ${homeName}`
+            });
+        }
+
+        // Track team counts and milestones
+        if (awayCode) {
+            teamCounts[awayCode] = (teamCounts[awayCode] || 0) + 1;
+            if (MILESTONE_COUNTS.includes(teamCounts[awayCode])) {
+                gameMilestones[gameId].badges.push({
+                    type: 'team',
+                    text: teamCounts[awayCode] === 1 ? `1st ${awayName}` : `${awayName} #${teamCounts[awayCode]}`,
+                    title: `${ordinal(teamCounts[awayCode])} time seeing ${awayName}`
+                });
+            }
+        }
+        if (homeCode) {
+            teamCounts[homeCode] = (teamCounts[homeCode] || 0) + 1;
+            if (MILESTONE_COUNTS.includes(teamCounts[homeCode])) {
+                gameMilestones[gameId].badges.push({
+                    type: 'team',
+                    text: teamCounts[homeCode] === 1 ? `1st ${homeName}` : `${homeName} #${teamCounts[homeCode]}`,
+                    title: `${ordinal(teamCounts[homeCode])} time seeing ${homeName}`
+                });
+            }
+        }
+
+        // Track division completion (teams)
+        if (awayDiv) divisionTeamsSeen[awayDiv].add(awayCode);
+        if (homeDiv) divisionTeamsSeen[homeDiv].add(homeCode);
+
+        // Check for division team completion
+        [awayDiv, homeDiv].forEach(div => {
+            if (!div || divisionTeamsCompleted[div]) return;
+            const totalTeams = MLB_DIVISIONS[div].length;
+            if (divisionTeamsSeen[div].size >= totalTeams) {
+                divisionTeamsCompleted[div] = true;
+                gameMilestones[gameId].badges.push({
+                    type: 'div-complete',
+                    text: `${div} Teams!`,
+                    title: `Seen all ${totalTeams} ${div} teams!`
+                });
+            }
+        });
+
+        // Venue tracking - normalize stadium names (AT&T Park -> Oracle Park, etc.)
+        if (venue) {
+            const matchedStadium = matchStadiumByName(venue);
+            const normalizedVenue = matchedStadium ? matchedStadium.name : venue;
+
+            const isFirstVenueVisit = !venueCounts[normalizedVenue];
+            venueCounts[normalizedVenue] = (venueCounts[normalizedVenue] || 0) + 1;
+
+            if (isFirstVenueVisit) {
+                venueOrder.push(normalizedVenue);
+                const venueNum = venueOrder.length;
+                gameMilestones[gameId].badges.push({
+                    type: 'venue',
+                    text: `${normalizedVenue} (#${venueNum})`,
+                    title: `${ordinal(venueNum)} different venue visited`
+                });
+
+                // Track stadium division completion (based on home team's division)
+                if (homeDiv && matchedStadium) {
+                    divisionStadiumsVisited[homeDiv].add(normalizedVenue);
+                    // Check if all stadiums in division visited
+                    if (!divisionStadiumsCompleted[homeDiv]) {
+                        const totalStadiums = MLB_DIVISIONS[homeDiv].length;
+                        if (divisionStadiumsVisited[homeDiv].size >= totalStadiums) {
+                            divisionStadiumsCompleted[homeDiv] = true;
+                            gameMilestones[gameId].badges.push({
+                                type: 'div-stadiums',
+                                text: `${homeDiv} Stadiums!`,
+                                title: `Visited all ${totalStadiums} ${homeDiv} stadiums!`
+                            });
+                        }
+                    }
+                }
+            } else if (MILESTONE_COUNTS.includes(venueCounts[normalizedVenue])) {
+                gameMilestones[gameId].badges.push({
+                    type: 'venue',
+                    text: `${normalizedVenue} #${venueCounts[normalizedVenue]}`,
+                    title: `${ordinal(venueCounts[normalizedVenue])} game at ${normalizedVenue}`
+                });
+            }
+        }
+
+        // First matchup tracking
+        const matchupKey = [awayCode, homeCode].sort().join(' vs ');
+        if (!matchupsSeen[matchupKey]) {
+            matchupsSeen[matchupKey] = true;
+            gameMilestones[gameId].badges.push({
+                type: 'matchup',
+                text: '1st Matchup',
+                title: `First time seeing ${awayName} vs ${homeName}`
+            });
+        }
+    });
+
+    return {
+        milestones: gameMilestones,
+        tracking: {
+            teamCounts,
+            venueCounts,
+            venueOrder,
+            divisionTeamsSeen: Object.fromEntries(
+                Object.entries(divisionTeamsSeen).map(([k, v]) => [k, Array.from(v)])
+            ),
+            divisionStadiumsVisited: Object.fromEntries(
+                Object.entries(divisionStadiumsVisited).map(([k, v]) => [k, Array.from(v)])
+            ),
+            divisionTeamsCompleted,
+            divisionStadiumsCompleted,
+            matchupsSeen,
+            totalGames: gameCount
+        }
+    };
+};
+
+// Division Checklist Component
+const DivisionChecklist = ({ divisionChecklist, games }) => {
+    const [selectedGroup, setSelectedGroup] = useState('All MLB');
+    const [viewMode, setViewMode] = useState('teams');
+
+    const milestoneData = useMemo(() => computeGameMilestones(games), [games]);
+    const tracking = milestoneData.tracking || {};
+
+    const groups = ['All MLB', 'AL', 'NL', 'AL East', 'AL Central', 'AL West', 'NL East', 'NL Central', 'NL West'];
+
+    const currentData = divisionChecklist?.[selectedGroup] || { teams: [], teamsSeen: 0, totalTeams: 0 };
+
+    const teamProgress = currentData.totalTeams > 0
+        ? Math.round((currentData.teamsSeen / currentData.totalTeams) * 100)
+        : 0;
+    const stadiumProgress = currentData.totalStadiums > 0
+        ? Math.round((currentData.stadiumsVisited / currentData.totalStadiums) * 100)
+        : 0;
+
+    return (
+        <div className="bg-white rounded-lg shadow">
+            <div className="p-4 border-b">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <h2 className="section-title font-bold">Division Checklist</h2>
+                    <div className="flex items-center gap-4">
+                        <select
+                            value={selectedGroup}
+                            onChange={(e) => setSelectedGroup(e.target.value)}
+                            className="px-3 py-2 border rounded-lg"
+                        >
+                            {groups.map(g => (
+                                <option key={g} value={g}>{g}</option>
+                            ))}
+                        </select>
+                        <div className="flex border rounded-lg overflow-hidden">
+                            <button
+                                onClick={() => setViewMode('teams')}
+                                className={`px-3 py-2 ${viewMode === 'teams' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+                            >
+                                Teams
+                            </button>
+                            <button
+                                onClick={() => setViewMode('stadiums')}
+                                className={`px-3 py-2 ${viewMode === 'stadiums' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+                            >
+                                Stadiums
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Progress Summary */}
+            <div className="p-4 bg-gray-50 border-b">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="text-2xl font-bold text-blue-600">
+                            {currentData.teamsSeen}/{currentData.totalTeams}
+                        </div>
+                        <div className="text-sm text-gray-600">Teams Seen</div>
+                        <div className="text-xs text-gray-400">{teamProgress}% complete</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="text-2xl font-bold text-green-600">
+                            {currentData.stadiumsVisited}/{currentData.totalStadiums}
+                        </div>
+                        <div className="text-sm text-gray-600">Stadiums Visited</div>
+                        <div className="text-xs text-gray-400">{stadiumProgress}% complete</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="text-2xl font-bold text-purple-600">
+                            {Object.keys(tracking.divisionTeamsCompleted || {}).length}/6
+                        </div>
+                        <div className="text-sm text-gray-600">Div. Teams</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="text-2xl font-bold text-indigo-600">
+                            {Object.keys(tracking.divisionStadiumsCompleted || {}).length}/6
+                        </div>
+                        <div className="text-sm text-gray-600">Div. Stadiums</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="text-2xl font-bold text-orange-600">
+                            {tracking.totalGames || games?.length || 0}
+                        </div>
+                        <div className="text-sm text-gray-600">Total Games</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Team/Stadium Grid */}
+            <div className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {(currentData.teams || []).map(team => {
+                        const isSeen = viewMode === 'teams' ? team.seen : team.stadiumVisited;
+                        const count = viewMode === 'teams' ? team.visitCount : team.stadiumVisitCount;
+                        const displayName = viewMode === 'teams' ? team.teamName : team.homeStadium;
+
+                        return (
+                            <div
+                                key={team.teamCode}
+                                className={`flex items-center gap-3 p-3 rounded-lg border ${
+                                    isSeen
+                                        ? 'bg-green-50 border-green-200'
+                                        : 'bg-gray-50 border-gray-200'
+                                }`}
+                            >
+                                <span className="text-2xl">{isSeen ? '✅' : '⬜'}</span>
+                                <div className="flex-1 min-w-0">
+                                    <div className={`font-medium truncate ${!isSeen && 'text-gray-400'}`}>
+                                        {displayName || 'Unknown'}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                        {viewMode === 'teams' ? team.division : team.teamName}
+                                        {isSeen && count > 0 && ` • ${count} ${count === 1 ? 'game' : 'games'}`}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Division Progress Cards */}
+            {selectedGroup === 'All MLB' && (
+                <div className="p-4 border-t">
+                    <h3 className="font-semibold text-gray-700 mb-4">Division Progress</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {['AL East', 'AL Central', 'AL West', 'NL East', 'NL Central', 'NL West'].map(div => {
+                            const divData = divisionChecklist?.[div] || {};
+                            const pct = divData.totalTeams > 0
+                                ? Math.round((divData.teamsSeen / divData.totalTeams) * 100)
+                                : 0;
+                            const isComplete = divData.teamsSeen >= divData.totalTeams;
+
+                            return (
+                                <div
+                                    key={div}
+                                    onClick={() => setSelectedGroup(div)}
+                                    className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                                        isComplete ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'
+                                    }`}
+                                >
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="font-semibold">{div}</span>
+                                        <span className="text-sm">{divData.teamsSeen}/{divData.totalTeams}</span>
+                                    </div>
+                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all ${
+                                                isComplete ? 'bg-green-500' : 'bg-blue-500'
+                                            }`}
+                                            style={{ width: `${pct}%` }}
+                                        />
+                                    </div>
+                                    {isComplete && (
+                                        <div className="text-xs text-green-600 mt-1 font-medium">Complete!</div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Badges Display Component
+const BadgesDisplay = ({ games }) => {
+    const [filter, setFilter] = useState('all');
+    const milestoneData = useMemo(() => computeGameMilestones(games), [games]);
+
+    // Collect all badges
+    const allBadges = useMemo(() => {
+        const badges = [];
+        const sortedGames = [...(games || [])].sort((a, b) => {
+            const parseDate = (d) => {
+                if (!d) return '';
+                if (d.includes('/')) {
+                    const [m, dd, y] = d.split('/');
+                    return `${y}${(m || '').padStart(2, '0')}${(dd || '').padStart(2, '0')}`;
+                }
+                return d;
+            };
+            return parseDate(b.date).localeCompare(parseDate(a.date));
+        });
+
+        sortedGames.forEach(game => {
+            const gameBadges = milestoneData.milestones?.[game.gameId]?.badges || [];
+            gameBadges.forEach(badge => {
+                badges.push({
+                    ...badge,
+                    date: game.date,
+                    gameId: game.gameId,
+                    away: game.awayTeam,
+                    home: game.homeTeam,
+                    venue: game.venue
+                });
+            });
+        });
+
+        return badges;
+    }, [games, milestoneData]);
+
+    const filteredBadges = useMemo(() => {
+        if (filter === 'all') return allBadges;
+        return allBadges.filter(b => b.type === filter);
+    }, [allBadges, filter]);
+
+    const badgeCounts = useMemo(() => {
+        const counts = { all: allBadges.length };
+        allBadges.forEach(b => {
+            counts[b.type] = (counts[b.type] || 0) + 1;
+        });
+        return counts;
+    }, [allBadges]);
+
+    const getBadgeIcon = (type) => {
+        const icons = {
+            'game-count': '🎮',
+            'team': '👕',
+            'venue': '🏟️',
+            'div-first': '🌟',
+            'div-complete': '🏆',
+            'matchup': '⚔️',
+            'holiday': '🎉',
+        };
+        return icons[type] || '🏅';
+    };
+
+    const getBadgeColor = (type) => {
+        const colors = {
+            'game-count': 'bg-purple-100 border-purple-300',
+            'team': 'bg-blue-100 border-blue-300',
+            'venue': 'bg-green-100 border-green-300',
+            'div-first': 'bg-yellow-100 border-yellow-300',
+            'div-complete': 'bg-orange-100 border-orange-300',
+            'matchup': 'bg-pink-100 border-pink-300',
+            'holiday': 'bg-red-100 border-red-300',
+            'div-stadiums': 'bg-indigo-100 border-indigo-300',
+        };
+        return colors[type] || 'bg-gray-100 border-gray-300';
+    };
+
+    return (
+        <div className="bg-white rounded-lg shadow">
+            <div className="p-4 border-b">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <h2 className="section-title font-bold">Badges & Milestones</h2>
+                    <select
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        className="px-3 py-2 border rounded-lg"
+                    >
+                        <option value="all">All Badges ({badgeCounts.all})</option>
+                        <option value="game-count">Game Count ({badgeCounts['game-count'] || 0})</option>
+                        <option value="team">Team Milestones ({badgeCounts['team'] || 0})</option>
+                        <option value="venue">Venue ({badgeCounts['venue'] || 0})</option>
+                        <option value="div-first">Division Firsts ({badgeCounts['div-first'] || 0})</option>
+                        <option value="div-complete">Div. Teams Complete ({badgeCounts['div-complete'] || 0})</option>
+                        <option value="div-stadiums">Div. Stadiums Complete ({badgeCounts['div-stadiums'] || 0})</option>
+                        <option value="matchup">First Matchups ({badgeCounts['matchup'] || 0})</option>
+                        <option value="holiday">Holiday Games ({badgeCounts['holiday'] || 0})</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="p-4 bg-gray-50 border-b">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="text-2xl font-bold text-blue-600">{badgeCounts.all}</div>
+                        <div className="text-sm text-gray-600">Total Badges</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="text-2xl font-bold text-green-600">{badgeCounts['div-complete'] || 0}</div>
+                        <div className="text-sm text-gray-600">Divisions Complete</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="text-2xl font-bold text-purple-600">{milestoneData.tracking?.venueOrder?.length || 0}</div>
+                        <div className="text-sm text-gray-600">Unique Venues</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="text-2xl font-bold text-orange-600">{Object.keys(milestoneData.tracking?.matchupsSeen || {}).length}</div>
+                        <div className="text-sm text-gray-600">Unique Matchups</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Badges Grid */}
+            <div className="p-4 max-h-[600px] overflow-y-auto">
+                {filteredBadges.length === 0 ? (
+                    <EmptyState
+                        icon="🏅"
+                        title="No badges yet"
+                        message="Keep attending games to earn badges!"
+                    />
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {filteredBadges.map((badge, idx) => (
+                            <div
+                                key={`${badge.gameId}-${badge.type}-${idx}`}
+                                className={`p-3 rounded-lg border ${getBadgeColor(badge.type)} cursor-pointer hover:shadow-md transition-all`}
+                                title={badge.title}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <span className="text-2xl">{getBadgeIcon(badge.type)}</span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-semibold text-gray-800 truncate">{badge.text}</div>
+                                        <div className="text-xs text-gray-600 truncate">{badge.away} vs {badge.home}</div>
+                                        <div className="text-xs text-gray-400 mt-1">{badge.date}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const App = () => {
     const [tab, setTab] = useState('dashboard');
     const [darkMode, setDarkMode] = useState(() => {
@@ -5319,24 +6584,19 @@ const App = () => {
     const data = BASEBALL_DATA;
 
     const tabs = [
-        { id: 'dashboard', label: 'Dashboard', icon: '📊' }, 
-        { id: 'insights', label: 'Insights', icon: '💡' },
-        { id: 'leaderboards', label: 'Leaderboards', icon: '🏅' },
+        { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+        { id: 'gamelog', label: 'Games', icon: '📋' },
         { id: 'calendar', label: 'Calendar', icon: '📅' },
-        { id: 'matchups', label: 'Matchups', icon: '🎯' }, 
-        { id: 'gamelog', label: 'Game Log', icon: '📋' },
+        { id: 'progress', label: 'Progress', icon: '🏁' },  // Combined: divisions + badges
         { id: 'milestones', label: 'Milestones', icon: '🏆' },
-        { id: 'players', label: 'Hitters', icon: '👤' }, 
+        { id: 'leaderboards', label: 'Leaders', icon: '🏅' },
+        { id: 'players', label: 'Hitters', icon: '👤' },
         { id: 'pitchers', label: 'Pitchers', icon: '⚾' },
-        { id: 'teams', label: 'Teams', icon: '🏟️' },
-        { id: 'stadiums', label: 'Stadiums', icon: '🏟️' },
-        { id: 'map', label: 'Map', icon: '🗺️' },
-        { id: 'orioles', label: 'Orioles', icon: '🧡' }, 
-        { id: 'debuts', label: 'Debuts', icon: '🌟' },
-        { id: 'finals', label: 'Final Games', icon: '👋' }, 
-        { id: 'signature', label: 'Signature HRs', icon: '💦' },
-        { id: 'nostats', label: 'No Stats', icon: '👥' },
-        { id: 'comparison', label: 'Compare', icon: '⚖️' },
+        { id: 'venues', label: 'Venues', icon: '🏟️' },  // Combined: teams + stadiums + map
+        { id: 'matchups', label: 'Matchups', icon: '🎯' },
+        { id: 'special', label: 'Special', icon: '🌟' },  // Combined: debuts + finals + signature
+        { id: 'companions', label: 'With', icon: '👥' },
+        { id: 'orioles', label: 'Orioles', icon: '🧡' },
     ];
     
     return (
@@ -5373,78 +6633,83 @@ const App = () => {
             </nav>
             <main className="max-w-7xl mx-auto px-4 py-8">
                 {tab === 'dashboard' && <Dashboard data={data} />}
-                {tab === 'insights' && <SmartInsights data={data} />}
-                {tab === 'leaderboards' && <Leaderboards data={data} />}
-                {tab === 'calendar' && <Calendar games={data.games || []} />}
-                {tab === 'matchups' && <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} />}
                 {tab === 'gamelog' && <GameLogWithDetails games={data.games || []} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} />}
+                {tab === 'calendar' && <Calendar games={data.games || []} />}
+                {tab === 'progress' && (
+                    <div className="space-y-6">
+                        <DivisionChecklist divisionChecklist={data.divisionChecklist} games={data.games || []} />
+                        <BadgesDisplay games={data.games || []} />
+                    </div>
+                )}
                 {tab === 'milestones' && <MilestonesView milestones={data.milestones || []} games={data.games || []} />}
+                {tab === 'leaderboards' && <Leaderboards data={data} />}
                 {tab === 'players' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
                 {tab === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
-                {tab === 'teams' && <DataTable title="🏟️ Teams" data={data.teams || []} defaultSortKey="games" columns={[
-                    { key: 'team', label: 'Team' }, { key: 'games', label: 'G' }, { key: 'record', label: 'Record' }, 
-                    { key: 'runs', label: 'R' }, { key: 'runsAllowed', label: 'RA' }, { key: 'diff', label: 'Diff' },
-                    { key: 'homeRecord', label: 'Home' }, { key: 'awayRecord', label: 'Away' }, 
-                    { key: 'oneRunGames', label: '1-Run' }, { key: 'blowouts', label: 'Blowouts' }
-                ]} />}
-                {tab === 'stadiums' && <DataTable title="🏟️ Stadiums" data={data.stadiums || []} defaultSortKey="games" columns={[
-                    { key: 'stadium', label: 'Stadium' }, { key: 'games', label: 'G' }, { key: 'firstVisit', label: 'First' },
-                    { key: 'lastVisit', label: 'Last' }, { key: 'span', label: 'Span' }, { key: 'avgAttendance', label: 'Avg Att.' },
-                    { key: 'homeRunsSeen', label: 'HRs' }, { key: 'hitsSeen', label: 'Hits' }, { key: 'strikeoutsSeen', label: 'SOs' },
-                    { key: 'teamsSeen', label: 'Teams' }, { key: 'homeTeamRecord', label: 'Home Record' }
-                ]} />}
-                {tab === 'map' && <StadiumMap stadiums={data.stadiums || []} games={data.games || []} orioles={data.orioles || []} />}
-                {tab === 'orioles' && <DataTable title="🧡 Orioles by Stadium" data={data.orioles || []} defaultSortKey="games" columns={[
-                    { key: 'stadium', label: 'Stadium' }, { key: 'games', label: 'G' }, { key: 'record', label: 'Record' },
-                    { key: 'firstVisit', label: 'First' }, { key: 'lastVisit', label: 'Last' }, { key: 'runsScored', label: 'R' },
-                    { key: 'runsAllowed', label: 'RA' }, { key: 'runDiff', label: 'Diff' }, { key: 'homeRunsHit', label: 'HR' }, { key: 'oneRunGames', label: '1-Run' }
-                ]} />}
-                {tab === 'debuts' && <DataTable title="🌟 MLB Debuts" data={data.debuts || []} defaultSortKey="date" enableDateFilter={true} columns={[
-                    { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> }, 
-                    { key: 'team', label: 'Team' }, { key: 'opponent', label: 'vs' }, { key: 'position', label: 'Pos' },
-                    { key: 'stats', label: 'Debut Performance', render: (v, r) => {
-                        if (r.ip && r.ip !== '' && r.ip !== '0.0') return <span className="font-mono small-text">{r.ip} IP, {r.h_p} H, {r.er} ER, {r.bb_p} BB, {r.so_p} SO{r.decision ? ` (${r.decision})` : ''}</span>;
-                        if (r.ab > 0) {
-                            const parts = r.h > 0 ? [`${r.h}-${r.ab}`] : [`0-${r.ab}`];
-                            if (r.hr > 0) parts.push(`${r.hr} HR`);
-                            if (r.rbi > 0) parts.push(`${r.rbi} RBI`);
-                            if (r.r > 0) parts.push(`${r.r} R`);
-                            if (r.bb > 0) parts.push(`${r.bb} BB`);
-                            if (r.so > 0) parts.push(`${r.so} SO`);
-                            return <span className="font-mono small-text">{parts.join(', ')}</span>;
-                        }
-                        return <span className="text-gray-500 italic small-text">Defensive replacement</span>;
-                    }},
-                    { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
-                ]} />}
-                {tab === 'finals' && <DataTable title="👋 Final MLB Games" data={data.finalGames || []} defaultSortKey="date" enableDateFilter={true} columns={[
-                    { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> }, 
-                    { key: 'team', label: 'Team' }, { key: 'position', label: 'Pos' },
-                    { key: 'stats', label: 'Final Performance', render: (v, r) => {
-                        if (r.ip && r.ip !== '' && r.ip !== '0.0') return <span className="font-mono small-text">{r.ip} IP, {r.h_p} H, {r.er} ER, {r.bb_p} BB, {r.so_p} SO{r.decision ? ` (${r.decision})` : ''}</span>;
-                        if (r.ab > 0) {
-                            const parts = r.h > 0 ? [`${r.h}-${r.ab}`] : [`0-${r.ab}`];
-                            if (r.hr > 0) parts.push(`${r.hr} HR`);
-                            if (r.rbi > 0) parts.push(`${r.rbi} RBI`);
-                            if (r.r > 0) parts.push(`${r.r} R`);
-                            if (r.bb > 0) parts.push(`${r.bb} BB`);
-                            if (r.so > 0) parts.push(`${r.so} SO`);
-                            return <span className="font-mono small-text">{parts.join(', ')}</span>;
-                        }
-                        return <span className="text-gray-500 italic small-text">Defensive replacement</span>;
-                    }},
-                    { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
-                ]} />}
-                {tab === 'signature' && <DataTable title="💦 Signature HRs" data={data.signatureHRs || []} defaultSortKey="date" enableDateFilter={true} columns={[
-                    { key: 'date', label: 'Date' }, { key: 'player', label: 'Player' }, { key: 'team', label: 'Team' },
-                    { key: 'opponent', label: 'Opponent' }, { key: 'pitcher', label: 'Pitcher' }, { key: 'signatureNumber', label: 'Type' }, 
-                    { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
-                ]} />}
-                {tab === 'nostats' && <DataTable title="👥 Players Without Stats" data={data.playersWithoutStats || []} columns={[
-                    { key: 'name', label: 'Name', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> }, 
-                    { key: 'teams', label: 'Teams' }, { key: 'games', label: 'G' }, { key: 'positions', label: 'Positions' }
-                ]} />}
-                {tab === 'comparison' && <PlayerComparison players={data.players || []} playerGames={data.playerGames || []} />}
+                {tab === 'venues' && (
+                    <div className="space-y-6">
+                        <StadiumMap stadiums={data.stadiums || []} games={data.games || []} orioles={data.orioles || []} />
+                        <DataTable title="🏟️ Teams" data={data.teams || []} defaultSortKey="games" columns={[
+                            { key: 'team', label: 'Team' }, { key: 'games', label: 'G' }, { key: 'record', label: 'Record' },
+                            { key: 'runs', label: 'R' }, { key: 'runsAllowed', label: 'RA' }, { key: 'diff', label: 'Diff' },
+                            { key: 'homeRecord', label: 'Home' }, { key: 'awayRecord', label: 'Away' },
+                            { key: 'oneRunGames', label: '1-Run' }, { key: 'blowouts', label: 'Blowouts' }
+                        ]} />
+                        <DataTable title="🏟️ Stadiums" data={data.stadiums || []} defaultSortKey="games" columns={[
+                            { key: 'stadium', label: 'Stadium' }, { key: 'games', label: 'G' }, { key: 'firstVisit', label: 'First' },
+                            { key: 'lastVisit', label: 'Last' }, { key: 'span', label: 'Span' }, { key: 'avgAttendance', label: 'Avg Att.' },
+                            { key: 'homeRunsSeen', label: 'HRs' }, { key: 'hitsSeen', label: 'Hits' }, { key: 'strikeoutsSeen', label: 'SOs' },
+                            { key: 'teamsSeen', label: 'Teams' }, { key: 'homeTeamRecord', label: 'Home Record' }
+                        ]} />
+                    </div>
+                )}
+                {tab === 'matchups' && <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} />}
+                {tab === 'special' && (
+                    <div className="space-y-6">
+                        <DataTable title="🌟 MLB Debuts" data={data.debuts || []} defaultSortKey="date" enableDateFilter={true} columns={[
+                            { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
+                            { key: 'team', label: 'Team' }, { key: 'opponent', label: 'vs' }, { key: 'position', label: 'Pos' },
+                            { key: 'stats', label: 'Debut Performance', render: (v, r) => {
+                                if (r.ip && r.ip !== '' && r.ip !== '0.0') return <span className="font-mono small-text">{r.ip} IP, {r.h_p} H, {r.er} ER, {r.bb_p} BB, {r.so_p} SO{r.decision ? ` (${r.decision})` : ''}</span>;
+                                if (r.ab > 0) {
+                                    const parts = r.h > 0 ? [`${r.h}-${r.ab}`] : [`0-${r.ab}`];
+                                    if (r.hr > 0) parts.push(`${r.hr} HR`);
+                                    if (r.rbi > 0) parts.push(`${r.rbi} RBI`);
+                                    if (r.r > 0) parts.push(`${r.r} R`);
+                                    if (r.bb > 0) parts.push(`${r.bb} BB`);
+                                    if (r.so > 0) parts.push(`${r.so} SO`);
+                                    return <span className="font-mono small-text">{parts.join(', ')}</span>;
+                                }
+                                return <span className="text-gray-500 italic small-text">Defensive replacement</span>;
+                            }},
+                            { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
+                        ]} />
+                        <DataTable title="👋 Final MLB Games" data={data.finalGames || []} defaultSortKey="date" enableDateFilter={true} columns={[
+                            { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
+                            { key: 'team', label: 'Team' }, { key: 'position', label: 'Pos' },
+                            { key: 'stats', label: 'Final Performance', render: (v, r) => {
+                                if (r.ip && r.ip !== '' && r.ip !== '0.0') return <span className="font-mono small-text">{r.ip} IP, {r.h_p} H, {r.er} ER, {r.bb_p} BB, {r.so_p} SO{r.decision ? ` (${r.decision})` : ''}</span>;
+                                if (r.ab > 0) {
+                                    const parts = r.h > 0 ? [`${r.h}-${r.ab}`] : [`0-${r.ab}`];
+                                    if (r.hr > 0) parts.push(`${r.hr} HR`);
+                                    if (r.rbi > 0) parts.push(`${r.rbi} RBI`);
+                                    if (r.r > 0) parts.push(`${r.r} R`);
+                                    if (r.bb > 0) parts.push(`${r.bb} BB`);
+                                    if (r.so > 0) parts.push(`${r.so} SO`);
+                                    return <span className="font-mono small-text">{parts.join(', ')}</span>;
+                                }
+                                return <span className="text-gray-500 italic small-text">Defensive replacement</span>;
+                            }},
+                            { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
+                        ]} />
+                        <DataTable title="💦 Signature HRs" data={data.signatureHRs || []} defaultSortKey="date" enableDateFilter={true} columns={[
+                            { key: 'date', label: 'Date' }, { key: 'player', label: 'Player' }, { key: 'team', label: 'Team' },
+                            { key: 'opponent', label: 'Opponent' }, { key: 'pitcher', label: 'Pitcher' }, { key: 'signatureNumber', label: 'Type' },
+                            { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
+                        ]} />
+                    </div>
+                )}
+                {tab === 'companions' && <CompanionsView companionData={data.companionData} />}
+                {tab === 'orioles' && <OriolesDashboard orioles={data.orioles || []} games={data.games || []} />}
             </main>
             <footer className="bg-white border-t mt-12">
                 <div className="max-w-7xl mx-auto px-4 py-8 text-center">

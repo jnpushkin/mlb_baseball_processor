@@ -32,6 +32,8 @@ class DataSerializer:
             "matchupMatrix": self._serialize_matchup_matrix(data.get('df_matchups')),
             "playerGames": self._serialize_player_games(raw_games),
             "pitcherGames": self._serialize_pitcher_games(raw_games),
+            "divisionChecklist": self._serialize_division_checklist(),
+            "companionData": self._serialize_companions(),
         }
         
         counts = [
@@ -907,3 +909,277 @@ class DataSerializer:
             matrix.append(row_data)
         
         return {"teams": teams, "matrix": matrix}
+
+    def _serialize_division_checklist(self):
+        """Serialize division checklist data - teams and stadiums seen per division."""
+        from ..utils.constants import (
+            MLB_DIVISIONS, TEAM_TO_DIVISION, TEAM_TO_LEAGUE,
+            CODE_TO_TEAM, CURRENT_STADIUMS, STADIUM_ALIASES, RETROSHEET_CODES
+        )
+
+        game_log = self.data.get('game_log')
+        if game_log is None or game_log.empty:
+            return {}
+
+        # Track teams seen and stadiums visited
+        teams_seen = set()
+        stadiums_visited = set()
+        team_visit_counts = {}
+        stadium_visit_counts = {}
+
+        # Build set of all valid team codes from divisions
+        all_division_teams = set()
+        for teams in MLB_DIVISIONS.values():
+            all_division_teams.update(teams)
+
+        # Team code aliases - map common abbreviations to Retrosheet codes
+        TEAM_CODE_ALIASES = {
+            # Relocated/renamed teams
+            'ATH': 'OAK',  # Athletics (Sacramento 2025) -> Oakland Athletics
+            'FLA': 'MIA',  # Florida Marlins -> Miami Marlins
+            'FLO': 'MIA',  # Florida Marlins alternate code
+            'MON': 'WAS',  # Montreal Expos -> Washington Nationals
+            # Common abbreviations -> Retrosheet codes
+            'NYY': 'NYA',  # New York Yankees
+            'NYM': 'NYN',  # New York Mets
+            'SF': 'SFN',   # San Francisco Giants
+            'LAD': 'LAN',  # Los Angeles Dodgers
+            'SD': 'SDN',   # San Diego Padres
+            'STL': 'SLN',  # St. Louis Cardinals
+            'TB': 'TBA',   # Tampa Bay Rays
+            'KC': 'KCA',   # Kansas City Royals
+            'CWS': 'CHA',  # Chicago White Sox
+            'CHC': 'CHN',  # Chicago Cubs
+            'WSH': 'WAS',  # Washington Nationals
+            'LAA': 'ANA',  # Los Angeles Angels
+            'CAL': 'ANA',  # California Angels
+        }
+
+        def normalize_team_code(code):
+            """Normalize team code to canonical form."""
+            if not code:
+                return code
+            return TEAM_CODE_ALIASES.get(code, code)
+
+        # Build reverse stadium lookup (alias -> canonical name)
+        stadium_alias_lookup = {}
+        for canonical, aliases in STADIUM_ALIASES.items():
+            stadium_alias_lookup[canonical.lower()] = canonical
+            for alias in aliases:
+                stadium_alias_lookup[alias.lower()] = canonical
+
+        def normalize_stadium(venue):
+            """Normalize stadium name to canonical form."""
+            if not venue:
+                return venue
+            venue_lower = venue.lower()
+            return stadium_alias_lookup.get(venue_lower, venue)
+
+        # Process each game
+        for _, row in game_log.iterrows():
+            # Game log already has team codes (e.g., "NYA", "BAL"), not full names
+            away_code = normalize_team_code(str(row.get('Away Team', '')))
+            home_code = normalize_team_code(str(row.get('Home Team', '')))
+            venue = str(row.get('Venue', ''))
+
+            # Track teams seen (validate against division teams)
+            if away_code and away_code in all_division_teams:
+                teams_seen.add(away_code)
+                team_visit_counts[away_code] = team_visit_counts.get(away_code, 0) + 1
+            if home_code and home_code in all_division_teams:
+                teams_seen.add(home_code)
+                team_visit_counts[home_code] = team_visit_counts.get(home_code, 0) + 1
+
+            if venue:
+                normalized_venue = normalize_stadium(venue)
+                stadiums_visited.add(normalized_venue)
+                stadium_visit_counts[normalized_venue] = stadium_visit_counts.get(normalized_venue, 0) + 1
+
+        # Build checklist for each division
+        checklist = {}
+        all_mlb_teams = []
+
+        for div_name, team_codes in MLB_DIVISIONS.items():
+            teams_data = []
+            for code in sorted(team_codes):
+                team_name = CODE_TO_TEAM.get(code, code)
+                home_stadium = CURRENT_STADIUMS.get(code, '')
+                normalized_home = normalize_stadium(home_stadium)
+
+                team_data = {
+                    'teamCode': code,
+                    'teamName': team_name,
+                    'seen': code in teams_seen,
+                    'visitCount': team_visit_counts.get(code, 0),
+                    'homeStadium': home_stadium,
+                    'stadiumVisited': normalized_home in stadiums_visited if normalized_home else False,
+                    'stadiumVisitCount': stadium_visit_counts.get(normalized_home, 0) if normalized_home else 0,
+                    'division': div_name,
+                    'league': 'AL' if div_name.startswith('AL') else 'NL'
+                }
+                teams_data.append(team_data)
+                all_mlb_teams.append(team_data)
+
+            checklist[div_name] = {
+                'teams': teams_data,
+                'teamsSeen': sum(1 for t in teams_data if t['seen']),
+                'totalTeams': len(teams_data),
+                'stadiumsVisited': sum(1 for t in teams_data if t['stadiumVisited']),
+                'totalStadiums': len(teams_data),
+                'league': 'AL' if div_name.startswith('AL') else 'NL'
+            }
+
+        # Add league-level aggregation
+        for league in ['AL', 'NL']:
+            league_teams = [t for t in all_mlb_teams if t['league'] == league]
+            checklist[league] = {
+                'teams': sorted(league_teams, key=lambda x: x['teamName']),
+                'teamsSeen': sum(1 for t in league_teams if t['seen']),
+                'totalTeams': len(league_teams),
+                'stadiumsVisited': sum(1 for t in league_teams if t['stadiumVisited']),
+                'totalStadiums': len(league_teams),
+                'league': league
+            }
+
+        # Add "All MLB" aggregation
+        checklist['All MLB'] = {
+            'teams': sorted(all_mlb_teams, key=lambda x: x['teamName']),
+            'teamsSeen': sum(1 for t in all_mlb_teams if t['seen']),
+            'totalTeams': len(all_mlb_teams),
+            'stadiumsVisited': sum(1 for t in all_mlb_teams if t['stadiumVisited']),
+            'totalStadiums': len(all_mlb_teams)
+        }
+
+        return checklist
+
+    def _serialize_companions(self):
+        """Serialize companion data - who you attended games with."""
+        from ..utils.constants import BASE_DIR, STADIUM_ALIASES
+        import os
+
+        # Stadium normalizer - maps old names to current names
+        def normalize_stadium(venue):
+            if not venue:
+                return venue
+            # Check if this venue is an alias for another stadium
+            for current_name, aliases in STADIUM_ALIASES.items():
+                if venue in aliases or venue == current_name:
+                    return current_name
+            return venue
+
+        companions_file = BASE_DIR / "companions.csv"
+        if not companions_file.exists():
+            return {"companions": {}, "gameCompanions": {}}
+
+        # Load companions data
+        try:
+            df_companions = pd.read_csv(companions_file, comment='#')
+            if df_companions.empty or 'GameID' not in df_companions.columns:
+                return {"companions": {}, "gameCompanions": {}}
+        except Exception as e:
+            print(f"      Warning: Could not load companions.csv: {e}")
+            return {"companions": {}, "gameCompanions": {}}
+
+        # Build game -> companions mapping
+        game_companions = {}
+        for _, row in df_companions.iterrows():
+            game_id = str(row['GameID']).strip()
+            companions_str = str(row.get('Companions', '')).strip()
+            if companions_str and companions_str != 'nan':
+                companions_list = [c.strip() for c in companions_str.split('|') if c.strip()]
+                if companions_list:
+                    game_companions[game_id] = companions_list
+
+        if not game_companions:
+            return {"companions": {}, "gameCompanions": {}}
+
+        # Get game data for enrichment
+        game_log = self.data.get('game_log')
+        if game_log is None or game_log.empty:
+            return {"companions": {}, "gameCompanions": game_companions}
+
+        # Helper to extract plain game ID from hyperlink formula
+        import re
+        def extract_game_id(value):
+            if not value:
+                return ''
+            value = str(value).strip()
+            # Check if it's a HYPERLINK formula: =HYPERLINK("...", "BAL199506240")
+            match = re.search(r'HYPERLINK\([^,]+,\s*"([^"]+)"\)', value)
+            if match:
+                return match.group(1)
+            return value
+
+        # Build stats per companion
+        companion_stats = {}
+
+        for _, game_row in game_log.iterrows():
+            raw_game_id = game_row.get('GameID', '')
+            game_id = extract_game_id(raw_game_id)
+            if game_id not in game_companions:
+                continue
+
+            companions = game_companions[game_id]
+            venue = str(game_row.get('Venue', '')).strip()
+            # Handle both 'Home Team' and 'Home' column names
+            home_team = str(game_row.get('Home Team', game_row.get('Home', ''))).strip()
+            away_team = str(game_row.get('Away Team', game_row.get('Away', ''))).strip()
+            date = str(game_row.get('Date', '')).strip()
+
+            # Normalize stadium name (e.g., AT&T Park -> Oracle Park)
+            normalized_venue = normalize_stadium(venue)
+
+            for companion in companions:
+                if companion not in companion_stats:
+                    companion_stats[companion] = {
+                        "name": companion,
+                        "totalGames": 0,
+                        "stadiums": set(),
+                        "stadiumsList": [],
+                        "teams": {},
+                        "oriolesGames": 0,
+                        "oriolesStadiums": set(),
+                        "games": []
+                    }
+
+                stats = companion_stats[companion]
+                stats["totalGames"] += 1
+                stats["stadiums"].add(normalized_venue)
+
+                # Track teams seen
+                for team in [home_team, away_team]:
+                    if team:
+                        stats["teams"][team] = stats["teams"].get(team, 0) + 1
+
+                # Track Orioles games specifically
+                if home_team == 'BAL' or away_team == 'BAL':
+                    stats["oriolesGames"] += 1
+                    stats["oriolesStadiums"].add(normalized_venue)
+
+                stats["games"].append({
+                    "gameId": game_id,
+                    "date": date,
+                    "venue": venue,
+                    "homeTeam": home_team,
+                    "awayTeam": away_team
+                })
+
+        # Convert sets to lists and finalize
+        result = {}
+        for name, stats in companion_stats.items():
+            result[name] = {
+                "name": name,
+                "totalGames": stats["totalGames"],
+                "uniqueStadiums": len(stats["stadiums"]),
+                "stadiumsList": sorted(list(stats["stadiums"])),
+                "teams": stats["teams"],
+                "oriolesGames": stats["oriolesGames"],
+                "oriolesStadiums": len(stats["oriolesStadiums"]),
+                "oriolesStadiumsList": sorted(list(stats["oriolesStadiums"])),
+                "games": sorted(stats["games"], key=lambda x: x["date"], reverse=True)
+            }
+
+        return {
+            "companions": result,
+            "gameCompanions": game_companions
+        }
