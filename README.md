@@ -61,6 +61,9 @@ mlb_baseball_processor/
 │   ├── signature_home_runs_processor.py
 │   ├── stadium_records_processor.py
 │   └── summary_stats_processor.py
+├── scrapers/            # Web scrapers for external data
+│   ├── career_firsts_scraper.py  # Career firsts & milestones
+│   └── debut_scraper.py          # MLB debut data
 ├── utils/               # Utility functions and helpers
 │   ├── constants.py
 │   ├── globals.py
@@ -116,6 +119,10 @@ python3 -m baseball_processor "Current Season Games"
 | `--excel-only` | Generate only Excel |
 | `--website-only` | Generate only website |
 | `--verbose` | Enable debug output |
+| `--parallel` | Use parallel processing for faster parsing |
+| `--export-csv DIR` | Export all data to CSV files |
+| `--deploy` | Deploy website to Surge after generation |
+| `--scrape-career-firsts` | Scrape career firsts for players in processed games |
 
 ### Companions Tracking
 
@@ -125,6 +132,56 @@ GameID,Companions
 BAL202505130,Dad
 SFN202507110,Dad|Mom
 ```
+
+### Career Firsts Scraper
+
+Scrape Baseball Reference to find career firsts (first hit, first HR, etc.) and career milestones (100th HR, 3000th hit, etc.) for players in your attended games.
+
+**Standalone Usage:**
+```bash
+# Scrape career firsts for all players in your games
+python -m baseball_processor.scrapers.career_firsts_scraper
+
+# Scrape a specific player
+python -m baseball_processor.scrapers.career_firsts_scraper --player troutmi01
+
+# Scrape players from a specific game file
+python -m baseball_processor.scrapers.career_firsts_scraper --game "Game_Box_Score.json"
+
+# Refresh only players from 2025 games
+python -m baseball_processor.scrapers.career_firsts_scraper --refresh-year 2025
+
+# Re-scrape only batting data (preserves pitching data)
+python -m baseball_processor.scrapers.career_firsts_scraper --refresh-batting
+
+# Re-scrape only pitching data (preserves batting data)
+python -m baseball_processor.scrapers.career_firsts_scraper --refresh-pitching
+
+# Check for career firsts you witnessed
+python -m baseball_processor.scrapers.career_firsts_scraper --check-witnessed
+```
+
+**Career Firsts Scraper Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--player ID` | Scrape a specific player by Baseball Reference ID |
+| `--game FILE` | Scrape players from a specific cached game JSON file |
+| `--refresh` | Force refresh cached data |
+| `--refresh-year YEAR` | Refresh only players from games in a specific year |
+| `--refresh-batting` | Re-scrape only batting data for all cached players |
+| `--refresh-pitching` | Re-scrape only pitching data for all cached players |
+| `--check-witnessed` | Check for career firsts witnessed at attended games |
+| `--delay SECONDS` | Delay between requests (default: 3.05s) |
+| `--quiet` | Suppress progress messages |
+
+**Tracked Batting Milestones:**
+- Firsts: Hit, Home Run, RBI, Double, Triple, Walk, Stolen Base, Run
+- Thresholds: Hits (100-4000), HRs (10-800), RBIs (100-2000), Doubles (50-700), Triples (25-200), SBs (50-800), Walks (100-2000), Runs (100-2000)
+
+**Tracked Pitching Milestones:**
+- Firsts: Win, Save, Strikeout, Inning Pitched, Start, Complete Game, Shutout
+- Thresholds: Wins (25-350), Saves (25-600), Strikeouts (100-3500), Innings Pitched (100-3500), Starts (50-500), Complete Games (10-100), Shutouts (10-100)
 
 ## Technologies
 

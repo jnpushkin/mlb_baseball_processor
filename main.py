@@ -18,6 +18,90 @@ from .website import generate_website_from_data
 from .reports.quick_stats import generate_quick_stats_report, print_quick_stats_report
 from .exporters.csv_exporter import export_all_to_csv, export_raw_games_to_csv
 
+# Surge deployment configuration file
+SURGE_CONFIG_FILE = BASE_DIR / '.surge-domain'
+
+
+def load_surge_domain() -> str | None:
+    """Load saved Surge domain from config file."""
+    if SURGE_CONFIG_FILE.exists():
+        return SURGE_CONFIG_FILE.read_text().strip()
+    return None
+
+
+def save_surge_domain(domain: str):
+    """Save Surge domain to config file for future runs."""
+    SURGE_CONFIG_FILE.write_text(domain)
+
+
+def deploy_to_surge(html_path: str, domain: str | None = None) -> bool:
+    """
+    Deploy the generated HTML website to Surge.
+
+    Args:
+        html_path: Path to the HTML file to deploy
+        domain: Surge domain (e.g., 'mlb-passport.surge.sh')
+
+    Returns:
+        True if deployment succeeded, False otherwise
+    """
+    import shutil
+    import subprocess
+    import tempfile
+
+    # Check if surge is installed
+    if not shutil.which('surge'):
+        warn("❌ Surge is not installed. Install with: npm install -g surge")
+        return False
+
+    # Load domain from config if not provided
+    if not domain:
+        domain = load_surge_domain()
+
+    if not domain:
+        warn("❌ No Surge domain specified. Use --surge-domain to set one.")
+        warn("   Example: --surge-domain mlb-passport.surge.sh")
+        return False
+
+    # Ensure domain ends with .surge.sh if no TLD
+    if '.' not in domain:
+        domain = f"{domain}.surge.sh"
+
+    # Save domain for future runs
+    save_surge_domain(domain)
+
+    info(f"🚀 Deploying to Surge: {domain}")
+
+    # Create temp directory with the HTML file as index.html
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Copy HTML to temp dir as index.html
+        temp_html = os.path.join(temp_dir, 'index.html')
+        shutil.copy(html_path, temp_html)
+
+        try:
+            # Run surge deployment
+            result = subprocess.run(
+                ['surge', temp_dir, domain],
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if result.returncode == 0:
+                info(f"✅ Deployed successfully to: https://{domain}")
+                return True
+            else:
+                warn(f"❌ Surge deployment failed: {result.stderr}")
+                return False
+
+        except subprocess.TimeoutExpired:
+            warn("❌ Surge deployment timed out")
+            return False
+        except Exception as e:
+            warn(f"❌ Surge deployment error: {e}")
+            return False
+
+
 def process_html_file(file_path, index=None, total=None):
     """Process a single Baseball-Reference HTML file, with filename-based caching."""
     try:
@@ -255,6 +339,23 @@ def main():
         default=None,
         help='Year to update debuts for (default: current year)'
     )
+    parser.add_argument(
+        '--deploy',
+        action='store_true',
+        help='Deploy website to Surge after generation'
+    )
+    parser.add_argument(
+        '--surge-domain',
+        type=str,
+        default=None,
+        help='Surge domain to deploy to (e.g., mlb-passport.surge.sh). Saved for future runs.'
+    )
+    parser.add_argument(
+        '--scrape-career-firsts',
+        action='store_true',
+        dest='scrape_career_firsts',
+        help='Scrape career firsts for players in processed games (skips already cached players)'
+    )
 
     args = parser.parse_args()
 
@@ -394,7 +495,11 @@ def main():
             
             info("\n🎉 Processing complete!")
             info(f"✅ Website: {os.path.abspath(html_path)}")
-            
+
+            # Deploy to Surge if requested
+            if args.deploy:
+                deploy_to_surge(html_path, args.surge_domain)
+
         elif args.excel_only:
             # Generate only Excel
             info("\n📊 Excel-only mode: Skipping website generation...")
@@ -448,6 +553,10 @@ def main():
             if args.save_json:
                 info(f"📄 JSON: {json_output}")
 
+            # Deploy to Surge if requested
+            if args.deploy:
+                deploy_to_surge(html_path, args.surge_domain)
+
         # Export to CSV if requested
         if args.export_csv:
             info(f"\n📄 Exporting to CSV...")
@@ -455,6 +564,37 @@ def main():
             export_all_to_csv(processed_data, csv_dir)
             export_raw_games_to_csv(games_data, csv_dir / "mlb_tracker_raw_games.csv")
             info(f"✅ CSV files exported to: {csv_dir}")
+
+        # Scrape career firsts if requested
+        if args.scrape_career_firsts:
+            info(f"\n🔍 Scraping career firsts for players in processed games...")
+            try:
+                from .scrapers.career_firsts_scraper import (
+                    get_players_from_games, scrape_career_firsts_for_players,
+                    get_project_root, get_cache_path
+                )
+
+                # Get players from all processed games
+                player_ids, player_names = get_players_from_games(get_project_root())
+
+                if player_ids:
+                    info(f"   Found {len(player_ids)} unique players")
+                    info(f"   Scraping career firsts (cached players will be skipped)...")
+
+                    cache = scrape_career_firsts_for_players(
+                        player_ids,
+                        refresh=False,  # Don't re-scrape cached players
+                        delay=3.05,
+                        verbose=args.verbose,
+                        player_names=player_names
+                    )
+
+                    info(f"✅ Career firsts cache updated: {get_cache_path() / 'career_firsts.json'}")
+                else:
+                    warn("   No players found in games")
+            except Exception as e:
+                warn(f"⚠️ Career firsts scraping failed: {e}")
+                info("   You can run it separately: python -m baseball_processor.scrapers.career_firsts_scraper")
 
     except Exception as e:
         error(f"❌ Error during processing: {str(e)}", exc_info=True)

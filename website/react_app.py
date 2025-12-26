@@ -536,7 +536,7 @@ const PlayerComparison = ({ players, playerGames }) => {
     );
 };
 
-const GameDetailsModal = ({ game, playerGames, pitcherGames, onClose }) => {
+const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClose }) => {
     const [activeTab, setActiveTab] = useState('boxscore');
     
     const gameData = useMemo(() => {
@@ -1168,6 +1168,38 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, onClose }) => {
                             </div>
                         );
                     })()}
+
+                    {/* Career Milestones from this game */}
+                    {careerFirsts && careerFirsts.length > 0 && (
+                        <div className="mt-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg p-4 shadow-sm border border-amber-200">
+                            <h5 className="small-text font-bold mb-3 text-amber-800">⭐ Career Milestones Witnessed</h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {careerFirsts.map((first, idx) => (
+                                    <div key={idx} className="bg-white rounded-lg p-3 shadow-sm border-l-4 border-amber-400">
+                                        <div className="flex items-start gap-2">
+                                            <span className="text-xl">
+                                                {first.milestone.includes('Home Run') ? '💣' :
+                                                 first.milestone.includes('Hit') ? '🎯' :
+                                                 first.milestone.includes('RBI') ? '💪' :
+                                                 first.milestone.includes('Double') ? '2️⃣' :
+                                                 first.milestone.includes('Triple') ? '3️⃣' :
+                                                 first.milestone.includes('Walk') ? '🚶' :
+                                                 first.milestone.includes('Stolen') ? '🏃' :
+                                                 first.milestone.includes('Win') ? '🏆' :
+                                                 first.milestone.includes('Save') ? '💾' :
+                                                 first.milestone.includes('Strikeout') ? 'K' :
+                                                 '⭐'}
+                                            </span>
+                                            <div className="flex-1">
+                                                <div className="body-text font-bold text-amber-800">{first.milestone}</div>
+                                                <div className="body-text text-gray-700 mt-1">{first.player_name}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
                 
                 {/* Tab Navigation */}
@@ -1826,8 +1858,8 @@ const AdvancedFilters = ({ games, onFilterChange }) => {
             
             // Score filters
             if (filters.minScore || filters.maxScore) {
-                const cleanScore = game.score.replace(/\s*\(\d+\)\s*$/, '');
-                const scores = cleanScore.match(/\d+/g);
+                const cleanScore = game.score.replace(/\\s*\\(\\d+\\)\\s*$/, '');
+                const scores = cleanScore.match(/\\d+/g);
                 if (scores && scores.length === 2) {
                     const totalScore = parseInt(scores[0]) + parseInt(scores[1]);
                     if (filters.minScore && totalScore < parseInt(filters.minScore)) return false;
@@ -2390,6 +2422,184 @@ const MatchupMatrix = ({ matchupData, games }) => {
     );
 };
 
+const OriolesStadiumMap = ({ orioles }) => {
+    const mapRef = useRef(null);
+    const mapInstanceRef = useRef(null);
+    const markersRef = useRef([]);
+
+    // Build visited stadiums data from Orioles data
+    const visitedData = useMemo(() => {
+        const visited = {};
+        (orioles || []).forEach(o => {
+            const match = matchStadiumByName(o.stadium);
+            if (match) {
+                visited[match.id] = {
+                    ...o,
+                    stadiumInfo: match,
+                    hasVisited: true,
+                };
+            }
+        });
+        return visited;
+    }, [orioles]);
+
+    // Calculate stats (only count current stadiums toward the goal)
+    const stats = useMemo(() => {
+        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international);
+        const historicalStadiums = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international);
+        const visitedCount = currentStadiums.filter(s => visitedData[s.id]?.hasVisited).length;
+        const historicalVisited = historicalStadiums.filter(s => visitedData[s.id]?.hasVisited).length;
+        return {
+            currentTotal: currentStadiums.length,
+            visitedCount,
+            historicalVisited,
+            remaining: currentStadiums.length - visitedCount,
+            percent: Math.round((visitedCount / currentStadiums.length) * 100),
+        };
+    }, [visitedData]);
+
+    // Initialize map
+    useEffect(() => {
+        if (!mapRef.current || mapInstanceRef.current) return;
+
+        const map = L.map(mapRef.current).setView([39.8283, -98.5795], 4);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        mapInstanceRef.current = map;
+
+        return () => {
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.remove();
+                mapInstanceRef.current = null;
+            }
+        };
+    }, []);
+
+    // Update markers
+    useEffect(() => {
+        if (!mapInstanceRef.current) return;
+
+        // Clear existing markers
+        markersRef.current.forEach(m => m.remove());
+        markersRef.current = [];
+
+        // Show current MLB stadiums + historical stadiums that were visited
+        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international);
+        const visitedHistorical = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international && visitedData[s.id]?.hasVisited);
+        const stadiumsToShow = [...currentStadiums, ...visitedHistorical];
+
+        stadiumsToShow.forEach(stadium => {
+            const data = visitedData[stadium.id];
+            const hasVisited = data?.hasVisited;
+            const isHistorical = !stadium.current;
+
+            // Determine marker color
+            let fillColor = '#9ca3af'; // gray - not visited
+            let borderColor = '#6b7280';
+            if (hasVisited && isHistorical) {
+                fillColor = '#a855f7'; // purple - historical visited
+                borderColor = '#9333ea';
+            } else if (hasVisited) {
+                fillColor = '#f97316'; // orange - saw Orioles (current)
+                borderColor = '#ea580c';
+            }
+
+            const marker = L.circleMarker([stadium.lat, stadium.lng], {
+                radius: hasVisited ? 10 : 7,
+                fillColor: fillColor,
+                color: borderColor,
+                weight: 2,
+                opacity: 1,
+                fillOpacity: hasVisited ? 0.9 : 0.4
+            }).addTo(mapInstanceRef.current);
+
+            // Build popup content
+            let statusText = '<span style="color: #9ca3af;">Not yet visited with Orioles</span>';
+            let detailsHtml = '';
+
+            if (hasVisited && isHistorical) {
+                statusText = '<span style="color: #a855f7; font-weight: bold;">✓ Historical - Saw Orioles here!</span>';
+                detailsHtml += `<div style="color: #666; font-size: 11px;">${stadium.years}</div>`;
+            } else if (hasVisited) {
+                statusText = '<span style="color: #f97316; font-weight: bold;">✓ Saw Orioles here!</span>';
+            }
+
+            if (hasVisited) {
+                if (data.record) {
+                    detailsHtml += `<div><strong>O's Record:</strong> ${data.record}</div>`;
+                }
+                if (data.games) {
+                    detailsHtml += `<div><strong>Games:</strong> ${data.games}</div>`;
+                }
+                if (data.firstVisit) {
+                    detailsHtml += `<div><strong>First:</strong> ${data.firstVisit}</div>`;
+                }
+                if (data.lastVisit) {
+                    detailsHtml += `<div><strong>Last:</strong> ${data.lastVisit}</div>`;
+                }
+            }
+
+            const popupContent = `
+                <div style="min-width: 180px; font-family: system-ui, sans-serif;">
+                    <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${stadium.name}</div>
+                    <div style="color: #666; font-size: 12px; margin-bottom: 8px;">${stadium.team}${isHistorical ? ' (Historical)' : ''}</div>
+                    <div style="margin-bottom: 8px;">${statusText}</div>
+                    ${detailsHtml}
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+            markersRef.current.push(marker);
+        });
+    }, [visitedData]);
+
+    return (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="p-4 border-b bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                <h3 className="font-bold text-lg">🗺️ Orioles Stadium Quest</h3>
+                <p className="text-sm text-orange-100 mt-1">See the Orioles at all 30 MLB stadiums</p>
+            </div>
+            <div ref={mapRef} style={{ height: '400px', width: '100%' }}></div>
+            <div className="p-4 bg-orange-50 border-t">
+                <div className="grid grid-cols-5 gap-4 text-center">
+                    <div>
+                        <div className="text-2xl font-bold text-orange-600">{stats.visitedCount}</div>
+                        <div className="text-xs text-gray-600">Current</div>
+                    </div>
+                    <div>
+                        <div className="text-2xl font-bold text-purple-600">{stats.historicalVisited}</div>
+                        <div className="text-xs text-gray-600">Historical</div>
+                    </div>
+                    <div>
+                        <div className="text-2xl font-bold text-gray-500">{stats.remaining}</div>
+                        <div className="text-xs text-gray-600">Remaining</div>
+                    </div>
+                    <div>
+                        <div className="text-2xl font-bold text-orange-600">{stats.percent}%</div>
+                        <div className="text-xs text-gray-600">Complete</div>
+                    </div>
+                    <div className="flex flex-col items-center justify-center gap-1">
+                        <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                            <span className="text-xs text-gray-600">Current</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                            <span className="text-xs text-gray-600">Historical</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                            <span className="text-xs text-gray-600">Not yet</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const OriolesDashboard = ({ orioles, games }) => {
     // Filter to only Orioles games
     const oriolesGames = useMemo(() => {
@@ -2401,7 +2611,7 @@ const OriolesDashboard = ({ orioles, games }) => {
     const parseScore = (scoreStr, homeTeam, awayTeam) => {
         if (!scoreStr) return null;
         // Try format: "AWAY # - # HOME" (e.g., "BOS 6 - 5 BAL")
-        const match1 = scoreStr.match(/(\w+)\s+(\d+)\s*-\s*(\d+)\s+(\w+)/);
+        const match1 = scoreStr.match(/(\\w+)\\s+(\\d+)\\s*-\\s*(\\d+)\\s+(\\w+)/);
         if (match1) {
             const [_, team1, score1, score2, team2] = match1;
             // Determine which score belongs to home/away
@@ -2412,7 +2622,7 @@ const OriolesDashboard = ({ orioles, games }) => {
             }
         }
         // Try simple format: "#-#"
-        const match2 = scoreStr.match(/(\d+)\s*-\s*(\d+)/);
+        const match2 = scoreStr.match(/(\\d+)\\s*-\\s*(\\d+)/);
         if (match2) {
             return { awayScore: parseInt(match2[1]), homeScore: parseInt(match2[2]) };
         }
@@ -2634,6 +2844,9 @@ const OriolesDashboard = ({ orioles, games }) => {
                 </div>
             </div>
 
+            {/* Stadium Map */}
+            <OriolesStadiumMap orioles={orioles} />
+
             {/* Streaks & Recent Games */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-lg shadow">
@@ -2781,6 +2994,169 @@ const OriolesDashboard = ({ orioles, games }) => {
     );
 };
 
+const CompanionStadiumMap = ({ companion }) => {
+    const mapRef = useRef(null);
+    const mapInstanceRef = useRef(null);
+    const markersRef = useRef([]);
+
+    // Build visited stadiums data from companion data
+    const visitedData = useMemo(() => {
+        const visited = {};
+        const stadiumsList = companion?.stadiumsList || [];
+        const oriolesStadiumsList = companion?.oriolesStadiumsList || [];
+
+        // Mark all visited stadiums
+        stadiumsList.forEach(stadiumName => {
+            const match = matchStadiumByName(stadiumName);
+            if (match) {
+                visited[match.id] = {
+                    stadiumInfo: match,
+                    hasVisited: true,
+                    sawOrioles: oriolesStadiumsList.includes(stadiumName),
+                };
+            }
+        });
+        return visited;
+    }, [companion]);
+
+    // Calculate stats (only count current stadiums toward the goal)
+    const stats = useMemo(() => {
+        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international);
+        const historicalStadiums = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international);
+        const visitedCount = currentStadiums.filter(s => visitedData[s.id]?.hasVisited).length;
+        const oriolesCount = currentStadiums.filter(s => visitedData[s.id]?.sawOrioles).length;
+        const historicalVisited = historicalStadiums.filter(s => visitedData[s.id]?.hasVisited).length;
+        return {
+            currentTotal: currentStadiums.length,
+            visitedCount,
+            oriolesCount,
+            historicalVisited,
+            remaining: currentStadiums.length - visitedCount,
+        };
+    }, [visitedData]);
+
+    // Initialize map
+    useEffect(() => {
+        if (!mapRef.current || mapInstanceRef.current) return;
+
+        const map = L.map(mapRef.current).setView([39.8283, -98.5795], 4);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        mapInstanceRef.current = map;
+
+        return () => {
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.remove();
+                mapInstanceRef.current = null;
+            }
+        };
+    }, []);
+
+    // Update markers
+    useEffect(() => {
+        if (!mapInstanceRef.current) return;
+
+        // Clear existing markers
+        markersRef.current.forEach(m => m.remove());
+        markersRef.current = [];
+
+        // Show current MLB stadiums + historical stadiums that were visited
+        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international);
+        const visitedHistorical = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international && visitedData[s.id]?.hasVisited);
+        const stadiumsToShow = [...currentStadiums, ...visitedHistorical];
+
+        stadiumsToShow.forEach(stadium => {
+            const data = visitedData[stadium.id];
+            const hasVisited = data?.hasVisited;
+            const sawOrioles = data?.sawOrioles;
+            const isHistorical = !stadium.current;
+
+            // Determine marker color
+            let fillColor = '#9ca3af'; // gray - not visited
+            let borderColor = '#6b7280';
+            if (hasVisited && isHistorical) {
+                fillColor = '#a855f7'; // purple - historical
+                borderColor = '#9333ea';
+            } else if (sawOrioles) {
+                fillColor = '#f97316'; // orange - saw Orioles
+                borderColor = '#ea580c';
+            } else if (hasVisited) {
+                fillColor = '#22c55e'; // green - visited (non-Orioles)
+                borderColor = '#16a34a';
+            }
+
+            const marker = L.circleMarker([stadium.lat, stadium.lng], {
+                radius: hasVisited ? 10 : 7,
+                fillColor: fillColor,
+                color: borderColor,
+                weight: 2,
+                opacity: 1,
+                fillOpacity: hasVisited ? 0.9 : 0.4
+            }).addTo(mapInstanceRef.current);
+
+            // Build popup content
+            let statusText = '<span style="color: #9ca3af;">Not yet visited together</span>';
+            if (hasVisited && isHistorical) {
+                statusText = `<span style="color: #a855f7; font-weight: bold;">✓ Historical${sawOrioles ? ' + Orioles' : ''}</span>`;
+            } else if (sawOrioles) {
+                statusText = '<span style="color: #f97316; font-weight: bold;">✓ Visited + Saw Orioles</span>';
+            } else if (hasVisited) {
+                statusText = '<span style="color: #22c55e; font-weight: bold;">✓ Visited together</span>';
+            }
+
+            const popupContent = `
+                <div style="min-width: 180px; font-family: system-ui, sans-serif;">
+                    <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${stadium.name}</div>
+                    <div style="color: #666; font-size: 12px; margin-bottom: 8px;">${stadium.team}${isHistorical ? ' (Historical)' : ''}</div>
+                    ${isHistorical ? `<div style="color: #666; font-size: 11px; margin-bottom: 4px;">${stadium.years}</div>` : ''}
+                    <div>${statusText}</div>
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+            markersRef.current.push(marker);
+        });
+    }, [visitedData]);
+
+    if (!companion) return null;
+
+    return (
+        <div className="bg-white rounded-lg shadow overflow-hidden mt-4">
+            <div className="p-3 border-b bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+                <h4 className="font-bold">🗺️ Stadiums with {companion.name}</h4>
+            </div>
+            <div ref={mapRef} style={{ height: '300px', width: '100%' }}></div>
+            <div className="p-3 bg-gray-50 border-t">
+                <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                            <span className="text-gray-600 text-xs">Visited ({stats.visitedCount - stats.oriolesCount})</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                            <span className="text-gray-600 text-xs">O's ({stats.oriolesCount})</span>
+                        </div>
+                        {stats.historicalVisited > 0 && (
+                            <div className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                                <span className="text-gray-600 text-xs">Historical ({stats.historicalVisited})</span>
+                            </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                            <span className="text-gray-600 text-xs">Not yet ({stats.remaining})</span>
+                        </div>
+                    </div>
+                    <span className="font-bold text-blue-600">{stats.visitedCount}/30</span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const CompanionsView = ({ companionData }) => {
     const [selectedCompanion, setSelectedCompanion] = useState(null);
     const [showGames, setShowGames] = useState(false);
@@ -2883,15 +3259,24 @@ const CompanionsView = ({ companionData }) => {
                         <div className="mt-4">
                             <h4 className="font-semibold text-gray-800 mb-2">📋 Recent Games (last 5)</h4>
                             <div className="space-y-1">
-                                {companion.games.slice(0, 5).map(game => (
-                                    <div key={game.gameId} className="flex items-center justify-between text-sm bg-gray-50 px-3 py-2 rounded">
-                                        <span className="font-medium">{game.date}</span>
-                                        <span>{game.awayTeam} @ {game.homeTeam}</span>
-                                        <span className="text-gray-500">{game.venue}</span>
-                                    </div>
-                                ))}
+                                {companion.games.slice(0, 5).map(game => {
+                                    const formatDate = (dateStr) => {
+                                        if (!dateStr) return '';
+                                        const d = new Date(dateStr.split(' ')[0]);
+                                        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                    };
+                                    return (
+                                        <div key={game.gameId} className="grid grid-cols-3 text-sm bg-gray-50 px-3 py-2 rounded">
+                                            <span className="font-medium">{formatDate(game.date)}</span>
+                                            <span className="text-center">{game.awayTeam} @ {game.homeTeam}</span>
+                                            <span className="text-gray-500 text-right">{game.venue}</span>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
+                        {/* Stadium Map */}
+                        <CompanionStadiumMap companion={companion} />
                     </div>
                 </div>
             ))}
@@ -2910,7 +3295,7 @@ const CompanionsView = ({ companionData }) => {
                                     <div key={idx} className="p-4 hover:bg-blue-50 transition-colors">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-4">
-                                                <span className="font-bold text-blue-600">{game.date}</span>
+                                                <span className="font-bold text-blue-600">{(game.date || '').split(' ')[0]}</span>
                                                 <span className="font-semibold">{game.awayTeam} @ {game.homeTeam}</span>
                                             </div>
                                             <span className="text-gray-600">{game.venue}</span>
@@ -3022,17 +3407,17 @@ const SmartInsights = ({ data }) => {
         const highestScoring = [...games].sort((a, b) => {
             // Remove innings in parentheses before extracting scores
             // "LAD 10 - 11 SF (10)" → "LAD 10 - 11 SF"
-            const aScore = a.score.replace(/\s*\(\d+\)\s*$/, '');
-            const bScore = b.score.replace(/\s*\(\d+\)\s*$/, '');
+            const aScore = a.score.replace(/\\s*\\(\\d+\\)\\s*$/, '');
+            const bScore = b.score.replace(/\\s*\\(\\d+\\)\\s*$/, '');
             
-            const aTotal = (aScore.match(/\d+/g) || []).reduce((sum, n) => sum + parseInt(n), 0);
-            const bTotal = (bScore.match(/\d+/g) || []).reduce((sum, n) => sum + parseInt(n), 0);
+            const aTotal = (aScore.match(/\\d+/g) || []).reduce((sum, n) => sum + parseInt(n), 0);
+            const bTotal = (bScore.match(/\\d+/g) || []).reduce((sum, n) => sum + parseInt(n), 0);
             return bTotal - aTotal;
         }).slice(0, 5);
         
         // Closest games (1-run games)
         const closestGames = games.filter(game => {
-            const scores = game.score.match(/\d+/g);
+            const scores = game.score.match(/\\d+/g);
             if (scores && scores.length === 2) {
                 return Math.abs(parseInt(scores[0]) - parseInt(scores[1])) === 1;
             }
@@ -3122,7 +3507,7 @@ const SmartInsights = ({ data }) => {
             matchups[pair].games.push(game);
             
             // Determine winner (use first 2 numbers, handles extra innings like "5 - 4 (10)")
-            const scores = game.score.match(/\d+/g);
+            const scores = game.score.match(/\\d+/g);
             if (scores && scores.length >= 2) {
                 const awayScore = parseInt(scores[0]);
                 const homeScore = parseInt(scores[1]);
@@ -3370,7 +3755,7 @@ const SmartInsights = ({ data }) => {
             // Only count Orioles games
             if (homeTeam !== 'BAL' && awayTeam !== 'BAL') return;
 
-            const scores = game.score.match(/\d+/g);
+            const scores = game.score.match(/\\d+/g);
             if (scores && scores.length >= 2) {
                 const awayScore = parseInt(scores[0]);
                 const homeScore = parseInt(scores[1]);
@@ -3988,7 +4373,7 @@ const SmartInsights = ({ data }) => {
                                                             });
 
                                                             // Try to parse players from detail
-                                                            const playerPattern = /([A-Z][a-zÀ-ÿ]+(?:\s+[A-Z][a-zÀ-ÿ'.]+)+)(?:\s+\(|\s+—)/g;
+                                                            const playerPattern = /([A-Z][a-zÀ-ÿ]+(?:\\s+[A-Z][a-zÀ-ÿ'.]+)+)(?:\\s+\\(|\\s+—)/g;
                                                             const playerMatches = record.detail ? [...record.detail.matchAll(playerPattern)] : [];
                                                             const players = playerMatches.map(m => m[1].trim());
 
@@ -4015,9 +4400,9 @@ const SmartInsights = ({ data }) => {
                                                                         const detail = record.detail.trim();
 
                                                                         // Pattern 1: "TEAM (X), TEAM (Y)" - paired stats per game
-                                                                        const simpleTeamPattern = /^[A-Z]{2,3}\s*\(\d+\)(?:[,;]\s*[A-Z]{2,3}\s*\(\d+\))*$/;
+                                                                        const simpleTeamPattern = /^[A-Z]{2,3}\\s*\\(\\d+\\)(?:[,;]\\s*[A-Z]{2,3}\\s*\\(\\d+\\))*$/;
                                                                         if (simpleTeamPattern.test(detail)) {
-                                                                            const teamStatPattern = /([A-Z]{2,3})\s*\((\d+)\)/g;
+                                                                            const teamStatPattern = /([A-Z]{2,3})\\s*\\((\\d+)\\)/g;
                                                                             const parsedTeamStats = [];
                                                                             let tsMatch;
                                                                             while ((tsMatch = teamStatPattern.exec(detail)) !== null) {
@@ -4030,7 +4415,7 @@ const SmartInsights = ({ data }) => {
                                                                         }
 
                                                                         // Pattern 2: "TEAM (X unit)" format like "NYM (2 H)"
-                                                                        const teamUnitPattern = /([A-Z]{2,3})\s*\((\d+)\s*([A-Za-z]+)\)/g;
+                                                                        const teamUnitPattern = /([A-Z]{2,3})\\s*\\((\\d+)\\s*([A-Za-z]+)\\)/g;
                                                                         const unitMatches = [...detail.matchAll(teamUnitPattern)];
                                                                         if (unitMatches.length > 0 && unitMatches.length === gameDetails.length) {
                                                                             record._teamUnitStats = unitMatches.map(m => ({
@@ -4042,7 +4427,7 @@ const SmartInsights = ({ data }) => {
                                                                         }
 
                                                                         // Pattern 3: "TEAM (X): Player1, Player2" - extract team counts for game rows
-                                                                        const teamPlayersPattern = /([A-Z]{2,3})\s*\((\d+)\):/g;
+                                                                        const teamPlayersPattern = /([A-Z]{2,3})\\s*\\((\\d+)\\):/g;
                                                                         const tpMatches = [...detail.matchAll(teamPlayersPattern)];
                                                                         if (tpMatches.length > 0) {
                                                                             // Group by pairs for each game
@@ -4052,9 +4437,9 @@ const SmartInsights = ({ data }) => {
                                                                         }
 
                                                                         // Pattern 4: Leaderboard "Name (stat)" - show as compact list only if no games
-                                                                        const leaderPattern = /^([\w\s.'-]+)\s*\((\d+)\)(?:;\s*([\w\s.'-]+)\s*\((\d+)\))*$/;
+                                                                        const leaderPattern = /^([\\w\\s.'-]+)\\s*\\((\\d+)\\)(?:;\\s*([\\w\\s.'-]+)\\s*\\((\\d+)\\))*$/;
                                                                         if (leaderPattern.test(detail) && gameDetails.length === 0) {
-                                                                            const playerStatsPattern = /([\w\s.'-]+)\s*\((\d+)\)/g;
+                                                                            const playerStatsPattern = /([\\w\\s.'-]+)\\s*\\((\\d+)\\)/g;
                                                                             const playerStats = [];
                                                                             let match;
                                                                             while ((match = playerStatsPattern.exec(detail)) !== null) {
@@ -5085,9 +5470,11 @@ const Leaderboards = ({ data }) => {
     );
 };
 
-const MilestonesView = ({ milestones, games }) => {
+const MilestonesView = ({ milestones, games, careerFirsts }) => {
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [showCareerFirsts, setShowCareerFirsts] = useState(true);
+    const [careerMilestoneSort, setCareerMilestoneSort] = useState('event'); // 'event' or 'date'
 
     // Build game lookup for additional context
     const gameMap = useMemo(() => {
@@ -5160,6 +5547,7 @@ const MilestonesView = ({ milestones, games }) => {
     const totalCount = milestones?.length || 0;
     const battingCount = (milestones || []).filter(m => categoryConfig[m.type]?.category === 'batting').length;
     const pitchingCount = (milestones || []).filter(m => categoryConfig[m.type]?.category === 'pitching').length;
+    const careerFirstsCount = careerFirsts?.length || 0;
 
     return (
         <div className="space-y-6">
@@ -5184,7 +5572,8 @@ const MilestonesView = ({ milestones, games }) => {
                 {/* Category filters */}
                 <div className="flex flex-wrap gap-2 mt-4">
                     {[
-                        { id: 'all', label: 'All', count: totalCount },
+                        { id: 'all', label: 'All', count: totalCount + careerFirstsCount },
+                        { id: 'firsts', label: '⭐ Career Milestones', count: careerFirstsCount },
                         { id: 'batting', label: '🏏 Batting', count: battingCount },
                         { id: 'pitching', label: '⚾ Pitching', count: pitchingCount },
                     ].map(cat => (
@@ -5203,20 +5592,296 @@ const MilestonesView = ({ milestones, games }) => {
                 </div>
             </div>
 
-            {/* Milestone groups */}
+            {/* Career Milestones Section */}
+            {careerFirsts && careerFirsts.length > 0 && (activeCategory === 'all' || activeCategory === 'firsts') && (
+                <div className="bg-white rounded-xl shadow overflow-hidden">
+                    <details open={true}>
+                        <summary className="cursor-pointer p-4 bg-gradient-to-r from-yellow-500 to-amber-600 text-white hover:opacity-95 transition-opacity">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">⭐</span>
+                                    <h3 className="text-lg font-bold">Career Milestones Witnessed</h3>
+                                </div>
+                                <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-bold">
+                                    {Object.keys(careerFirsts.reduce((acc, f) => { acc[f.player_id] = true; return acc; }, {})).length} players
+                                </span>
+                            </div>
+                        </summary>
+                        <div className="p-4 bg-gradient-to-b from-amber-50 to-white">
+                            <div className="flex items-center justify-between mb-4">
+                                <p className="text-sm text-amber-700">
+                                    You witnessed these players achieve career milestones!
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-amber-600">Sort by:</span>
+                                    <select
+                                        value={careerMilestoneSort}
+                                        onChange={(e) => setCareerMilestoneSort(e.target.value)}
+                                        className="text-xs px-2 py-1 border border-amber-300 rounded bg-white text-amber-800"
+                                    >
+                                        <option value="event">Event Type</option>
+                                        <option value="date">Date</option>
+                                        <option value="player">Player Name</option>
+                                    </select>
+                                </div>
+                            </div>
+                            {(() => {
+                                // Filter by search
+                                const filtered = careerFirsts.filter(f => !searchTerm ||
+                                    f.player_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    f.milestone?.toLowerCase().includes(searchTerm.toLowerCase())
+                                );
+
+                                // Get event type from milestone text
+                                const getEventType = (m) => {
+                                    const text = m.toLowerCase();
+                                    if (text.includes('home run')) return { key: 'hr', label: 'Home Runs', icon: '💣', order: 1 };
+                                    if (text.includes('hit') && !text.includes('pitch')) return { key: 'hit', label: 'Hits', icon: '🏏', order: 2 };
+                                    if (text.includes('rbi')) return { key: 'rbi', label: 'RBIs', icon: '🏃', order: 3 };
+                                    if (text.match(/\\brun\\b/) && !text.includes('home run')) return { key: 'run', label: 'Runs Scored', icon: '🏠', order: 4 };
+                                    if (text.includes('double')) return { key: '2b', label: 'Doubles', icon: '2️⃣', order: 5 };
+                                    if (text.includes('triple')) return { key: '3b', label: 'Triples', icon: '3️⃣', order: 6 };
+                                    if (text.includes('stolen base')) return { key: 'sb', label: 'Stolen Bases', icon: '🏃‍♂️', order: 7 };
+                                    if (text.includes('walk')) return { key: 'bb', label: 'Walks', icon: '🚶', order: 8 };
+                                    if (text.includes('strikeout')) return { key: 'k', label: 'Strikeouts', icon: 'K', order: 9 };
+                                    if (text.includes('win')) return { key: 'w', label: 'Wins', icon: '🏆', order: 10 };
+                                    if (text.includes('save')) return { key: 'sv', label: 'Saves', icon: '💾', order: 11 };
+                                    if (text.includes('inning')) return { key: 'ip', label: 'Innings Pitched', icon: '⚾', order: 12 };
+                                    if (text.includes('start')) return { key: 'gs', label: 'Games Started', icon: '📋', order: 13 };
+                                    if (text.includes('complete game')) return { key: 'cg', label: 'Complete Games', icon: '💪', order: 14 };
+                                    if (text.includes('shutout')) return { key: 'sho', label: 'Shutouts', icon: '🛡️', order: 15 };
+                                    return { key: 'other', label: 'Other', icon: '⭐', order: 99 };
+                                };
+
+                                // Extract milestone number (1st, 100th, 500th, etc.)
+                                const getMilestoneNumber = (m) => {
+                                    if (m.toLowerCase().includes('first career')) return { num: 1, label: '1st' };
+                                    const match = m.match(/#?(\d+)/);
+                                    if (match) return { num: parseInt(match[1]), label: `#${match[1]}` };
+                                    return { num: 1, label: '1st' };
+                                };
+
+                                // Group by event type, then by number
+                                const byEventType = {};
+                                filtered.forEach(f => {
+                                    const event = getEventType(f.milestone);
+                                    const milestone = getMilestoneNumber(f.milestone);
+
+                                    if (!byEventType[event.key]) {
+                                        byEventType[event.key] = { ...event, numbers: {} };
+                                    }
+                                    if (!byEventType[event.key].numbers[milestone.num]) {
+                                        byEventType[event.key].numbers[milestone.num] = { ...milestone, items: [] };
+                                    }
+                                    byEventType[event.key].numbers[milestone.num].items.push(f);
+                                });
+
+                                // Sort event types by order
+                                const sortedEvents = Object.values(byEventType).sort((a, b) => a.order - b.order);
+
+                                // Shorten milestone for date view
+                                const shortenMilestone = (m) => (m || '').replace('First Career ', '1st ').replace('Career ', '').replace('Home Run', 'HR').replace('Stolen Base', 'SB').replace('Run Scored', 'Run').replace('Strikeout', 'K').replace('Inning Pitched', 'IP').replace('Double', '2B').replace('Triple', '3B');
+
+                                // DATE VIEW
+                                if (careerMilestoneSort === 'date') {
+                                    const sortedByDate = [...filtered].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+                                    return (
+                                        <div className="space-y-2">
+                                            {sortedByDate.map((m, mIdx) => {
+                                                const playerUrl = m.player_id
+                                                    ? `https://www.baseball-reference.com/players/${m.player_id.charAt(0).toLowerCase()}/${m.player_id}.shtml`
+                                                    : null;
+                                                const gameUrl = m.game_id
+                                                    ? `https://www.baseball-reference.com/boxes/${m.game_id.substring(0, 3)}/${m.game_id}.shtml`
+                                                    : null;
+                                                const event = getEventType(m.milestone);
+                                                return (
+                                                    <div key={mIdx} className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                                                        <span className="text-sm font-medium text-amber-600 min-w-[100px]">{m.date_display || m.date}</span>
+                                                        <span className="text-lg">{event.icon}</span>
+                                                        {playerUrl ? (
+                                                            <a href={playerUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-amber-700 hover:text-amber-900 hover:underline">
+                                                                {m.player_name}
+                                                            </a>
+                                                        ) : (
+                                                            <span className="font-medium text-gray-800">{m.player_name}</span>
+                                                        )}
+                                                        <span className="text-sm text-amber-800 font-bold">{shortenMilestone(m.milestone)}</span>
+                                                        {m.venue && <span className="text-xs text-gray-500 ml-auto">@ {m.venue}</span>}
+                                                        {gameUrl && (
+                                                            <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:text-amber-700">→</a>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                }
+
+                                // PLAYER VIEW
+                                if (careerMilestoneSort === 'player') {
+                                    // Group by player name
+                                    const byPlayer = {};
+                                    filtered.forEach(m => {
+                                        const name = m.player_name || 'Unknown';
+                                        if (!byPlayer[name]) {
+                                            byPlayer[name] = { name, player_id: m.player_id, items: [] };
+                                        }
+                                        byPlayer[name].items.push(m);
+                                    });
+                                    // Sort players alphabetically by last name
+                                    const sortedPlayers = Object.values(byPlayer).sort((a, b) => {
+                                        const getLastName = (name) => {
+                                            const parts = (name || '').trim().split(' ');
+                                            if (parts.length <= 1) return (name || '').toLowerCase();
+                                            // Handle compound surnames (De La Rosa, Van Der Berg, etc.)
+                                            // Find the first particle that starts the surname
+                                            const particles = ['de', 'la', 'del', 'van', 'von', 'der', 'den', 'el', 'al'];
+                                            for (let i = 1; i < parts.length; i++) {
+                                                if (particles.includes(parts[i].toLowerCase())) {
+                                                    // Return everything from this particle onwards
+                                                    return parts.slice(i).join(' ').toLowerCase();
+                                                }
+                                            }
+                                            // Default: return just the last word
+                                            return parts[parts.length - 1].toLowerCase();
+                                        };
+                                        return getLastName(a.name).localeCompare(getLastName(b.name));
+                                    });
+                                    return (
+                                        <div className="space-y-3">
+                                            {sortedPlayers.map((player, pIdx) => {
+                                                const playerUrl = player.player_id
+                                                    ? `https://www.baseball-reference.com/players/${player.player_id.charAt(0).toLowerCase()}/${player.player_id}.shtml`
+                                                    : null;
+                                                return (
+                                                    <div key={pIdx} className="border border-amber-200 rounded-lg overflow-hidden">
+                                                        <div className="bg-amber-100 px-3 py-2 flex items-center gap-2">
+                                                            {playerUrl ? (
+                                                                <a href={playerUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-amber-800 hover:text-amber-900 hover:underline">
+                                                                    {player.name}
+                                                                </a>
+                                                            ) : (
+                                                                <span className="font-bold text-amber-800">{player.name}</span>
+                                                            )}
+                                                            <span className="text-xs text-amber-600 ml-auto">{player.items.length} milestone{player.items.length !== 1 ? 's' : ''}</span>
+                                                        </div>
+                                                        <div className="p-3 bg-white">
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {player.items
+                                                                    .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+                                                                    .map((m, mIdx) => {
+                                                                        const event = getEventType(m.milestone);
+                                                                        const gameUrl = m.game_id
+                                                                            ? `https://www.baseball-reference.com/boxes/${m.game_id.substring(0, 3)}/${m.game_id}.shtml`
+                                                                            : null;
+                                                                        return (
+                                                                            <div key={mIdx} className="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                                                                                <span>{event.icon}</span>
+                                                                                <span className="text-sm font-medium text-amber-800">{shortenMilestone(m.milestone)}</span>
+                                                                                <span className="text-xs text-gray-500">({m.date_display || m.date})</span>
+                                                                                {gameUrl && (
+                                                                                    <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:text-amber-700 ml-1">→</a>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                }
+
+                                // EVENT VIEW (default)
+                                return (
+                                    <div className="space-y-4">
+                                        {sortedEvents.map((event, eventIdx) => {
+                                            // Sort numbers within each event type
+                                            const sortedNumbers = Object.values(event.numbers).sort((a, b) => a.num - b.num);
+
+                                            return (
+                                                <div key={eventIdx} className="border border-amber-200 rounded-lg overflow-hidden">
+                                                    <div className="bg-amber-100 px-3 py-2 flex items-center gap-2">
+                                                        <span>{event.icon}</span>
+                                                        <span className="font-bold text-amber-800">{event.label}</span>
+                                                        <span className="text-xs text-amber-600 ml-auto">
+                                                            {Object.values(event.numbers).reduce((sum, n) => sum + n.items.length, 0)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="p-3 bg-white space-y-2">
+                                                        {sortedNumbers.map((numGroup, numIdx) => (
+                                                            <div key={numIdx} className="flex flex-wrap items-center gap-2">
+                                                                <span className="text-sm font-bold text-amber-700 min-w-[40px]">{numGroup.label}</span>
+                                                                {numGroup.items
+                                                                    .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+                                                                    .map((m, mIdx) => {
+                                                                        const playerUrl = m.player_id
+                                                                            ? `https://www.baseball-reference.com/players/${m.player_id.charAt(0).toLowerCase()}/${m.player_id}.shtml`
+                                                                            : null;
+                                                                        const gameUrl = m.game_id
+                                                                            ? `https://www.baseball-reference.com/boxes/${m.game_id.substring(0, 3)}/${m.game_id}.shtml`
+                                                                            : null;
+                                                                        return (
+                                                                            <div key={mIdx} className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 rounded px-2 py-0.5 text-sm">
+                                                                                {playerUrl ? (
+                                                                                    <a href={playerUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-amber-700 hover:text-amber-900 hover:underline">
+                                                                                        {m.player_name}
+                                                                                    </a>
+                                                                                ) : (
+                                                                                    <span className="font-medium text-gray-800">{m.player_name}</span>
+                                                                                )}
+                                                                                <span className="text-xs text-gray-500">({m.date_display || m.date})</span>
+                                                                                {gameUrl && (
+                                                                                    <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:text-amber-700">→</a>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    </details>
+                </div>
+            )}
+
+            {/* Milestone groups - hide when only viewing career firsts */}
+            {activeCategory !== 'firsts' && (
             <div className="space-y-4">
                 {filteredTypes.map(type => {
                     const items = groupedMilestones[type] || [];
                     const config = categoryConfig[type] || { icon: '⭐', color: 'gray' };
 
                     // Filter items by search if active
-                    const filteredItems = searchTerm
+                    let filteredItems = searchTerm
                         ? items.filter(m =>
                             m.player?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             m.team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             m.detail?.toLowerCase().includes(searchTerm.toLowerCase())
                         )
-                        : items;
+                        : [...items];
+
+                    // Special sorting for Multi-HR Games: by HR count (descending) then date (descending)
+                    if (type === 'Multi-HR Games') {
+                        const getHrCount = (detail) => {
+                            const match = detail?.match(/(\d+)\s*HR/);
+                            return match ? parseInt(match[1], 10) : 0;
+                        };
+                        filteredItems.sort((a, b) => {
+                            const hrDiff = getHrCount(b.detail) - getHrCount(a.detail);
+                            if (hrDiff !== 0) return hrDiff;
+                            return new Date(b.date) - new Date(a.date);
+                        });
+                    }
 
                     if (filteredItems.length === 0) return null;
 
@@ -5235,6 +5900,88 @@ const MilestonesView = ({ milestones, games }) => {
                                     </div>
                                 </summary>
                                 <div className="p-4 bg-gray-50">
+                                    {/* Special grouped rendering for Multi-HR Games */}
+                                    {type === 'Multi-HR Games' ? (() => {
+                                        const getHrCount = (detail) => {
+                                            const match = detail?.match(/(\d+)\s*HR/);
+                                            return match ? parseInt(match[1], 10) : 0;
+                                        };
+                                        // Group by HR count
+                                        const hrGroups = {};
+                                        filteredItems.forEach(m => {
+                                            const count = getHrCount(m.detail);
+                                            if (!hrGroups[count]) hrGroups[count] = [];
+                                            hrGroups[count].push(m);
+                                        });
+                                        // Sort groups by HR count descending
+                                        const sortedCounts = Object.keys(hrGroups).map(Number).sort((a, b) => b - a);
+
+                                        return (
+                                            <div className="space-y-4">
+                                                {sortedCounts.map(hrCount => (
+                                                    <div key={hrCount}>
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="text-lg font-bold text-rose-600">{hrCount} HR</span>
+                                                            <span className="text-sm text-gray-500">({hrGroups[hrCount].length})</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                            {hrGroups[hrCount]
+                                                                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                                                .map((m, idx) => {
+                                                                const game = gameMap[m.gameId];
+                                                                const url = m.gameId && m.gameId !== 'UNKNOWN'
+                                                                    ? `https://www.baseball-reference.com/boxes/${m.gameId.substring(0, 3)}/${m.gameId}.shtml`
+                                                                    : null;
+                                                                return (
+                                                                    <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-rose-300 hover:shadow transition-all">
+                                                                        <div className="flex items-start justify-between gap-2">
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    {m.playerId && m.playerId !== 'UNKNOWN' ? (
+                                                                                        <a
+                                                                                            href={`https://www.baseball-reference.com/players/${m.playerId.charAt(0).toLowerCase()}/${m.playerId}.shtml`}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            className="font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                                                                                        >
+                                                                                            {m.player}
+                                                                                        </a>
+                                                                                    ) : (
+                                                                                        <span className="font-bold text-gray-900">{m.player || 'Team'}</span>
+                                                                                    )}
+                                                                                    <span className="text-xs px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-semibold">
+                                                                                        {m.team}
+                                                                                    </span>
+                                                                                </div>
+                                                                                {m.detail && (
+                                                                                    <p className="text-xs text-gray-600 mb-1 line-clamp-2">{m.detail}</p>
+                                                                                )}
+                                                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                                                    <span>{m.date}</span>
+                                                                                    {game && <span>vs {game.awayTeam === m.team ? game.homeTeam : game.awayTeam}</span>}
+                                                                                </div>
+                                                                            </div>
+                                                                            {url && (
+                                                                                <a
+                                                                                    href={url}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="text-blue-500 hover:text-blue-700 text-sm"
+                                                                                    title="View game"
+                                                                                >
+                                                                                    →
+                                                                                </a>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })() : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                         {filteredItems.slice(0, 30).map((m, idx) => {
                                             const game = gameMap[m.gameId];
@@ -5287,7 +6034,8 @@ const MilestonesView = ({ milestones, games }) => {
                                             );
                                         })}
                                     </div>
-                                    {filteredItems.length > 30 && (
+                                    )}
+                                    {filteredItems.length > 30 && type !== 'Multi-HR Games' && (
                                         <p className="text-center text-sm text-gray-500 mt-3">
                                             +{filteredItems.length - 30} more {type.toLowerCase()}
                                         </p>
@@ -5298,6 +6046,7 @@ const MilestonesView = ({ milestones, games }) => {
                     );
                 })}
             </div>
+            )}
         </div>
     );
 };
@@ -5355,7 +6104,7 @@ const BadgeCell = ({ badges, badgeColors }) => {
     );
 };
 
-const GameLogWithDetails = ({ games, playerGames, pitcherGames }) => {
+const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGame }) => {
     const [selectedGame, setSelectedGame] = useState(null);
 
     // Compute milestones for badge display
@@ -5371,7 +6120,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames }) => {
         'div-complete': 'bg-yellow-100 text-yellow-800 font-bold',
         'div-stadiums': 'bg-indigo-100 text-indigo-700 font-bold',
         'matchup': 'bg-gray-100 text-gray-700',
-        'holiday': 'bg-red-100 text-red-700'
+        'holiday': 'bg-red-100 text-red-700',
+        'career-first': 'bg-amber-100 text-amber-800 font-bold'
     };
 
     return (
@@ -5390,12 +6140,25 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames }) => {
                     {
                         key: 'badges',
                         label: 'Badges',
-                        render: (_, row) => (
-                            <BadgeCell
-                                badges={gameMilestones[row.gameId]?.badges}
-                                badgeColors={badgeColors}
-                            />
-                        )
+                        render: (_, row) => {
+                            // Combine regular badges with career first badges
+                            const regularBadges = gameMilestones[row.gameId]?.badges || [];
+                            const gameCareerFirsts = careerFirstsByGame?.[row.gameId] || [];
+                            const shortenMilestone = (m) => (m || '').replace('First Career ', '1st ').replace('Career ', '').replace('Home Run', 'HR').replace('Stolen Base', 'SB').replace('Run Scored', 'Run').replace('Strikeout', 'K').replace('Inning Pitched', 'IP').replace('Double', '2B').replace('Triple', '3B');
+                            const getLastName = (name) => { const parts = (name || '').split(' '); return parts[parts.length - 1] || name || '?'; };
+                            const careerFirstBadges = gameCareerFirsts.map(f => ({
+                                type: 'career-first',
+                                text: `⭐ ${getLastName(f.player_name)}: ${shortenMilestone(f.milestone)}`,
+                                title: `${f.player_name || 'Unknown'}'s ${f.milestone || 'milestone'}`
+                            }));
+                            const allBadges = [...regularBadges, ...careerFirstBadges];
+                            return (
+                                <BadgeCell
+                                    badges={allBadges}
+                                    badgeColors={badgeColors}
+                                />
+                            );
+                        }
                     },
                     {
                         key: 'gameId',
@@ -5416,10 +6179,11 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames }) => {
             />
             
             {selectedGame && (
-                <GameDetailsModal 
+                <GameDetailsModal
                     game={selectedGame}
                     playerGames={playerGames}
                     pitcherGames={pitcherGames}
+                    careerFirsts={careerFirstsByGame?.[selectedGame.gameId] || []}
                     onClose={() => setSelectedGame(null)}
                 />
             )}
@@ -5449,7 +6213,8 @@ const ALL_MLB_STADIUMS = [
     { id: 'target', name: 'Target Field', team: 'MIN', lat: 44.9817, lng: -93.2776, years: '2010-present', current: true, aliases: [] },
     { id: 'citi', name: 'Citi Field', team: 'NYM', lat: 40.7571, lng: -73.8458, years: '2009-present', current: true, aliases: [] },
     { id: 'yankee3', name: 'Yankee Stadium', team: 'NYY', lat: 40.8296, lng: -73.9262, years: '2009-present', current: true, aliases: ['New Yankee Stadium', 'Yankee Stadium III'] },
-    { id: 'coliseum', name: 'Oakland Coliseum', team: 'OAK', lat: 37.7516, lng: -122.2005, years: '1968-present', current: true, aliases: ['Oakland-Alameda County Coliseum', 'McAfee Coliseum', 'O.co Coliseum', 'RingCentral Coliseum'] },
+    { id: 'coliseum', name: 'Oakland Coliseum', team: 'OAK', lat: 37.7516, lng: -122.2005, years: '1968-2024', current: false, aliases: ['Oakland-Alameda County Coliseum', 'McAfee Coliseum', 'O.co Coliseum', 'RingCentral Coliseum'] },
+    { id: 'sutter', name: 'Sutter Health Park', team: 'ATH', lat: 38.5802, lng: -121.5089, years: '2025-present', current: true, aliases: ['Raley Field'] },
     { id: 'citizens', name: 'Citizens Bank Park', team: 'PHI', lat: 39.9061, lng: -75.1665, years: '2004-present', current: true, aliases: [] },
     { id: 'pnc', name: 'PNC Park', team: 'PIT', lat: 40.4469, lng: -80.0057, years: '2001-present', current: true, aliases: [] },
     { id: 'petco', name: 'Petco Park', team: 'SD', lat: 32.7076, lng: -117.1570, years: '2004-present', current: true, aliases: [] },
@@ -5950,6 +6715,18 @@ const MLB_DIVISIONS = {
     'NL West': ['ARI', 'COL', 'LAN', 'SDN', 'SFN'],
 };
 
+// Map stadium team codes to retrosheet division codes
+const STADIUM_TO_DIVISION_CODE = {
+    'LAD': 'LAN', 'LA': 'LAN', 'NYM': 'NYN', 'SD': 'SDN', 'SF': 'SFN',
+    'NYY': 'NYA', 'TB': 'TBA', 'CWS': 'CHA', 'CHW': 'CHA', 'KC': 'KCA', 'LAA': 'ANA',
+    'STL': 'SLN', 'CHC': 'CHN', 'WSH': 'WAS', 'WSN': 'WAS', 'FLA': 'MIA',
+    // Pass through codes that already match
+    'BAL': 'BAL', 'BOS': 'BOS', 'TOR': 'TOR', 'CLE': 'CLE', 'DET': 'DET',
+    'MIN': 'MIN', 'HOU': 'HOU', 'OAK': 'OAK', 'SEA': 'SEA', 'TEX': 'TEX',
+    'ATL': 'ATL', 'MIA': 'MIA', 'PHI': 'PHI', 'CIN': 'CIN', 'MIL': 'MIL',
+    'PIT': 'PIT', 'ARI': 'ARI', 'COL': 'COL',
+};
+
 const TEAM_CODE_TO_NAME = {
     // Retrosheet codes
     'BAL': 'Baltimore Orioles', 'BOS': 'Boston Red Sox', 'NYA': 'New York Yankees',
@@ -6188,19 +6965,25 @@ const computeGameMilestones = (games) => {
                     title: `${ordinal(venueNum)} different venue visited`
                 });
 
-                // Track stadium division completion (based on home team's division)
-                if (homeDiv && matchedStadium) {
-                    divisionStadiumsVisited[homeDiv].add(normalizedVenue);
-                    // Check if all stadiums in division visited
-                    if (!divisionStadiumsCompleted[homeDiv]) {
-                        const totalStadiums = MLB_DIVISIONS[homeDiv].length;
-                        if (divisionStadiumsVisited[homeDiv].size >= totalStadiums) {
-                            divisionStadiumsCompleted[homeDiv] = true;
-                            gameMilestones[gameId].badges.push({
-                                type: 'div-stadiums',
-                                text: `${homeDiv} Stadiums!`,
-                                title: `Visited all ${totalStadiums} ${homeDiv} stadiums!`
-                            });
+                // Track stadium division completion (only count if it's actually the home team's home stadium)
+                // Track by team code, not venue name, so multiple stadiums for same team count as one
+                if (matchedStadium && matchedStadium.team) {
+                    const divisionCode = STADIUM_TO_DIVISION_CODE[matchedStadium.team] || matchedStadium.team;
+                    const stadiumTeamDiv = Object.entries(MLB_DIVISIONS).find(([div, teams]) => teams.includes(divisionCode))?.[0];
+                    if (stadiumTeamDiv) {
+                        // Use divisionCode (team) instead of venue name so old/new stadiums for same team count as one
+                        divisionStadiumsVisited[stadiumTeamDiv].add(divisionCode);
+                        // Check if all stadiums in division visited
+                        if (!divisionStadiumsCompleted[stadiumTeamDiv]) {
+                            const totalStadiums = MLB_DIVISIONS[stadiumTeamDiv].length;
+                            if (divisionStadiumsVisited[stadiumTeamDiv].size >= totalStadiums) {
+                                divisionStadiumsCompleted[stadiumTeamDiv] = true;
+                                gameMilestones[gameId].badges.push({
+                                    type: 'div-stadiums',
+                                    text: `${stadiumTeamDiv} Stadiums!`,
+                                    title: `Visited all ${totalStadiums} ${stadiumTeamDiv} stadiums!`
+                                });
+                            }
                         }
                     }
                 }
@@ -6633,7 +7416,7 @@ const App = () => {
             </nav>
             <main className="max-w-7xl mx-auto px-4 py-8">
                 {tab === 'dashboard' && <Dashboard data={data} />}
-                {tab === 'gamelog' && <GameLogWithDetails games={data.games || []} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} />}
+                {tab === 'gamelog' && <GameLogWithDetails games={data.games || []} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} />}
                 {tab === 'calendar' && <Calendar games={data.games || []} />}
                 {tab === 'progress' && (
                     <div className="space-y-6">
@@ -6641,7 +7424,7 @@ const App = () => {
                         <BadgesDisplay games={data.games || []} />
                     </div>
                 )}
-                {tab === 'milestones' && <MilestonesView milestones={data.milestones || []} games={data.games || []} />}
+                {tab === 'milestones' && <MilestonesView milestones={data.milestones || []} games={data.games || []} careerFirsts={data.careerFirsts || []} />}
                 {tab === 'leaderboards' && <Leaderboards data={data} />}
                 {tab === 'players' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
                 {tab === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}

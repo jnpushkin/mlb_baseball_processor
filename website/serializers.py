@@ -2,7 +2,192 @@
 Data serializers for converting DataFrames to JSON format for website.
 Complete version with all stats fields and game-by-game data.
 """
+import json
+from pathlib import Path
 import pandas as pd
+
+
+def load_career_firsts_cache():
+    """Load the career firsts cache from disk."""
+    # Find project root
+    current = Path(__file__).resolve()
+    project_root = None
+    for parent in [current] + list(current.parents):
+        if (parent / '.project_root').exists() or (parent / 'baseball_processor').is_dir():
+            project_root = parent
+            break
+
+    if not project_root:
+        project_root = Path.cwd()
+
+    cache_file = project_root / 'cache' / 'career_firsts' / 'career_firsts.json'
+    if cache_file.exists():
+        try:
+            with open(cache_file, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return {}
+    return {}
+
+
+def find_witnessed_career_firsts(raw_games, career_firsts_cache):
+    """
+    Find career firsts AND career milestones that were witnessed at attended games.
+
+    Returns:
+        - witnessed_firsts: List of witnessed firsts/milestones with full details
+        - firsts_by_game: Dict mapping game_id to list of firsts/milestones in that game
+        - firsts_by_player: Dict mapping player_id to list of firsts/milestones witnessed
+    """
+    witnessed_firsts = []
+    firsts_by_game = {}
+    firsts_by_player = {}
+
+    # Build set of attended game IDs (only match on game_id, not date)
+    attended_games = {}
+    for game in raw_games:
+        basic_info = game.get('basic_info', {})
+        date_str = basic_info.get('date_yyyymmdd', '')
+        home_code = basic_info.get('home_team_code', '')
+        game_id = game.get('game_id', f"{home_code}{date_str}0")
+
+        if game_id:
+            attended_games[game_id] = {
+                'game_id': game_id,
+                'home_team': basic_info.get('home_team', ''),
+                'away_team': basic_info.get('away_team', ''),
+                'venue': basic_info.get('venue', ''),
+                'date': basic_info.get('date', ''),
+            }
+
+    # Build player name lookup from games
+    player_names = {}
+    for game in raw_games:
+        for side in ['away', 'home']:
+            for batter in game.get('batting', {}).get(side, []):
+                if batter.get('player_id') and batter.get('name'):
+                    player_names[batter['player_id']] = batter['name']
+            for pitcher in game.get('pitching', {}).get(side, []):
+                if pitcher.get('player_id') and pitcher.get('name'):
+                    player_names[pitcher['player_id']] = pitcher['name']
+
+    def add_record(record, game_id_key):
+        """Helper to add a record to all indexes."""
+        witnessed_firsts.append(record)
+        gid = record.get('game_id', game_id_key)
+        if gid not in firsts_by_game:
+            firsts_by_game[gid] = []
+        firsts_by_game[gid].append(record)
+        pid = record.get('player_id')
+        if pid not in firsts_by_player:
+            firsts_by_player[pid] = []
+        firsts_by_player[pid].append(record)
+
+    # Check each player's career firsts and milestones
+    for player_id, data in career_firsts_cache.items():
+        player_name = player_names.get(player_id, player_id)
+
+        # Check batting firsts
+        for stat, first_info in data.get('batting_firsts', {}).items():
+            date = first_info.get('date', '')
+            first_game_id = first_info.get('game_id', '')
+            game = attended_games.get(first_game_id)
+            if game:
+                add_record({
+                    'player_id': player_id,
+                    'player_name': player_name,
+                    'milestone': first_info.get('milestone', ''),
+                    'stat': stat,
+                    'date': date,
+                    'date_display': game.get('date', date),
+                    'game_id': game.get('game_id', first_game_id),
+                    'opponent': first_info.get('opponent', ''),
+                    'venue': game.get('venue', ''),
+                    'type': 'batting',
+                    'category': 'first',
+                    'year': first_info.get('year', ''),
+                }, first_game_id)
+
+        # Check pitching firsts
+        for stat, first_info in data.get('pitching_firsts', {}).items():
+            date = first_info.get('date', '')
+            first_game_id = first_info.get('game_id', '')
+            game = attended_games.get(first_game_id)
+            if game:
+                add_record({
+                    'player_id': player_id,
+                    'player_name': player_name,
+                    'milestone': first_info.get('milestone', ''),
+                    'stat': stat,
+                    'date': date,
+                    'date_display': game.get('date', date),
+                    'game_id': game.get('game_id', first_game_id),
+                    'opponent': first_info.get('opponent', ''),
+                    'venue': game.get('venue', ''),
+                    'type': 'pitching',
+                    'category': 'first',
+                    'year': first_info.get('year', ''),
+                }, first_game_id)
+
+        # Check batting milestones (e.g., 100th HR, 500th hit)
+        for stat, milestones_list in data.get('batting_milestones', {}).items():
+            for milestone_info in milestones_list:
+                date = milestone_info.get('date', '')
+                milestone_game_id = milestone_info.get('game_id', '')
+                game = attended_games.get(milestone_game_id)
+                if game:
+                    add_record({
+                        'player_id': player_id,
+                        'player_name': player_name,
+                        'milestone': milestone_info.get('milestone', ''),
+                        'milestone_number': milestone_info.get('number', 0),
+                        'stat': stat,
+                        'date': date,
+                        'date_display': game.get('date', date),
+                        'game_id': game.get('game_id', milestone_game_id),
+                        'opponent': milestone_info.get('opponent', ''),
+                        'venue': game.get('venue', ''),
+                        'type': 'batting',
+                        'category': 'milestone',
+                        'year': milestone_info.get('year', ''),
+                        'career_total_after': milestone_info.get('career_total_after', 0),
+                    }, milestone_game_id)
+
+        # Check pitching milestones
+        for stat, milestones_list in data.get('pitching_milestones', {}).items():
+            for milestone_info in milestones_list:
+                date = milestone_info.get('date', '')
+                milestone_game_id = milestone_info.get('game_id', '')
+                game = attended_games.get(milestone_game_id)
+                if game:
+                    add_record({
+                        'player_id': player_id,
+                        'player_name': player_name,
+                        'milestone': milestone_info.get('milestone', ''),
+                        'milestone_number': milestone_info.get('number', 0),
+                        'stat': stat,
+                        'date': date,
+                        'date_display': game.get('date', date),
+                        'game_id': game.get('game_id', milestone_game_id),
+                        'opponent': milestone_info.get('opponent', ''),
+                        'venue': game.get('venue', ''),
+                        'type': 'pitching',
+                        'category': 'milestone',
+                        'year': milestone_info.get('year', ''),
+                        'career_total_after': milestone_info.get('career_total_after', 0),
+                    }, milestone_game_id)
+
+    # Sort witnessed firsts by date (most recent first), then by milestone importance
+    def sort_key(x):
+        date = x.get('date', '')
+        # Prioritize milestones by number (higher = more important)
+        milestone_num = x.get('milestone_number', 0)
+        return (date, milestone_num)
+
+    witnessed_firsts.sort(key=sort_key, reverse=True)
+
+    return witnessed_firsts, firsts_by_game, firsts_by_player
+
 
 class DataSerializer:
     """Convert baseball DataFrames to JSON-serializable format."""
@@ -10,12 +195,21 @@ class DataSerializer:
     def serialize_all_data(self, data):
         """Convert all data structures to JSON format."""
         print("   🔄 Serializing data for website...")
-        
+
         # Store reference to data for use in other methods
         self.data = data
-        
+
         # Get the raw games for game-by-game breakdown
         raw_games = data.get('_raw_games', [])
+
+        # Load career firsts and find witnessed ones
+        career_firsts_cache = load_career_firsts_cache()
+        witnessed_firsts, firsts_by_game, firsts_by_player = find_witnessed_career_firsts(
+            raw_games, career_firsts_cache
+        )
+        self._firsts_by_game = firsts_by_game
+        self._firsts_by_player = firsts_by_player
+
         json_data = {
             "summary": self._serialize_summary(data.get('summary_rows', [])),
             "milestones": self._serialize_milestones(data.get('milestones', {})),
@@ -34,8 +228,11 @@ class DataSerializer:
             "pitcherGames": self._serialize_pitcher_games(raw_games),
             "divisionChecklist": self._serialize_division_checklist(),
             "companionData": self._serialize_companions(),
+            "careerFirsts": witnessed_firsts,
+            "careerFirstsByGame": firsts_by_game,
+            "careerFirstsByPlayer": firsts_by_player,
         }
-        
+
         counts = [
             f"Summary: {len(json_data['summary'])}",
             f"Milestones: {len(json_data['milestones'])}",
@@ -44,9 +241,10 @@ class DataSerializer:
             f"Games: {len(json_data['games'])}",
             f"PlayerGames: {len(json_data['playerGames'])}",
             f"PitcherGames: {len(json_data['pitcherGames'])}",
+            f"CareerFirsts: {len(witnessed_firsts)}",
         ]
         print(f"      {', '.join(counts)}")
-        
+
         return json_data
     
     def _serialize_summary(self, summary_rows):
