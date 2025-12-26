@@ -496,8 +496,9 @@ def main():
             info("\n🎉 Processing complete!")
             info(f"✅ Website: {os.path.abspath(html_path)}")
 
-            # Deploy to Surge if requested
-            if args.deploy:
+            # Deploy to Surge if requested or if domain is configured (auto-deploy)
+            surge_domain = args.surge_domain or load_surge_domain()
+            if args.deploy or surge_domain:
                 deploy_to_surge(html_path, args.surge_domain)
 
         elif args.excel_only:
@@ -553,8 +554,9 @@ def main():
             if args.save_json:
                 info(f"📄 JSON: {json_output}")
 
-            # Deploy to Surge if requested
-            if args.deploy:
+            # Deploy to Surge if requested or if domain is configured (auto-deploy)
+            surge_domain = args.surge_domain or load_surge_domain()
+            if args.deploy or surge_domain:
                 deploy_to_surge(html_path, args.surge_domain)
 
         # Export to CSV if requested
