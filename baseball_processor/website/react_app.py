@@ -5861,13 +5861,12 @@ const MilestonesView = ({ milestones, games, careerFirsts }) => {
         }
 
         // Check if this is a valid box score format (has AB for batting or IP for pitching)
-        // Consider it valid batting if we have AB in the string (even if 0) and other batting stats
         const hasValidBattingStats = 'AB' in parsed && ('H' in parsed || 'R' in parsed || 'RBI' in parsed);
         const hasValidPitchingStats = 'IP' in parsed && ('H' in parsed || 'K' in parsed || 'ER' in parsed);
 
         // If we don't have valid stats, just show the detail as plain text
         if (!hasValidBattingStats && !hasValidPitchingStats) {
-            return <p className="text-xs text-gray-600 mt-1">{detail}</p>;
+            return <span className="text-xs text-gray-500">{detail}</span>;
         }
 
         if (hasValidPitchingStats) {
@@ -5886,7 +5885,6 @@ const MilestonesView = ({ milestones, games, careerFirsts }) => {
         } else {
             // Batting: AB R H 2B 3B HR RBI BB K
             const cols = ['AB', 'R', 'H', '2B', '3B', 'HR', 'RBI', 'BB', 'K'];
-            // Map some alternate keys
             const getValue = (col) => {
                 if (col === 'K') return parsed['K'] || parsed['SO'] || '0';
                 return parsed[col] || '0';
@@ -6282,7 +6280,7 @@ const MilestonesView = ({ milestones, games, careerFirsts }) => {
                                 const isExpanded = expandedGroup === group.id;
 
                                 return (
-                                    <div key={group.id} className="bg-white rounded-xl shadow-md overflow-hidden">
+                                    <div key={group.id} className={`bg-white rounded-xl shadow-md overflow-hidden ${isExpanded ? 'md:col-span-2 lg:col-span-3' : ''}`}>
                                         <button
                                             onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
                                             className={`w-full p-4 text-left bg-gradient-to-r from-${group.color}-500 to-${group.color}-600 text-white hover:opacity-95 transition-all`}
@@ -6395,7 +6393,7 @@ const MilestonesView = ({ milestones, games, careerFirsts }) => {
                                 const isExpanded = expandedGroup === group.id;
 
                                 return (
-                                    <div key={group.id} className="bg-white rounded-xl shadow-md overflow-hidden">
+                                    <div key={group.id} className={`bg-white rounded-xl shadow-md overflow-hidden ${isExpanded ? 'md:col-span-2 lg:col-span-3' : ''}`}>
                                         <button
                                             onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
                                             className={`w-full p-4 text-left bg-gradient-to-r from-${group.color}-500 to-${group.color}-600 text-white hover:opacity-95 transition-all`}
