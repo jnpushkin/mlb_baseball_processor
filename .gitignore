@@ -31,3 +31,19 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Generated outputs
+MLB Game Passport - BREF.html
+MLB Game Passport - BREF.xlsx
+
+# Data directories
+Current Season Games/
+cache/
+lahman_1871-2023_csv/
+register-master/
+retrosheet-master/
+mlb_references/
+al-nl/
+
+# Data files
+companions.csv
