@@ -26,9 +26,6 @@ class HTMLTemplate:
     <script src="https://unpkg.com/recharts@2.5.0/dist/Recharts.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <style>
         * {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -103,32 +100,6 @@ class HTMLTemplate:
         }}
         .stadium-popup .leaflet-popup-content {{
             margin: 8px 12px;
-        }}
-        /* Team logo marker - override Leaflet defaults */
-        .team-logo-marker {{
-            background: none !important;
-            border: none !important;
-        }}
-        /* Custom marker cluster styles */
-        .marker-cluster {{
-            background-color: rgba(34, 197, 94, 0.6) !important;
-        }}
-        .marker-cluster div {{
-            background-color: rgba(34, 197, 94, 0.9) !important;
-            color: white !important;
-            font-weight: bold !important;
-        }}
-        .marker-cluster-visited {{
-            background-color: rgba(34, 197, 94, 0.6) !important;
-        }}
-        .marker-cluster-visited div {{
-            background-color: rgba(34, 197, 94, 0.9) !important;
-        }}
-        .marker-cluster-orioles {{
-            background-color: rgba(249, 115, 22, 0.6) !important;
-        }}
-        .marker-cluster-orioles div {{
-            background-color: rgba(249, 115, 22, 0.9) !important;
         }}
         .journey-path {{
             stroke-dasharray: 10, 5;

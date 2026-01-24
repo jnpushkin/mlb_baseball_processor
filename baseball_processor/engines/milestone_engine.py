@@ -6,24 +6,22 @@ from ..excel.generators import ExcelGeneratorUtils
 from ..utils.log import debug
 
 class MilestoneEngine:
-    """
-    Comprehensive milestone detection engine for MLB games.
-    Detects 40+ milestone types across batting and pitching categories.
-    """
-
+    # All milestone keys for programmatic access (41 types)
     MILESTONE_KEYS = [
-        # Batting milestones
-        'multi_hr_games', 'three_hr_games', 'cycles', 'five_hit_games',
-        'four_hit_games', 'six_rbi_games', 'five_rbi_games',
-        'four_rbi_games', 'multi_triple_games',
+        # Batting milestones (18)
+        'three_hr_games', 'multi_hr_games', 'cycles', 'five_hit_games',
+        'four_hit_games', 'three_hit_games', 'six_rbi_games', 'five_rbi_games',
+        'four_rbi_games', 'multi_double_games', 'multi_triple_games',
         'multi_steal_games', 'four_walk_games', 'perfect_batting_games',
-        'four_run_games',
-        # Pitching milestones
+        'three_run_games', 'four_run_games', 'hit_for_extra_bases',
+        'three_total_bases_games',
+        # Pitching milestones (23)
         'complete_games', 'shutouts', 'no_hitters', 'perfect_games',
         'quality_starts', 'fifteen_k_games', 'twelve_k_games', 'ten_k_games',
-        'eight_k_games', 'maddux_games', 'seven_inning_shutouts',
-        'one_hitters', 'two_hitters',
-        'immaculate_inning_pitchers', 'no_walk_starts',
+        'eight_k_games', 'maddux_games', 'seven_inning_shutouts', 'low_hit_cg',
+        'one_hitters', 'two_hitters', 'cgso_no_walks', 'high_k_low_bb',
+        'save_games', 'win_games', 'immaculate_inning_pitchers',
+        'efficient_starts', 'dominant_starts', 'no_walk_starts', 'scoreless_relief',
     ]
 
     def __init__(self, game_data):
@@ -170,36 +168,41 @@ class MilestoneEngine:
         ms = self.game_data['milestone_stats']
 
         player_name = stats['player']
-        hr_count = stats['home_runs']
-        hits = stats['hits']
+        hr = stats['home_runs']
+        h = stats['hits']
         rbi = stats['rbi']
         doubles = stats['doubles']
         triples = stats['triples']
-        singles = stats['singles']
         runs = stats.get('runs', 0)
         bb = stats.get('bb', 0)
+        so = stats.get('so', 0)
         ab = stats.get('ab', 0)
         sb = stats.get('sb', 0)
+        singles = stats['singles']
+        total_bases = singles + (2 * doubles) + (3 * triples) + (4 * hr)
 
-        # HR milestones
-        if hr_count >= 3:
+        # HR milestones (tiered - highest first)
+        if hr >= 3:
+            debug(f"Found 3+ HR game for {player_name}: {hr} HRs")
             ms['three_hr_games'].append(stats)
-        elif hr_count >= 2:
-            debug(f"Found multi-HR game for {player_name}: {hr_count} HRs")
+        elif hr >= 2:
+            debug(f"Found multi-HR game for {player_name}: {hr} HRs")
             ms['multi_hr_games'].append(stats)
 
-        # Cycle
+        # Cycle detection
         if all(stats[k] > 0 for k in ['singles', 'doubles', 'triples', 'home_runs']):
             ms['cycles'].append(stats)
 
-        # Hit milestones
-        if hits >= 5:
+        # Hit milestones (tiered)
+        if h >= 5:
             ms['five_hit_games'].append(stats)
-        elif hits >= 4:
-            debug(f"4+ Hit Game - {player_name}: HR={hr_count}, 2B={doubles}, 3B={triples}, H={hits}")
+        elif h >= 4:
+            debug(f"4+ Hit Game - {player_name}: HR={hr}, 2B={doubles}, 3B={triples}, H={h}")
             ms['four_hit_games'].append(stats)
+        elif h >= 3:
+            ms['three_hit_games'].append(stats)
 
-        # RBI milestones
+        # RBI milestones (tiered)
         if rbi >= 6:
             ms['six_rbi_games'].append(stats)
         elif rbi >= 5:
@@ -207,25 +210,36 @@ class MilestoneEngine:
         elif rbi >= 4:
             ms['four_rbi_games'].append(stats)
 
-        # Extra base hit milestones
+        # Extra-base hit milestones
+        if doubles >= 2:
+            ms['multi_double_games'].append(stats)
         if triples >= 2:
             ms['multi_triple_games'].append(stats)
-
-        # Runs scored
-        if runs >= 4:
-            ms['four_run_games'].append(stats)
-
-        # Walks
-        if bb >= 4:
-            ms['four_walk_games'].append(stats)
-
-        # Stolen bases
         if sb >= 2:
             ms['multi_steal_games'].append(stats)
 
-        # Perfect batting (4+ AB, all hits)
-        if ab >= 4 and hits == ab:
+        # Walk milestone
+        if bb >= 4:
+            ms['four_walk_games'].append(stats)
+
+        # Perfect batting (3+ H, 0 K)
+        if h >= 3 and so == 0 and ab > 0:
             ms['perfect_batting_games'].append(stats)
+
+        # Run milestones (tiered)
+        if runs >= 4:
+            ms['four_run_games'].append(stats)
+        elif runs >= 3:
+            ms['three_run_games'].append(stats)
+
+        # Hit for extra bases (2+ XBH)
+        xbh = doubles + triples + hr
+        if xbh >= 2:
+            ms['hit_for_extra_bases'].append(stats)
+
+        # Total bases milestone (8+)
+        if total_bases >= 8:
+            ms['three_total_bases_games'].append(stats)
 
     def extract_multi_hr_from_footer(self):
         """Extract multi-HR events from the footer summary - enhanced version."""
@@ -388,16 +402,67 @@ class MilestoneEngine:
                 debug(f"Check CG: {outs} >= {team_innings * 3}? {outs >= team_innings * 3}")
                 debug(f"Check QS: {outs} >= 18 and {er} <= 3? {outs >= 18 and er <= 3}")
 
-                # Add stats to milestone_common
                 milestone_common.update({
-                    'hits': hits, 'walks': walks, 'runs': runs,
-                    'earned_runs': er, 'strikeouts': so, 'pitch_count': pitches
+                    'hits': hits,
+                    'walks': walks,
+                    'runs': runs,
+                    'earned_runs': er,
+                    'strikeouts': so,
+                    'pitch_count': pitches
                 })
 
-                # Strikeout milestones
+                is_complete_game = outs >= team_innings * 3 and outs >= 27
+                is_seven_inning_cg = outs >= 21 and outs < 27
+
+                # Complete game milestones
+                if is_complete_game:
+                    debug(f"✓✓✓ COMPLETE GAME DETECTED ✓✓✓")
+
+                    # Perfect game (CG, 0 H, 0 BB)
+                    if hits == 0 and walks == 0:
+                        debug(f"✓✓✓ PERFECT GAME DETECTED ✓✓✓")
+                        ms['perfect_games'].append(dict(milestone_common))
+                    # No-hitter (CG, 0 H)
+                    elif hits == 0:
+                        debug(f"✓✓✓ NO-HITTER DETECTED ✓✓✓")
+                        ms['no_hitters'].append(dict(milestone_common))
+                    # One-hitter
+                    elif hits == 1:
+                        ms['one_hitters'].append(dict(milestone_common))
+                    # Two-hitter
+                    elif hits == 2:
+                        ms['two_hitters'].append(dict(milestone_common))
+
+                    # Shutout milestones
+                    if runs == 0:
+                        debug(f"✓✓✓ SHUTOUT DETECTED ✓✓✓")
+                        if walks == 0:
+                            ms['cgso_no_walks'].append(dict(milestone_common))
+                        else:
+                            ms['shutouts'].append(dict(milestone_common))
+
+                    # Low-hit complete game (3 or fewer hits)
+                    if hits <= 3:
+                        ms['low_hit_cg'].append(dict(milestone_common))
+                    else:
+                        ms['complete_games'].append(dict(milestone_common))
+
+                    # Maddux (CG with under 100 pitches)
+                    if pitches and pitches < 100:
+                        ms['maddux_games'].append(dict(milestone_common))
+
+                    debug(f"Complete games list now has {len(ms['complete_games'])} items")
+                elif is_seven_inning_cg and runs == 0:
+                    ms['seven_inning_shutouts'].append(dict(milestone_common))
+                else:
+                    debug(f"✗ NOT a complete game")
+
+                # Strikeout milestones (tiered - highest first)
                 if so >= 15:
+                    debug(f"✓ 15+ K Game detected")
                     ms['fifteen_k_games'].append(dict(milestone_common))
                 elif so >= 12:
+                    debug(f"✓ 12+ K Game detected")
                     ms['twelve_k_games'].append(dict(milestone_common))
                 elif so >= 10:
                     debug(f"✓ 10+ K Game detected")
@@ -405,46 +470,37 @@ class MilestoneEngine:
                 elif so >= 8:
                     ms['eight_k_games'].append(dict(milestone_common))
 
-                # Complete game milestones
-                if outs >= team_innings * 3 and outs >= 27:
-                    debug(f"✓✓✓ COMPLETE GAME DETECTED ✓✓✓")
-                    ms['complete_games'].append(dict(milestone_common))
-
-                    # Maddux (CG < 100 pitches)
-                    if pitches and int(pitches) < 100:
-                        ms['maddux_games'].append(dict(milestone_common))
-
-                    # Low-hit complete games
-                    if hits == 1:
-                        ms['one_hitters'].append(dict(milestone_common))
-                    elif hits == 2:
-                        ms['two_hitters'].append(dict(milestone_common))
-
-                    if runs == 0:
-                        debug(f"✓✓✓ SHUTOUT DETECTED ✓✓✓")
-                        ms['shutouts'].append(dict(milestone_common))
-
-                    if hits == 0:
-                        debug(f"✓✓✓ NO-HITTER DETECTED ✓✓✓")
-                        ms['no_hitters'].append(dict(milestone_common))
-
-                    if runs == 0 and walks == 0 and hits == 0:
-                        debug(f"✓✓✓ PERFECT GAME DETECTED ✓✓✓")
-                        ms['perfect_games'].append(dict(milestone_common))
-                else:
-                    debug(f"✗ NOT a complete game")
-
-                # 7+ IP shutout (not CG)
-                if outs >= 21 and runs == 0 and outs < 27:
-                    ms['seven_inning_shutouts'].append(dict(milestone_common))
-
-                # Quality starts (6+ IP, 3 or fewer ER)
+                # Quality starts (6+ IP, ≤3 ER)
                 if outs >= 18 and er <= 3:
                     debug(f"✓ Quality Start detected")
                     ms['quality_starts'].append(dict(milestone_common))
 
-                # No-walk start (6+ IP, 0 BB)
-                if outs >= 18 and walks == 0:
+                # Dominant start (7+ IP, 10+ K)
+                if outs >= 21 and so >= 10:
+                    ms['dominant_starts'].append(dict(milestone_common))
+
+                # Efficient start (6+ IP, 80 or fewer pitches)
+                if outs >= 18 and pitches and pitches <= 80:
+                    ms['efficient_starts'].append(dict(milestone_common))
+
+                # High K, low BB (8+ K, 2 or fewer BB)
+                if so >= 8 and walks <= 2:
+                    ms['high_k_low_bb'].append(dict(milestone_common))
+
+                # No walk start (5+ IP, 0 BB)
+                if outs >= 15 and walks == 0:
                     ms['no_walk_starts'].append(dict(milestone_common))
+
+                # Scoreless relief (3+ IP, 0 ER, not a starter)
+                if outs >= 9 and outs < 18 and er == 0:
+                    ms['scoreless_relief'].append(dict(milestone_common))
+
+                # Win games
+                if decision and decision.upper() == 'W':
+                    ms['win_games'].append(dict(milestone_common))
+
+                # Save games
+                if save or (decision and decision.upper() in ['S', 'SV']):
+                    ms['save_games'].append(dict(milestone_common))
 
                 debug(f"{'='*60}\n")

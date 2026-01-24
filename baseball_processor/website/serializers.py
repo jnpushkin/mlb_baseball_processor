@@ -263,118 +263,24 @@ class DataSerializer:
             for row in summary_rows
         ]
     
-    # Human-readable display names for all 41 milestone types
-    MILESTONE_DISPLAY_NAMES = {
-        # Batting milestones (18)
-        'three_hr_games': '3+ HR Games',
-        'multi_hr_games': 'Multi-HR Games',
-        'cycles': 'Cycles',
-        'five_hit_games': '5+ Hit Games',
-        'four_hit_games': '4+ Hit Games',
-        'three_hit_games': '3+ Hit Games',
-        'six_rbi_games': '6+ RBI Games',
-        'five_rbi_games': '5+ RBI Games',
-        'four_rbi_games': '4+ RBI Games',
-        'multi_triple_games': 'Multi-Triple Games',
-        'multi_steal_games': 'Multi-Steal Games',
-        'four_walk_games': '4+ Walk Games',
-        'perfect_batting_games': 'Perfect Batting Games',
-        'three_run_games': '3+ Run Games',
-        'four_run_games': '4+ Run Games',
-        'hit_for_extra_bases': '2+ XBH Games',
-        # Pitching milestones (23)
-        'complete_games': 'Complete Games',
-        'shutouts': 'Shutouts',
-        'no_hitters': 'No-Hitters',
-        'perfect_games': 'Perfect Games',
-        'quality_starts': 'Quality Starts',
-        'fifteen_k_games': '15+ K Games',
-        'twelve_k_games': '12+ K Games',
-        'ten_k_games': '10+ K Games',
-        'eight_k_games': '8+ K Games',
-        'maddux_games': 'Maddux Games',
-        'seven_inning_shutouts': '7+ IP Shutouts',
-        'low_hit_cg': 'Low-Hit CG',
-        'one_hitters': 'One-Hitters',
-        'two_hitters': 'Two-Hitters',
-        'cgso_no_walks': 'CGSO No Walks',
-        'high_k_low_bb': 'High K/Low BB',
-        'save_games': 'Saves',
-        'win_games': 'Wins',
-        'immaculate_inning_pitchers': 'Immaculate Innings',
-        'efficient_starts': 'Efficient Starts',
-        'dominant_starts': 'Dominant Starts',
-        'no_walk_starts': 'No-Walk Starts',
-        'scoreless_relief': 'Scoreless Relief',
-    }
-
-    # Milestone categories for grouping
-    MILESTONE_CATEGORIES = {
-        # Batting milestones
-        'three_hr_games': 'batting', 'multi_hr_games': 'batting', 'cycles': 'batting',
-        'five_hit_games': 'batting', 'four_hit_games': 'batting', 'three_hit_games': 'batting',
-        'six_rbi_games': 'batting', 'five_rbi_games': 'batting', 'four_rbi_games': 'batting',
-        'multi_triple_games': 'batting', 'multi_steal_games': 'batting',
-        'four_walk_games': 'batting', 'perfect_batting_games': 'batting',
-        'three_run_games': 'batting', 'four_run_games': 'batting',
-        'hit_for_extra_bases': 'batting',
-        # Pitching milestones
-        'complete_games': 'pitching', 'shutouts': 'pitching', 'no_hitters': 'pitching',
-        'perfect_games': 'pitching', 'quality_starts': 'pitching',
-        'fifteen_k_games': 'pitching', 'twelve_k_games': 'pitching',
-        'ten_k_games': 'pitching', 'eight_k_games': 'pitching',
-        'maddux_games': 'pitching', 'seven_inning_shutouts': 'pitching', 'low_hit_cg': 'pitching',
-        'one_hitters': 'pitching', 'two_hitters': 'pitching', 'cgso_no_walks': 'pitching',
-        'high_k_low_bb': 'pitching', 'save_games': 'pitching', 'win_games': 'pitching',
-        'immaculate_inning_pitchers': 'pitching', 'efficient_starts': 'pitching',
-        'dominant_starts': 'pitching', 'no_walk_starts': 'pitching', 'scoreless_relief': 'pitching',
-        # Legacy display names (from old data) and processor display names
-        'Multi-HR Games': 'batting', '3+ HR Games': 'batting',
-        '5+ Hit Games': 'batting', '4+ Hit Games': 'batting', '3+ Hit Games': 'batting',
-        '6+ RBI Games': 'batting', '5+ RBI Games': 'batting', '4+ RBI Games': 'batting',
-        'Cycles': 'batting', 'Walk-Offs': 'batting', 'Grand Slams': 'batting',
-        'Leadoff HRs': 'batting', 'Inside-the-Park HRs': 'batting', 'Pinch Hit HRs': 'batting',
-        'Multi-3B Games': 'batting', 'Multi-SB Games': 'batting',
-        '4+ Walk Games': 'batting', 'Perfect Batting Games': 'batting',
-        '4+ Run Games': 'batting', '3+ Run Games': 'batting',
-        '2+ XBH Games': 'batting',
-        # Pitching display names
-        '15+ K Games': 'pitching', '12+ K Games': 'pitching', '10+ K Games': 'pitching', '8+ K Games': 'pitching',
-        'Quality Starts': 'pitching', 'Complete Games': 'pitching', 'Shutouts': 'pitching',
-        'Complete Games & Shutouts': 'pitching', 'No-Hitters': 'pitching', 'Perfect Games': 'pitching',
-        'Maddux Games': 'pitching', '7-Inning Shutouts': 'pitching', 'Low-Hit CG': 'pitching',
-        'One-Hitters': 'pitching', 'Two-Hitters': 'pitching', 'CGSO No Walks': 'pitching',
-        'High K Low BB': 'pitching', 'Saves': 'pitching', 'Wins': 'pitching',
-        'Efficient Starts': 'pitching', 'Dominant Starts': 'pitching',
-        'No-Walk Starts': 'pitching', 'Scoreless Relief': 'pitching',
-        '3 Strikeout Innings': 'pitching', 'Immaculate Innings': 'pitching',
-        '3 Pitch Innings': 'pitching', 'Consecutive HR Instances': 'team',
-    }
-
     def _serialize_milestones(self, milestones_dict):
         """Convert all milestone DataFrames to combined JSON list."""
         all_milestones = []
-
+        
         if not milestones_dict:
             return all_milestones
-
+        
         for milestone_type, df in milestones_dict.items():
             if df is None or df.empty:
                 continue
-
-            # Get display name and category
-            display_name = self.MILESTONE_DISPLAY_NAMES.get(milestone_type, milestone_type)
-            category = self.MILESTONE_CATEGORIES.get(milestone_type, 'other')
-
+            
             df_sorted = df.copy()
             df_sorted['_date_sort'] = pd.to_datetime(df_sorted['Date'], errors='coerce')
             df_sorted = df_sorted.sort_values('_date_sort', ascending=False)
-
+            
             for _, row in df_sorted.iterrows():
                 milestone = {
-                    "type": display_name,
-                    "typeKey": milestone_type,
-                    "category": category,
+                    "type": milestone_type,
                     "date": str(row.get("Date", "")),
                     "player": str(row.get("Player", "")),
                     "playerId": str(row.get("Player ID", "")) if "Player ID" in row else "",
@@ -382,68 +288,90 @@ class DataSerializer:
                     "opponent": str(row.get("Opponent", "")),
                     "gameId": str(row.get("GameID", ""))
                 }
+                
+                # Batting milestones
+                batting_types = [
+                    "3+ HR Games", "Multi-HR Games", "Cycles",
+                    "5+ Hit Games", "4+ Hit Games", "3+ Hit Games",
+                    "6+ RBI Games", "5+ RBI Games", "4+ RBI Games",
+                    "Multi-2B Games", "Multi-3B Games", "Multi-SB Games",
+                    "4+ Walk Games", "Perfect Batting Games",
+                    "4+ Run Games", "3+ Run Games", "2+ XBH Games", "8+ Total Bases"
+                ]
 
-                # Build detail string based on available stats
-                detail_parts = []
-                hr = int(row.get("HR", 0)) if pd.notna(row.get("HR")) else 0
-                h = int(row.get("H", 0)) if pd.notna(row.get("H")) else 0
-                rbi = int(row.get("RBI", 0)) if pd.notna(row.get("RBI")) else 0
-                doubles = int(row.get("2B", 0)) if pd.notna(row.get("2B")) else 0
-                triples = int(row.get("3B", 0)) if pd.notna(row.get("3B")) else 0
-                runs = int(row.get("R", 0)) if pd.notna(row.get("R")) else 0
-                bb = int(row.get("BB", 0)) if pd.notna(row.get("BB")) else 0
-                so = int(row.get("SO", 0)) if pd.notna(row.get("SO")) else 0
-                sb = int(row.get("SB", 0)) if pd.notna(row.get("SB")) else 0
-                ip = str(row.get("IP", "")) if pd.notna(row.get("IP")) else ""
-                er = int(row.get("ER", 0)) if pd.notna(row.get("ER")) else 0
+                # Pitching milestones
+                pitching_types = [
+                    "Complete Games", "Shutouts", "No-Hitters", "Perfect Games",
+                    "Quality Starts", "15+ K Games", "12+ K Games", "10+ K Games", "8+ K Games",
+                    "Maddux Games", "7-Inning Shutouts", "Low-Hit CG",
+                    "One-Hitters", "Two-Hitters", "CGSO No Walks", "High K Low BB",
+                    "Saves", "Wins", "Efficient Starts", "Dominant Starts",
+                    "No-Walk Starts", "Scoreless Relief", "Complete Games & Shutouts"
+                ]
 
-                milestone.update({
-                    "hr": hr, "h": h, "rbi": rbi, "2b": doubles, "3b": triples,
-                    "r": runs, "bb": bb, "so": so, "sb": sb, "ip": ip, "er": er
-                })
-
-                # Special handling for certain milestone types
                 if milestone_type == "Consecutive HR Instances":
                     players = str(row.get("Players", ""))
                     hr_count = int(row.get("HR Count", 0)) if pd.notna(row.get("HR Count")) else 0
                     inning = str(row.get("Inning", ""))
-                    milestone["player"] = players
-                    milestone["detail"] = f"{hr_count} consecutive HRs in {inning}: {players}"
-                elif milestone_type in ["3 Strikeout Innings", "Immaculate Innings", "immaculate_inning_pitchers"]:
+                    milestone.update({
+                        "player": players,
+                        "detail": f"{hr_count} consecutive HRs in {inning}: {players}"
+                    })
+
+                elif milestone_type in batting_types:
+                    hr = int(row.get("HR", 0)) if pd.notna(row.get("HR")) else 0
+                    h = int(row.get("H", 0)) if pd.notna(row.get("H")) else 0
+                    rbi = int(row.get("RBI", 0)) if pd.notna(row.get("RBI")) else 0
+                    doubles = int(row.get("2B", 0)) if pd.notna(row.get("2B")) else 0
+                    triples = int(row.get("3B", 0)) if pd.notna(row.get("3B")) else 0
+                    runs = int(row.get("R", 0)) if pd.notna(row.get("R")) else 0
+                    bb = int(row.get("BB", 0)) if pd.notna(row.get("BB")) else 0
+                    sb = int(row.get("SB", 0)) if pd.notna(row.get("SB")) else 0
+                    milestone.update({
+                        "hr": hr, "h": h, "rbi": rbi, "2b": doubles, "3b": triples,
+                        "r": runs, "bb": bb, "sb": sb
+                    })
+                    # Use Detail column if present, otherwise construct detail
+                    if "Detail" in row and pd.notna(row.get("Detail")):
+                        milestone["detail"] = str(row.get("Detail", ""))
+                    else:
+                        milestone["detail"] = f"{h} H ({doubles} 2B, {triples} 3B, {hr} HR), {rbi} RBI"
+
+                elif milestone_type in pitching_types:
+                    ip = str(row.get("IP", "0.0"))
+                    so = int(row.get("SO", 0)) if pd.notna(row.get("SO")) else 0
+                    h = int(row.get("H", 0)) if pd.notna(row.get("H")) else 0
+                    er = int(row.get("ER", 0)) if pd.notna(row.get("ER")) else 0
+                    bb = int(row.get("BB", 0)) if pd.notna(row.get("BB")) else 0
+                    r = int(row.get("R", 0)) if pd.notna(row.get("R")) else 0
+                    pitches = row.get("Pitches", "?")
+                    milestone.update({
+                        "ip": ip, "so": so, "h": h, "er": er, "bb": bb, "r": r, "pitches": pitches
+                    })
+                    # Use Detail column if present, otherwise construct detail
+                    if "Detail" in row and pd.notna(row.get("Detail")):
+                        milestone["detail"] = str(row.get("Detail", ""))
+                    else:
+                        milestone["detail"] = f"{ip} IP, {h} H, {er} ER, {bb} BB, {so} SO"
+
+                elif milestone_type in ["3 Strikeout Innings", "Immaculate Innings"]:
                     inning = str(row.get("Inning", ""))
                     batters = str(row.get("Batters Struck Out", ""))
-                    milestone["detail"] = f"{inning} - {batters}" if inning else ""
-                elif category == 'batting':
-                    # Use Detail field from processor if available (has box score format)
-                    if "Detail" in row and pd.notna(row.get("Detail")) and str(row.get("Detail", "")).strip():
-                        milestone["detail"] = str(row.get("Detail", ""))
-                    elif h > 0 or hr > 0:
-                        # Fallback: Build box score format: AB R H 2B 3B HR RBI BB K
-                        ab = int(row.get("AB", 0)) if pd.notna(row.get("AB")) else 0
-                        so = int(row.get("SO", row.get("K", 0))) if pd.notna(row.get("SO", row.get("K"))) else 0
-                        milestone["detail"] = f"{ab} AB, {runs} R, {h} H, {doubles} 2B, {triples} 3B, {hr} HR, {rbi} RBI, {bb} BB, {so} K"
-                    else:
-                        milestone["detail"] = ""
-                elif category == 'pitching':
-                    # Use Detail field from processor if available (has box score format)
-                    if "Detail" in row and pd.notna(row.get("Detail")) and str(row.get("Detail", "")).strip():
-                        milestone["detail"] = str(row.get("Detail", ""))
-                    elif ip:
-                        # Fallback: Build box score format: IP H R ER BB K
-                        r = int(row.get("R", 0)) if pd.notna(row.get("R")) else 0
-                        milestone["detail"] = f"{ip} IP, {h} H, {r} R, {er} ER, {bb} BB, {so} K"
-                    else:
-                        milestone["detail"] = ""
+                    milestone.update({
+                        "inning": inning, "batters": batters,
+                        "detail": f"{inning} - {batters}"
+                    })
+
                 elif "Detail" in row and pd.notna(row.get("Detail")):
                     milestone["detail"] = str(row.get("Detail", ""))
                 else:
                     milestone["detail"] = ""
-
+                
                 if pd.notna(row.get('_date_sort')):
                     milestone['_dateSort'] = row['_date_sort'].strftime('%Y-%m-%d')
-
+                
                 all_milestones.append(milestone)
-
+        
         all_milestones.sort(key=lambda x: x.get('_dateSort', ''), reverse=True)
         return all_milestones
     

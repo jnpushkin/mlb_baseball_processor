@@ -168,21 +168,26 @@ class MilestonesProcessor(BaseProcessor):
             "Leadoff HRs": [],
             "Inside-the-Park HRs": [],
             "Pinch Hit HRs": [],
-            # Batting milestones
+            # Batting milestones (18 types)
             "3+ HR Games": [],
             "Multi-HR Games": [],
             "Cycles": [],
             "5+ Hit Games": [],
             "4+ Hit Games": [],
+            "3+ Hit Games": [],
             "6+ RBI Games": [],
             "5+ RBI Games": [],
             "4+ RBI Games": [],
+            "Multi-2B Games": [],
             "Multi-3B Games": [],
             "Multi-SB Games": [],
             "4+ Walk Games": [],
             "Perfect Batting Games": [],
             "4+ Run Games": [],
-            # Pitching milestones
+            "3+ Run Games": [],
+            "2+ XBH Games": [],
+            "8+ Total Bases": [],
+            # Pitching milestones (23 types)
             "Complete Games": [],
             "Shutouts": [],
             "No-Hitters": [],
@@ -194,10 +199,18 @@ class MilestonesProcessor(BaseProcessor):
             "8+ K Games": [],
             "Maddux Games": [],
             "7-Inning Shutouts": [],
+            "Low-Hit CG": [],
             "One-Hitters": [],
             "Two-Hitters": [],
+            "CGSO No Walks": [],
+            "High K Low BB": [],
+            "Saves": [],
+            "Wins": [],
             "Immaculate Innings": [],
+            "Efficient Starts": [],
+            "Dominant Starts": [],
             "No-Walk Starts": [],
+            "Scoreless Relief": [],
             "3 Strikeout Innings": [],
         }
     
@@ -214,61 +227,81 @@ class MilestonesProcessor(BaseProcessor):
         # Process milestone stats from MilestoneEngine
         # Helper functions for detail formatting
         def batting_line(x):
-            # Box score format: AB R H 2B 3B HR RBI BB K
-            ab = x.get('ab', 0)
-            r = x.get('runs', 0)
+            parts = []
             h = x.get('hits', 0)
+            hr = x.get('home_runs', 0)
             doubles = x.get('doubles', 0)
             triples = x.get('triples', 0)
-            hr = x.get('home_runs', 0)
             rbi = x.get('rbi', 0)
+            r = x.get('runs', 0)
             bb = x.get('bb', 0)
-            so = x.get('so', x.get('strikeouts', 0))
-            return f"{ab} AB, {r} R, {h} H, {doubles} 2B, {triples} 3B, {hr} HR, {rbi} RBI, {bb} BB, {so} K"
+            sb = x.get('sb', 0)
+            if h: parts.append(f"{h} H")
+            if hr: parts.append(f"{hr} HR")
+            if doubles: parts.append(f"{doubles} 2B")
+            if triples: parts.append(f"{triples} 3B")
+            if rbi: parts.append(f"{rbi} RBI")
+            if r: parts.append(f"{r} R")
+            if bb: parts.append(f"{bb} BB")
+            if sb: parts.append(f"{sb} SB")
+            return ", ".join(parts) if parts else "—"
 
         def pitching_line(x):
-            # Box score format: IP H R ER BB K
-            ip = x.get('innings_pitched', '0')
+            ip = x.get('innings_pitched', '')
             h = x.get('hits', 0)
-            r = x.get('runs', x.get('runs_allowed', 0))
+            r = x.get('runs', 0)
             er = x.get('earned_runs', 0)
-            bb = x.get('walks', x.get('bb', 0))
+            bb = x.get('walks', 0)
             so = x.get('strikeouts', 0)
-            return f"{ip} IP, {h} H, {r} R, {er} ER, {bb} BB, {so} K"
+            pitches = x.get('pitch_count', '?')
+            return f"{ip} IP, {h} H, {r} R, {er} ER, {bb} BB, {so} K, {pitches} P"
 
         milestone_mapping = [
-            # Batting milestones - use consistent box score format
-            ("three_hr_games", "3+ HR Games", lambda x: batting_line(x)),
-            ("multi_hr_games", "Multi-HR Games", lambda x: batting_line(x)),
-            ("cycles", "Cycles", lambda x: batting_line(x)),
+            # Batting milestones (18)
+            ("three_hr_games", "3+ HR Games", lambda x: f"{x.get('home_runs', 0)} HR - {batting_line(x)}"),
+            ("multi_hr_games", "Multi-HR Games", lambda x: f"{x.get('home_runs', 0)} HR - {batting_line(x)}"),
+            ("cycles", "Cycles", lambda x: f"Cycle: {x.get('singles', 0)} 1B, {x.get('doubles', 0)} 2B, {x.get('triples', 0)} 3B, {x.get('home_runs', 0)} HR"),
             ("five_hit_games", "5+ Hit Games", lambda x: batting_line(x)),
             ("four_hit_games", "4+ Hit Games", lambda x: batting_line(x)),
+            ("three_hit_games", "3+ Hit Games", lambda x: batting_line(x)),
             ("six_rbi_games", "6+ RBI Games", lambda x: batting_line(x)),
             ("five_rbi_games", "5+ RBI Games", lambda x: batting_line(x)),
             ("four_rbi_games", "4+ RBI Games", lambda x: batting_line(x)),
-            ("multi_triple_games", "Multi-3B Games", lambda x: batting_line(x)),
-            ("multi_steal_games", "Multi-SB Games", lambda x: batting_line(x)),
-            ("four_walk_games", "4+ Walk Games", lambda x: batting_line(x)),
-            ("perfect_batting_games", "Perfect Batting Games", lambda x: batting_line(x)),
-            ("four_run_games", "4+ Run Games", lambda x: batting_line(x)),
-            # Pitching milestones - use consistent box score format
+            ("multi_double_games", "Multi-2B Games", lambda x: f"{x.get('doubles', 0)} 2B - {batting_line(x)}"),
+            ("multi_triple_games", "Multi-3B Games", lambda x: f"{x.get('triples', 0)} 3B - {batting_line(x)}"),
+            ("multi_steal_games", "Multi-SB Games", lambda x: f"{x.get('sb', 0)} SB - {batting_line(x)}"),
+            ("four_walk_games", "4+ Walk Games", lambda x: f"{x.get('bb', 0)} BB - {batting_line(x)}"),
+            ("perfect_batting_games", "Perfect Batting Games", lambda x: f"{x.get('hits', 0)} H, 0 K - {batting_line(x)}"),
+            ("four_run_games", "4+ Run Games", lambda x: f"{x.get('runs', 0)} R - {batting_line(x)}"),
+            ("three_run_games", "3+ Run Games", lambda x: f"{x.get('runs', 0)} R - {batting_line(x)}"),
+            ("hit_for_extra_bases", "2+ XBH Games", lambda x: f"{x.get('doubles', 0) + x.get('triples', 0) + x.get('home_runs', 0)} XBH - {batting_line(x)}"),
+            ("three_total_bases_games", "8+ Total Bases", lambda x: f"{x.get('singles', 0) + 2*x.get('doubles', 0) + 3*x.get('triples', 0) + 4*x.get('home_runs', 0)} TB - {batting_line(x)}"),
+            # Pitching milestones (23)
             ("complete_games", "Complete Games", lambda x: pitching_line(x)),
             ("shutouts", "Shutouts", lambda x: pitching_line(x)),
             ("no_hitters", "No-Hitters", lambda x: pitching_line(x)),
             ("perfect_games", "Perfect Games", lambda x: pitching_line(x)),
             ("quality_starts", "Quality Starts", lambda x: pitching_line(x)),
-            ("fifteen_k_games", "15+ K Games", lambda x: pitching_line(x)),
-            ("twelve_k_games", "12+ K Games", lambda x: pitching_line(x)),
-            ("ten_k_games", "10+ K Games", lambda x: pitching_line(x)),
-            ("eight_k_games", "8+ K Games", lambda x: pitching_line(x)),
-            ("maddux_games", "Maddux Games", lambda x: pitching_line(x)),
+            ("fifteen_k_games", "15+ K Games", lambda x: f"{x.get('strikeouts', 0)} K - {pitching_line(x)}"),
+            ("twelve_k_games", "12+ K Games", lambda x: f"{x.get('strikeouts', 0)} K - {pitching_line(x)}"),
+            ("ten_k_games", "10+ K Games", lambda x: f"{x.get('strikeouts', 0)} K - {pitching_line(x)}"),
+            ("eight_k_games", "8+ K Games", lambda x: f"{x.get('strikeouts', 0)} K - {pitching_line(x)}"),
+            ("maddux_games", "Maddux Games", lambda x: f"CG <100 P - {pitching_line(x)}"),
             ("seven_inning_shutouts", "7-Inning Shutouts", lambda x: pitching_line(x)),
+            ("low_hit_cg", "Low-Hit CG", lambda x: f"{x.get('hits', 0)} H CG - {pitching_line(x)}"),
             ("one_hitters", "One-Hitters", lambda x: pitching_line(x)),
             ("two_hitters", "Two-Hitters", lambda x: pitching_line(x)),
-            ("immaculate_inning_pitchers", "Immaculate Innings", lambda x: pitching_line(x)),
-            ("no_walk_starts", "No-Walk Starts", lambda x: pitching_line(x)),
+            ("cgso_no_walks", "CGSO No Walks", lambda x: pitching_line(x)),
+            ("high_k_low_bb", "High K Low BB", lambda x: f"{x.get('strikeouts', 0)} K, {x.get('walks', 0)} BB - {pitching_line(x)}"),
+            ("save_games", "Saves", lambda x: pitching_line(x)),
+            ("win_games", "Wins", lambda x: pitching_line(x)),
+            ("immaculate_inning_pitchers", "Immaculate Innings", lambda x: "Immaculate Inning"),
+            ("efficient_starts", "Efficient Starts", lambda x: f"6+ IP, {x.get('pitch_count', '?')} P - {pitching_line(x)}"),
+            ("dominant_starts", "Dominant Starts", lambda x: f"7+ IP, {x.get('strikeouts', 0)} K - {pitching_line(x)}"),
+            ("no_walk_starts", "No-Walk Starts", lambda x: f"0 BB - {pitching_line(x)}"),
+            ("scoreless_relief", "Scoreless Relief", lambda x: f"3+ IP, 0 ER - {pitching_line(x)}"),
             # Special events (handled separately but mapped here for grand slams)
-            ("grand_slams", "Grand Slams", lambda x: batting_line(x)),
+            ("grand_slams", "Grand Slams", lambda x: f"{x.get('half', '').title()} {x.get('inning', '')} - Grand Slam"),
         ]
         
         for key, tab, detail_func in milestone_mapping:
@@ -437,11 +470,12 @@ class MilestonesProcessor(BaseProcessor):
             # CONSISTENT APPROACH: All hitting milestones preserve complete stat lines
             batting_tabs = [
                 "3+ HR Games", "Multi-HR Games", "Cycles",
-                "5+ Hit Games", "4+ Hit Games",
+                "5+ Hit Games", "4+ Hit Games", "3+ Hit Games",
                 "6+ RBI Games", "5+ RBI Games", "4+ RBI Games",
-                "Multi-3B Games", "Multi-SB Games",
+                "Multi-2B Games", "Multi-3B Games", "Multi-SB Games",
                 "4+ Walk Games", "Perfect Batting Games",
-                "4+ Run Games", "Grand Slams"
+                "4+ Run Games", "3+ Run Games", "2+ XBH Games", "8+ Total Bases",
+                "Grand Slams"
             ]
             if tab in batting_tabs:
                 # Add complete batting stats from the milestone item (with footer data)
@@ -462,8 +496,10 @@ class MilestonesProcessor(BaseProcessor):
             pitching_tabs = [
                 "Complete Games", "Shutouts", "No-Hitters", "Perfect Games",
                 "Quality Starts", "15+ K Games", "12+ K Games", "10+ K Games", "8+ K Games",
-                "Maddux Games", "7-Inning Shutouts",
-                "One-Hitters", "Two-Hitters", "No-Walk Starts"
+                "Maddux Games", "7-Inning Shutouts", "Low-Hit CG",
+                "One-Hitters", "Two-Hitters", "CGSO No Walks", "High K Low BB",
+                "Saves", "Wins", "Efficient Starts", "Dominant Starts",
+                "No-Walk Starts", "Scoreless Relief"
             ]
             if tab in pitching_tabs:
                 # Add pitching stats for pitching milestones
@@ -1894,14 +1930,19 @@ def integrate_practical_enhancements(milestone_dfs, games):
         "Cycles": enhancer.enhance_cycles,
         "5+ Hit Games": enhancer.enhance_four_hit_games,
         "4+ Hit Games": enhancer.enhance_four_hit_games,
+        "3+ Hit Games": enhancer.enhance_four_hit_games,
         "6+ RBI Games": enhancer.enhance_five_rbi_games,
         "5+ RBI Games": enhancer.enhance_five_rbi_games,
         "4+ RBI Games": enhancer.enhance_five_rbi_games,
+        "Multi-2B Games": enhancer.enhance_four_hit_games,
         "Multi-3B Games": enhancer.enhance_four_hit_games,
         "Multi-SB Games": enhancer.enhance_four_hit_games,
         "4+ Walk Games": enhancer.enhance_four_hit_games,
         "Perfect Batting Games": enhancer.enhance_four_hit_games,
         "4+ Run Games": enhancer.enhance_four_hit_games,
+        "3+ Run Games": enhancer.enhance_four_hit_games,
+        "2+ XBH Games": enhancer.enhance_four_hit_games,
+        "8+ Total Bases": enhancer.enhance_four_hit_games,
         "Grand Slams": enhancer.enhance_grand_slams,
         # Pitching milestones - use appropriate enhancer patterns
         "Complete Games": enhancer.enhance_complete_games,
@@ -1915,9 +1956,17 @@ def integrate_practical_enhancements(milestone_dfs, games):
         "8+ K Games": enhancer.enhance_ten_k_games,
         "Maddux Games": enhancer.enhance_quality_starts,
         "7-Inning Shutouts": enhancer.enhance_quality_starts,
+        "Low-Hit CG": enhancer.enhance_quality_starts,
         "One-Hitters": enhancer.enhance_quality_starts,
         "Two-Hitters": enhancer.enhance_quality_starts,
+        "CGSO No Walks": enhancer.enhance_quality_starts,
+        "High K Low BB": enhancer.enhance_quality_starts,
+        "Saves": enhancer.enhance_quality_starts,
+        "Wins": enhancer.enhance_quality_starts,
+        "Efficient Starts": enhancer.enhance_quality_starts,
+        "Dominant Starts": enhancer.enhance_quality_starts,
         "No-Walk Starts": enhancer.enhance_quality_starts,
+        "Scoreless Relief": enhancer.enhance_quality_starts,
     }
     
     enhanced_dfs = {}

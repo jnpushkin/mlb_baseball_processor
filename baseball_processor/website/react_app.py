@@ -125,56 +125,6 @@ const exportToCSV = (data, columns, filename) => {
     window.URL.revokeObjectURL(url);
 };
 
-// Team logo URLs (using ESPN's CDN) - defined early so all map components can use it
-const TEAM_LOGOS = {
-    'ARI': 'https://a.espncdn.com/i/teamlogos/mlb/500/ari.png',
-    'ATL': 'https://a.espncdn.com/i/teamlogos/mlb/500/atl.png',
-    'ATH': 'https://a.espncdn.com/i/teamlogos/mlb/500/oak.png',
-    'BAL': 'https://a.espncdn.com/i/teamlogos/mlb/500/bal.png',
-    'BOS': 'https://a.espncdn.com/i/teamlogos/mlb/500/bos.png',
-    'CHC': 'https://a.espncdn.com/i/teamlogos/mlb/500/chc.png',
-    'CHW': 'https://a.espncdn.com/i/teamlogos/mlb/500/chw.png',
-    'CIN': 'https://a.espncdn.com/i/teamlogos/mlb/500/cin.png',
-    'CLE': 'https://a.espncdn.com/i/teamlogos/mlb/500/cle.png',
-    'COL': 'https://a.espncdn.com/i/teamlogos/mlb/500/col.png',
-    'DET': 'https://a.espncdn.com/i/teamlogos/mlb/500/det.png',
-    'HOU': 'https://a.espncdn.com/i/teamlogos/mlb/500/hou.png',
-    'KC': 'https://a.espncdn.com/i/teamlogos/mlb/500/kc.png',
-    'LAA': 'https://a.espncdn.com/i/teamlogos/mlb/500/laa.png',
-    'LAD': 'https://a.espncdn.com/i/teamlogos/mlb/500/lad.png',
-    'MIA': 'https://a.espncdn.com/i/teamlogos/mlb/500/mia.png',
-    'MIL': 'https://a.espncdn.com/i/teamlogos/mlb/500/mil.png',
-    'MIN': 'https://a.espncdn.com/i/teamlogos/mlb/500/min.png',
-    'NYM': 'https://a.espncdn.com/i/teamlogos/mlb/500/nym.png',
-    'NYY': 'https://a.espncdn.com/i/teamlogos/mlb/500/nyy.png',
-    'OAK': 'https://a.espncdn.com/i/teamlogos/mlb/500/oak.png',
-    'PHI': 'https://a.espncdn.com/i/teamlogos/mlb/500/phi.png',
-    'PIT': 'https://a.espncdn.com/i/teamlogos/mlb/500/pit.png',
-    'SD': 'https://a.espncdn.com/i/teamlogos/mlb/500/sd.png',
-    'SF': 'https://a.espncdn.com/i/teamlogos/mlb/500/sf.png',
-    'SEA': 'https://a.espncdn.com/i/teamlogos/mlb/500/sea.png',
-    'STL': 'https://a.espncdn.com/i/teamlogos/mlb/500/stl.png',
-    'TB': 'https://a.espncdn.com/i/teamlogos/mlb/500/tb.png',
-    'TEX': 'https://a.espncdn.com/i/teamlogos/mlb/500/tex.png',
-    'TOR': 'https://a.espncdn.com/i/teamlogos/mlb/500/tor.png',
-    'WSH': 'https://a.espncdn.com/i/teamlogos/mlb/500/wsh.png',
-    'NYA': 'https://a.espncdn.com/i/teamlogos/mlb/500/nyy.png',
-    'NYN': 'https://a.espncdn.com/i/teamlogos/mlb/500/nym.png',
-    'TBA': 'https://a.espncdn.com/i/teamlogos/mlb/500/tb.png',
-    'CHA': 'https://a.espncdn.com/i/teamlogos/mlb/500/chw.png',
-    'CHN': 'https://a.espncdn.com/i/teamlogos/mlb/500/chc.png',
-    'KCA': 'https://a.espncdn.com/i/teamlogos/mlb/500/kc.png',
-    'ANA': 'https://a.espncdn.com/i/teamlogos/mlb/500/laa.png',
-    'LAN': 'https://a.espncdn.com/i/teamlogos/mlb/500/lad.png',
-    'SDN': 'https://a.espncdn.com/i/teamlogos/mlb/500/sd.png',
-    'SFN': 'https://a.espncdn.com/i/teamlogos/mlb/500/sf.png',
-    'SLN': 'https://a.espncdn.com/i/teamlogos/mlb/500/stl.png',
-    'WAS': 'https://a.espncdn.com/i/teamlogos/mlb/500/wsh.png',
-    'MON': 'https://a.espncdn.com/i/teamlogos/mlb/500/wsh.png',
-    'FLA': 'https://a.espncdn.com/i/teamlogos/mlb/500/mia.png',
-    'CAL': 'https://a.espncdn.com/i/teamlogos/mlb/500/laa.png',
-};
-
 const PlayerLink = ({ playerId, name }) => {
     if (!playerId || playerId === 'UNKNOWN') return <span>{name}</span>;
     const firstLetter = playerId.charAt(0).toLowerCase();
@@ -2545,40 +2495,25 @@ const OriolesStadiumMap = ({ orioles }) => {
             const hasVisited = data?.hasVisited;
             const isHistorical = !stadium.current;
 
-            let marker;
-
-            // Use team logo for visited stadiums
-            if (hasVisited && TEAM_LOGOS[stadium.team]) {
-                const borderColor = isHistorical ? '#9333ea' : '#f97316';
-                const logoIcon = L.divIcon({
-                    className: 'team-logo-marker',
-                    html: '<div style="width: 36px; height: 36px; border-radius: 50%; border: 3px solid ' + borderColor + '; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); overflow: hidden;"><img src="' + TEAM_LOGOS[stadium.team] + '" style="width: 28px; height: 28px; object-fit: contain;" alt="' + stadium.team + '" /></div>',
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 18],
-                    popupAnchor: [0, -18]
-                });
-                marker = L.marker([stadium.lat, stadium.lng], { icon: logoIcon }).addTo(mapInstanceRef.current);
-            } else {
-                // Use circle marker for non-visited stadiums
-                let fillColor = '#9ca3af'; // gray - not visited
-                let borderColor = '#6b7280';
-                if (hasVisited && isHistorical) {
-                    fillColor = '#a855f7'; // purple - historical visited
-                    borderColor = '#9333ea';
-                } else if (hasVisited) {
-                    fillColor = '#f97316'; // orange - saw Orioles (current)
-                    borderColor = '#ea580c';
-                }
-
-                marker = L.circleMarker([stadium.lat, stadium.lng], {
-                    radius: hasVisited ? 10 : 7,
-                    fillColor: fillColor,
-                    color: borderColor,
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: hasVisited ? 0.9 : 0.4
-                }).addTo(mapInstanceRef.current);
+            // Determine marker color
+            let fillColor = '#9ca3af'; // gray - not visited
+            let borderColor = '#6b7280';
+            if (hasVisited && isHistorical) {
+                fillColor = '#a855f7'; // purple - historical visited
+                borderColor = '#9333ea';
+            } else if (hasVisited) {
+                fillColor = '#f97316'; // orange - saw Orioles (current)
+                borderColor = '#ea580c';
             }
+
+            const marker = L.circleMarker([stadium.lat, stadium.lng], {
+                radius: hasVisited ? 10 : 7,
+                fillColor: fillColor,
+                color: borderColor,
+                weight: 2,
+                opacity: 1,
+                fillOpacity: hasVisited ? 0.9 : 0.4
+            }).addTo(mapInstanceRef.current);
 
             // Build popup content
             let statusText = '<span style="color: #9ca3af;">Not yet visited with Orioles</span>';
@@ -3138,48 +3073,28 @@ const CompanionStadiumMap = ({ companion }) => {
             const sawOrioles = data?.sawOrioles;
             const isHistorical = !stadium.current;
 
-            let marker;
-
-            // Use team logo for visited stadiums
-            if (hasVisited && TEAM_LOGOS[stadium.team]) {
-                let borderColor = '#22c55e'; // green default
-                if (isHistorical) {
-                    borderColor = '#9333ea'; // purple for historical
-                } else if (sawOrioles) {
-                    borderColor = '#f97316'; // orange for Orioles
-                }
-                const logoIcon = L.divIcon({
-                    className: 'team-logo-marker',
-                    html: '<div style="width: 36px; height: 36px; border-radius: 50%; border: 3px solid ' + borderColor + '; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); overflow: hidden;"><img src="' + TEAM_LOGOS[stadium.team] + '" style="width: 28px; height: 28px; object-fit: contain;" alt="' + stadium.team + '" /></div>',
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 18],
-                    popupAnchor: [0, -18]
-                });
-                marker = L.marker([stadium.lat, stadium.lng], { icon: logoIcon }).addTo(mapInstanceRef.current);
-            } else {
-                // Use circle marker for non-visited stadiums
-                let fillColor = '#9ca3af'; // gray - not visited
-                let borderColor = '#6b7280';
-                if (hasVisited && isHistorical) {
-                    fillColor = '#a855f7'; // purple - historical
-                    borderColor = '#9333ea';
-                } else if (sawOrioles) {
-                    fillColor = '#f97316'; // orange - saw Orioles
-                    borderColor = '#ea580c';
-                } else if (hasVisited) {
-                    fillColor = '#22c55e'; // green - visited (non-Orioles)
-                    borderColor = '#16a34a';
-                }
-
-                marker = L.circleMarker([stadium.lat, stadium.lng], {
-                    radius: hasVisited ? 10 : 7,
-                    fillColor: fillColor,
-                    color: borderColor,
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: hasVisited ? 0.9 : 0.4
-                }).addTo(mapInstanceRef.current);
+            // Determine marker color
+            let fillColor = '#9ca3af'; // gray - not visited
+            let borderColor = '#6b7280';
+            if (hasVisited && isHistorical) {
+                fillColor = '#a855f7'; // purple - historical
+                borderColor = '#9333ea';
+            } else if (sawOrioles) {
+                fillColor = '#f97316'; // orange - saw Orioles
+                borderColor = '#ea580c';
+            } else if (hasVisited) {
+                fillColor = '#22c55e'; // green - visited (non-Orioles)
+                borderColor = '#16a34a';
             }
+
+            const marker = L.circleMarker([stadium.lat, stadium.lng], {
+                radius: hasVisited ? 10 : 7,
+                fillColor: fillColor,
+                color: borderColor,
+                weight: 2,
+                opacity: 1,
+                fillOpacity: hasVisited ? 0.9 : 0.4
+            }).addTo(mapInstanceRef.current);
 
             // Build popup content
             let statusText = '<span style="color: #9ca3af;">Not yet visited together</span>';
@@ -5558,8 +5473,8 @@ const Leaderboards = ({ data }) => {
 const MilestonesView = ({ milestones, games, careerFirsts }) => {
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [expandedGroup, setExpandedGroup] = useState(null);
-    const [careerMilestoneSort, setCareerMilestoneSort] = useState('event');
+    const [showCareerFirsts, setShowCareerFirsts] = useState(true);
+    const [careerMilestoneSort, setCareerMilestoneSort] = useState('event'); // 'event' or 'date'
 
     // Build game lookup for additional context
     const gameMap = useMemo(() => {
@@ -5568,338 +5483,23 @@ const MilestonesView = ({ milestones, games, careerFirsts }) => {
         return map;
     }, [games]);
 
-    // Define milestone groups - only threshold-based milestones are grouped together
-    // Other milestones get their own individual cards
-    const milestoneGroups = {
-        batting: [
-            // Grouped threshold-based milestones
-            {
-                id: 'hr-games',
-                label: 'Home Run Games',
-                icon: '💣',
-                color: 'rose',
-                types: ['3+ HR Games', 'Multi-HR Games'],
-                thresholdOrder: ['3+ HR Games', 'Multi-HR Games']
-            },
-            {
-                id: 'hit-games',
-                label: 'Multi-Hit Games',
-                icon: '🎯',
-                color: 'orange',
-                types: ['5+ Hit Games', '4+ Hit Games'],
-                thresholdOrder: ['5+ Hit Games', '4+ Hit Games']
-            },
-            {
-                id: 'rbi-games',
-                label: 'RBI Games',
-                icon: '💪',
-                color: 'red',
-                types: ['6+ RBI Games', '5+ RBI Games', '4+ RBI Games'],
-                thresholdOrder: ['6+ RBI Games', '5+ RBI Games', '4+ RBI Games']
-            },
-            // Individual cards for special home runs
-            {
-                id: 'grand-slams',
-                label: 'Grand Slams',
-                icon: '💣',
-                color: 'purple',
-                types: ['Grand Slams'],
-                thresholdOrder: ['Grand Slams']
-            },
-            {
-                id: 'leadoff-hrs',
-                label: 'Leadoff HRs',
-                icon: '1️⃣',
-                color: 'purple',
-                types: ['Leadoff HRs'],
-                thresholdOrder: ['Leadoff HRs']
-            },
-            {
-                id: 'inside-park-hrs',
-                label: 'Inside-the-Park HRs',
-                icon: '🏃',
-                color: 'purple',
-                types: ['Inside-the-Park HRs'],
-                thresholdOrder: ['Inside-the-Park HRs']
-            },
-            {
-                id: 'pinch-hit-hrs',
-                label: 'Pinch Hit HRs',
-                icon: '🎯',
-                color: 'purple',
-                types: ['Pinch Hit HRs'],
-                thresholdOrder: ['Pinch Hit HRs']
-            },
-            // Individual cards for other batting milestones
-            {
-                id: 'cycles',
-                label: 'Cycles',
-                icon: '🔄',
-                color: 'blue',
-                types: ['Cycles'],
-                thresholdOrder: ['Cycles']
-            },
-            {
-                id: 'walk-offs',
-                label: 'Walk-Offs',
-                icon: '🎉',
-                color: 'blue',
-                types: ['Walk-Offs'],
-                thresholdOrder: ['Walk-Offs']
-            },
-            {
-                id: 'multi-3b',
-                label: 'Multi-3B Games',
-                icon: '3️⃣',
-                color: 'blue',
-                types: ['Multi-3B Games'],
-                thresholdOrder: ['Multi-3B Games']
-            },
-            {
-                id: 'multi-sb',
-                label: 'Multi-SB Games',
-                icon: '🏃',
-                color: 'blue',
-                types: ['Multi-SB Games'],
-                thresholdOrder: ['Multi-SB Games']
-            },
-            {
-                id: '4-walk-games',
-                label: '4+ Walk Games',
-                icon: '🚶',
-                color: 'blue',
-                types: ['4+ Walk Games'],
-                thresholdOrder: ['4+ Walk Games']
-            },
-            {
-                id: 'perfect-batting',
-                label: 'Perfect Batting Games',
-                icon: '💯',
-                color: 'blue',
-                types: ['Perfect Batting Games'],
-                thresholdOrder: ['Perfect Batting Games']
-            },
-            {
-                id: '4-run-games',
-                label: '4+ Run Games',
-                icon: '🏠',
-                color: 'blue',
-                types: ['4+ Run Games'],
-                thresholdOrder: ['4+ Run Games']
-            }
-        ],
-        pitching: [
-            // Grouped threshold-based milestones
-            {
-                id: 'strikeout-games',
-                label: 'Strikeout Games',
-                icon: '🔥',
-                color: 'indigo',
-                types: ['15+ K Games', '12+ K Games', '10+ K Games', '8+ K Games'],
-                thresholdOrder: ['15+ K Games', '12+ K Games', '10+ K Games', '8+ K Games']
-            },
-            // Individual cards for complete games
-            {
-                id: 'perfect-games',
-                label: 'Perfect Games',
-                icon: '👑',
-                color: 'amber',
-                types: ['Perfect Games'],
-                thresholdOrder: ['Perfect Games']
-            },
-            {
-                id: 'no-hitters',
-                label: 'No-Hitters',
-                icon: '💎',
-                color: 'amber',
-                types: ['No-Hitters'],
-                thresholdOrder: ['No-Hitters']
-            },
-            {
-                id: 'one-hitters',
-                label: 'One-Hitters',
-                icon: '1️⃣',
-                color: 'slate',
-                types: ['One-Hitters'],
-                thresholdOrder: ['One-Hitters']
-            },
-            {
-                id: 'two-hitters',
-                label: 'Two-Hitters',
-                icon: '2️⃣',
-                color: 'slate',
-                types: ['Two-Hitters'],
-                thresholdOrder: ['Two-Hitters']
-            },
-            {
-                id: 'shutouts',
-                label: 'Shutouts',
-                icon: '🔒',
-                color: 'slate',
-                types: ['Shutouts'],
-                thresholdOrder: ['Shutouts']
-            },
-            {
-                id: 'maddux-games',
-                label: 'Maddux Games',
-                icon: '🎖️',
-                color: 'slate',
-                types: ['Maddux Games'],
-                thresholdOrder: ['Maddux Games']
-            },
-            {
-                id: '7-inning-shutouts',
-                label: '7-Inning Shutouts',
-                icon: '🛡️',
-                color: 'slate',
-                types: ['7-Inning Shutouts'],
-                thresholdOrder: ['7-Inning Shutouts']
-            },
-            {
-                id: 'complete-games',
-                label: 'Complete Games',
-                icon: '🛡️',
-                color: 'slate',
-                types: ['Complete Games'],
-                thresholdOrder: ['Complete Games']
-            },
-            // Individual cards for quality pitching
-            {
-                id: 'quality-starts',
-                label: 'Quality Starts',
-                icon: '✅',
-                color: 'green',
-                types: ['Quality Starts'],
-                thresholdOrder: ['Quality Starts']
-            },
-            {
-                id: 'no-walk-starts',
-                label: 'No-Walk Starts',
-                icon: '🚫',
-                color: 'green',
-                types: ['No-Walk Starts'],
-                thresholdOrder: ['No-Walk Starts']
-            },
-            {
-                id: 'immaculate-innings',
-                label: 'Immaculate Innings',
-                icon: '💎',
-                color: 'green',
-                types: ['Immaculate Innings'],
-                thresholdOrder: ['Immaculate Innings']
-            },
-            {
-                id: '3-k-innings',
-                label: '3 Strikeout Innings',
-                icon: '⚡',
-                color: 'green',
-                types: ['3 Strikeout Innings'],
-                thresholdOrder: ['3 Strikeout Innings']
-            }
-        ]
-    };
-
-    // Type to config mapping for display
-    const typeConfig = {
-        '3+ HR Games': { icon: '💣', label: '3+ HR' },
-        'Multi-HR Games': { icon: '🚀', label: '2 HR' },
-        '5+ Hit Games': { icon: '🔥', label: '5+ Hits' },
-        '4+ Hit Games': { icon: '🎯', label: '4 Hits' },
-        '6+ RBI Games': { icon: '💪', label: '6+ RBI' },
-        '5+ RBI Games': { icon: '💪', label: '5 RBI' },
-        '4+ RBI Games': { icon: '🏆', label: '4 RBI' },
-        'Grand Slams': { icon: '💣', label: 'Grand Slam' },
-        'Leadoff HRs': { icon: '1️⃣', label: 'Leadoff HR' },
-        'Inside-the-Park HRs': { icon: '🏃', label: 'Inside-the-Park' },
-        'Pinch Hit HRs': { icon: '🎯', label: 'Pinch Hit HR' },
-        'Cycles': { icon: '🔄', label: 'Cycle' },
-        'Walk-Offs': { icon: '🎉', label: 'Walk-Off' },
-        'Multi-3B Games': { icon: '3️⃣', label: 'Multi-3B' },
-        'Multi-SB Games': { icon: '🏃', label: 'Multi-SB' },
-        '4+ Walk Games': { icon: '🚶', label: '4+ Walks' },
-        'Perfect Batting Games': { icon: '💯', label: 'Perfect Batting' },
-        '4+ Run Games': { icon: '🏠', label: '4+ Runs' },
-        '15+ K Games': { icon: '🔥', label: '15+ K' },
-        '12+ K Games': { icon: '🔥', label: '12+ K' },
-        '10+ K Games': { icon: '🔥', label: '10+ K' },
-        '8+ K Games': { icon: '⚡', label: '8+ K' },
-        'Perfect Games': { icon: '👑', label: 'Perfect Game' },
-        'No-Hitters': { icon: '💎', label: 'No-Hitter' },
-        'One-Hitters': { icon: '1️⃣', label: 'One-Hitter' },
-        'Two-Hitters': { icon: '2️⃣', label: 'Two-Hitter' },
-        'Shutouts': { icon: '🔒', label: 'Shutout' },
-        'Maddux Games': { icon: '🎖️', label: 'Maddux' },
-        '7-Inning Shutouts': { icon: '🛡️', label: '7 IP SHO' },
-        'Complete Games': { icon: '🛡️', label: 'Complete Game' },
-        'Complete Games & Shutouts': { icon: '🛡️', label: 'CG/SHO' },
-        'Quality Starts': { icon: '✅', label: 'Quality Start' },
-        'No-Walk Starts': { icon: '🚫', label: 'No-Walk Start' },
-        'Immaculate Innings': { icon: '💎', label: 'Immaculate Inning' },
-        '3 Strikeout Innings': { icon: '⚡', label: '3 K Inning' },
-        'Consecutive HR Instances': { icon: '🔗', label: 'B2B HRs' }
-    };
-
-    // Category config for backward compatibility
-    const categoryConfig = {};
-    milestoneGroups.batting.forEach(g => g.types.forEach(t => categoryConfig[t] = { category: 'batting', icon: typeConfig[t]?.icon || '⭐', color: g.color }));
-    milestoneGroups.pitching.forEach(g => g.types.forEach(t => categoryConfig[t] = { category: 'pitching', icon: typeConfig[t]?.icon || '⭐', color: g.color }));
-    categoryConfig['Consecutive HR Instances'] = { category: 'team', icon: '🔗', color: 'pink' };
-
-    // Format statline into box score format
-    const formatStatline = (detail, milestoneType) => {
-        if (!detail) return null;
-
-        // Parse stats from detail string like "4 AB, 2 R, 4 H, 1 2B, 0 3B, 2 HR, 5 RBI, 1 BB, 0 K"
-        const parts = detail.split(',').map(s => s.trim());
-        const parsed = {};
-
-        for (const part of parts) {
-            const match = part.match(/^(\d+(?:\.\d+)?)\s*(.+)$/);
-            if (match) {
-                parsed[match[2].trim()] = match[1];
-            }
-        }
-
-        // Check if this is a valid box score format (has AB for batting or IP for pitching)
-        const hasValidBattingStats = 'AB' in parsed && ('H' in parsed || 'R' in parsed || 'RBI' in parsed);
-        const hasValidPitchingStats = 'IP' in parsed && ('H' in parsed || 'K' in parsed || 'ER' in parsed);
-
-        // If we don't have valid stats, just show the detail as plain text
-        if (!hasValidBattingStats && !hasValidPitchingStats) {
-            return <span className="text-xs text-gray-500">{detail}</span>;
-        }
-
-        if (hasValidPitchingStats) {
-            // Pitching: IP H R ER BB K
-            const cols = ['IP', 'H', 'R', 'ER', 'BB', 'K'];
-            return (
-                <div className="flex items-center gap-0 mt-1 text-xs font-mono bg-gray-50 rounded px-2 py-1 w-fit">
-                    {cols.map((col, i) => (
-                        <div key={col} className="flex flex-col items-center min-w-[28px]">
-                            <span className="text-gray-400 text-[10px]">{col}</span>
-                            <span className="text-gray-700 font-medium">{parsed[col] || '0'}</span>
-                        </div>
-                    ))}
-                </div>
-            );
-        } else {
-            // Batting: AB R H 2B 3B HR RBI BB K
-            const cols = ['AB', 'R', 'H', '2B', '3B', 'HR', 'RBI', 'BB', 'K'];
-            const getValue = (col) => {
-                if (col === 'K') return parsed['K'] || parsed['SO'] || '0';
-                return parsed[col] || '0';
-            };
-            return (
-                <div className="flex items-center gap-0 mt-1 text-xs font-mono bg-gray-50 rounded px-2 py-1 w-fit">
-                    {cols.map((col, i) => (
-                        <div key={col} className="flex flex-col items-center min-w-[24px]">
-                            <span className="text-gray-400 text-[10px]">{col}</span>
-                            <span className="text-gray-700 font-medium">{getValue(col)}</span>
-                        </div>
-                    ))}
-                </div>
-            );
-        }
+    // Category configurations with icons and colors
+    const categoryConfig = {
+        'Walk-Offs': { icon: '🎉', color: 'green', category: 'batting' },
+        '4+ Hit Games': { icon: '🔥', color: 'orange', category: 'batting' },
+        '5+ RBI Games': { icon: '💪', color: 'red', category: 'batting' },
+        'Grand Slams': { icon: '💣', color: 'purple', category: 'batting' },
+        'Multi-HR Games': { icon: '🚀', color: 'rose', category: 'batting' },
+        'Leadoff HRs': { icon: '1️⃣', color: 'blue', category: 'batting' },
+        'Inside-the-Park HRs': { icon: '🏃', color: 'emerald', category: 'batting' },
+        'Pinch Hit HRs': { icon: '🎯', color: 'amber', category: 'batting' },
+        '10+ K Games': { icon: '🔥', color: 'indigo', category: 'pitching' },
+        'Quality Starts': { icon: '✅', color: 'green', category: 'pitching' },
+        '3 Strikeout Innings': { icon: '⚡', color: 'violet', category: 'pitching' },
+        'Immaculate Innings': { icon: '💎', color: 'cyan', category: 'pitching' },
+        'Complete Games & Shutouts': { icon: '🛡️', color: 'slate', category: 'pitching' },
+        '3 Pitch Innings': { icon: '⏱️', color: 'gray', category: 'pitching' },
+        'Consecutive HR Instances': { icon: '🔗', color: 'pink', category: 'team' },
     };
 
     // Group milestones by type
@@ -6254,282 +5854,197 @@ const MilestonesView = ({ milestones, games, careerFirsts }) => {
                 </div>
             )}
 
-            {/* Milestone Groups as Cards */}
+            {/* Milestone groups - hide when only viewing career firsts */}
             {activeCategory !== 'firsts' && (
-            <div className="space-y-8">
-                {/* Batting Section */}
-                {(activeCategory === 'all' || activeCategory === 'batting') && (
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <span>🏏</span> Batting Milestones
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {milestoneGroups.batting.map(group => {
-                                // Count milestones in this group
-                                const groupItems = group.types.flatMap(t => groupedMilestones[t] || []);
-                                const filteredGroupItems = searchTerm
-                                    ? groupItems.filter(m =>
-                                        m.player?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                        m.team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                        m.detail?.toLowerCase().includes(searchTerm.toLowerCase())
-                                    )
-                                    : groupItems;
+            <div className="space-y-4">
+                {filteredTypes.map(type => {
+                    const items = groupedMilestones[type] || [];
+                    const config = categoryConfig[type] || { icon: '⭐', color: 'gray' };
 
-                                if (filteredGroupItems.length === 0) return null;
+                    // Filter items by search if active
+                    let filteredItems = searchTerm
+                        ? items.filter(m =>
+                            m.player?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            m.team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            m.detail?.toLowerCase().includes(searchTerm.toLowerCase())
+                        )
+                        : [...items];
 
-                                const isExpanded = expandedGroup === group.id;
+                    // Special sorting for Multi-HR Games: by HR count (descending) then date (descending)
+                    if (type === 'Multi-HR Games') {
+                        const getHrCount = (detail) => {
+                            const match = detail?.match(/(\d+)\s*HR/);
+                            return match ? parseInt(match[1], 10) : 0;
+                        };
+                        filteredItems.sort((a, b) => {
+                            const hrDiff = getHrCount(b.detail) - getHrCount(a.detail);
+                            if (hrDiff !== 0) return hrDiff;
+                            return new Date(b.date) - new Date(a.date);
+                        });
+                    }
 
-                                return (
-                                    <div key={group.id} className={`bg-white rounded-xl shadow-md overflow-hidden ${isExpanded ? 'md:col-span-2 lg:col-span-3' : ''}`}>
-                                        <button
-                                            onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
-                                            className={`w-full p-4 text-left bg-gradient-to-r from-${group.color}-500 to-${group.color}-600 text-white hover:opacity-95 transition-all`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-2xl">{group.icon}</span>
-                                                    <div>
-                                                        <h3 className="font-bold">{group.label}</h3>
-                                                        <p className="text-sm opacity-80">
-                                                            {group.thresholdOrder.filter(t => (groupedMilestones[t] || []).length > 0).map(t => typeConfig[t]?.label || t).join(', ')}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-bold">
-                                                        {filteredGroupItems.length}
-                                                    </span>
-                                                    <span className="text-xl">{isExpanded ? '−' : '+'}</span>
-                                                </div>
-                                            </div>
-                                        </button>
-
-                                        {isExpanded && (
-                                            <div className="p-4 bg-gray-50 space-y-4">
-                                                {group.thresholdOrder.map(type => {
-                                                    const items = groupedMilestones[type] || [];
-                                                    const filtered = searchTerm
-                                                        ? items.filter(m =>
-                                                            m.player?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                            m.team?.toLowerCase().includes(searchTerm.toLowerCase())
-                                                        )
-                                                        : items;
-
-                                                    if (filtered.length === 0) return null;
-
-                                                    const config = typeConfig[type] || { icon: '⭐', label: type };
-
-                                                    return (
-                                                        <div key={type}>
-                                                            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
-                                                                <span>{config.icon}</span>
-                                                                <span className="font-bold text-gray-700">{config.label}</span>
-                                                                <span className="text-sm text-gray-500">({filtered.length})</span>
-                                                            </div>
-                                                            <div className="grid grid-cols-1 gap-2">
-                                                                {filtered.slice(0, 10).map((m, idx) => {
-                                                                    const url = m.gameId && m.gameId !== 'UNKNOWN'
-                                                                        ? `https://www.baseball-reference.com/boxes/${m.gameId.substring(0, 3)}/${m.gameId}.shtml`
-                                                                        : null;
-                                                                    return (
-                                                                        <div key={idx} className="bg-white rounded-lg p-2 border border-gray-200 hover:border-blue-300 transition-all text-sm">
-                                                                            <div className="flex items-center justify-between gap-2">
-                                                                                <div className="flex items-center gap-2 min-w-0">
-                                                                                    {m.playerId && m.playerId !== 'UNKNOWN' ? (
-                                                                                        <a href={`https://www.baseball-reference.com/players/${m.playerId.charAt(0).toLowerCase()}/${m.playerId}.shtml`}
-                                                                                           target="_blank" rel="noopener noreferrer"
-                                                                                           className="font-semibold text-blue-600 hover:underline truncate">
-                                                                                            {m.player}
-                                                                                        </a>
-                                                                                    ) : (
-                                                                                        <span className="font-semibold text-gray-900 truncate">{m.player}</span>
-                                                                                    )}
-                                                                                    <span className="text-xs text-gray-500">({m.team})</span>
-                                                                                </div>
-                                                                                <div className="flex items-center gap-2 text-xs text-gray-500 flex-shrink-0">
-                                                                                    <span>{m.date}</span>
-                                                                                    {url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">→</a>}
-                                                                                </div>
-                                                                            </div>
-                                                                            {m.detail && formatStatline(m.detail)}
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                                {filtered.length > 10 && (
-                                                                    <p className="text-xs text-gray-500 text-center">+{filtered.length - 10} more</p>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-
-                {/* Pitching Section */}
-                {(activeCategory === 'all' || activeCategory === 'pitching') && (
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <span>⚾</span> Pitching Milestones
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {milestoneGroups.pitching.map(group => {
-                                const groupItems = group.types.flatMap(t => groupedMilestones[t] || []);
-                                const filteredGroupItems = searchTerm
-                                    ? groupItems.filter(m =>
-                                        m.player?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                        m.team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                        m.detail?.toLowerCase().includes(searchTerm.toLowerCase())
-                                    )
-                                    : groupItems;
-
-                                if (filteredGroupItems.length === 0) return null;
-
-                                const isExpanded = expandedGroup === group.id;
-
-                                return (
-                                    <div key={group.id} className={`bg-white rounded-xl shadow-md overflow-hidden ${isExpanded ? 'md:col-span-2 lg:col-span-3' : ''}`}>
-                                        <button
-                                            onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
-                                            className={`w-full p-4 text-left bg-gradient-to-r from-${group.color}-500 to-${group.color}-600 text-white hover:opacity-95 transition-all`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-2xl">{group.icon}</span>
-                                                    <div>
-                                                        <h3 className="font-bold">{group.label}</h3>
-                                                        <p className="text-sm opacity-80">
-                                                            {group.thresholdOrder.filter(t => (groupedMilestones[t] || []).length > 0).map(t => typeConfig[t]?.label || t).join(', ')}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-bold">
-                                                        {filteredGroupItems.length}
-                                                    </span>
-                                                    <span className="text-xl">{isExpanded ? '−' : '+'}</span>
-                                                </div>
-                                            </div>
-                                        </button>
-
-                                        {isExpanded && (
-                                            <div className="p-4 bg-gray-50 space-y-4">
-                                                {group.thresholdOrder.map(type => {
-                                                    const items = groupedMilestones[type] || [];
-                                                    const filtered = searchTerm
-                                                        ? items.filter(m =>
-                                                            m.player?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                            m.team?.toLowerCase().includes(searchTerm.toLowerCase())
-                                                        )
-                                                        : items;
-
-                                                    if (filtered.length === 0) return null;
-
-                                                    const config = typeConfig[type] || { icon: '⭐', label: type };
-
-                                                    return (
-                                                        <div key={type}>
-                                                            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
-                                                                <span>{config.icon}</span>
-                                                                <span className="font-bold text-gray-700">{config.label}</span>
-                                                                <span className="text-sm text-gray-500">({filtered.length})</span>
-                                                            </div>
-                                                            <div className="grid grid-cols-1 gap-2">
-                                                                {filtered.slice(0, 10).map((m, idx) => {
-                                                                    const url = m.gameId && m.gameId !== 'UNKNOWN'
-                                                                        ? `https://www.baseball-reference.com/boxes/${m.gameId.substring(0, 3)}/${m.gameId}.shtml`
-                                                                        : null;
-                                                                    return (
-                                                                        <div key={idx} className="bg-white rounded-lg p-2 border border-gray-200 hover:border-blue-300 transition-all text-sm">
-                                                                            <div className="flex items-center justify-between gap-2">
-                                                                                <div className="flex items-center gap-2 min-w-0">
-                                                                                    {m.playerId && m.playerId !== 'UNKNOWN' ? (
-                                                                                        <a href={`https://www.baseball-reference.com/players/${m.playerId.charAt(0).toLowerCase()}/${m.playerId}.shtml`}
-                                                                                           target="_blank" rel="noopener noreferrer"
-                                                                                           className="font-semibold text-blue-600 hover:underline truncate">
-                                                                                            {m.player}
-                                                                                        </a>
-                                                                                    ) : (
-                                                                                        <span className="font-semibold text-gray-900 truncate">{m.player}</span>
-                                                                                    )}
-                                                                                    <span className="text-xs text-gray-500">({m.team})</span>
-                                                                                </div>
-                                                                                <div className="flex items-center gap-2 text-xs text-gray-500 flex-shrink-0">
-                                                                                    <span>{m.date}</span>
-                                                                                    {url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">→</a>}
-                                                                                </div>
-                                                                            </div>
-                                                                            {m.detail && formatStatline(m.detail)}
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                                {filtered.length > 10 && (
-                                                                    <p className="text-xs text-gray-500 text-center">+{filtered.length - 10} more</p>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-
-                {/* Team milestones (Consecutive HRs) */}
-                {(activeCategory === 'all') && groupedMilestones['Consecutive HR Instances']?.length > 0 && (() => {
-                    const items = groupedMilestones['Consecutive HR Instances'] || [];
-                    const filtered = searchTerm
-                        ? items.filter(m => m.player?.toLowerCase().includes(searchTerm.toLowerCase()))
-                        : items;
-
-                    if (filtered.length === 0) return null;
+                    if (filteredItems.length === 0) return null;
 
                     return (
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <span>🔗</span> Team Milestones
-                            </h2>
-                            <div className="bg-white rounded-xl shadow-md p-4">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xl">🔗</span>
-                                    <span className="font-bold text-gray-700">Back-to-Back Home Runs</span>
-                                    <span className="text-sm text-gray-500">({filtered.length})</span>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {filtered.slice(0, 10).map((m, idx) => {
-                                        const url = m.gameId && m.gameId !== 'UNKNOWN'
-                                            ? `https://www.baseball-reference.com/boxes/${m.gameId.substring(0, 3)}/${m.gameId}.shtml`
-                                            : null;
+                        <div key={type} className="bg-white rounded-xl shadow overflow-hidden">
+                            <details open={filteredItems.length <= 10}>
+                                <summary className={`cursor-pointer p-4 bg-gradient-to-r from-${config.color}-500 to-${config.color}-600 text-white hover:opacity-95 transition-opacity`}>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl">{config.icon}</span>
+                                            <h3 className="text-lg font-bold">{type}</h3>
+                                        </div>
+                                        <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-bold">
+                                            {filteredItems.length}
+                                        </span>
+                                    </div>
+                                </summary>
+                                <div className="p-4 bg-gray-50">
+                                    {/* Special grouped rendering for Multi-HR Games */}
+                                    {type === 'Multi-HR Games' ? (() => {
+                                        const getHrCount = (detail) => {
+                                            const match = detail?.match(/(\d+)\s*HR/);
+                                            return match ? parseInt(match[1], 10) : 0;
+                                        };
+                                        // Group by HR count
+                                        const hrGroups = {};
+                                        filteredItems.forEach(m => {
+                                            const count = getHrCount(m.detail);
+                                            if (!hrGroups[count]) hrGroups[count] = [];
+                                            hrGroups[count].push(m);
+                                        });
+                                        // Sort groups by HR count descending
+                                        const sortedCounts = Object.keys(hrGroups).map(Number).sort((a, b) => b - a);
+
                                         return (
-                                            <div key={idx} className="bg-gray-50 rounded-lg p-2 border border-gray-200 text-sm">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="font-semibold text-gray-900">{m.player}</span>
-                                                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                        <span>{m.date}</span>
-                                                        {url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500">→</a>}
+                                            <div className="space-y-4">
+                                                {sortedCounts.map(hrCount => (
+                                                    <div key={hrCount}>
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="text-lg font-bold text-rose-600">{hrCount} HR</span>
+                                                            <span className="text-sm text-gray-500">({hrGroups[hrCount].length})</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                            {hrGroups[hrCount]
+                                                                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                                                .map((m, idx) => {
+                                                                const game = gameMap[m.gameId];
+                                                                const url = m.gameId && m.gameId !== 'UNKNOWN'
+                                                                    ? `https://www.baseball-reference.com/boxes/${m.gameId.substring(0, 3)}/${m.gameId}.shtml`
+                                                                    : null;
+                                                                return (
+                                                                    <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-rose-300 hover:shadow transition-all">
+                                                                        <div className="flex items-start justify-between gap-2">
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    {m.playerId && m.playerId !== 'UNKNOWN' ? (
+                                                                                        <a
+                                                                                            href={`https://www.baseball-reference.com/players/${m.playerId.charAt(0).toLowerCase()}/${m.playerId}.shtml`}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            className="font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                                                                                        >
+                                                                                            {m.player}
+                                                                                        </a>
+                                                                                    ) : (
+                                                                                        <span className="font-bold text-gray-900">{m.player || 'Team'}</span>
+                                                                                    )}
+                                                                                    <span className="text-xs px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-semibold">
+                                                                                        {m.team}
+                                                                                    </span>
+                                                                                </div>
+                                                                                {m.detail && (
+                                                                                    <p className="text-xs text-gray-600 mb-1 line-clamp-2">{m.detail}</p>
+                                                                                )}
+                                                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                                                    <span>{m.date}</span>
+                                                                                    {game && <span>vs {game.awayTeam === m.team ? game.homeTeam : game.awayTeam}</span>}
+                                                                                </div>
+                                                                            </div>
+                                                                            {url && (
+                                                                                <a
+                                                                                    href={url}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="text-blue-500 hover:text-blue-700 text-sm"
+                                                                                    title="View game"
+                                                                                >
+                                                                                    →
+                                                                                </a>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                {m.detail && formatStatline(m.detail)}
+                                                ))}
                                             </div>
                                         );
-                                    })}
+                                    })() : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {filteredItems.slice(0, 30).map((m, idx) => {
+                                            const game = gameMap[m.gameId];
+                                            const url = m.gameId && m.gameId !== 'UNKNOWN'
+                                                ? `https://www.baseball-reference.com/boxes/${m.gameId.substring(0, 3)}/${m.gameId}.shtml`
+                                                : null;
+
+                                            return (
+                                                <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 hover:shadow transition-all">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                {m.playerId && m.playerId !== 'UNKNOWN' ? (
+                                                                    <a
+                                                                        href={`https://www.baseball-reference.com/players/${m.playerId.charAt(0).toLowerCase()}/${m.playerId}.shtml`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                                                                    >
+                                                                        {m.player}
+                                                                    </a>
+                                                                ) : (
+                                                                    <span className="font-bold text-gray-900">{m.player || 'Team'}</span>
+                                                                )}
+                                                                <span className={`text-xs px-2 py-0.5 rounded bg-${config.color}-100 text-${config.color}-700 font-semibold`}>
+                                                                    {m.team}
+                                                                </span>
+                                                            </div>
+                                                            {m.detail && (
+                                                                <p className="text-xs text-gray-600 mb-1 line-clamp-2">{m.detail}</p>
+                                                            )}
+                                                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                                <span>{m.date}</span>
+                                                                {game && <span>vs {game.awayTeam === m.team ? game.homeTeam : game.awayTeam}</span>}
+                                                            </div>
+                                                        </div>
+                                                        {url && (
+                                                            <a
+                                                                href={url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-blue-500 hover:text-blue-700 text-sm"
+                                                                title="View game"
+                                                            >
+                                                                →
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    )}
+                                    {filteredItems.length > 30 && type !== 'Multi-HR Games' && (
+                                        <p className="text-center text-sm text-gray-500 mt-3">
+                                            +{filteredItems.length - 30} more {type.toLowerCase()}
+                                        </p>
+                                    )}
                                 </div>
-                                {filtered.length > 10 && (
-                                    <p className="text-xs text-gray-500 text-center mt-2">+{filtered.length - 10} more</p>
-                                )}
-                            </div>
+                            </details>
                         </div>
                     );
-                })()}
+                })}
             </div>
             )}
         </div>
@@ -6874,7 +6389,6 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const markersRef = useRef([]);
-    const clusterGroupRef = useRef(null);
     const [filter, setFilter] = useState('all'); // 'all', 'current', 'historical', 'international'
     const [selectedStadium, setSelectedStadium] = useState(null);
 
@@ -6968,31 +6482,9 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // Create marker cluster group for visited stadiums
-        const clusterGroup = L.markerClusterGroup({
-            maxClusterRadius: 50,
-            spiderfyOnMaxZoom: true,
-            showCoverageOnHover: false,
-            zoomToBoundsOnClick: true,
-            disableClusteringAtZoom: 7,
-            iconCreateFunction: function(cluster) {
-                const count = cluster.getChildCount();
-                return L.divIcon({
-                    html: '<div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(34, 197, 94, 0.9); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">' + count + '</div>',
-                    className: 'team-logo-cluster',
-                    iconSize: [40, 40]
-                });
-            }
-        });
-        map.addLayer(clusterGroup);
-        clusterGroupRef.current = clusterGroup;
-
         mapInstanceRef.current = map;
 
         return () => {
-            if (clusterGroupRef.current) {
-                clusterGroupRef.current.clearLayers();
-            }
             if (mapInstanceRef.current) {
                 mapInstanceRef.current.remove();
                 mapInstanceRef.current = null;
@@ -7007,55 +6499,31 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
         // Clear existing markers
         markersRef.current.forEach(m => m.remove());
         markersRef.current = [];
-        if (clusterGroupRef.current) {
-            clusterGroupRef.current.clearLayers();
-        }
 
         filteredStadiums.forEach(stadium => {
             const data = visitedData[stadium.id];
             const hasVisited = data?.hasVisited;
             const sawOrioles = data?.sawOrioles;
 
-            let marker;
-
-            // Use team logo for visited stadiums
-            if (hasVisited && TEAM_LOGOS[stadium.team]) {
-                const borderColor = sawOrioles ? '#f97316' : '#22c55e';
-                const logoIcon = L.divIcon({
-                    className: 'team-logo-marker',
-                    html: '<div style="width: 36px; height: 36px; border-radius: 50%; border: 3px solid ' + borderColor + '; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); overflow: hidden;"><img src="' + TEAM_LOGOS[stadium.team] + '" style="width: 28px; height: 28px; object-fit: contain;" alt="' + stadium.team + '" /></div>',
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 18],
-                    popupAnchor: [0, -18]
-                });
-                marker = L.marker([stadium.lat, stadium.lng], { icon: logoIcon });
-                // Add visited markers to cluster group
-                if (clusterGroupRef.current) {
-                    clusterGroupRef.current.addLayer(marker);
-                } else {
-                    marker.addTo(mapInstanceRef.current);
-                }
-            } else {
-                // Use circle marker for non-visited stadiums (add directly to map)
-                let fillColor = '#9ca3af'; // gray - not visited
-                let borderColor = '#6b7280';
-                if (sawOrioles) {
-                    fillColor = '#f97316'; // orange - saw Orioles
-                    borderColor = '#ea580c';
-                } else if (hasVisited) {
-                    fillColor = '#22c55e'; // green - visited
-                    borderColor = '#16a34a';
-                }
-
-                marker = L.circleMarker([stadium.lat, stadium.lng], {
-                    radius: hasVisited ? 10 : 7,
-                    fillColor: fillColor,
-                    color: borderColor,
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: hasVisited ? 0.9 : 0.4
-                }).addTo(mapInstanceRef.current);
+            // Determine marker color
+            let fillColor = '#9ca3af'; // gray - not visited
+            let borderColor = '#6b7280';
+            if (sawOrioles) {
+                fillColor = '#f97316'; // orange - saw Orioles
+                borderColor = '#ea580c';
+            } else if (hasVisited) {
+                fillColor = '#22c55e'; // green - visited
+                borderColor = '#16a34a';
             }
+
+            const marker = L.circleMarker([stadium.lat, stadium.lng], {
+                radius: hasVisited ? 10 : 7,
+                fillColor: fillColor,
+                color: borderColor,
+                weight: 2,
+                opacity: 1,
+                fillOpacity: hasVisited ? 0.9 : 0.4
+            }).addTo(mapInstanceRef.current);
 
             // Build popup content
             let statusText = '<span style="color: #9ca3af;">Not yet visited</span>';
