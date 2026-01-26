@@ -38,6 +38,13 @@ python3 -m baseball_processor.scrapers.career_firsts_scraper --delay 3.1
 - Milestone detection uses tiered elif pattern (only highest tier reported per category)
 - Career milestones track every 100 (e.g., Hit #100, #200, #300... up to #4000)
 - Website uses React components embedded in Python strings
+- Sports-Reference sites (Baseball-Reference, Basketball-Reference) hide tables in HTML comments for lazy loading - must extract and parse them with BeautifulSoup Comment class
+
+## Error Handling
+When encountering repeated errors or discovering project-specific quirks:
+- Update this CLAUDE.md file with the finding
+- Add to "Do NOT" section if it's a common mistake
+- Add to "Architecture Notes" if it's a structural insight
 
 ## Do NOT
 - Create duplicate nested directories like `baseball_processor/baseball_processor/`
