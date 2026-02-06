@@ -32,11 +32,12 @@ except ImportError as e:
     sys.exit(1)
 
 # Try to import cloudscraper for Cloudflare bypass, fall back to requests
+import requests
+
 try:
     import cloudscraper
     HAS_CLOUDSCRAPER = True
 except ImportError:
-    import requests
     HAS_CLOUDSCRAPER = False
 
 
@@ -262,6 +263,80 @@ class NotFoundError(Exception):
     pass
 
 
+# Cache for register ID -> MLB ID mappings
+_register_to_mlb_id_cache = {}
+
+
+def is_register_format_id(player_id: str) -> bool:
+    """
+    Check if a player ID is in Baseball Reference register format.
+
+    Register format: 6 chars + "000" + 3 chars (e.g., "workma000gag")
+    MLB format: typically ends with 2-digit number (e.g., "workmga01")
+    """
+    if not player_id or len(player_id) < 10:
+        return False
+    # Register format has "000" in the middle (positions 6-8)
+    return player_id[6:9] == "000"
+
+
+def get_mlb_id_from_register(register_id: str, scraper=None) -> Optional[str]:
+    """
+    Fetch the MLB-format ID from a player's register page.
+
+    The register page contains links to game logs using the MLB-format ID.
+    Returns None if the ID cannot be found.
+    """
+    if register_id in _register_to_mlb_id_cache:
+        return _register_to_mlb_id_cache[register_id]
+
+    # Create a scraper if not provided (needed to bypass Cloudflare)
+    if scraper is None and HAS_CLOUDSCRAPER:
+        scraper = cloudscraper.create_scraper()
+
+    url = f"https://www.baseball-reference.com/register/player.fcgi?id={register_id}"
+    try:
+        html = fetch_url(url, scraper)
+    except (NotFoundError, RateLimitError):
+        return None
+    if not html:
+        return None
+
+    soup = BeautifulSoup(html, 'html.parser')
+
+    # Look for game log links which use the MLB-format ID
+    # Pattern: /players/gl.fcgi?id=XXXXXX&t=b&year=YYYY
+    # Note: & may be encoded as &amp; in HTML
+    import re
+    for link in soup.find_all('a', href=True):
+        href = link['href']
+        # Match MLB-format IDs (letters followed by 2 digits, e.g., workmga01)
+        match = re.search(r'/players/gl\.fcgi\?id=([a-z]+\d{2})(?:&|&amp;)', href)
+        if match:
+            mlb_id = match.group(1)
+            _register_to_mlb_id_cache[register_id] = mlb_id
+            return mlb_id
+
+    return None
+
+
+def resolve_player_id(player_id: str, scraper=None) -> str:
+    """
+    Resolve a player ID to the MLB-format ID if needed.
+
+    If the ID is in register format, attempts to fetch the MLB-format ID.
+    Returns the original ID if resolution fails or ID is already in MLB format.
+    """
+    if not is_register_format_id(player_id):
+        return player_id
+
+    mlb_id = get_mlb_id_from_register(player_id, scraper)
+    if mlb_id:
+        return mlb_id
+
+    return player_id
+
+
 def fetch_url(url: str, scraper=None, timeout: int = 30, max_retries: int = 3) -> Optional[str]:
     """
     Fetch a URL with appropriate headers and retry logic for connection errors.
@@ -350,7 +425,10 @@ def get_player_debut_year(player_id: str, scraper=None) -> Optional[int]:
     Raises:
         RateLimitError: If rate limited by the server
     """
-    url = f"https://www.baseball-reference.com/players/{player_id[0]}/{player_id}.shtml"
+    # Resolve register-format IDs to MLB-format IDs
+    resolved_id = resolve_player_id(player_id, scraper)
+
+    url = f"https://www.baseball-reference.com/players/{resolved_id[0]}/{resolved_id}.shtml"
     try:
         html = fetch_url(url, scraper)
     except NotFoundError:
@@ -402,7 +480,10 @@ def scrape_batting_game_log(player_id: str, year: int, scraper=None) -> list[dic
     Raises:
         RateLimitError: If rate limited by the server
     """
-    url = f"https://www.baseball-reference.com/players/gl.fcgi?id={player_id}&t=b&year={year}"
+    # Resolve register-format IDs to MLB-format IDs
+    resolved_id = resolve_player_id(player_id, scraper)
+
+    url = f"https://www.baseball-reference.com/players/gl.fcgi?id={resolved_id}&t=b&year={year}"
     try:
         html = fetch_url(url, scraper)
     except NotFoundError:
@@ -507,7 +588,10 @@ def scrape_pitching_game_log(player_id: str, year: int, scraper=None) -> list[di
     Raises:
         RateLimitError: If rate limited by the server
     """
-    url = f"https://www.baseball-reference.com/players/gl.fcgi?id={player_id}&t=p&year={year}"
+    # Resolve register-format IDs to MLB-format IDs
+    resolved_id = resolve_player_id(player_id, scraper)
+
+    url = f"https://www.baseball-reference.com/players/gl.fcgi?id={resolved_id}&t=p&year={year}"
     try:
         html = fetch_url(url, scraper)
     except NotFoundError:
