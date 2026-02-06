@@ -40,6 +40,26 @@ except ImportError:
     HAS_CLOUDSCRAPER = False
 
 
+def parse_ip(ip_str: str) -> float:
+    """
+    Convert baseball IP notation to decimal innings.
+    In baseball: 6.1 = 6⅓ innings, 6.2 = 6⅔ innings
+    """
+    try:
+        ip = float(ip_str)
+        whole = int(ip)
+        fraction = ip - whole
+        # Convert .1 -> 1/3, .2 -> 2/3
+        if abs(fraction - 0.1) < 0.01:
+            return whole + 1/3
+        elif abs(fraction - 0.2) < 0.01:
+            return whole + 2/3
+        else:
+            return ip  # Already decimal or whole number
+    except (ValueError, TypeError):
+        return 0.0
+
+
 # Career first milestones to track
 BATTING_FIRSTS = {
     'H': 'First Career Hit',
@@ -62,32 +82,35 @@ PITCHING_FIRSTS = {
     'SHO': 'First Career Shutout',
 }
 
-# Career milestone thresholds to track
+# Career milestone thresholds to track (granular - every 100 for most stats)
 BATTING_MILESTONES = {
-    'H': [100, 200, 300, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000],
-    'HR': [10, 25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 700, 750, 800],
-    'RBI': [100, 200, 300, 400, 500, 750, 1000, 1500, 2000],
-    '2B': [50, 100, 150, 200, 250, 300, 400, 500, 600, 700],
-    '3B': [25, 50, 75, 100, 150, 200],
-    'SB': [50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800],
-    'BB': [100, 200, 300, 400, 500, 750, 1000, 1500, 2000],
-    'R': [100, 200, 300, 400, 500, 750, 1000, 1500, 2000],
+    'H': sorted(set([10, 25, 50] + list(range(100, 4100, 100)))),  # 10, 25, 50, 100, 200... 4000
+    'HR': sorted(set([10, 25, 50, 75] + list(range(100, 900, 100)))),  # 10, 25, 50, 75, 100, 200... 800
+    'RBI': sorted(set([10, 25, 50] + list(range(100, 2100, 100)))),  # 10, 25, 50, 100, 200... 2000
+    '2B': sorted(set([10, 25, 50] + list(range(100, 800, 100)))),  # 10, 25, 50, 100, 200... 700
+    '3B': sorted(set([10, 25, 50, 75] + list(range(100, 300, 100)))),  # 10, 25, 50, 75, 100, 200
+    'SB': sorted(set([10, 25, 50] + list(range(100, 900, 100)))),  # 10, 25, 50, 100, 200... 800
+    'BB': sorted(set([10, 25, 50] + list(range(100, 2600, 100)))),  # 10, 25, 50, 100, 200... 2500
+    'R': sorted(set([10, 25, 50] + list(range(100, 2400, 100)))),  # 10, 25, 50, 100, 200... 2300
+    'TB': sorted(set([10, 25, 50, 100, 250] + list(range(500, 6500, 500)))),  # 10, 25, 50, 100, 250, 500, 1000... 6000
+    'G': sorted(set([10, 25, 50, 100, 250] + list(range(500, 3500, 500)))),  # 10, 25, 50, 100, 250, 500, 1000... 3000
 }
 
 PITCHING_MILESTONES = {
-    'W': [25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 350],
-    'SV': [25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 600],
-    'SO': [100, 250, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500],
-    'IP': [100, 250, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500],
-    'GS': [50, 100, 150, 200, 250, 300, 400, 500],
-    'CG': [10, 25, 50, 75, 100],
-    'SHO': [10, 25, 50, 75, 100],
+    'W': sorted(set([10, 25, 50, 75] + list(range(100, 400, 100)))),  # 10, 25, 50, 75, 100, 200, 300
+    'SV': sorted(set([10, 25, 50] + list(range(100, 700, 100)))),  # 10, 25, 50, 100, 200... 600
+    'SO': sorted(set([10, 25, 50, 100, 250] + list(range(500, 4000, 500)))),  # 10, 25, 50, 100, 250, 500, 1000... 3500
+    'IP': sorted(set([10, 25, 50, 100, 250] + list(range(500, 4000, 500)))),  # 10, 25, 50, 100, 250, 500, 1000... 3500
+    'G': sorted(set([10, 25, 50, 100, 250] + list(range(500, 1500, 500)))),  # 10, 25, 50, 100, 250, 500, 1000
+    'GS': sorted(set([10, 25, 50] + list(range(100, 600, 100)))),  # 10, 25, 50, 100, 200... 500
+    'CG': sorted(set([10, 25, 50, 75] + list(range(100, 200, 100)))),  # 10, 25, 50, 75, 100
+    'SHO': sorted(set([10, 25, 50, 75] + list(range(100, 200, 100)))),  # 10, 25, 50, 75, 100
 }
 
 # Milestone display names
 STAT_NAMES = {
     'H': 'Hit', 'HR': 'Home Run', 'RBI': 'RBI', '2B': 'Double', '3B': 'Triple',
-    'BB': 'Walk', 'SB': 'Stolen Base', 'R': 'Run',
+    'BB': 'Walk', 'SB': 'Stolen Base', 'R': 'Run', 'TB': 'Total Base', 'G': 'Game',
     'W': 'Win', 'SV': 'Save', 'SO': 'Strikeout', 'IP': 'Inning Pitched',
     'GS': 'Start', 'CG': 'Complete Game', 'SHO': 'Shutout',
 }
@@ -110,6 +133,94 @@ def get_cache_path() -> Path:
     return get_project_root() / 'cache' / 'career_firsts'
 
 
+def get_gamelogs_cache_path() -> Path:
+    """Get the career gamelogs cache file path."""
+    return get_project_root() / 'cache' / 'career_gamelogs.json'
+
+
+def load_gamelogs_cache() -> dict:
+    """Load the career gamelogs cache (cumulative totals per game)."""
+    cache_file = get_gamelogs_cache_path()
+    if cache_file.exists():
+        with open(cache_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+
+def save_gamelogs_cache(cache: dict):
+    """Save the career gamelogs cache to disk."""
+    cache_file = get_gamelogs_cache_path()
+    with open(cache_file, 'w', encoding='utf-8') as f:
+        json.dump(cache, f, ensure_ascii=False)
+    print(f"  Saved gamelogs cache: {cache_file}")
+
+
+def load_all_time_leaders() -> dict:
+    """Load all-time leaders from JSON files.
+
+    Returns dict mapping player_id -> {name, stats: [{stat, rank, value}], type}
+    """
+    leaders_dir = get_project_root() / 'mlb_references' / 'all_time_leaders'
+    all_leaders = {}
+
+    if not leaders_dir.exists():
+        return all_leaders
+
+    for json_file in leaders_dir.glob('*.json'):
+        try:
+            with open(json_file) as f:
+                data = json.load(f)
+                stat = data.get('stat', '')
+                stat_type = data.get('type', '')
+                for leader in data.get('leaders', []):
+                    pid = leader.get('player_id', '')
+                    if not pid:
+                        continue
+                    if pid not in all_leaders:
+                        all_leaders[pid] = {
+                            'name': leader.get('name', ''),
+                            'stats': [],
+                            'type': stat_type
+                        }
+                    all_leaders[pid]['stats'].append({
+                        'stat': stat,
+                        'rank': leader.get('rank', 0),
+                        'value': leader.get('value', 0)
+                    })
+        except Exception:
+            pass
+
+    return all_leaders
+
+
+def get_all_time_players_to_scrape() -> dict:
+    """Get players on all-time lists that the user has seen at games."""
+    all_leaders = load_all_time_leaders()
+
+    # Find players seen at games
+    cache_dir = get_project_root() / 'cache'
+    players_seen = set()
+
+    for cache_file in cache_dir.glob('*.json'):
+        if cache_file.name in ['career_firsts.json', 'career_gamelogs.json']:
+            continue
+        try:
+            with open(cache_file) as f:
+                game = json.load(f)
+                for team in ['away', 'home']:
+                    for batter in game.get('batting', {}).get(team, []):
+                        if batter.get('player_id'):
+                            players_seen.add(batter['player_id'])
+                    for pitcher in game.get('pitching', {}).get(team, []):
+                        if pitcher.get('player_id'):
+                            players_seen.add(pitcher['player_id'])
+        except Exception:
+            pass
+
+    # Return overlap
+    return {pid: all_leaders[pid] for pid in players_seen if pid in all_leaders}
+
+
 def load_career_firsts_cache() -> dict:
     """Load the career firsts cache from disk."""
     cache_file = get_cache_path() / 'career_firsts.json'
@@ -124,8 +235,8 @@ def save_career_firsts_cache(cache: dict):
     cache_path = get_cache_path()
     cache_path.mkdir(parents=True, exist_ok=True)
     cache_file = cache_path / 'career_firsts.json'
-    with open(cache_file, 'w') as f:
-        json.dump(cache, f, indent=2)
+    with open(cache_file, 'w', encoding='utf-8') as f:
+        json.dump(cache, f, indent=2, ensure_ascii=False)
 
 
 def create_scraper():
@@ -334,6 +445,7 @@ def scrape_batting_game_log(player_id: str, year: int, scraper=None) -> list[dic
         'SB': ['b_sb', 'SB'],
         'R': ['b_r', 'R'],
         'AB': ['b_ab', 'AB'],
+        'TB': ['b_tb', 'TB'],  # Total bases
     }
 
     for row in tbody.find_all('tr'):
@@ -478,9 +590,9 @@ def scrape_pitching_game_log(player_id: str, year: int, scraper=None) -> list[di
                 if stat_cell:
                     text = stat_cell.get_text(strip=True) or '0'
                     try:
-                        # Handle IP which can be like "6.1"
+                        # Handle IP which uses baseball notation (6.1 = 6⅓ innings)
                         if stat == 'IP':
-                            game[stat] = float(text) if text else 0
+                            game[stat] = parse_ip(text)
                         else:
                             game[stat] = int(text) if text else 0
                     except ValueError:
@@ -544,9 +656,15 @@ def scrape_pitching_game_log(player_id: str, year: int, scraper=None) -> list[di
     return games
 
 
-def find_career_firsts(player_id: str, scraper=None, verbose: bool = True) -> dict:
+def find_career_firsts(player_id: str, scraper=None, verbose: bool = True, store_gamelogs: bool = False) -> dict:
     """
     Find all career firsts AND career milestones for a player by scanning their game logs.
+
+    Args:
+        player_id: The Baseball Reference player ID
+        scraper: HTTP scraper to use (cloudscraper instance)
+        verbose: Print progress messages
+        store_gamelogs: If True, store cumulative totals for every game (for all-time passing detection)
 
     Returns dict with structure:
     {
@@ -564,7 +682,11 @@ def find_career_firsts(player_id: str, scraper=None, verbose: bool = True) -> di
             ...
         },
         'pitching_milestones': {...},
-        'career_totals': {'H': 1234, 'HR': 56, ...}
+        'career_totals': {'H': 1234, 'HR': 56, ...},
+        'gamelogs': {  # Only if store_gamelogs=True
+            'GAMEID123': {'batting': {'H': 150, 'HR': 10, ...}, 'pitching': {...}},
+            ...
+        }
     }
     """
     if verbose:
@@ -579,6 +701,10 @@ def find_career_firsts(player_id: str, scraper=None, verbose: bool = True) -> di
         'career_totals': {},
         'scraped_at': datetime.now().isoformat(),
     }
+
+    # If storing gamelogs, initialize the dict to store cumulative totals per game
+    if store_gamelogs:
+        result['gamelogs'] = {}
 
     # Get debut year
     debut_year = get_player_debut_year(player_id, scraper)
@@ -630,12 +756,23 @@ def find_career_firsts(player_id: str, scraper=None, verbose: bool = True) -> di
                         print(f"    Found {BATTING_FIRSTS[stat]}: {game.get('date', '')}")
 
             # Update running totals and check for milestones
+            # Special handling for G (games) - each game is +1
+            batting_totals['G'] = batting_totals.get('G', 0) + 1
+
             for stat in BATTING_MILESTONES.keys():
-                game_value = game.get(stat, 0)
+                if stat == 'G':
+                    game_value = 1  # Each game is 1
+                else:
+                    game_value = game.get(stat, 0)
+
                 if game_value > 0:
-                    old_total = batting_totals[stat]
-                    batting_totals[stat] += game_value
-                    new_total = batting_totals[stat]
+                    if stat != 'G':  # G already incremented above
+                        old_total = batting_totals[stat]
+                        batting_totals[stat] += game_value
+                        new_total = batting_totals[stat]
+                    else:
+                        old_total = batting_totals['G'] - 1
+                        new_total = batting_totals['G']
 
                     # Check if we crossed any milestone thresholds
                     for threshold in BATTING_MILESTONES[stat]:
@@ -655,6 +792,14 @@ def find_career_firsts(player_id: str, scraper=None, verbose: bool = True) -> di
                                 })
                                 if verbose:
                                     print(f"    Found {milestone_name}: {game.get('date', '')}")
+
+            # Store gamelog if requested
+            if store_gamelogs:
+                game_id = game.get('game_id', '')
+                if game_id:
+                    if game_id not in result['gamelogs']:
+                        result['gamelogs'][game_id] = {'batting': {}, 'pitching': {}}
+                    result['gamelogs'][game_id]['batting'] = batting_totals.copy()
 
         # Pitching game log (only if player has pitched)
         if has_pitching_data is None or has_pitching_data:
@@ -680,12 +825,23 @@ def find_career_firsts(player_id: str, scraper=None, verbose: bool = True) -> di
                                 print(f"    Found {PITCHING_FIRSTS[stat]}: {game.get('date', '')}")
 
                     # Update running totals and check for milestones
+                    # Each pitching game is G+1
+                    pitching_totals['G'] = pitching_totals.get('G', 0) + 1
+
                     for stat in PITCHING_MILESTONES.keys():
-                        game_value = game.get(stat, 0)
+                        if stat == 'G':
+                            game_value = 1  # Each game is 1
+                        else:
+                            game_value = game.get(stat, 0)
+
                         if game_value > 0:
-                            old_total = pitching_totals[stat]
-                            pitching_totals[stat] += game_value
-                            new_total = pitching_totals[stat]
+                            if stat != 'G':  # G already incremented above
+                                old_total = pitching_totals[stat]
+                                pitching_totals[stat] += game_value
+                                new_total = pitching_totals[stat]
+                            else:
+                                old_total = pitching_totals['G'] - 1
+                                new_total = pitching_totals['G']
 
                             # Check if we crossed any milestone thresholds
                             for threshold in PITCHING_MILESTONES[stat]:
@@ -705,6 +861,15 @@ def find_career_firsts(player_id: str, scraper=None, verbose: bool = True) -> di
                                         })
                                         if verbose:
                                             print(f"    Found {milestone_name}: {game.get('date', '')}")
+
+                    # Store gamelog if requested
+                    if store_gamelogs:
+                        game_id = game.get('game_id', '')
+                        if game_id:
+                            if game_id not in result['gamelogs']:
+                                result['gamelogs'][game_id] = {'batting': {}, 'pitching': {}}
+                            result['gamelogs'][game_id]['pitching'] = pitching_totals.copy()
+
             elif year == debut_year:
                 # No pitching data in debut year - likely not a pitcher
                 has_pitching_data = False
@@ -1409,6 +1574,9 @@ Examples:
     # Scrape career firsts for players in a specific game
     python -m baseball_processor.scrapers.career_firsts_scraper --game "Baltimore_Orioles_vs_Yankees_Box_Score.json"
 
+    # Scrape full game logs for players on all-time lists (for accurate passing detection)
+    python -m baseball_processor.scrapers.career_firsts_scraper --all-time-leaders
+
     # Check for witnessed firsts
     python -m baseball_processor.scrapers.career_firsts_scraper --check-witnessed
         """
@@ -1473,6 +1641,20 @@ Examples:
         help="Scrape career firsts for players in a specific game file (path to cached JSON)"
     )
 
+    parser.add_argument(
+        '--all-time-leaders',
+        action='store_true',
+        dest='all_time_leaders',
+        help="Scrape full game logs for players on all-time lists (for accurate passing detection)"
+    )
+
+    parser.add_argument(
+        '--all-players',
+        action='store_true',
+        dest='all_players',
+        help="Scrape full game logs for ALL players you've seen (comprehensive data)"
+    )
+
     args = parser.parse_args()
     verbose = not args.quiet
 
@@ -1534,6 +1716,162 @@ Examples:
         cache = scrape_for_game(game_path, delay=args.delay, verbose=verbose)
         if verbose and cache:
             print(f"\nCache saved to: {get_cache_path() / 'career_firsts.json'}")
+        return
+
+    if args.all_time_leaders:
+        # Scrape full game logs for players on all-time lists
+        if verbose:
+            print("Scraping game logs for players on all-time lists...")
+            print("(This enables accurate all-time passing detection)\n")
+
+        players = get_all_time_players_to_scrape()
+        if not players:
+            print("No players found. Make sure mlb_references/all_time_leaders/ has data.")
+            return
+
+        print(f"Found {len(players)} players on all-time lists that you've seen")
+
+        # Load existing caches
+        career_cache = load_career_firsts_cache()
+        gamelogs_cache = load_gamelogs_cache()
+
+        # Filter to players not yet scraped for gamelogs
+        if not args.refresh:
+            players = {pid: info for pid, info in players.items()
+                       if pid not in gamelogs_cache}
+            print(f"Players needing scraping: {len(players)}")
+
+        if not players:
+            print("All players already scraped! Use --refresh to re-scrape.")
+            return
+
+        # Estimate time
+        est_requests = len(players) * 25  # ~25 requests per player
+        est_time_min = (est_requests * args.delay) / 60
+        print(f"Estimated time: ~{est_time_min:.0f} minutes\n")
+
+        scraper = create_scraper()
+        consecutive_errors = 0
+        max_consecutive_errors = 3
+
+        for i, (player_id, player_info) in enumerate(sorted(players.items()), 1):
+            name = player_info.get('name', player_id)
+            if verbose:
+                print(f"[{i}/{len(players)}] {name} ({player_id})")
+
+            try:
+                firsts = find_career_firsts(player_id, scraper, verbose=verbose, store_gamelogs=True)
+
+                # Save to career_firsts cache
+                career_cache[player_id] = {k: v for k, v in firsts.items() if k != 'gamelogs'}
+                career_cache[player_id]['player_name'] = name
+                save_career_firsts_cache(career_cache)
+
+                # Save gamelogs to separate cache
+                if firsts.get('gamelogs'):
+                    gamelogs_cache[player_id] = {
+                        'name': name,
+                        'gamelogs': firsts['gamelogs']
+                    }
+                    save_gamelogs_cache(gamelogs_cache)
+
+                consecutive_errors = 0
+
+            except RateLimitError as e:
+                print(f"\n{'='*60}")
+                print(f"⚠️  RATE LIMITED: {e}")
+                print(f"{'='*60}")
+                print(f"\nProgress saved. Run again to resume.")
+                break
+
+            except Exception as e:
+                consecutive_errors += 1
+                print(f"  Error: {e}")
+                if consecutive_errors >= max_consecutive_errors:
+                    print(f"\nToo many errors. Progress saved.")
+                    break
+
+        if verbose:
+            print(f"\nScraped {len(gamelogs_cache)} players with gamelogs")
+            print(f"Gamelogs saved to: {get_gamelogs_cache_path()}")
+        return
+
+    if args.all_players:
+        # Scrape full game logs for ALL players you've seen
+        if verbose:
+            print("Scraping game logs for ALL players you've seen...")
+            print("(This provides comprehensive career data)\n")
+
+        player_ids, player_names = get_players_from_games(get_project_root())
+        if not player_ids:
+            print("No players found. Run the main processor first to cache game data.")
+            return
+
+        print(f"Found {len(player_ids)} total players you've seen")
+
+        # Load existing caches
+        career_cache = load_career_firsts_cache()
+        gamelogs_cache = load_gamelogs_cache()
+
+        # Filter to players not yet scraped for gamelogs
+        if not args.refresh:
+            player_ids = {pid for pid in player_ids if pid not in gamelogs_cache}
+            print(f"Players needing scraping: {len(player_ids)}")
+
+        if not player_ids:
+            print("All players already scraped! Use --refresh to re-scrape.")
+            return
+
+        # Estimate time
+        est_requests = len(player_ids) * 25  # ~25 requests per player
+        est_time_min = (est_requests * args.delay) / 60
+        print(f"Estimated time: ~{est_time_min:.0f} minutes (~{est_time_min/60:.1f} hours)\n")
+
+        scraper = create_scraper()
+        consecutive_errors = 0
+        max_consecutive_errors = 3
+        player_list = sorted(player_ids)
+
+        for i, player_id in enumerate(player_list, 1):
+            name = player_names.get(player_id, player_id)
+            if verbose:
+                print(f"[{i}/{len(player_list)}] {name} ({player_id})")
+
+            try:
+                firsts = find_career_firsts(player_id, scraper, verbose=verbose, store_gamelogs=True)
+
+                # Save to career_firsts cache
+                career_cache[player_id] = {k: v for k, v in firsts.items() if k != 'gamelogs'}
+                career_cache[player_id]['player_name'] = name
+                save_career_firsts_cache(career_cache)
+
+                # Save gamelogs to separate cache
+                if firsts.get('gamelogs'):
+                    gamelogs_cache[player_id] = {
+                        'name': name,
+                        'gamelogs': firsts['gamelogs']
+                    }
+                    save_gamelogs_cache(gamelogs_cache)
+
+                consecutive_errors = 0
+
+            except RateLimitError as e:
+                print(f"\n{'='*60}")
+                print(f"⚠️  RATE LIMITED: {e}")
+                print(f"{'='*60}")
+                print(f"\nProgress saved. Run again to resume.")
+                break
+
+            except Exception as e:
+                consecutive_errors += 1
+                print(f"  Error: {e}")
+                if consecutive_errors >= max_consecutive_errors:
+                    print(f"\nToo many errors. Progress saved.")
+                    break
+
+        if verbose:
+            print(f"\nScraped {len(gamelogs_cache)} players with gamelogs")
+            print(f"Gamelogs saved to: {get_gamelogs_cache_path()}")
         return
 
     if args.player:

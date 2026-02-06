@@ -416,9 +416,29 @@ def main():
     if args.from_cache_only:
         info("📦 Loading games from cache only...")
         games_data = []
+        spring_count = 0
+        # Files to skip (not game data)
+        skip_patterns = ['career_firsts', 'career_gamelogs']
         for file in CACHE_DIR.glob("*.json"):
+            # Skip non-game files
+            if any(pattern in str(file) for pattern in skip_patterns):
+                continue
             with open(file, 'r', encoding='utf-8') as f:
-                games_data.append(json.load(f))
+                game = json.load(f)
+                # Skip files that don't look like game data
+                if not isinstance(game, dict) or 'basic_info' not in game:
+                    continue
+                # Ensure game_type is set
+                bi = game['basic_info']
+                if 'game_type' not in bi:
+                    # Default to regular for BREF games
+                    bi['game_type'] = 'regular'
+                    bi['source'] = bi.get('source', 'bref')
+                if bi.get('game_type') == 'spring':
+                    spring_count += 1
+                games_data.append(game)
+        if spring_count > 0:
+            info(f"  Found {spring_count} spring training games")
     elif args.parallel:
         # Use parallel processing
         from .utils.parallel import process_files_parallel, default_progress_callback
@@ -454,6 +474,34 @@ def main():
             games_data = []
     else:
         games_data = process_directory_or_file(args.input_path, umpire_tracker)
+
+    # Also load MLB API cached games (spring training, etc.) that don't have HTML files
+    loaded_game_ids = {g.get('game_id') for g in games_data if g.get('game_id')}
+    skip_patterns = ['career_firsts', 'career_gamelogs']
+    spring_count = 0
+    for cache_file in CACHE_DIR.glob("*.json"):
+        if any(pattern in str(cache_file) for pattern in skip_patterns):
+            continue
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cached_game = json.load(f)
+            # Check if this is a valid game not already loaded
+            if not isinstance(cached_game, dict) or 'basic_info' not in cached_game:
+                continue
+            game_id = cached_game.get('game_id')
+            if game_id and game_id not in loaded_game_ids:
+                # Only load MLB API spring training games (not regular BREF games)
+                source = cached_game.get('source') or cached_game.get('basic_info', {}).get('source')
+                game_type = cached_game.get('basic_info', {}).get('game_type')
+                if source == 'mlb' or game_type == 'spring':
+                    games_data.append(cached_game)
+                    loaded_game_ids.add(game_id)
+                    if game_type == 'spring':
+                        spring_count += 1
+        except (json.JSONDecodeError, IOError):
+            continue
+    if spring_count > 0:
+        info(f"  Loaded {spring_count} spring training games from cache")
 
     if not games_data:
         warn("❌ No games data to process. Exiting.")

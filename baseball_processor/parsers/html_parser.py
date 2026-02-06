@@ -72,12 +72,23 @@ def parse_baseball_reference_boxscore(html_content: str) -> Dict[str, Any]:
     else:
         game_data["doubleheader"] = "0"
 
-    game_data['basic_info'] = extract_basic_info(soup)    
+    game_data['basic_info'] = extract_basic_info(soup)
     game_data["basic_info"]["doubleheader"] = game_data["doubleheader"]
     away = game_data['basic_info'].get('away_team', '')
     home = game_data['basic_info'].get('home_team', '')
     game_data['basic_info']['away_team_code'] = standardize_team_code(away)
     game_data['basic_info']['home_team_code'] = standardize_team_code(home)
+
+    # Detect game type from page title
+    title = soup.title.string.lower() if soup.title else ''
+    postseason_keywords = ['alds', 'nlds', 'alcs', 'nlcs', 'world series', 'wild card',
+                           'division series', 'championship series', 'pennant']
+    if any(kw in title for kw in postseason_keywords):
+        game_data['basic_info']['game_type'] = 'postseason'
+        game_data['basic_info']['game_type_code'] = 'P'
+    else:
+        game_data['basic_info']['game_type'] = 'regular'
+        game_data['basic_info']['game_type_code'] = 'R'
 
     if away:
         game_data['batting']['away'] = extract_batting_stats(soup, away, is_home=False)

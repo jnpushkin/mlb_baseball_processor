@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import pandas as pd
 
+from ..engines.all_time_passing_engine import AllTimePassingEngine, find_passings_reverse_lookup, load_gamelogs_cache
+
 
 def load_career_firsts_cache():
     """Load the career firsts cache from disk."""
@@ -83,6 +85,37 @@ def find_witnessed_career_firsts(raw_games, career_firsts_cache):
             firsts_by_player[pid] = []
         firsts_by_player[pid].append(record)
 
+    def find_attended_game(game_id):
+        """
+        Find attended game, trying doubleheader variants.
+        BREF gamelogs sometimes use 0 suffix even for doubleheader games,
+        so we try 1 and 2 suffixes as fallbacks.
+        """
+        if not game_id or len(game_id) < 11:
+            return None
+
+        # Try exact match first
+        if game_id in attended_games:
+            return attended_games[game_id]
+
+        # Try doubleheader variants
+        base = game_id[:-1]  # Remove last character (0, 1, or 2)
+        last_char = game_id[-1]
+
+        if last_char == '0':
+            # Gamelog shows single game, but might actually be doubleheader game 1 or 2
+            for suffix in ['1', '2']:
+                variant = base + suffix
+                if variant in attended_games:
+                    return attended_games[variant]
+        elif last_char in ['1', '2']:
+            # Gamelog shows doubleheader, try single game format
+            variant = base + '0'
+            if variant in attended_games:
+                return attended_games[variant]
+
+        return None
+
     # Check each player's career firsts and milestones
     for player_id, data in career_firsts_cache.items():
         player_name = player_names.get(player_id, player_id)
@@ -91,7 +124,7 @@ def find_witnessed_career_firsts(raw_games, career_firsts_cache):
         for stat, first_info in data.get('batting_firsts', {}).items():
             date = first_info.get('date', '')
             first_game_id = first_info.get('game_id', '')
-            game = attended_games.get(first_game_id)
+            game = find_attended_game(first_game_id)
             if game:
                 add_record({
                     'player_id': player_id,
@@ -112,7 +145,7 @@ def find_witnessed_career_firsts(raw_games, career_firsts_cache):
         for stat, first_info in data.get('pitching_firsts', {}).items():
             date = first_info.get('date', '')
             first_game_id = first_info.get('game_id', '')
-            game = attended_games.get(first_game_id)
+            game = find_attended_game(first_game_id)
             if game:
                 add_record({
                     'player_id': player_id,
@@ -134,7 +167,7 @@ def find_witnessed_career_firsts(raw_games, career_firsts_cache):
             for milestone_info in milestones_list:
                 date = milestone_info.get('date', '')
                 milestone_game_id = milestone_info.get('game_id', '')
-                game = attended_games.get(milestone_game_id)
+                game = find_attended_game(milestone_game_id)
                 if game:
                     add_record({
                         'player_id': player_id,
@@ -158,7 +191,7 @@ def find_witnessed_career_firsts(raw_games, career_firsts_cache):
             for milestone_info in milestones_list:
                 date = milestone_info.get('date', '')
                 milestone_game_id = milestone_info.get('game_id', '')
-                game = attended_games.get(milestone_game_id)
+                game = find_attended_game(milestone_game_id)
                 if game:
                     add_record({
                         'player_id': player_id,
@@ -177,6 +210,36 @@ def find_witnessed_career_firsts(raw_games, career_firsts_cache):
                         'career_total_after': milestone_info.get('career_total_after', 0),
                     }, milestone_game_id)
 
+    # Deduplicate: pitchers who bat can have same milestone in both batting and pitching
+    # Keep pitching version for pitchers (more relevant), batting for position players
+    seen = {}
+    for record in witnessed_firsts:
+        key = (record.get('player_id'), record.get('milestone'), record.get('game_id'))
+        if key not in seen:
+            seen[key] = record
+        else:
+            # If we already have this milestone, prefer pitching type for game-based milestones
+            existing = seen[key]
+            if record.get('type') == 'pitching' and 'Game' in record.get('milestone', ''):
+                seen[key] = record
+
+    witnessed_firsts = list(seen.values())
+
+    # Rebuild by_game and by_player dicts after deduplication
+    firsts_by_game = {}
+    firsts_by_player = {}
+    for record in witnessed_firsts:
+        gid = record.get('game_id')
+        if gid:
+            if gid not in firsts_by_game:
+                firsts_by_game[gid] = []
+            firsts_by_game[gid].append(record)
+        pid = record.get('player_id')
+        if pid:
+            if pid not in firsts_by_player:
+                firsts_by_player[pid] = []
+            firsts_by_player[pid].append(record)
+
     # Sort witnessed firsts by date (most recent first), then by milestone importance
     def sort_key(x):
         date = x.get('date', '')
@@ -187,6 +250,126 @@ def find_witnessed_career_firsts(raw_games, career_firsts_cache):
     witnessed_firsts.sort(key=sort_key, reverse=True)
 
     return witnessed_firsts, firsts_by_game, firsts_by_player
+
+
+def find_all_time_passings(witnessed_firsts: list, career_firsts_cache: dict, raw_games: list = None) -> tuple[list, dict]:
+    """
+    Find all-time list passings for witnessed career milestones.
+
+    Uses two approaches:
+    1. Check witnessed milestones against leaderboards (original approach)
+    2. Reverse lookup: For each player on leaderboards, check if you attended
+       games where they climbed the list (catches more passings)
+
+    Args:
+        witnessed_firsts: List of witnessed career milestones
+        career_firsts_cache: Full career firsts cache with career_totals
+        raw_games: List of raw game dicts (for reverse lookup)
+
+    Returns:
+        Tuple of:
+        - all_passings: List of all passing events
+        - passings_by_game: Dict mapping game_id to list of passings
+    """
+    all_passings = []
+    passings_by_game = {}
+
+    # Initialize the engine (loads leaderboard JSON files)
+    try:
+        engine = AllTimePassingEngine()
+    except Exception as e:
+        print(f"      Warning: Could not initialize AllTimePassingEngine: {e}")
+        return all_passings, passings_by_game
+
+    # Check if we have any leaderboards loaded
+    if not engine.leaderboards:
+        # No leaderboard files available yet - that's OK, just return empty
+        return all_passings, passings_by_game
+
+    # Approach 1: Check witnessed milestones
+    for milestone in witnessed_firsts:
+        # Only check career milestones (not firsts)
+        if milestone.get('category') != 'milestone':
+            continue
+
+        player_id = milestone.get('player_id', '')
+        if not player_id:
+            continue
+
+        stat = milestone.get('stat', '')
+        stat_type = milestone.get('type', 'batting')
+
+        # Get the career value at time of milestone
+        career_value = milestone.get('career_total_after') or milestone.get('milestone_number', 0)
+        if not career_value:
+            continue
+
+        # Check for passings
+        passings = engine.check_for_passings(
+            player_id=player_id,
+            player_name=milestone.get('player_name', ''),
+            stat=stat,
+            stat_type=stat_type,
+            new_value=career_value,
+            game_id=milestone.get('game_id', ''),
+            date=milestone.get('date', ''),
+            venue=milestone.get('venue', '')
+        )
+
+        for passing in passings:
+            # Add reference to the milestone
+            passing['milestone'] = milestone.get('milestone', '')
+            passing['date_display'] = milestone.get('date_display', '')
+
+            all_passings.append(passing)
+
+    # Approach 2: Reverse lookup from leaderboards (uses gamelogs cache if available)
+    if raw_games:
+        gamelogs_cache = load_gamelogs_cache()
+        reverse_passings = find_passings_reverse_lookup(engine, raw_games, career_firsts_cache, gamelogs_cache)
+        all_passings.extend(reverse_passings)
+
+    # Deduplicate: A player can only pass another player ONCE per stat
+    # First sort by date ascending so we process earliest occurrences first
+    all_passings.sort(key=lambda x: (x.get('date', ''), x.get('new_rank', 999)))
+
+    seen_passings = set()  # (player_id, stat, passed_player_id) tuples
+    seen_games = set()  # (player_id, stat, game_id) to avoid duplicate game entries
+    unique_passings = []
+
+    for p in all_passings:
+        game_key = (p.get('player_id', ''), p.get('stat', ''), p.get('game_id', ''))
+        if game_key in seen_games:
+            continue
+
+        # Filter passed_players to only include players not yet passed
+        filtered_passed = []
+        for passed in p.get('passed_players', []):
+            passing_key = (p.get('player_id', ''), p.get('stat', ''), passed.get('player_id', ''))
+            if passing_key not in seen_passings:
+                seen_passings.add(passing_key)
+                filtered_passed.append(passed)
+
+        # Only include this passing if there are still players being passed for the first time
+        if filtered_passed:
+            p = p.copy()
+            p['passed_players'] = filtered_passed
+            p['total_passed'] = len(filtered_passed)
+            unique_passings.append(p)
+            seen_games.add(game_key)
+
+    # Sort by date descending for display (most recent first), then by rank
+    unique_passings.sort(key=lambda x: (x.get('date', ''), -x.get('new_rank', 999)), reverse=True)
+
+    # Index by game
+    for passing in unique_passings:
+        game_id = passing.get('game_id', '')
+        if game_id:
+            if game_id not in passings_by_game:
+                passings_by_game[game_id] = []
+            passings_by_game[game_id].append(passing)
+
+    return unique_passings, passings_by_game
 
 
 class DataSerializer:
@@ -210,6 +393,20 @@ class DataSerializer:
         self._firsts_by_game = firsts_by_game
         self._firsts_by_player = firsts_by_player
 
+        # Find all-time list passings from witnessed milestones
+        all_time_passings, passings_by_game = find_all_time_passings(
+            witnessed_firsts, career_firsts_cache, raw_games
+        )
+
+        # Count games by type
+        game_type_counts = {'regular': 0, 'postseason': 0, 'spring': 0, 'allstar': 0}
+        for game in raw_games:
+            game_type = game.get('basic_info', {}).get('game_type', 'regular')
+            if game_type in game_type_counts:
+                game_type_counts[game_type] += 1
+            else:
+                game_type_counts['regular'] += 1
+
         json_data = {
             "summary": self._serialize_summary(data.get('summary_rows', [])),
             "milestones": self._serialize_milestones(data.get('milestones', {})),
@@ -231,6 +428,9 @@ class DataSerializer:
             "careerFirsts": witnessed_firsts,
             "careerFirstsByGame": firsts_by_game,
             "careerFirstsByPlayer": firsts_by_player,
+            "allTimePassings": all_time_passings,
+            "allTimePassingsByGame": passings_by_game,
+            "gameTypeCounts": game_type_counts,
         }
 
         counts = [
@@ -242,6 +442,7 @@ class DataSerializer:
             f"PlayerGames: {len(json_data['playerGames'])}",
             f"PitcherGames: {len(json_data['pitcherGames'])}",
             f"CareerFirsts: {len(witnessed_firsts)}",
+            f"AllTimePassings: {len(all_time_passings)}",
         ]
         print(f"      {', '.join(counts)}")
 
@@ -379,14 +580,14 @@ class DataSerializer:
         """Convert ALL hitters DataFrame to JSON with complete stats and date range."""
         if df is None or df.empty:
             return []
-        
+
         players = []
         for _, row in df.iterrows():
             try:
                 game_ids = str(row.get("GameIDs", ""))
                 first_date, last_date = self._extract_date_range_from_gameids(game_ids)
-                
-                players.append({
+
+                player_data = {
                     "name": str(row.get("Name", "")),
                     "playerId": str(row.get("Player ID", "")),
                     "team": str(row.get("Team", "")),
@@ -413,7 +614,33 @@ class DataSerializer:
                     "ops": f"{float(row.get('OPS', 0)):.3f}",
                     "firstGame": first_date,
                     "lastGame": last_date,
-                })
+                }
+
+                # Add per-game-type stats
+                for gt in ['spring', 'regular', 'postseason']:
+                    gt_g = int(row.get(f"{gt}_G", 0)) if f"{gt}_G" in row else 0
+                    gt_ab = int(row.get(f"{gt}_AB", 0)) if f"{gt}_AB" in row else 0
+                    gt_pa = int(row.get(f"{gt}_PA", 0)) if f"{gt}_PA" in row else 0
+                    gt_h = int(row.get(f"{gt}_H", 0)) if f"{gt}_H" in row else 0
+                    gt_avg = float(row.get(f"{gt}_AVG", 0)) if f"{gt}_AVG" in row else 0.0
+                    gt_team = str(row.get(f"{gt}_Team", "")) if f"{gt}_Team" in row else ""
+
+                    player_data[f"{gt}Games"] = gt_g
+                    player_data[f"{gt}Ab"] = gt_ab
+                    player_data[f"{gt}Pa"] = gt_pa
+                    player_data[f"{gt}H"] = gt_h
+                    player_data[f"{gt}Avg"] = f"{gt_avg:.3f}"
+                    player_data[f"{gt}R"] = int(row.get(f"{gt}_R", 0)) if f"{gt}_R" in row else 0
+                    player_data[f"{gt}Rbi"] = int(row.get(f"{gt}_RBI", 0)) if f"{gt}_RBI" in row else 0
+                    player_data[f"{gt}Hr"] = int(row.get(f"{gt}_HR", 0)) if f"{gt}_HR" in row else 0
+                    player_data[f"{gt}Doubles"] = int(row.get(f"{gt}_2B", 0)) if f"{gt}_2B" in row else 0
+                    player_data[f"{gt}Triples"] = int(row.get(f"{gt}_3B", 0)) if f"{gt}_3B" in row else 0
+                    player_data[f"{gt}Bb"] = int(row.get(f"{gt}_BB", 0)) if f"{gt}_BB" in row else 0
+                    player_data[f"{gt}So"] = int(row.get(f"{gt}_SO", 0)) if f"{gt}_SO" in row else 0
+                    player_data[f"{gt}Sb"] = int(row.get(f"{gt}_SB", 0)) if f"{gt}_SB" in row else 0
+                    player_data[f"{gt}Team"] = gt_team
+
+                players.append(player_data)
             except (KeyError, TypeError, ValueError) as e:
                 # Log error but continue processing other players
                 print(f"   Warning: Could not serialize player data: {e}")
@@ -424,7 +651,7 @@ class DataSerializer:
         """Convert ALL pitchers DataFrame to JSON with complete stats and date range."""
         if df is None or df.empty:
             return []
-        
+
         pitchers = []
         for _, row in df.iterrows():
             try:
@@ -432,8 +659,8 @@ class DataSerializer:
                 whip = row.get("WHIP")
                 game_ids = str(row.get("GameIDs", ""))
                 first_date, last_date = self._extract_date_range_from_gameids(game_ids)
-                
-                pitchers.append({
+
+                pitcher_data = {
                     "name": str(row.get("Name", "")),
                     "playerId": str(row.get("Player ID", "")),
                     "team": str(row.get("Team", "")),
@@ -453,7 +680,28 @@ class DataSerializer:
                     "hr": int(row.get("HR", 0)),
                     "firstGame": first_date,
                     "lastGame": last_date,
-                })
+                }
+
+                # Add per-game-type stats
+                for gt in ['spring', 'regular', 'postseason']:
+                    gt_g = int(row.get(f"{gt}_G", 0)) if f"{gt}_G" in row else 0
+                    gt_era = row.get(f"{gt}_ERA")
+                    gt_team = str(row.get(f"{gt}_Team", "")) if f"{gt}_Team" in row else ""
+
+                    pitcher_data[f"{gt}Games"] = gt_g
+                    pitcher_data[f"{gt}Gs"] = int(row.get(f"{gt}_GS", 0)) if f"{gt}_GS" in row else 0
+                    pitcher_data[f"{gt}W"] = int(row.get(f"{gt}_W", 0)) if f"{gt}_W" in row else 0
+                    pitcher_data[f"{gt}L"] = int(row.get(f"{gt}_L", 0)) if f"{gt}_L" in row else 0
+                    pitcher_data[f"{gt}Sv"] = int(row.get(f"{gt}_SV", 0)) if f"{gt}_SV" in row else 0
+                    pitcher_data[f"{gt}Ip"] = str(row.get(f"{gt}_IP", "0.0")) if f"{gt}_IP" in row else "0.0"
+                    pitcher_data[f"{gt}Era"] = f"{float(gt_era):.2f}" if gt_era is not None and pd.notna(gt_era) else "N/A"
+                    pitcher_data[f"{gt}H"] = int(row.get(f"{gt}_H", 0)) if f"{gt}_H" in row else 0
+                    pitcher_data[f"{gt}Er"] = int(row.get(f"{gt}_ER", 0)) if f"{gt}_ER" in row else 0
+                    pitcher_data[f"{gt}Bb"] = int(row.get(f"{gt}_BB", 0)) if f"{gt}_BB" in row else 0
+                    pitcher_data[f"{gt}So"] = int(row.get(f"{gt}_SO", 0)) if f"{gt}_SO" in row else 0
+                    pitcher_data[f"{gt}Team"] = gt_team
+
+                pitchers.append(pitcher_data)
             except (KeyError, TypeError, ValueError) as e:
                 # Log error but continue processing other pitchers
                 print(f"   Warning: Could not serialize pitcher data: {e}")
@@ -781,9 +1029,19 @@ class DataSerializer:
     def _extract_game_details(self, raw_game):
         """Extract detailed information from raw game data."""
         details = {}
-        
-        # Weather info
+
+        # Game type and source
         basic_info = raw_game.get('basic_info', {})
+        details['gameType'] = basic_info.get('game_type', 'regular')
+        details['source'] = basic_info.get('source', 'bref')
+
+        # Venue details (for spring training stadiums)
+        if basic_info.get('venue_city'):
+            details['venueCity'] = basic_info.get('venue_city')
+        if basic_info.get('venue_state'):
+            details['venueState'] = basic_info.get('venue_state')
+
+        # Weather info
         if basic_info.get('weather'):
             details['weather'] = str(basic_info.get('weather', ''))
         if basic_info.get('temperature_f'):

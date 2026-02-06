@@ -1,0 +1,957 @@
+"""
+MLB.com API Parser
+==================
+Fetches box score data from MLB Stats API for games not available on Baseball Reference
+(primarily spring training games).
+
+Usage:
+    from baseball_processor.parsers.mlb_api_parser import parse_mlb_game
+
+    # From URL
+    game_data = parse_mlb_game("https://www.mlb.com/gameday/red-sox-vs-orioles/2010/03/27/277494/final/box")
+
+    # From game ID
+    game_data = parse_mlb_game(277494)
+"""
+
+import re
+import requests
+from datetime import datetime
+from typing import Optional, Union
+
+# Try to import baseball_id for player ID mapping
+try:
+    from baseball_id import Lookup
+    HAS_BASEBALL_ID = True
+except ImportError:
+    HAS_BASEBALL_ID = False
+    print("Warning: baseball_id not installed. Run 'pip install baseball_id' for BREF ID mapping.")
+
+
+# Cache for MLB ID to BREF ID mapping
+_mlb_to_bref_cache = {}
+
+# Chadwick Register data (MLB ID -> BREF ID mapping)
+_chadwick_mlb_to_bref = {}
+_chadwick_loaded = False
+
+
+def _load_chadwick_register():
+    """Load Chadwick Register data for MLB ID -> BREF ID mapping."""
+    global _chadwick_mlb_to_bref, _chadwick_loaded
+    if _chadwick_loaded:
+        return
+
+    import csv
+    from pathlib import Path
+
+    # Find register data directory
+    register_dir = Path(__file__).parent.parent.parent / 'register-master' / 'data'
+    if not register_dir.exists():
+        _chadwick_loaded = True
+        return
+
+    # Load all people CSV files
+    for csv_file in register_dir.glob('people-*.csv'):
+        try:
+            with open(csv_file, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    mlb_id = row.get('key_mlbam', '').strip()
+                    bref_id = row.get('key_bbref', '').strip()
+                    bref_minors = row.get('key_bbref_minors', '').strip()
+
+                    if mlb_id:
+                        try:
+                            mlb_id_int = int(mlb_id)
+                            # Prefer MLB BREF ID, fall back to minors
+                            if bref_id:
+                                _chadwick_mlb_to_bref[mlb_id_int] = bref_id
+                            elif bref_minors:
+                                _chadwick_mlb_to_bref[mlb_id_int] = bref_minors
+                        except ValueError:
+                            pass
+        except (IOError, csv.Error):
+            continue
+
+    _chadwick_loaded = True
+
+
+def get_bref_id_from_chadwick(mlb_id: int) -> Optional[str]:
+    """Look up BREF ID from Chadwick Register by MLB ID."""
+    _load_chadwick_register()
+    return _chadwick_mlb_to_bref.get(mlb_id)
+
+# Cache for name to BREF ID mapping (fallback for newer players)
+# Key: (name, team) or just name; Value: bref_id
+_name_team_to_bref_cache = {}  # (name, team) -> bref_id
+_name_to_bref_cache = {}  # name -> bref_id (fallback if team doesn't match)
+_name_cache_loaded = False
+
+
+def _load_name_to_bref_cache():
+    """Load name->bref_id mappings from existing cache files."""
+    global _name_team_to_bref_cache, _name_to_bref_cache, _name_cache_loaded
+    if _name_cache_loaded:
+        return
+
+    import json
+    from pathlib import Path
+
+    # Find cache directory
+    cache_dir = Path(__file__).parent.parent.parent / 'cache'
+    if not cache_dir.exists():
+        _name_cache_loaded = True
+        return
+
+    # Scan all game cache files for player name -> bref_id mappings
+    for cache_file in cache_dir.glob('*.json'):
+        if 'career_firsts' in str(cache_file) or 'career_gamelogs' in str(cache_file):
+            continue
+        try:
+            with open(cache_file, 'r') as f:
+                game = json.load(f)
+
+            basic_info = game.get('basic_info', {})
+            away_team = basic_info.get('away_team_code', '')
+            home_team = basic_info.get('home_team_code', '')
+
+            # Extract from batting and pitching
+            for side, team in [('away', away_team), ('home', home_team)]:
+                for player in game.get('batting', {}).get(side, []):
+                    name = player.get('name', '').lower().strip()
+                    player_id = player.get('player_id', '')
+                    # Only use BREF-style IDs (not mlb_ prefixed)
+                    if name and player_id and not player_id.startswith('mlb_'):
+                        _name_to_bref_cache[name] = player_id
+                        if team:
+                            _name_team_to_bref_cache[(name, team)] = player_id
+
+                for player in game.get('pitching', {}).get(side, []):
+                    name = player.get('name', '').lower().strip()
+                    player_id = player.get('player_id', '')
+                    if name and player_id and not player_id.startswith('mlb_'):
+                        _name_to_bref_cache[name] = player_id
+                        if team:
+                            _name_team_to_bref_cache[(name, team)] = player_id
+        except (json.JSONDecodeError, IOError, KeyError):
+            continue
+
+    _name_cache_loaded = True
+
+
+# Cache for validated constructed IDs: (name, team, year) -> bref_id
+_constructed_id_cache = {}
+
+
+def construct_bref_register_id(name: str, team: str = None, year: int = None, mlb_id: int = None) -> Optional[str]:
+    """
+    Construct a Baseball Reference register ID (minor league format) from a player name.
+
+    Format: {last_name[:6]}{number:03d}{first_name[:3]}
+    Example: "Wyatt Lunsford-Shenkman" -> "lunsfo000wya"
+
+    Args:
+        name: Player's full name
+        team: Team code (for caching/validation)
+        year: Game year (for caching/validation)
+        mlb_id: MLB player ID (for additional validation)
+
+    Note: This assumes the player is the first with this name pattern (000).
+    Returns constructed ID only for players we haven't seen in MLB regular season.
+    """
+    if not name or ' ' not in name:
+        return None
+
+    # Check if we've already constructed an ID for this player+team+year combo
+    cache_key = (name.lower().strip(), team, year)
+    if cache_key in _constructed_id_cache:
+        return _constructed_id_cache[cache_key]
+
+    parts = name.strip().split()
+    if len(parts) < 2:
+        return None
+
+    first_name = parts[0].lower()
+    # Last name is everything after first name, handle hyphenated names
+    last_name = ''.join(parts[1:]).lower()
+    # Remove hyphens and other non-alpha characters for the ID
+    last_name_clean = ''.join(c for c in last_name if c.isalpha())
+    first_name_clean = ''.join(c for c in first_name if c.isalpha())
+
+    if len(last_name_clean) < 3 or len(first_name_clean) < 2:
+        return None
+
+    # Construct ID: first 6 of last name + 000 + first 3 of first name
+    bref_id = f"{last_name_clean[:6]}000{first_name_clean[:3]}"
+
+    # Cache this construction with team/year context
+    _constructed_id_cache[cache_key] = bref_id
+
+    # Also cache with mlb_id if provided for future lookups
+    if mlb_id:
+        _mlb_to_bref_cache[mlb_id] = bref_id
+
+    return bref_id
+
+
+def get_bref_id_by_name(name: str, team: str = None, year: int = None, mlb_id: int = None) -> Optional[str]:
+    """
+    Get BREF ID by player name, with multiple fallback strategies.
+
+    Args:
+        name: Player's full name
+        team: Team code for disambiguation
+        year: Game year for context
+        mlb_id: MLB player ID for caching
+
+    Returns:
+        BREF ID if found/constructed, None otherwise
+    """
+    _load_name_to_bref_cache()
+    name_lower = name.lower().strip()
+
+    # Try name+team first for better accuracy
+    if team:
+        result = _name_team_to_bref_cache.get((name_lower, team))
+        if result:
+            return result
+
+    # Fall back to name-only from cache
+    result = _name_to_bref_cache.get(name_lower)
+    if result:
+        return result
+
+    # Last resort: construct minor league register ID format
+    # Only do this for players not found in regular season cache
+    return construct_bref_register_id(name, team=team, year=year, mlb_id=mlb_id)
+
+
+def get_bref_id(mlb_id: int, name: str = None) -> Optional[str]:
+    """
+    Map an MLB player ID to a Baseball-Reference ID.
+
+    Lookup order:
+    1. Local cache
+    2. Chadwick Register (authoritative MLB ID -> BREF ID mapping)
+    3. baseball_id package
+    4. Name-based fallback
+
+    Args:
+        mlb_id: MLB player ID
+        name: Player name (for fallback lookup)
+
+    Returns None if mapping not found.
+    """
+    # Check MLB ID cache first
+    if mlb_id in _mlb_to_bref_cache:
+        cached = _mlb_to_bref_cache[mlb_id]
+        if cached:
+            return cached
+
+    # Try Chadwick Register (most authoritative source)
+    bref_id = get_bref_id_from_chadwick(mlb_id)
+    if bref_id:
+        _mlb_to_bref_cache[mlb_id] = bref_id
+        return bref_id
+
+    # Try baseball_id package
+    if HAS_BASEBALL_ID:
+        try:
+            result = Lookup.from_mlb_ids([mlb_id])
+            if not result.empty and 'bref_id' in result.columns:
+                bref_id = result.iloc[0]['bref_id']
+                if bref_id and not (isinstance(bref_id, float) and str(bref_id) == 'nan'):
+                    _mlb_to_bref_cache[mlb_id] = bref_id
+                    return bref_id
+        except Exception:
+            pass
+
+    # Fallback: try name-based lookup from existing cache
+    if name:
+        bref_id = get_bref_id_by_name(name)
+        if bref_id:
+            _mlb_to_bref_cache[mlb_id] = bref_id
+            return bref_id
+
+    _mlb_to_bref_cache[mlb_id] = None
+    return None
+
+
+def batch_get_bref_ids(mlb_ids: list) -> dict:
+    """
+    Batch map MLB player IDs to BREF IDs.
+    More efficient than individual lookups.
+
+    Returns dict of {mlb_id: bref_id} (bref_id may be None if not found)
+    """
+    if not HAS_BASEBALL_ID:
+        return {mid: None for mid in mlb_ids}
+
+    # Check cache first
+    result = {}
+    uncached = []
+    for mid in mlb_ids:
+        if mid in _mlb_to_bref_cache:
+            result[mid] = _mlb_to_bref_cache[mid]
+        else:
+            uncached.append(mid)
+
+    # Batch lookup uncached IDs
+    if uncached:
+        try:
+            lookup_result = Lookup.from_mlb_ids(uncached)
+            for _, row in lookup_result.iterrows():
+                mlb_id = int(row.get('mlb_id', 0))
+                bref_id = row.get('bref_id')
+                if bref_id and not (isinstance(bref_id, float) and str(bref_id) == 'nan'):
+                    _mlb_to_bref_cache[mlb_id] = bref_id
+                    result[mlb_id] = bref_id
+                else:
+                    _mlb_to_bref_cache[mlb_id] = None
+                    result[mlb_id] = None
+        except Exception:
+            for mid in uncached:
+                result[mid] = None
+
+    return result
+
+
+# MLB Stats API base URL
+MLB_API_BASE = "https://statsapi.mlb.com/api/v1.1"
+
+# Game type mapping
+GAME_TYPE_MAP = {
+    'S': 'spring',
+    'R': 'regular',
+    'P': 'postseason',
+    'F': 'postseason',  # Wild Card, Division, League Championship, World Series
+    'D': 'postseason',
+    'L': 'postseason',
+    'W': 'postseason',
+    'A': 'allstar',
+    'E': 'exhibition',
+}
+
+# Team code mapping (MLB team IDs to standard abbreviations)
+TEAM_ID_TO_CODE = {
+    108: 'LAA', 109: 'ARI', 110: 'BAL', 111: 'BOS', 112: 'CHC',
+    113: 'CIN', 114: 'CLE', 115: 'COL', 116: 'DET', 117: 'HOU',
+    118: 'KC', 119: 'LAD', 120: 'WSH', 121: 'NYM', 133: 'ATH',
+    134: 'PIT', 135: 'SD', 136: 'SEA', 137: 'SF', 138: 'STL',
+    139: 'TB', 140: 'TEX', 141: 'TOR', 142: 'MIN', 143: 'PHI',
+    144: 'ATL', 145: 'CWS', 146: 'MIA', 147: 'NYY', 158: 'MIL',
+}
+
+
+def extract_game_id(url_or_id: Union[str, int]) -> int:
+    """Extract game ID from MLB.com URL or return ID directly."""
+    if isinstance(url_or_id, int):
+        return url_or_id
+
+    # Try to extract from URL patterns
+    # https://www.mlb.com/gameday/red-sox-vs-orioles/2010/03/27/277494/final/box
+    # https://www.mlb.com/gameday/277494
+    match = re.search(r'/(\d{5,7})(?:/|$)', str(url_or_id))
+    if match:
+        return int(match.group(1))
+
+    # Maybe it's just a number as string
+    try:
+        return int(url_or_id)
+    except ValueError:
+        raise ValueError(f"Could not extract game ID from: {url_or_id}")
+
+
+def fetch_game_data(game_pk: int) -> dict:
+    """Fetch game data from MLB Stats API."""
+    # Get live feed for game metadata
+    feed_url = f"{MLB_API_BASE}/game/{game_pk}/feed/live"
+    feed_response = requests.get(feed_url, timeout=30)
+    feed_response.raise_for_status()
+    feed_data = feed_response.json()
+
+    # Get boxscore for detailed stats
+    box_url = f"https://statsapi.mlb.com/api/v1/game/{game_pk}/boxscore"
+    box_response = requests.get(box_url, timeout=30)
+    box_response.raise_for_status()
+    box_data = box_response.json()
+
+    return {
+        'feed': feed_data,
+        'boxscore': box_data,
+    }
+
+
+def parse_basic_info(feed_data: dict, box_data: dict) -> dict:
+    """Parse basic game information."""
+    game_data = feed_data.get('gameData', {})
+
+    # Date/time info
+    dt = game_data.get('datetime', {})
+    official_date = dt.get('officialDate', '')
+
+    # Parse date for formatted display
+    try:
+        date_obj = datetime.strptime(official_date, '%Y-%m-%d')
+        formatted_date = date_obj.strftime('%A, %B %d, %Y')  # "Saturday, March 27, 2010"
+        date_yyyymmdd = date_obj.strftime('%Y%m%d')
+    except:
+        formatted_date = official_date
+        date_yyyymmdd = official_date.replace('-', '')
+
+    # Teams
+    teams = game_data.get('teams', {})
+    away_team = teams.get('away', {})
+    home_team = teams.get('home', {})
+
+    # Get team codes
+    away_id = away_team.get('id')
+    home_id = home_team.get('id')
+    away_code = TEAM_ID_TO_CODE.get(away_id, away_team.get('abbreviation', 'UNK'))
+    home_code = TEAM_ID_TO_CODE.get(home_id, home_team.get('abbreviation', 'UNK'))
+
+    # Venue
+    venue = game_data.get('venue', {})
+    venue_name = venue.get('name', '')
+    venue_location = venue.get('location', {})
+    venue_city = venue_location.get('city', '')
+    venue_state = venue_location.get('stateAbbrev', '')
+
+    # Score from linescore
+    linescore = feed_data.get('liveData', {}).get('linescore', {})
+    away_score = linescore.get('teams', {}).get('away', {}).get('runs', 0)
+    home_score = linescore.get('teams', {}).get('home', {}).get('runs', 0)
+
+    # Game type
+    game_info = game_data.get('game', {})
+    game_type_code = game_info.get('type', 'R')
+    game_type = GAME_TYPE_MAP.get(game_type_code, 'regular')
+
+    # Weather (may not be available for spring training)
+    weather = game_data.get('weather', {})
+    weather_str = ''
+    if weather:
+        temp = weather.get('temp', '')
+        condition = weather.get('condition', '')
+        wind = weather.get('wind', '')
+        if temp:
+            weather_str = f"{temp}°F"
+            if condition:
+                weather_str += f", {condition}"
+            if wind:
+                weather_str += f", Wind: {wind}"
+
+    # Attendance
+    game_info_data = game_data.get('gameInfo', {})
+    attendance = game_info_data.get('attendance')
+
+    return {
+        'away_team': away_team.get('name', ''),
+        'home_team': home_team.get('name', ''),
+        'date': formatted_date,
+        'date_yyyymmdd': date_yyyymmdd,
+        'start_time': dt.get('time', '') + ' ' + dt.get('ampm', ''),
+        'attendance': f"{attendance:,}" if attendance else '',
+        'attendance_value': attendance or 0,
+        'venue': venue_name,
+        'venue_city': venue_city,
+        'venue_state': venue_state,
+        'duration': '',  # Not always available
+        'weather': weather_str,
+        'temperature_f': int(weather.get('temp', 0)) if weather.get('temp') else None,
+        'away_score': str(away_score),
+        'home_score': str(home_score),
+        'away_score_value': away_score,
+        'home_score_value': home_score,
+        'doubleheader': game_info.get('doubleHeader', 'N'),
+        'away_team_code': away_code,
+        'home_team_code': home_code,
+        'game_type': game_type,
+        'game_type_code': game_type_code,
+        'source': 'mlb',
+    }
+
+
+def parse_batting(box_data: dict, side: str, bref_id_map: dict = None, game_year: int = None) -> list:
+    """Parse batting stats for a team."""
+    team_data = box_data.get('teams', {}).get(side, {})
+    players = team_data.get('players', {})
+    batters = team_data.get('batters', [])
+    batting_order = team_data.get('battingOrder', [])
+
+    # Get team code for name disambiguation
+    team_id = team_data.get('team', {}).get('id')
+    team_code = TEAM_ID_TO_CODE.get(team_id, '')
+
+    if bref_id_map is None:
+        bref_id_map = {}
+
+    result = []
+    lineup_slot = 0
+
+    for batter_id in batters:
+        player_key = f'ID{batter_id}'
+        player = players.get(player_key, {})
+
+        if not player:
+            continue
+
+        person = player.get('person', {})
+        stats = player.get('stats', {}).get('batting', {})
+        position = player.get('position', {})
+
+        mlb_id = person.get('id')
+
+        # Determine if starter and lineup position
+        is_starter = batter_id in batting_order
+        if is_starter:
+            lineup_slot = batting_order.index(batter_id) + 1
+
+        # Use BREF ID if available, otherwise try name-based lookup, then fall back to mlb_ prefix
+        player_name = person.get('fullName', '')
+        bref_id = bref_id_map.get(mlb_id)
+        if not bref_id and player_name:
+            bref_id = get_bref_id_by_name(player_name, team=team_code, year=game_year, mlb_id=mlb_id)
+        player_id = bref_id if bref_id else f"mlb_{mlb_id}"
+
+        batter_data = {
+            'name': player_name,
+            'player_id': player_id,
+            'mlb_id': mlb_id,
+            'bref_id': bref_id,  # Store BREF ID separately too
+            'position': position.get('abbreviation', ''),
+            'AB': stats.get('atBats', 0),
+            'R': stats.get('runs', 0),
+            'H': stats.get('hits', 0),
+            'RBI': stats.get('rbi', 0),
+            'BB': stats.get('baseOnBalls', 0),
+            'SO': stats.get('strikeOuts', 0),
+            'PA': stats.get('plateAppearances', 0),
+            'HR': stats.get('homeRuns', 0),
+            '2B': stats.get('doubles', 0),
+            '3B': stats.get('triples', 0),
+            'SB': stats.get('stolenBases', 0),
+            'CS': stats.get('caughtStealing', 0),
+            'HBP': stats.get('hitByPitch', 0),
+            'SF': stats.get('sacFlies', 0),
+            'SH': stats.get('sacBunts', 0),
+            'GDP': stats.get('groundIntoDoublePlay', 0),
+            'TB': stats.get('totalBases', 0),
+            'lineup_slot': lineup_slot if is_starter else None,
+            'is_starter': is_starter,
+        }
+
+        # Only include players who had plate appearances or are starters
+        if stats.get('plateAppearances', 0) > 0 or is_starter:
+            result.append(batter_data)
+
+    return result
+
+
+def parse_pitching(box_data: dict, side: str, bref_id_map: dict = None, game_year: int = None) -> list:
+    """Parse pitching stats for a team."""
+    team_data = box_data.get('teams', {}).get(side, {})
+    players = team_data.get('players', {})
+    pitchers = team_data.get('pitchers', [])
+
+    # Get team code for name disambiguation
+    team_id = team_data.get('team', {}).get('id')
+    team_code = TEAM_ID_TO_CODE.get(team_id, '')
+
+    if bref_id_map is None:
+        bref_id_map = {}
+
+    result = []
+
+    for pitcher_id in pitchers:
+        player_key = f'ID{pitcher_id}'
+        player = players.get(player_key, {})
+
+        if not player:
+            continue
+
+        person = player.get('person', {})
+        stats = player.get('stats', {}).get('pitching', {})
+
+        if not stats:
+            continue
+
+        mlb_id = person.get('id')
+        player_name = person.get('fullName', '')
+
+        # Use BREF ID if available, otherwise try name-based lookup, then fall back to mlb_ prefix
+        bref_id = bref_id_map.get(mlb_id)
+        if not bref_id and player_name:
+            bref_id = get_bref_id_by_name(player_name, team=team_code, year=game_year, mlb_id=mlb_id)
+        player_id = bref_id if bref_id else f"mlb_{mlb_id}"
+
+        pitcher_data = {
+            'name': player_name,
+            'player_id': player_id,
+            'mlb_id': mlb_id,
+            'bref_id': bref_id,
+            'IP': stats.get('inningsPitched', '0'),
+            'H': stats.get('hits', 0),
+            'R': stats.get('runs', 0),
+            'ER': stats.get('earnedRuns', 0),
+            'BB': stats.get('baseOnBalls', 0),
+            'SO': stats.get('strikeOuts', 0),
+            'HR': stats.get('homeRuns', 0),
+            'BF': stats.get('battersFaced', 0),
+            'Pit': stats.get('pitchesThrown', 0) or stats.get('numberOfPitches', 0),
+            'Str': stats.get('strikes', 0),
+            'W': stats.get('wins', 0),
+            'L': stats.get('losses', 0),
+            'SV': stats.get('saves', 0),
+            'HLD': stats.get('holds', 0),
+            'BS': stats.get('blownSaves', 0),
+            'HBP': stats.get('hitBatsmen', 0),
+            'WP': stats.get('wildPitches', 0),
+            'BK': stats.get('balks', 0),
+            'GS': stats.get('gamesStarted', 0),
+        }
+
+        result.append(pitcher_data)
+
+    return result
+
+
+def parse_linescore(feed_data: dict) -> dict:
+    """Parse inning-by-inning linescore."""
+    linescore = feed_data.get('liveData', {}).get('linescore', {})
+    innings = linescore.get('innings', [])
+
+    away_runs = []
+    home_runs = []
+
+    for inning in innings:
+        away_runs.append(inning.get('away', {}).get('runs', 0))
+        home_runs.append(inning.get('home', {}).get('runs', 0))
+
+    teams = linescore.get('teams', {})
+
+    return {
+        'innings': len(innings),
+        'away': {
+            'runs_by_inning': away_runs,
+            'R': teams.get('away', {}).get('runs', 0),
+            'H': teams.get('away', {}).get('hits', 0),
+            'E': teams.get('away', {}).get('errors', 0),
+        },
+        'home': {
+            'runs_by_inning': home_runs,
+            'R': teams.get('home', {}).get('runs', 0),
+            'H': teams.get('home', {}).get('hits', 0),
+            'E': teams.get('home', {}).get('errors', 0),
+        },
+    }
+
+
+def parse_substitutions(feed_data: dict, bref_id_map: dict = None) -> list:
+    """Parse substitutions from play-by-play data."""
+    if bref_id_map is None:
+        bref_id_map = {}
+
+    plays = feed_data.get('liveData', {}).get('plays', {})
+    all_plays = plays.get('allPlays', [])
+
+    substitutions = []
+
+    for play in all_plays:
+        play_events = play.get('playEvents', [])
+        about = play.get('about', {})
+        inning = about.get('inning', 0)
+        half_inning = about.get('halfInning', '')
+
+        for pe in play_events:
+            if pe.get('type') != 'action':
+                continue
+
+            details = pe.get('details', {})
+            event_type = details.get('eventType', '')
+
+            # Check for substitution events
+            if event_type in ['pitching_substitution', 'offensive_substitution',
+                              'defensive_substitution', 'defensive_switch']:
+                description = details.get('description', '')
+
+                # Try to extract player info
+                player = pe.get('player', {})
+                mlb_id = player.get('id')
+                bref_id = bref_id_map.get(mlb_id) if mlb_id else None
+
+                substitutions.append({
+                    'inning': inning,
+                    'half': half_inning,
+                    'type': event_type,
+                    'description': description,
+                    'player_id': bref_id or (f"mlb_{mlb_id}" if mlb_id else None),
+                    'mlb_id': mlb_id,
+                })
+
+    return substitutions
+
+
+def parse_play_by_play(feed_data: dict, bref_id_map: dict = None) -> list:
+    """Parse play-by-play events from the API."""
+    if bref_id_map is None:
+        bref_id_map = {}
+
+    plays = feed_data.get('liveData', {}).get('plays', {})
+    all_plays = plays.get('allPlays', [])
+
+    play_by_play = []
+
+    for play in all_plays:
+        result = play.get('result', {})
+        about = play.get('about', {})
+        matchup = play.get('matchup', {})
+
+        event_type = result.get('eventType', '')
+        if not event_type:
+            continue
+
+        # Get batter and pitcher info
+        batter = matchup.get('batter', {})
+        pitcher = matchup.get('pitcher', {})
+        batter_mlb_id = batter.get('id')
+        pitcher_mlb_id = pitcher.get('id')
+
+        # Get BREF IDs with full fallback chain
+        batter_name = batter.get('fullName', '')
+        pitcher_name = pitcher.get('fullName', '')
+        batter_bref = bref_id_map.get(batter_mlb_id)
+        pitcher_bref = bref_id_map.get(pitcher_mlb_id)
+
+        # Try Chadwick/name fallback if not in map
+        if not batter_bref and batter_mlb_id:
+            batter_bref = get_bref_id_from_chadwick(batter_mlb_id)
+        if not pitcher_bref and pitcher_mlb_id:
+            pitcher_bref = get_bref_id_from_chadwick(pitcher_mlb_id)
+
+        play_data = {
+            'inning': about.get('inning', 0),
+            'half': about.get('halfInning', ''),
+            'outs_before': play.get('count', {}).get('outs', 0),
+            'event': result.get('event', ''),
+            'event_type': event_type,
+            'description': result.get('description', ''),
+            'rbi': result.get('rbi', 0),
+            'is_scoring_play': about.get('isScoringPlay', False),
+            'away_score': result.get('awayScore', 0),
+            'home_score': result.get('homeScore', 0),
+            'batter': batter_name,
+            'batter_id': batter_bref or (f"mlb_{batter_mlb_id}" if batter_mlb_id else None),
+            'pitcher': pitcher_name,
+            'pitcher_id': pitcher_bref or (f"mlb_{pitcher_mlb_id}" if pitcher_mlb_id else None),
+        }
+
+        # Add runner movement if available
+        runners = play.get('runners', [])
+        if runners:
+            play_data['runners'] = []
+            for runner in runners:
+                movement = runner.get('movement', {})
+                details = runner.get('details', {})
+                runner_info = details.get('runner', {})
+                runner_mlb_id = runner_info.get('id')
+
+                runner_bref = bref_id_map.get(runner_mlb_id)
+                if not runner_bref and runner_mlb_id:
+                    runner_bref = get_bref_id_from_chadwick(runner_mlb_id)
+
+                play_data['runners'].append({
+                    'name': runner_info.get('fullName', ''),
+                    'player_id': runner_bref or (f"mlb_{runner_mlb_id}" if runner_mlb_id else None),
+                    'start': movement.get('start'),
+                    'end': movement.get('end'),
+                    'is_out': movement.get('isOut', False),
+                    'event': details.get('event', ''),
+                })
+
+        play_by_play.append(play_data)
+
+    return play_by_play
+
+
+def generate_game_id(basic_info: dict, game_pk: int) -> str:
+    """Generate a unique game ID compatible with BREF format."""
+    # Format: TEAMYYYYMMDD# where # is game number
+    # For MLB API games, use 'M' prefix to distinguish
+    home_code = basic_info.get('home_team_code', 'UNK')
+    date = basic_info.get('date_yyyymmdd', '')
+    doubleheader = basic_info.get('doubleheader', 'N')
+
+    # Game number suffix
+    if doubleheader == 'Y':
+        suffix = '1'  # Would need more logic for actual DH game number
+    else:
+        suffix = '0'
+
+    return f"M{home_code}{date}{suffix}"
+
+
+def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player_ids: bool = True) -> dict:
+    """
+    Parse an MLB game from MLB.com/Stats API.
+
+    Args:
+        url_or_id: MLB.com gameday URL or game ID (gamePk)
+        verbose: Print progress messages
+        map_player_ids: Attempt to map MLB IDs to BREF IDs (requires baseball_id package)
+
+    Returns:
+        Game data dict compatible with BREF parser output
+    """
+    game_pk = extract_game_id(url_or_id)
+
+    if verbose:
+        print(f"Fetching game {game_pk} from MLB Stats API...")
+
+    # Fetch data from API
+    data = fetch_game_data(game_pk)
+    feed_data = data['feed']
+    box_data = data['boxscore']
+
+    # Parse components
+    basic_info = parse_basic_info(feed_data, box_data)
+
+    if verbose:
+        print(f"  {basic_info['away_team']} @ {basic_info['home_team']}")
+        print(f"  {basic_info['date']} at {basic_info['venue']}")
+        print(f"  Game type: {basic_info['game_type']}")
+
+    # Collect all MLB player IDs for batch lookup
+    bref_id_map = {}
+    if map_player_ids and HAS_BASEBALL_ID:
+        all_mlb_ids = set()
+        for side in ['away', 'home']:
+            team_data = box_data.get('teams', {}).get(side, {})
+            players = team_data.get('players', {})
+            for player_key, player in players.items():
+                mlb_id = player.get('person', {}).get('id')
+                if mlb_id:
+                    all_mlb_ids.add(mlb_id)
+
+        if all_mlb_ids:
+            if verbose:
+                print(f"  Mapping {len(all_mlb_ids)} player IDs to BREF...")
+            bref_id_map = batch_get_bref_ids(list(all_mlb_ids))
+            mapped_count = sum(1 for v in bref_id_map.values() if v)
+            if verbose:
+                print(f"  Mapped {mapped_count}/{len(all_mlb_ids)} players to BREF IDs")
+
+    # Extract year for player ID disambiguation
+    game_year = None
+    date_str = basic_info.get('date_yyyymmdd', '')
+    if date_str and len(date_str) >= 4:
+        try:
+            game_year = int(date_str[:4])
+        except ValueError:
+            pass
+
+    batting = {
+        'away': parse_batting(box_data, 'away', bref_id_map, game_year),
+        'home': parse_batting(box_data, 'home', bref_id_map, game_year),
+    }
+
+    pitching = {
+        'away': parse_pitching(box_data, 'away', bref_id_map, game_year),
+        'home': parse_pitching(box_data, 'home', bref_id_map, game_year),
+    }
+
+    linescore = parse_linescore(feed_data)
+
+    # Parse play-by-play and substitutions
+    substitutions = parse_substitutions(feed_data, bref_id_map)
+    play_by_play = parse_play_by_play(feed_data, bref_id_map)
+
+    if verbose:
+        print(f"  Parsed {len(play_by_play)} plays, {len(substitutions)} substitutions")
+
+    game_id = generate_game_id(basic_info, game_pk)
+
+    return {
+        'basic_info': basic_info,
+        'batting': batting,
+        'pitching': pitching,
+        'linescore': linescore,
+        'game_id': game_id,
+        'mlb_game_pk': game_pk,
+        'source': 'mlb',
+        # Parsed fields
+        'lineups': {'away': [], 'home': []},
+        'substitutions': substitutions,
+        'play_by_play': play_by_play,
+        'pitcher_decisions': {},
+        'special_events': {},
+        'milestone_stats': {},
+        'umpires': {},
+        'doubleheader': basic_info.get('doubleheader', 'N'),
+        'raw_plays': play_by_play,  # Use play_by_play as raw_plays too
+        'footer_summary': {},
+    }
+
+
+def parse_mlb_games_from_file(filepath: str, verbose: bool = False) -> list:
+    """
+    Parse multiple MLB games from a file of URLs/IDs.
+
+    Args:
+        filepath: Path to file with one URL or game ID per line
+        verbose: Print progress messages
+
+    Returns:
+        List of game data dicts
+    """
+    games = []
+
+    with open(filepath, 'r') as f:
+        lines = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+
+    for i, line in enumerate(lines):
+        if verbose:
+            print(f"\n[{i+1}/{len(lines)}] Processing: {line}")
+
+        try:
+            game_data = parse_mlb_game(line, verbose=verbose)
+            games.append(game_data)
+        except Exception as e:
+            print(f"  Error: {e}")
+
+    return games
+
+
+if __name__ == '__main__':
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(description='Parse MLB.com game box scores')
+    parser.add_argument('game', help='MLB.com URL or game ID')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
+    parser.add_argument('--json', '-j', action='store_true', help='Output as JSON')
+
+    args = parser.parse_args()
+
+    game_data = parse_mlb_game(args.game, verbose=args.verbose)
+
+    if args.json:
+        print(json.dumps(game_data, indent=2))
+    else:
+        bi = game_data['basic_info']
+        print(f"\n{'='*60}")
+        print(f"{bi['away_team']} ({bi['away_score']}) @ {bi['home_team']} ({bi['home_score']})")
+        print(f"{bi['date']}")
+        print(f"{bi['venue']}, {bi.get('venue_city', '')}, {bi.get('venue_state', '')}")
+        print(f"Game Type: {bi['game_type'].upper()}")
+        print(f"Game ID: {game_data['game_id']}")
+        print(f"{'='*60}")
+
+        print(f"\n{bi['away_team']} Batting:")
+        for b in game_data['batting']['away'][:5]:
+            print(f"  {b['name']}: {b['H']}-{b['AB']}, {b['R']} R, {b['RBI']} RBI")
+
+        print(f"\n{bi['home_team']} Batting:")
+        for b in game_data['batting']['home'][:5]:
+            print(f"  {b['name']}: {b['H']}-{b['AB']}, {b['R']} R, {b['RBI']} RBI")

@@ -9,67 +9,102 @@ from .base_processor import BaseProcessor
 class PlayerStatsProcessor(BaseProcessor):
     """Handle player statistics processing with improved organization and error handling."""
 
+    # Game type mapping
+    GAME_TYPES = ['spring', 'regular', 'postseason']
+
     def __init__(self, games):
         super().__init__(games)
-    
+
+    def _get_game_type(self, game):
+        """Get normalized game type from game data."""
+        game_type = game.get("basic_info", {}).get("game_type", "regular")
+        # Normalize to our standard types
+        if game_type in ("spring", "spring_training"):
+            return "spring"
+        elif game_type in ("postseason", "playoff", "P"):
+            return "postseason"
+        else:
+            return "regular"
+
     def process_all_player_stats(self):
         """Process all player statistics and return DataFrames."""
         print("👥 Processing player statistics...")
-        
+
         # Initialize tracking
         all_players = {}  # player_id -> {name, teams, game_ids, positions}
         players_with_stats = set()  # player_ids who have meaningful stats
-        
-        # Hitters tracking
+
+        # Hitters tracking - total and per game type
         hit_tot = defaultdict(lambda: defaultdict(int))
         hit_team = defaultdict(set)
         hit_games = defaultdict(set)
-        
-        # Pitchers tracking
+        # Per game type tracking for hitters
+        hit_by_type = {gt: defaultdict(lambda: defaultdict(int)) for gt in self.GAME_TYPES}
+        hit_games_by_type = {gt: defaultdict(set) for gt in self.GAME_TYPES}
+        hit_team_by_type = {gt: defaultdict(set) for gt in self.GAME_TYPES}
+
+        # Pitchers tracking - total and per game type
         pit_tot = defaultdict(lambda: defaultdict(int))
         pit_team = defaultdict(set)
         pit_games = defaultdict(set)
-        
+        # Per game type tracking for pitchers
+        pit_by_type = {gt: defaultdict(lambda: defaultdict(int)) for gt in self.GAME_TYPES}
+        pit_games_by_type = {gt: defaultdict(set) for gt in self.GAME_TYPES}
+        pit_team_by_type = {gt: defaultdict(set) for gt in self.GAME_TYPES}
+
         # Process each game
         for game in self.games:
-            self._process_game_stats(game, all_players, players_with_stats, 
-                                   hit_tot, hit_team, hit_games, 
-                                   pit_tot, pit_team, pit_games)
-        
+            game_type = self._get_game_type(game)
+            self._process_game_stats(game, all_players, players_with_stats,
+                                   hit_tot, hit_team, hit_games,
+                                   pit_tot, pit_team, pit_games,
+                                   hit_by_type, hit_games_by_type, hit_team_by_type,
+                                   pit_by_type, pit_games_by_type, pit_team_by_type,
+                                   game_type)
+
         # Create DataFrames
-        hitters = self._create_hitters_dataframe(hit_tot, hit_team, hit_games, players_with_stats)
-        pitchers = self._create_pitchers_dataframe(pit_tot, pit_team, pit_games)
+        hitters = self._create_hitters_dataframe(hit_tot, hit_team, hit_games, players_with_stats,
+                                                  hit_by_type, hit_games_by_type, hit_team_by_type)
+        pitchers = self._create_pitchers_dataframe(pit_tot, pit_team, pit_games,
+                                                    pit_by_type, pit_games_by_type, pit_team_by_type)
         players_without_stats_df = self._create_no_stats_dataframe(all_players, players_with_stats)
-        
+
         print(f"   ✅ Processed {len(hitters)} hitters, {len(pitchers)} pitchers, "
               f"{len(players_without_stats_df)} players without stats, tracking {len(all_players)} total players")
-        
+
         return hitters, pitchers, players_without_stats_df, all_players
     
-    def _process_game_stats(self, game, all_players, players_with_stats, 
-                           hit_tot, hit_team, hit_games, pit_tot, pit_team, pit_games):
+    def _process_game_stats(self, game, all_players, players_with_stats,
+                           hit_tot, hit_team, hit_games, pit_tot, pit_team, pit_games,
+                           hit_by_type, hit_games_by_type, hit_team_by_type,
+                           pit_by_type, pit_games_by_type, pit_team_by_type,
+                           game_type):
         """Process statistics for a single game."""
         basic_info = game.get("basic_info", {})
         game_id = game.get("game_id", "UNKNOWN")
         name_to_id = {}
-        
+
         # Process batting and pitching stats
         for side in ("home", "away"):
             team_code = unify_team_code(basic_info.get(f"{side}_team_code", ""))
-            
+
             # Process batting stats
-            self._process_batting_stats(game, side, team_code, game_id, all_players, 
-                                      players_with_stats, hit_tot, hit_team, hit_games, name_to_id)
-            
+            self._process_batting_stats(game, side, team_code, game_id, all_players,
+                                      players_with_stats, hit_tot, hit_team, hit_games, name_to_id,
+                                      hit_by_type, hit_games_by_type, hit_team_by_type, game_type)
+
             # Process pitching stats
-            self._process_pitching_stats(game, side, team_code, game_id, all_players, 
-                                       players_with_stats, pit_tot, pit_team, pit_games)
-        
+            self._process_pitching_stats(game, side, team_code, game_id, all_players,
+                                       players_with_stats, pit_tot, pit_team, pit_games,
+                                       pit_by_type, pit_games_by_type, pit_team_by_type, game_type)
+
         # Process footer stats (XBH, SB, etc.)
-        self._process_footer_stats(game, name_to_id, hit_tot, players_with_stats)
+        self._process_footer_stats(game, name_to_id, hit_tot, players_with_stats,
+                                   hit_by_type, game_type)
     
-    def _process_batting_stats(self, game, side, team_code, game_id, all_players, 
-                            players_with_stats, hit_tot, hit_team, hit_games, name_to_id):
+    def _process_batting_stats(self, game, side, team_code, game_id, all_players,
+                            players_with_stats, hit_tot, hit_team, hit_games, name_to_id,
+                            hit_by_type, hit_games_by_type, hit_team_by_type, game_type):
         """Process batting statistics for one side of a game."""
         for player in game.get("batting", {}).get(side, []):
             player_id = safe_get_str(player, "player_id", "")
@@ -86,91 +121,128 @@ class PlayerStatsProcessor(BaseProcessor):
             # Initialize stats if first time seeing this player
             if player_id not in hit_tot:
                 hit_tot[player_id]["Name"] = name
+            if player_id not in hit_by_type[game_type]:
+                hit_by_type[game_type][player_id]["Name"] = name
 
             hit_team[player_id].add(team_code)
+            hit_team_by_type[game_type][player_id].add(team_code)
+
+            # Track total games
             if game_id not in hit_games[player_id]:
                 hit_games[player_id].add(game_id)
                 hit_tot[player_id]["G"] += 1
+
+            # Track games by type
+            if game_id not in hit_games_by_type[game_type][player_id]:
+                hit_games_by_type[game_type][player_id].add(game_id)
+                hit_by_type[game_type][player_id]["G"] += 1
 
             # Process individual stats
             has_meaningful_stats = False
             for stat in ("AB", "R", "H", "RBI", "BB", "SO", "PA"):
                 value = safe_get_int(player, stat, 0)
                 hit_tot[player_id][stat] += value
+                hit_by_type[game_type][player_id][stat] += value
                 if value > 0:
+                    has_meaningful_stats = True
+
+            # Process extra-base hit stats if available in player data (MLB API provides these directly)
+            for stat in ("HR", "2B", "3B", "SB", "CS", "HBP", "GIDP", "GDP"):
+                value = safe_get_int(player, stat, 0)
+                if value > 0:
+                    # Map GDP to GIDP for consistency
+                    stat_key = "GIDP" if stat == "GDP" else stat
+                    hit_tot[player_id][stat_key] += value
+                    hit_by_type[game_type][player_id][stat_key] += value
                     has_meaningful_stats = True
 
             if has_meaningful_stats:
                 players_with_stats.add(player_id)
     
-    def _process_pitching_stats(self, game, side, team_code, game_id, all_players, 
-                               players_with_stats, pit_tot, pit_team, pit_games):
+    def _process_pitching_stats(self, game, side, team_code, game_id, all_players,
+                               players_with_stats, pit_tot, pit_team, pit_games,
+                               pit_by_type, pit_games_by_type, pit_team_by_type, game_type):
         """Process pitching statistics for one side of a game."""
         basic_info = game.get("basic_info", {})
-        
+
         # Determine if this pitcher is a starter (first in the list)
         pitching_staff = game.get("pitching", {}).get(side, [])
         starter_id = pitching_staff[0].get("player_id") if pitching_staff else None
-        
+
         for pitcher in pitching_staff:
             player_id = safe_get_str(pitcher, "player_id", "")
             if not player_id:
                 continue
-            
+
             name = safe_get_str(pitcher, "name", "")
-            
+
             # Track player across all games
             self._track_player(player_id, name, team_code, game_id, "P", all_players)
-            
-            # Initialize pitcher stats
+
+            # Initialize pitcher stats (total)
             if player_id not in pit_tot:
                 pit_tot[player_id]["Name"] = name
                 pit_tot[player_id]["GS"] = 0
-            
+
+            # Initialize pitcher stats (by type)
+            if player_id not in pit_by_type[game_type]:
+                pit_by_type[game_type][player_id]["Name"] = name
+                pit_by_type[game_type][player_id]["GS"] = 0
+
             pit_team[player_id].add(team_code)
+            pit_team_by_type[game_type][player_id].add(team_code)
             pit_games[player_id].add(game_id)
+            pit_games_by_type[game_type][player_id].add(game_id)
             pit_tot[player_id]["G"] += 1
-            
+            pit_by_type[game_type][player_id]["G"] += 1
+
             # Track game starts
             if player_id == starter_id:
                 pit_tot[player_id]["GS"] += 1
-            
+                pit_by_type[game_type][player_id]["GS"] += 1
+
             # Process IP (convert to outs for easier calculation)
             ip = pitcher.get("IP", "0")
             try:
                 outs = StatUtils.ip_to_outs(ip)
                 if outs is not None:
                     pit_tot[player_id]["Outs"] += outs
+                    pit_by_type[game_type][player_id]["Outs"] += outs
             except (ValueError, TypeError):
-                pass  # Skip invalid IP values
-            
+                outs = 0
+
             # Process other pitching stats
             has_meaningful_stats = False
             for stat in ("H", "R", "ER", "BB", "SO", "HR"):
                 value = safe_get_int(pitcher, stat, 0)
                 pit_tot[player_id][stat] += value
+                pit_by_type[game_type][player_id][stat] += value
                 if value > 0:
                     has_meaningful_stats = True
-            
+
             # Track decisions
             if pitcher.get("win"):
                 pit_tot[player_id]["W"] += 1
+                pit_by_type[game_type][player_id]["W"] += 1
                 has_meaningful_stats = True
             if pitcher.get("loss"):
                 pit_tot[player_id]["L"] += 1
+                pit_by_type[game_type][player_id]["L"] += 1
                 has_meaningful_stats = True
             if pitcher.get("save"):
                 pit_tot[player_id]["SV"] += 1
+                pit_by_type[game_type][player_id]["SV"] += 1
                 has_meaningful_stats = True
-            
+
             if has_meaningful_stats or outs > 0:
                 players_with_stats.add(player_id)
     
-    def _process_footer_stats(self, game, name_to_id, hit_tot, players_with_stats):
+    def _process_footer_stats(self, game, name_to_id, hit_tot, players_with_stats,
+                               hit_by_type, game_type):
         """Process footer statistics (XBH, SB, etc.)."""
         basic_info = game.get("basic_info", {})
         footer_summary = game.get("footer_summary", {})
-        
+
         footer_keys = {
             "HR": ["HR", "Home Runs"],
             "2B": ["2B", "2b", "Doubles"],
@@ -180,20 +252,20 @@ class PlayerStatsProcessor(BaseProcessor):
             "HBP": ["HBP", "Hit By Pitch"],
             "GIDP": ["GIDP", "Grounded into Double Play"]
         }
-        
+
         normalized_name_to_id = {normalize_name(k): v for k, v in name_to_id.items()}
 
         for side in ("home", "away"):
             side_data = footer_summary.get(side, {})
             if not isinstance(side_data, dict):
                 continue
-            
+
             for stat, keys in footer_keys.items():
                 for key in keys:
                     blob = side_data.get(key, "")
                     if not blob:
                         continue
-                    
+
                     # Extract stat counts using utility function
                     for name, count in ExcelGeneratorUtils.extract_stat_counts(blob):
                         normalized = normalize_name(name)
@@ -201,10 +273,16 @@ class PlayerStatsProcessor(BaseProcessor):
                         player_id = normalized_map.get(normalized)
                         if not player_id:
                             continue
-                        
+
                         if stat not in hit_tot[player_id]:
                             hit_tot[player_id][stat] = 0
                         hit_tot[player_id][stat] += count
+
+                        # Also track by game type
+                        if stat not in hit_by_type[game_type][player_id]:
+                            hit_by_type[game_type][player_id][stat] = 0
+                        hit_by_type[game_type][player_id][stat] += count
+
                         if count > 0:
                             players_with_stats.add(player_id)
     
@@ -223,8 +301,9 @@ class PlayerStatsProcessor(BaseProcessor):
         if position:
             all_players[player_id]['positions'].add(position)
     
-    def _create_hitters_dataframe(self, hit_tot, hit_team, hit_games, players_with_stats):
-        """Create the hitters DataFrame."""
+    def _create_hitters_dataframe(self, hit_tot, hit_team, hit_games, players_with_stats,
+                                    hit_by_type, hit_games_by_type, hit_team_by_type):
+        """Create the hitters DataFrame with per-game-type breakdowns."""
         hitter_rows = []
 
         for player_id, stats in hit_tot.items():
@@ -247,7 +326,7 @@ class PlayerStatsProcessor(BaseProcessor):
             slg = (total_bases / ab) if ab > 0 else 0.000
             ops = obp + slg
 
-            hitter_rows.append({
+            row = {
                 "Name": stats["Name"],
                 "Player ID": player_id,
                 "Team": ", ".join(sorted(hit_team.get(player_id, []))),
@@ -273,7 +352,36 @@ class PlayerStatsProcessor(BaseProcessor):
                 "SLG": round(slg, 3),
                 "OPS": round(ops, 3),
                 "GameIDs": join_sorted_gameids(sorted(hit_games.get(player_id, [])))
-            })
+            }
+
+            # Add per-game-type stats
+            for gt in self.GAME_TYPES:
+                gt_stats = hit_by_type[gt].get(player_id, {})
+                gt_ab = gt_stats.get("AB", 0)
+                gt_hits = gt_stats.get("H", 0)
+                gt_avg = round(gt_hits / gt_ab, 3) if gt_ab > 0 else 0.000
+                gt_doubles = gt_stats.get("2B", 0)
+                gt_triples = gt_stats.get("3B", 0)
+                gt_homers = gt_stats.get("HR", 0)
+                gt_pa = gt_stats.get("PA", 0)
+                gt_teams = hit_team_by_type[gt].get(player_id, set())
+
+                row[f"{gt}_G"] = gt_stats.get("G", 0)
+                row[f"{gt}_AB"] = gt_ab
+                row[f"{gt}_PA"] = gt_pa
+                row[f"{gt}_H"] = gt_hits
+                row[f"{gt}_AVG"] = gt_avg
+                row[f"{gt}_R"] = gt_stats.get("R", 0)
+                row[f"{gt}_RBI"] = gt_stats.get("RBI", 0)
+                row[f"{gt}_HR"] = gt_homers
+                row[f"{gt}_2B"] = gt_doubles
+                row[f"{gt}_3B"] = gt_triples
+                row[f"{gt}_BB"] = gt_stats.get("BB", 0)
+                row[f"{gt}_SO"] = gt_stats.get("SO", 0)
+                row[f"{gt}_SB"] = gt_stats.get("SB", 0)
+                row[f"{gt}_Team"] = ", ".join(sorted(gt_teams)) if gt_teams else ""
+
+            hitter_rows.append(row)
 
         hitters_df = pd.DataFrame(hitter_rows)
 
@@ -284,17 +392,18 @@ class PlayerStatsProcessor(BaseProcessor):
 
         return hitters_df
     
-    def _create_pitchers_dataframe(self, pit_tot, pit_team, pit_games):
-        """Create the pitchers DataFrame."""
+    def _create_pitchers_dataframe(self, pit_tot, pit_team, pit_games,
+                                     pit_by_type, pit_games_by_type, pit_team_by_type):
+        """Create the pitchers DataFrame with per-game-type breakdowns."""
         pitcher_rows = []
-        
+
         for player_id, stats in pit_tot.items():
             outs = stats.get("Outs", 0)
-            
+
             # Calculate ERA safely
             er = stats.get("ER", 0)
             era = round(er * 9 / (outs / 3), 2) if outs > 0 else None
-            
+
             # Calculate WHIP (Walks + Hits per Inning Pitched)
             walks = stats.get("BB", 0)
             hits = stats.get("H", 0)
@@ -303,8 +412,8 @@ class PlayerStatsProcessor(BaseProcessor):
 
             # Convert outs back to baseball IP format
             baseball_ip = StatUtils.outs_to_baseball_ip(outs)
-            
-            pitcher_rows.append({
+
+            row = {
                 "Name": stats["Name"],
                 "Player ID": player_id,
                 "Team": ", ".join(sorted(pit_team.get(player_id, []))),
@@ -323,8 +432,32 @@ class PlayerStatsProcessor(BaseProcessor):
                 "SO": stats.get("SO", 0),
                 "HR": stats.get("HR", 0),
                 "GameIDs": join_sorted_gameids(sorted(pit_games.get(player_id, [])))
-            })
-        
+            }
+
+            # Add per-game-type stats
+            for gt in self.GAME_TYPES:
+                gt_stats = pit_by_type[gt].get(player_id, {})
+                gt_outs = gt_stats.get("Outs", 0)
+                gt_er = gt_stats.get("ER", 0)
+                gt_era = round(gt_er * 9 / (gt_outs / 3), 2) if gt_outs > 0 else None
+                gt_ip = StatUtils.outs_to_baseball_ip(gt_outs)
+                gt_teams = pit_team_by_type[gt].get(player_id, set())
+
+                row[f"{gt}_G"] = gt_stats.get("G", 0)
+                row[f"{gt}_GS"] = gt_stats.get("GS", 0)
+                row[f"{gt}_W"] = gt_stats.get("W", 0)
+                row[f"{gt}_L"] = gt_stats.get("L", 0)
+                row[f"{gt}_SV"] = gt_stats.get("SV", 0)
+                row[f"{gt}_IP"] = gt_ip
+                row[f"{gt}_ERA"] = gt_era
+                row[f"{gt}_H"] = gt_stats.get("H", 0)
+                row[f"{gt}_ER"] = gt_er
+                row[f"{gt}_BB"] = gt_stats.get("BB", 0)
+                row[f"{gt}_SO"] = gt_stats.get("SO", 0)
+                row[f"{gt}_Team"] = ", ".join(sorted(gt_teams)) if gt_teams else ""
+
+            pitcher_rows.append(row)
+
         pitchers_df = pd.DataFrame(pitcher_rows).sort_values("IP", ascending=False).reset_index(drop=True)
         return pitchers_df
     

@@ -28,11 +28,22 @@ python3 -m baseball_processor.scrapers.career_firsts_scraper --delay 3.1
 
 **Important:** Baseball Reference rate limits aggressively. Use 3.1+ second delays between requests. On 429 errors, wait 15 minutes before retrying.
 
+## Scraping All-Time Leaders
+```bash
+python3 -m baseball_processor.scrapers.all_time_leaders_scraper              # All 18 stats
+python3 -m baseball_processor.scrapers.all_time_leaders_scraper --type batting
+python3 -m baseball_processor.scrapers.all_time_leaders_scraper --stat SV    # Just saves
+```
+
+Creates JSON files in `mlb_references/all_time_leaders/` for detecting when players pass others on all-time lists. Tracks top 200 for each stat.
+
 ## Key Files
 - `baseball_processor/engines/milestone_engine.py` - Milestone detection (41 types)
+- `baseball_processor/engines/all_time_passing_engine.py` - All-time list passing detection
 - `baseball_processor/parsers/html_parser.py` - HTML parsing
 - `baseball_processor/website/react_app.py` - Website generation (React-based)
 - `baseball_processor/scrapers/career_firsts_scraper.py` - Career milestone scraper
+- `baseball_processor/scrapers/all_time_leaders_scraper.py` - All-time leaderboard scraper
 
 ## Architecture Notes
 - Milestone detection uses tiered elif pattern (only highest tier reported per category)

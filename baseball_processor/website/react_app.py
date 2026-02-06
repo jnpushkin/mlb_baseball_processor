@@ -2443,16 +2443,19 @@ const OriolesStadiumMap = ({ orioles }) => {
         return visited;
     }, [orioles]);
 
-    // Calculate stats (only count current stadiums toward the goal)
+    // Calculate stats (only count current MLB stadiums toward the goal - exclude spring training)
     const stats = useMemo(() => {
-        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international);
-        const historicalStadiums = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international);
+        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international && !s.springTraining);
+        const historicalStadiums = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international && !s.springTraining);
+        const springTrainingStadiums = ALL_MLB_STADIUMS.filter(s => s.springTraining);
         const visitedCount = currentStadiums.filter(s => visitedData[s.id]?.hasVisited).length;
         const historicalVisited = historicalStadiums.filter(s => visitedData[s.id]?.hasVisited).length;
+        const springVisited = springTrainingStadiums.filter(s => visitedData[s.id]?.hasVisited).length;
         return {
             currentTotal: currentStadiums.length,
             visitedCount,
             historicalVisited,
+            springVisited,
             remaining: currentStadiums.length - visitedCount,
             percent: Math.round((visitedCount / currentStadiums.length) * 100),
         };
@@ -2485,20 +2488,25 @@ const OriolesStadiumMap = ({ orioles }) => {
         markersRef.current.forEach(m => m.remove());
         markersRef.current = [];
 
-        // Show current MLB stadiums + historical stadiums that were visited
-        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international);
-        const visitedHistorical = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international && visitedData[s.id]?.hasVisited);
-        const stadiumsToShow = [...currentStadiums, ...visitedHistorical];
+        // Show current MLB stadiums + historical that were visited + spring training that were visited
+        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international && !s.springTraining);
+        const visitedHistorical = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international && !s.springTraining && visitedData[s.id]?.hasVisited);
+        const visitedSpringTraining = ALL_MLB_STADIUMS.filter(s => s.springTraining && visitedData[s.id]?.hasVisited);
+        const stadiumsToShow = [...currentStadiums, ...visitedHistorical, ...visitedSpringTraining];
 
         stadiumsToShow.forEach(stadium => {
             const data = visitedData[stadium.id];
             const hasVisited = data?.hasVisited;
-            const isHistorical = !stadium.current;
+            const isHistorical = !stadium.current && !stadium.springTraining;
+            const isSpringTraining = stadium.springTraining;
 
             // Determine marker color
             let fillColor = '#9ca3af'; // gray - not visited
             let borderColor = '#6b7280';
-            if (hasVisited && isHistorical) {
+            if (hasVisited && isSpringTraining) {
+                fillColor = '#22c55e'; // green - spring training visited
+                borderColor = '#16a34a';
+            } else if (hasVisited && isHistorical) {
                 fillColor = '#a855f7'; // purple - historical visited
                 borderColor = '#9333ea';
             } else if (hasVisited) {
@@ -2518,8 +2526,12 @@ const OriolesStadiumMap = ({ orioles }) => {
             // Build popup content
             let statusText = '<span style="color: #9ca3af;">Not yet visited with Orioles</span>';
             let detailsHtml = '';
+            let teamLabel = stadium.team;
 
-            if (hasVisited && isHistorical) {
+            if (hasVisited && isSpringTraining) {
+                statusText = '<span style="color: #22c55e; font-weight: bold;">✓ Spring Training - Saw Orioles here!</span>';
+                teamLabel = 'Spring Training';
+            } else if (hasVisited && isHistorical) {
                 statusText = '<span style="color: #a855f7; font-weight: bold;">✓ Historical - Saw Orioles here!</span>';
                 detailsHtml += `<div style="color: #666; font-size: 11px;">${stadium.years}</div>`;
             } else if (hasVisited) {
@@ -2544,7 +2556,7 @@ const OriolesStadiumMap = ({ orioles }) => {
             const popupContent = `
                 <div style="min-width: 180px; font-family: system-ui, sans-serif;">
                     <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${stadium.name}</div>
-                    <div style="color: #666; font-size: 12px; margin-bottom: 8px;">${stadium.team}${isHistorical ? ' (Historical)' : ''}</div>
+                    <div style="color: #666; font-size: 12px; margin-bottom: 8px;">${teamLabel}${isHistorical ? ' (Historical)' : ''}</div>
                     <div style="margin-bottom: 8px;">${statusText}</div>
                     ${detailsHtml}
                 </div>
@@ -3019,10 +3031,10 @@ const CompanionStadiumMap = ({ companion }) => {
         return visited;
     }, [companion]);
 
-    // Calculate stats (only count current stadiums toward the goal)
+    // Calculate stats (only count current MLB stadiums toward the goal - exclude spring training)
     const stats = useMemo(() => {
-        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international);
-        const historicalStadiums = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international);
+        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international && !s.springTraining);
+        const historicalStadiums = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international && !s.springTraining);
         const visitedCount = currentStadiums.filter(s => visitedData[s.id]?.hasVisited).length;
         const oriolesCount = currentStadiums.filter(s => visitedData[s.id]?.sawOrioles).length;
         const historicalVisited = historicalStadiums.filter(s => visitedData[s.id]?.hasVisited).length;
@@ -3062,21 +3074,26 @@ const CompanionStadiumMap = ({ companion }) => {
         markersRef.current.forEach(m => m.remove());
         markersRef.current = [];
 
-        // Show current MLB stadiums + historical stadiums that were visited
-        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international);
-        const visitedHistorical = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international && visitedData[s.id]?.hasVisited);
-        const stadiumsToShow = [...currentStadiums, ...visitedHistorical];
+        // Show current MLB stadiums + historical that were visited + spring training that were visited
+        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international && !s.springTraining);
+        const visitedHistorical = ALL_MLB_STADIUMS.filter(s => !s.current && !s.international && !s.springTraining && visitedData[s.id]?.hasVisited);
+        const visitedSpringTraining = ALL_MLB_STADIUMS.filter(s => s.springTraining && visitedData[s.id]?.hasVisited);
+        const stadiumsToShow = [...currentStadiums, ...visitedHistorical, ...visitedSpringTraining];
 
         stadiumsToShow.forEach(stadium => {
             const data = visitedData[stadium.id];
             const hasVisited = data?.hasVisited;
             const sawOrioles = data?.sawOrioles;
-            const isHistorical = !stadium.current;
+            const isHistorical = !stadium.current && !stadium.springTraining;
+            const isSpringTraining = stadium.springTraining;
 
             // Determine marker color
             let fillColor = '#9ca3af'; // gray - not visited
             let borderColor = '#6b7280';
-            if (hasVisited && isHistorical) {
+            if (hasVisited && isSpringTraining) {
+                fillColor = '#06b6d4'; // cyan - spring training
+                borderColor = '#0891b2';
+            } else if (hasVisited && isHistorical) {
                 fillColor = '#a855f7'; // purple - historical
                 borderColor = '#9333ea';
             } else if (sawOrioles) {
@@ -3098,7 +3115,11 @@ const CompanionStadiumMap = ({ companion }) => {
 
             // Build popup content
             let statusText = '<span style="color: #9ca3af;">Not yet visited together</span>';
-            if (hasVisited && isHistorical) {
+            let teamLabel = stadium.team;
+            if (hasVisited && isSpringTraining) {
+                statusText = `<span style="color: #06b6d4; font-weight: bold;">✓ Spring Training${sawOrioles ? ' + Orioles' : ''}</span>`;
+                teamLabel = 'Spring Training';
+            } else if (hasVisited && isHistorical) {
                 statusText = `<span style="color: #a855f7; font-weight: bold;">✓ Historical${sawOrioles ? ' + Orioles' : ''}</span>`;
             } else if (sawOrioles) {
                 statusText = '<span style="color: #f97316; font-weight: bold;">✓ Visited + Saw Orioles</span>';
@@ -3109,7 +3130,7 @@ const CompanionStadiumMap = ({ companion }) => {
             const popupContent = `
                 <div style="min-width: 180px; font-family: system-ui, sans-serif;">
                     <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${stadium.name}</div>
-                    <div style="color: #666; font-size: 12px; margin-bottom: 8px;">${stadium.team}${isHistorical ? ' (Historical)' : ''}</div>
+                    <div style="color: #666; font-size: 12px; margin-bottom: 8px;">${teamLabel}${isHistorical ? ' (Historical)' : ''}</div>
                     ${isHistorical ? `<div style="color: #666; font-size: 11px; margin-bottom: 4px;">${stadium.years}</div>` : ''}
                     <div>${statusText}</div>
                 </div>
@@ -3319,6 +3340,7 @@ const SmartInsights = ({ data }) => {
     const [selectedYear, setSelectedYear] = useState('all');
     const [selectedMonth, setSelectedMonth] = useState('all');
     const [selectedTeam, setSelectedTeam] = useState('all');
+    const [selectedGameType, setSelectedGameType] = useState('all');
     
     const today = new Date();
     const todayMonth = today.getMonth();
@@ -3339,30 +3361,34 @@ const SmartInsights = ({ data }) => {
     // Filter games based on selections
     const filteredGames = useMemo(() => {
         let games = data.games || [];
-        
+
         if (selectedYear !== 'all') {
             games = games.filter(game => {
                 const date = new Date(game.date);
                 return !isNaN(date) && date.getFullYear().toString() === selectedYear;
             });
         }
-        
+
         if (selectedMonth !== 'all') {
             games = games.filter(game => {
                 const date = new Date(game.date);
                 return !isNaN(date) && date.getMonth() === parseInt(selectedMonth);
             });
         }
-        
+
         if (selectedTeam !== 'all') {
-            games = games.filter(game => 
-                normalizeTeamCode(game.homeTeam) === selectedTeam || 
+            games = games.filter(game =>
+                normalizeTeamCode(game.homeTeam) === selectedTeam ||
                 normalizeTeamCode(game.awayTeam) === selectedTeam
             );
         }
-        
+
+        if (selectedGameType !== 'all') {
+            games = games.filter(game => (game.gameType || 'regular') === selectedGameType);
+        }
+
         return games;
-    }, [data.games, selectedYear, selectedMonth, selectedTeam]);
+    }, [data.games, selectedYear, selectedMonth, selectedTeam, selectedGameType]);
     
     // Get unique years and teams
     const availableYears = useMemo(() => {
@@ -3840,8 +3866,8 @@ const SmartInsights = ({ data }) => {
                         <option value="9">October</option>
                     </select>
                     
-                    <select 
-                        value={selectedTeam} 
+                    <select
+                        value={selectedTeam}
                         onChange={(e) => setSelectedTeam(e.target.value)}
                         className="px-4 py-2 body-text border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
                     >
@@ -3850,10 +3876,28 @@ const SmartInsights = ({ data }) => {
                             <option key={team} value={team}>{team}</option>
                         ))}
                     </select>
-                    
-                    {(selectedYear !== 'all' || selectedMonth !== 'all' || selectedTeam !== 'all') && (
-                        <button 
-                            onClick={() => { setSelectedYear('all'); setSelectedMonth('all'); setSelectedTeam('all'); }}
+
+                    {/* Game Type Filter */}
+                    {(data.gameTypeCounts?.spring > 0 || data.gameTypeCounts?.postseason > 0) && (
+                        <select
+                            value={selectedGameType}
+                            onChange={(e) => setSelectedGameType(e.target.value)}
+                            className="px-4 py-2 body-text border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                        >
+                            <option value="all">All Game Types</option>
+                            <option value="regular">Regular Season ({data.gameTypeCounts?.regular || 0})</option>
+                            {data.gameTypeCounts?.postseason > 0 && (
+                                <option value="postseason">Postseason ({data.gameTypeCounts?.postseason})</option>
+                            )}
+                            {data.gameTypeCounts?.spring > 0 && (
+                                <option value="spring">Spring Training ({data.gameTypeCounts?.spring})</option>
+                            )}
+                        </select>
+                    )}
+
+                    {(selectedYear !== 'all' || selectedMonth !== 'all' || selectedTeam !== 'all' || selectedGameType !== 'all') && (
+                        <button
+                            onClick={() => { setSelectedYear('all'); setSelectedMonth('all'); setSelectedTeam('all'); setSelectedGameType('all'); }}
                             className="px-4 py-2 body-text text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border-2 border-gray-300"
                         >
                             Clear Filters
@@ -4962,13 +5006,30 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
     const [sortKey, setSortKey] = useState('pa');
     const [sortDir, setSortDir] = useState('desc');
     const [activeFilter, setActiveFilter] = useState('all');
+    const [gameTypeFilter, setGameTypeFilter] = useState('regular');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [useFiltered, setUseFiltered] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState(null);
-    
+
     useEffect(() => { setUseFiltered(!!(startDate || endDate)); }, [startDate, endDate]);
-    
+
+    // Map game type to stat prefixes
+    const getStatKey = (baseKey, gameType) => {
+        if (gameType === 'all') return baseKey;
+        const prefixMap = {
+            'spring': 'spring',
+            'regular': 'regular',
+            'postseason': 'postseason'
+        };
+        const keyMap = {
+            'games': 'Games', 'ab': 'Ab', 'pa': 'Pa', 'h': 'H', 'avg': 'Avg',
+            'r': 'R', 'rbi': 'Rbi', 'hr': 'Hr', 'doubles': 'Doubles',
+            'triples': 'Triples', 'sb': 'Sb', 'bb': 'Bb', 'so': 'So', 'team': 'Team'
+        };
+        return prefixMap[gameType] + (keyMap[baseKey] || baseKey.charAt(0).toUpperCase() + baseKey.slice(1));
+    };
+
     const displayData = useMemo(() => {
         if (!useFiltered || (!startDate && !endDate)) return allPlayers;
         const filteredGames = playerGames.filter(game => {
@@ -4978,14 +5039,56 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
         });
         return aggregateHitterStats(filteredGames);
     }, [allPlayers, playerGames, startDate, endDate, useFiltered]);
-    
+
+    // Transform data based on game type filter
+    const gameTypeData = useMemo(() => {
+        if (gameTypeFilter === 'all') return displayData;
+        return displayData.map(player => {
+            const g = player[getStatKey('games', gameTypeFilter)] || 0;
+            if (g === 0) return null; // Filter out players with no games in this type
+            const ab = player[getStatKey('ab', gameTypeFilter)] || 0;
+            const pa = player[getStatKey('pa', gameTypeFilter)] || 0;
+            const h = player[getStatKey('h', gameTypeFilter)] || 0;
+            const bb = player[getStatKey('bb', gameTypeFilter)] || 0;
+            const doubles = player[getStatKey('doubles', gameTypeFilter)] || 0;
+            const triples = player[getStatKey('triples', gameTypeFilter)] || 0;
+            const hr = player[getStatKey('hr', gameTypeFilter)] || 0;
+            const singles = h - doubles - triples - hr;
+            const tb = singles + 2*doubles + 3*triples + 4*hr;
+            const obp = pa > 0 ? ((h + bb) / pa).toFixed(3) : '.000';
+            const slg = ab > 0 ? (tb / ab).toFixed(3) : '.000';
+            const ops = (parseFloat(obp) + parseFloat(slg)).toFixed(3);
+            const gtTeam = player[getStatKey('team', gameTypeFilter)] || player.team;
+            return {
+                ...player,
+                games: g,
+                ab: ab,
+                pa: pa,
+                h: h,
+                avg: player[getStatKey('avg', gameTypeFilter)] || '.000',
+                r: player[getStatKey('r', gameTypeFilter)] || 0,
+                rbi: player[getStatKey('rbi', gameTypeFilter)] || 0,
+                hr: hr,
+                doubles: doubles,
+                triples: triples,
+                sb: player[getStatKey('sb', gameTypeFilter)] || 0,
+                bb: bb,
+                so: player[getStatKey('so', gameTypeFilter)] || 0,
+                obp: obp,
+                slg: slg,
+                ops: ops,
+                team: gtTeam,
+            };
+        }).filter(p => p !== null);
+    }, [displayData, gameTypeFilter]);
+
     const filtered = useMemo(() => {
-        let result = displayData;
+        let result = gameTypeData;
         if (activeFilter !== 'all') result = result.filter(row => row.team.includes(activeFilter));
         if (search) result = result.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(search.toLowerCase())));
         return result;
-    }, [displayData, search, activeFilter]);
-    
+    }, [gameTypeData, search, activeFilter]);
+
     const sorted = useMemo(() => {
         if (!sortKey) return filtered;
         return [...filtered].sort((a, b) => {
@@ -4996,26 +5099,26 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
             return sortDir === 'asc' ? result : -result;
         });
     }, [filtered, sortKey, sortDir]);
-    
+
     const handleSort = (key) => {
         if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
         else { setSortKey(key); setSortDir('desc'); }
     };
-    
+
     const filterValues = useMemo(() => {
         const teams = new Set();
         allPlayers.forEach(p => p.team.split(', ').forEach(t => teams.add(t.trim())));
         return Array.from(teams).sort();
     }, [allPlayers]);
-    
+
     const columns = [
-        { 
-            key: 'name', 
-            label: 'Name', 
+        {
+            key: 'name',
+            label: 'Name',
             render: (v, r) => (
                 <div className="flex items-center gap-2">
                     <PlayerLink playerId={r.playerId} name={v} />
-                    <button 
+                    <button
                         onClick={() => setSelectedPlayer({ id: r.playerId, name: v })}
                         className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-semibold whitespace-nowrap"
                         title="View career timeline"
@@ -5030,12 +5133,14 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
         { key: 'hr', label: 'HR' }, { key: 'doubles', label: '2B' }, { key: 'triples', label: '3B' }, { key: 'sb', label: 'SB' },
         { key: 'bb', label: 'BB' }, { key: 'so', label: 'SO' }, { key: 'obp', label: 'OBP' }, { key: 'slg', label: 'SLG' }, { key: 'ops', label: 'OPS' },
     ];
-    
+
+    const gameTypeLabels = { all: 'All Games', spring: 'Spring Training', regular: 'Regular Season', postseason: 'Postseason' };
+
     return (
         <div className="bg-white rounded-lg shadow">
             <div className="p-4 border-b space-y-4">
                 <div className="flex justify-between items-center">
-                    <h2 className="section-title font-bold">👤 Hitter Statistics {useFiltered && <span className="small-text text-blue-600">(Date Filtered)</span>}</h2>
+                    <h2 className="section-title font-bold">👤 Hitter Statistics {gameTypeFilter !== 'all' && <span className="small-text text-green-600">({gameTypeLabels[gameTypeFilter]})</span>} {useFiltered && <span className="small-text text-blue-600">(Date Filtered)</span>}</h2>
                     <div className="flex items-center gap-2">
                         <span className="body-text text-gray-500">{sorted.length} players</span>
                         <button onClick={() => exportToCSV(sorted, columns, 'Hitter_Statistics.csv')} className="px-3 py-1 bg-green-600 text-white body-text rounded hover:bg-green-700">📥 Export</button>
@@ -5043,6 +5148,12 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
                 </div>
                 <div className="flex flex-wrap gap-4">
                     <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 min-w-[200px] px-4 py-2 body-text border rounded-lg" />
+                    <select value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="px-4 py-2 body-text border rounded-lg bg-green-50">
+                        <option value="all">All Games</option>
+                        <option value="regular">Regular Season</option>
+                        <option value="spring">Spring Training</option>
+                        <option value="postseason">Postseason</option>
+                    </select>
                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
                     {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-gray-600 hover:text-gray-900">Clear Dates</button>}
@@ -5094,13 +5205,30 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
     const [sortKey, setSortKey] = useState('ip');
     const [sortDir, setSortDir] = useState('desc');
     const [activeFilter, setActiveFilter] = useState('all');
+    const [gameTypeFilter, setGameTypeFilter] = useState('regular');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [useFiltered, setUseFiltered] = useState(false);
     const [selectedPitcher, setSelectedPitcher] = useState(null);
-    
+
     useEffect(() => { setUseFiltered(!!(startDate || endDate)); }, [startDate, endDate]);
-    
+
+    // Map game type to stat prefixes
+    const getStatKey = (baseKey, gameType) => {
+        if (gameType === 'all') return baseKey;
+        const prefixMap = {
+            'spring': 'spring',
+            'regular': 'regular',
+            'postseason': 'postseason'
+        };
+        const keyMap = {
+            'games': 'Games', 'gameStarts': 'Gs', 'wins': 'W', 'losses': 'L',
+            'saves': 'Sv', 'ip': 'Ip', 'era': 'Era', 'h': 'H', 'er': 'Er',
+            'bb': 'Bb', 'so': 'So', 'team': 'Team'
+        };
+        return prefixMap[gameType] + (keyMap[baseKey] || baseKey.charAt(0).toUpperCase() + baseKey.slice(1));
+    };
+
     const displayData = useMemo(() => {
         if (!useFiltered || (!startDate && !endDate)) return allPitchers;
         const filteredGames = pitcherGames.filter(game => {
@@ -5110,14 +5238,46 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
         });
         return aggregatePitcherStats(filteredGames);
     }, [allPitchers, pitcherGames, startDate, endDate, useFiltered]);
-    
+
+    // Transform data based on game type filter
+    const gameTypeData = useMemo(() => {
+        if (gameTypeFilter === 'all') return displayData;
+        return displayData.map(pitcher => {
+            const g = pitcher[getStatKey('games', gameTypeFilter)] || 0;
+            if (g === 0) return null; // Filter out pitchers with no games in this type
+            const ip = pitcher[getStatKey('ip', gameTypeFilter)] || '0.0';
+            const h = pitcher[getStatKey('h', gameTypeFilter)] || 0;
+            const bb = pitcher[getStatKey('bb', gameTypeFilter)] || 0;
+            // Calculate WHIP for filtered stats
+            const ipNum = parseFloat(ip);
+            const whip = ipNum > 0 ? ((h + bb) / ipNum).toFixed(3) : 'N/A';
+            const gtTeam = pitcher[getStatKey('team', gameTypeFilter)] || pitcher.team;
+            return {
+                ...pitcher,
+                games: g,
+                gameStarts: pitcher[getStatKey('gameStarts', gameTypeFilter)] || 0,
+                wins: pitcher[getStatKey('wins', gameTypeFilter)] || 0,
+                losses: pitcher[getStatKey('losses', gameTypeFilter)] || 0,
+                saves: pitcher[getStatKey('saves', gameTypeFilter)] || 0,
+                ip: ip,
+                era: pitcher[getStatKey('era', gameTypeFilter)] || 'N/A',
+                whip: whip,
+                h: h,
+                er: pitcher[getStatKey('er', gameTypeFilter)] || 0,
+                bb: bb,
+                so: pitcher[getStatKey('so', gameTypeFilter)] || 0,
+                team: gtTeam,
+            };
+        }).filter(p => p !== null);
+    }, [displayData, gameTypeFilter]);
+
     const filtered = useMemo(() => {
-        let result = displayData;
+        let result = gameTypeData;
         if (activeFilter !== 'all') result = result.filter(row => row.team.includes(activeFilter));
         if (search) result = result.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(search.toLowerCase())));
         return result;
-    }, [displayData, search, activeFilter]);
-    
+    }, [gameTypeData, search, activeFilter]);
+
     const sorted = useMemo(() => {
         if (!sortKey) return filtered;
         return [...filtered].sort((a, b) => {
@@ -5128,26 +5288,26 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
             return sortDir === 'asc' ? result : -result;
         });
     }, [filtered, sortKey, sortDir]);
-    
+
     const handleSort = (key) => {
         if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
         else { setSortKey(key); setSortDir('desc'); }
     };
-    
+
     const filterValues = useMemo(() => {
         const teams = new Set();
         allPitchers.forEach(p => p.team.split(', ').forEach(t => teams.add(t.trim())));
         return Array.from(teams).sort();
     }, [allPitchers]);
-    
+
     const columns = [
-        { 
-            key: 'name', 
-            label: 'Name', 
+        {
+            key: 'name',
+            label: 'Name',
             render: (v, r) => (
                 <div className="flex items-center gap-2">
                     <PlayerLink playerId={r.playerId} name={v} />
-                    <button 
+                    <button
                         onClick={() => setSelectedPitcher({ id: r.playerId, name: v })}
                         className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-semibold whitespace-nowrap"
                         title="View career timeline"
@@ -5162,12 +5322,14 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
         { key: 'ip', label: 'IP' }, { key: 'era', label: 'ERA' }, { key: 'whip', label: 'WHIP' },
         { key: 'so', label: 'SO' }, { key: 'bb', label: 'BB' },
     ];
-    
+
+    const gameTypeLabels = { all: 'All Games', spring: 'Spring Training', regular: 'Regular Season', postseason: 'Postseason' };
+
     return (
         <div className="bg-white rounded-lg shadow">
             <div className="p-4 border-b space-y-4">
                 <div className="flex justify-between items-center">
-                    <h2 className="section-title font-bold">⚾ Pitcher Statistics {useFiltered && <span className="small-text text-blue-600">(Date Filtered)</span>}</h2>
+                    <h2 className="section-title font-bold">⚾ Pitcher Statistics {gameTypeFilter !== 'all' && <span className="small-text text-green-600">({gameTypeLabels[gameTypeFilter]})</span>} {useFiltered && <span className="small-text text-blue-600">(Date Filtered)</span>}</h2>
                     <div className="flex items-center gap-2">
                         <span className="body-text text-gray-500">{sorted.length} pitchers</span>
                         <button onClick={() => exportToCSV(sorted, columns, 'Pitcher_Statistics.csv')} className="px-3 py-1 bg-green-600 text-white body-text rounded hover:bg-green-700">📥 Export</button>
@@ -5175,6 +5337,12 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
                 </div>
                 <div className="flex flex-wrap gap-4">
                     <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 min-w-[200px] px-4 py-2 body-text border rounded-lg" />
+                    <select value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="px-4 py-2 body-text border rounded-lg bg-green-50">
+                        <option value="all">All Games</option>
+                        <option value="regular">Regular Season</option>
+                        <option value="spring">Spring Training</option>
+                        <option value="postseason">Postseason</option>
+                    </select>
                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
                     {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-gray-600 hover:text-gray-900">Clear Dates</button>}
@@ -5225,13 +5393,25 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState(defaultSortKey || columns[0]?.key);
     const [sortDir, setSortDir] = useState('desc');
-    const [activeFilter, setActiveFilter] = useState('all');
+    const [activeFilters, setActiveFilters] = useState({});
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    
+
+    // Normalize filterOptions to always be an array
+    const filters = useMemo(() => {
+        if (!filterOptions) return [];
+        return Array.isArray(filterOptions) ? filterOptions : [filterOptions];
+    }, [filterOptions]);
+
     const filtered = useMemo(() => {
         let result = data;
-        if (filterOptions && activeFilter !== 'all') result = result.filter(row => row[filterOptions.key] === activeFilter);
+        // Apply all active filters
+        filters.forEach(filter => {
+            const activeValue = activeFilters[filter.key];
+            if (activeValue && activeValue !== 'all') {
+                result = result.filter(row => row[filter.key] === activeValue);
+            }
+        });
         if (enableDateFilter && (startDate || endDate)) {
             result = result.filter(row => {
                 const rowDate = new Date(row.date);
@@ -5243,8 +5423,8 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
         }
         if (search) result = result.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(search.toLowerCase())));
         return result;
-    }, [data, search, activeFilter, startDate, endDate]);
-    
+    }, [data, search, activeFilters, startDate, endDate, filters]);
+
     const sorted = useMemo(() => {
         if (!sortKey) return filtered;
         return [...filtered].sort((a, b) => {
@@ -5259,17 +5439,27 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
             return sortDir === 'asc' ? result : -result;
         });
     }, [filtered, sortKey, sortDir]);
-    
+
     const handleSort = (key) => {
         if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
         else { setSortKey(key); setSortDir('desc'); }
     };
-    
-    const filterValues = useMemo(() => {
-        if (!filterOptions) return [];
-        return [...new Set(data.map(row => row[filterOptions.key]))].sort();
-    }, [data, filterOptions]);
-    
+
+    const handleFilterChange = (key, value) => {
+        setActiveFilters(prev => ({ ...prev, [key]: value }));
+    };
+
+    // Get filter values for each filter
+    const filterValuesMap = useMemo(() => {
+        const map = {};
+        filters.forEach(filter => {
+            map[filter.key] = [...new Set(data.map(row => row[filter.key]).filter(v => v))].sort();
+        });
+        return map;
+    }, [data, filters]);
+
+    const hasActiveFilters = Object.values(activeFilters).some(v => v && v !== 'all') || startDate || endDate;
+
     return (
         <div className="bg-white rounded-lg shadow">
             <div className="p-4 border-b space-y-4">
@@ -5286,14 +5476,28 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                         <>
                             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
                             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
-                            {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-gray-600 hover:text-gray-900">Clear</button>}
                         </>
                     )}
-                    {filterOptions && (
-                        <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="px-4 py-2 body-text border rounded-lg">
-                            <option value="all">All {filterOptions.label}</option>
-                            {filterValues.map(val => <option key={val} value={val}>{val}</option>)}
+                    {filters.map(filter => (
+                        <select
+                            key={filter.key}
+                            value={activeFilters[filter.key] || 'all'}
+                            onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                            className="px-4 py-2 body-text border rounded-lg"
+                        >
+                            <option value="all">All {filter.label}</option>
+                            {(filterValuesMap[filter.key] || []).map(val => (
+                                <option key={val} value={val}>{filter.displayFn ? filter.displayFn(val) : val}</option>
+                            ))}
                         </select>
+                    ))}
+                    {hasActiveFilters && (
+                        <button
+                            onClick={() => { setActiveFilters({}); setStartDate(''); setEndDate(''); }}
+                            className="px-3 py-2 body-text text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+                        >
+                            Clear filters
+                        </button>
                     )}
                 </div>
             </div>
@@ -5470,7 +5674,7 @@ const Leaderboards = ({ data }) => {
     );
 };
 
-const MilestonesView = ({ milestones, games, careerFirsts }) => {
+const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) => {
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [showCareerFirsts, setShowCareerFirsts] = useState(true);
@@ -5548,6 +5752,7 @@ const MilestonesView = ({ milestones, games, careerFirsts }) => {
     const battingCount = (milestones || []).filter(m => categoryConfig[m.type]?.category === 'batting').length;
     const pitchingCount = (milestones || []).filter(m => categoryConfig[m.type]?.category === 'pitching').length;
     const careerFirstsCount = careerFirsts?.length || 0;
+    const allTimePassingsCount = allTimePassings?.length || 0;
 
     return (
         <div className="space-y-6">
@@ -5572,8 +5777,9 @@ const MilestonesView = ({ milestones, games, careerFirsts }) => {
                 {/* Category filters */}
                 <div className="flex flex-wrap gap-2 mt-4">
                     {[
-                        { id: 'all', label: 'All', count: totalCount + careerFirstsCount },
+                        { id: 'all', label: 'All', count: totalCount + careerFirstsCount + allTimePassingsCount },
                         { id: 'firsts', label: '⭐ Career Milestones', count: careerFirstsCount },
+                        { id: 'passings', label: '📈 All-Time List', count: allTimePassingsCount },
                         { id: 'batting', label: '🏏 Batting', count: battingCount },
                         { id: 'pitching', label: '⚾ Pitching', count: pitchingCount },
                     ].map(cat => (
@@ -5650,6 +5856,8 @@ const MilestonesView = ({ milestones, games, careerFirsts }) => {
                                     if (text.includes('start')) return { key: 'gs', label: 'Games Started', icon: '📋', order: 13 };
                                     if (text.includes('complete game')) return { key: 'cg', label: 'Complete Games', icon: '💪', order: 14 };
                                     if (text.includes('shutout')) return { key: 'sho', label: 'Shutouts', icon: '🛡️', order: 15 };
+                                    if (text.includes('total base')) return { key: 'tb', label: 'Total Bases', icon: '📊', order: 16 };
+                                    if (text.includes('game') && !text.includes('complete game')) return { key: 'g', label: 'Games', icon: '🎮', order: 17 };
                                     return { key: 'other', label: 'Other', icon: '⭐', order: 99 };
                                 };
 
@@ -5854,8 +6062,86 @@ const MilestonesView = ({ milestones, games, careerFirsts }) => {
                 </div>
             )}
 
-            {/* Milestone groups - hide when only viewing career firsts */}
-            {activeCategory !== 'firsts' && (
+            {/* All-Time List Passings Section */}
+            {allTimePassings && allTimePassings.length > 0 && (activeCategory === 'all' || activeCategory === 'passings') && (
+                <div className="bg-white rounded-xl shadow overflow-hidden">
+                    <details open={true}>
+                        <summary className="cursor-pointer p-4 bg-gradient-to-r from-purple-600 to-violet-700 text-white hover:opacity-95 transition-opacity">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">📈</span>
+                                    <h3 className="text-lg font-bold">All-Time List Movements</h3>
+                                </div>
+                                <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-bold">
+                                    {allTimePassings.length} passing{allTimePassings.length !== 1 ? 's' : ''}
+                                </span>
+                            </div>
+                        </summary>
+                        <div className="p-4 bg-gradient-to-b from-purple-50 to-white">
+                            <p className="text-sm text-purple-700 mb-4">
+                                Players who moved up the all-time leaderboards at games you attended
+                            </p>
+                            <div className="space-y-3">
+                                {allTimePassings
+                                    .filter(p => !searchTerm ||
+                                        p.player_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        p.stat_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        (p.passed_players || []).some(pp => pp.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+                                    )
+                                    .map((passing, idx) => {
+                                        const playerUrl = passing.player_id
+                                            ? `https://www.baseball-reference.com/players/${passing.player_id.charAt(0).toLowerCase()}/${passing.player_id}.shtml`
+                                            : null;
+                                        const gameUrl = passing.game_id
+                                            ? `https://www.baseball-reference.com/boxes/${passing.game_id.substring(0, 3)}/${passing.game_id}.shtml`
+                                            : null;
+                                        const passedNames = (passing.passed_players || []).map(p => p.name).join(', ');
+
+                                        return (
+                                            <div key={idx} className="bg-white border border-purple-200 rounded-lg p-4 hover:border-purple-400 hover:shadow transition-all">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                                        #{passing.new_rank}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            {playerUrl ? (
+                                                                <a href={playerUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-purple-700 hover:text-purple-900 hover:underline text-lg">
+                                                                    {passing.player_name}
+                                                                </a>
+                                                            ) : (
+                                                                <span className="font-bold text-gray-900 text-lg">{passing.player_name}</span>
+                                                            )}
+                                                            <span className="text-purple-600 font-medium">
+                                                                passed {passedNames || 'others'} in {passing.stat_name}
+                                                            </span>
+                                                        </div>
+                                                        <div className="mt-1 text-sm text-gray-600">
+                                                            <span className="font-semibold">{Number.isInteger(passing.new_value) ? passing.new_value.toLocaleString() : passing.new_value.toFixed(1)}</span>
+                                                            <span className="text-gray-500"> career {passing.stat_name.toLowerCase()}</span>
+                                                        </div>
+                                                        <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                                                            <span>{passing.date_display || passing.date}</span>
+                                                            {passing.venue && <span>@ {passing.venue}</span>}
+                                                            {gameUrl && (
+                                                                <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700 font-medium">
+                                                                    View Game →
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            )}
+
+            {/* Milestone groups - hide when only viewing career firsts or passings */}
+            {activeCategory !== 'firsts' && activeCategory !== 'passings' && (
             <div className="space-y-4">
                 {filteredTypes.map(type => {
                     const items = groupedMilestones[type] || [];
@@ -6131,6 +6417,11 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                 data={games}
                 defaultSortKey="date"
                 enableDateFilter={true}
+                filterOptions={[
+                    { key: 'gameType', label: 'Game Type', displayFn: (v) => v === 'spring' ? 'Spring Training' : v === 'postseason' ? 'Postseason' : v === 'regular' ? 'Regular Season' : v },
+                    { key: 'homeTeam', label: 'Home Team' },
+                    { key: 'venue', label: 'Venue' }
+                ]}
                 columns={[
                     { key: 'date', label: 'Date' },
                     { key: 'awayTeam', label: 'Away' },
@@ -6291,6 +6582,30 @@ const ALL_MLB_STADIUMS = [
     { id: 'london', name: 'London Stadium', team: 'INT', lat: 51.5387, lng: -0.0166, years: '2019-present', current: true, aliases: ['Olympic Stadium London'], international: true, city: 'London' },
     { id: 'hiram_bithorn', name: 'Hiram Bithorn Stadium', team: 'INT', lat: 18.4271, lng: -66.0612, years: 'Various', current: true, aliases: [], international: true, city: 'San Juan' },
     { id: 'monterrey', name: 'Estadio de Beisbol Monterrey', team: 'INT', lat: 25.7261, lng: -100.3102, years: 'Various', current: true, aliases: ['Estadio Mobil Super'], international: true, city: 'Monterrey' },
+
+    // === SPRING TRAINING FACILITIES ===
+    // Arizona Cactus League
+    { id: 'camelback', name: 'Camelback Ranch', team: 'ST', lat: 33.5052, lng: -112.3124, years: '2009-present', current: true, aliases: ['Camelback Ranch-Glendale'], springTraining: true, city: 'Glendale' },
+    { id: 'saltriver', name: 'Salt River Fields at Talking Stick', team: 'ST', lat: 33.5463, lng: -111.8847, years: '2011-present', current: true, aliases: ['Salt River Fields'], springTraining: true, city: 'Scottsdale' },
+    { id: 'goodyear', name: 'Goodyear Ballpark', team: 'ST', lat: 33.4253, lng: -112.3577, years: '2009-present', current: true, aliases: [], springTraining: true, city: 'Goodyear' },
+    { id: 'peoria', name: 'Peoria Stadium', team: 'ST', lat: 33.5811, lng: -112.2712, years: '1994-present', current: true, aliases: ['Peoria Sports Complex'], springTraining: true, city: 'Peoria' },
+    { id: 'sloan', name: 'Sloan Park', team: 'ST', lat: 33.4381, lng: -111.8366, years: '2014-present', current: true, aliases: [], springTraining: true, city: 'Mesa' },
+    { id: 'scottsdale', name: 'Scottsdale Stadium', team: 'ST', lat: 33.4905, lng: -111.9210, years: '1992-present', current: true, aliases: [], springTraining: true, city: 'Scottsdale' },
+    { id: 'tempe', name: 'Tempe Diablo Stadium', team: 'ST', lat: 33.4012, lng: -111.9728, years: '1968-present', current: true, aliases: [], springTraining: true, city: 'Tempe' },
+    { id: 'surprise', name: 'Surprise Stadium', team: 'ST', lat: 33.6273, lng: -112.3678, years: '2003-present', current: true, aliases: [], springTraining: true, city: 'Surprise' },
+    { id: 'hohokam', name: 'Hohokam Stadium', team: 'ST', lat: 33.4363, lng: -111.8259, years: '2015-present', current: true, aliases: [], springTraining: true, city: 'Mesa' },
+    { id: 'maryvale', name: 'American Family Fields of Phoenix', team: 'ST', lat: 33.5098, lng: -112.1782, years: '1998-present', current: true, aliases: ['Maryvale Baseball Park'], springTraining: true, city: 'Phoenix' },
+    // Florida Grapefruit League
+    { id: 'edsmith', name: 'Ed Smith Stadium', team: 'ST', lat: 27.3372, lng: -82.5153, years: '1989-present', current: true, aliases: [], springTraining: true, city: 'Sarasota' },
+    { id: 'jetblue', name: 'JetBlue Park', team: 'ST', lat: 26.5391, lng: -81.8413, years: '2012-present', current: true, aliases: ['JetBlue Park at Fenway South'], springTraining: true, city: 'Fort Myers' },
+    { id: 'steinbrenner', name: 'George M. Steinbrenner Field', team: 'ST', lat: 27.9788, lng: -82.5033, years: '1996-present', current: true, aliases: ['Legends Field'], springTraining: true, city: 'Tampa' },
+    { id: 'rogerdean', name: 'Roger Dean Chevrolet Stadium', team: 'ST', lat: 26.8926, lng: -80.1157, years: '1998-present', current: true, aliases: ['Roger Dean Stadium'], springTraining: true, city: 'Jupiter' },
+    { id: 'clover', name: 'Clover Park', team: 'ST', lat: 27.3478, lng: -80.3511, years: '1988-present', current: true, aliases: ['First Data Field', 'Tradition Field', 'St. Lucie Sports Complex'], springTraining: true, city: 'Port St. Lucie' },
+    { id: 'baycare', name: 'BayCare Ballpark', team: 'ST', lat: 27.9500, lng: -82.7342, years: '2004-present', current: true, aliases: ['Bright House Field', 'Spectrum Field'], springTraining: true, city: 'Clearwater' },
+    { id: 'publix', name: 'Publix Field at Joker Marchant Stadium', team: 'ST', lat: 28.0615, lng: -81.9586, years: '1966-present', current: true, aliases: ['Joker Marchant Stadium'], springTraining: true, city: 'Lakeland' },
+    { id: 'lecom', name: 'LECOM Park', team: 'ST', lat: 27.4972, lng: -82.5800, years: '1993-present', current: true, aliases: ['McKechnie Field'], springTraining: true, city: 'Bradenton' },
+    { id: 'cooltoday', name: 'CoolToday Park', team: 'ST', lat: 27.0128, lng: -82.1273, years: '2019-present', current: true, aliases: [], springTraining: true, city: 'North Port' },
+    { id: 'hammondsfd', name: 'Hammond Stadium', team: 'ST', lat: 26.5528, lng: -81.8626, years: '1991-present', current: true, aliases: ['CenturyLink Sports Complex'], springTraining: true, city: 'Fort Myers' },
 ];
 
 // Build lookup maps for matching stadium names
@@ -6436,31 +6751,33 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
         return ALL_MLB_STADIUMS.filter(s => {
             const hasVisited = visitedData[s.id]?.hasVisited;
 
-            // Always show visited stadiums
+            // Always show visited stadiums (including spring training if visited)
             if (hasVisited) {
-                if (filter === 'current') return s.current && !s.international;
-                if (filter === 'historical') return !s.current;
+                if (filter === 'current') return s.current && !s.international && !s.springTraining;
+                if (filter === 'historical') return !s.current && !s.springTraining;
                 if (filter === 'international') return s.international;
+                if (filter === 'spring') return s.springTraining;
                 return true;
             }
 
-            // For unvisited stadiums: only show current MLB stadiums (not international or defunct)
+            // For unvisited stadiums: only show current MLB stadiums (not spring training, international, or defunct)
             if (!hasVisited) {
-                if (filter === 'historical' || filter === 'international') return false;
-                return s.current && !s.international;
+                if (filter === 'historical' || filter === 'international' || filter === 'spring') return false;
+                return s.current && !s.international && !s.springTraining;
             }
 
             return false;
         });
     }, [filter, visitedData]);
 
-    // Calculate stats
+    // Calculate stats (exclude spring training from 30-stadium goal)
     const stats = useMemo(() => {
-        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international);
+        const currentStadiums = ALL_MLB_STADIUMS.filter(s => s.current && !s.international && !s.springTraining);
         const visitedCurrent = currentStadiums.filter(s => visitedData[s.id]?.hasVisited).length;
         const oriolesCurrent = currentStadiums.filter(s => visitedData[s.id]?.sawOrioles).length;
         const totalVisited = Object.values(visitedData).filter(v => v.hasVisited).length;
         const totalOrioles = Object.values(visitedData).filter(v => v.sawOrioles).length;
+        const springVisited = ALL_MLB_STADIUMS.filter(s => s.springTraining && visitedData[s.id]?.hasVisited).length;
 
         return {
             currentTotal: currentStadiums.length,
@@ -6468,6 +6785,7 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
             oriolesCurrent,
             totalVisited,
             totalOrioles,
+            springVisited,
             percentCurrent: Math.round((visitedCurrent / currentStadiums.length) * 100),
             percentOrioles: Math.round((oriolesCurrent / currentStadiums.length) * 100),
         };
@@ -6504,11 +6822,15 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
             const data = visitedData[stadium.id];
             const hasVisited = data?.hasVisited;
             const sawOrioles = data?.sawOrioles;
+            const isSpringTraining = stadium.springTraining;
 
             // Determine marker color
             let fillColor = '#9ca3af'; // gray - not visited
             let borderColor = '#6b7280';
-            if (sawOrioles) {
+            if (hasVisited && isSpringTraining) {
+                fillColor = '#06b6d4'; // cyan - spring training visited
+                borderColor = '#0891b2';
+            } else if (sawOrioles) {
                 fillColor = '#f97316'; // orange - saw Orioles
                 borderColor = '#ea580c';
             } else if (hasVisited) {
@@ -6528,9 +6850,13 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
             // Build popup content
             let statusText = '<span style="color: #9ca3af;">Not yet visited</span>';
             let detailsHtml = '';
+            let teamLabel = stadium.team;
 
             if (hasVisited) {
-                if (sawOrioles) {
+                if (isSpringTraining) {
+                    statusText = '<span style="color: #06b6d4; font-weight: bold;">Spring Training' + (sawOrioles ? ' + Orioles' : '') + '</span>';
+                    teamLabel = 'Spring Training';
+                } else if (sawOrioles) {
                     statusText = '<span style="color: #f97316; font-weight: bold;">Visited + Saw Orioles</span>';
                     if (data.oriolesRecord) {
                         detailsHtml += `<div><strong>O's Record:</strong> ${data.oriolesRecord}</div>`;
@@ -6554,8 +6880,8 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
                 '<div style="min-width: 200px;">' +
                     '<h3 style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">' + stadium.name + '</h3>' +
                     '<div style="font-size: 11px; color: #666; margin-bottom: 8px;">' +
-                        stadium.team + (stadium.international ? ' - ' + stadium.city : '') + ' | ' + stadium.years +
-                        (stadium.current ? '' : ' (Defunct)') +
+                        teamLabel + (stadium.international ? ' - ' + stadium.city : '') + ' | ' + stadium.years +
+                        (stadium.current ? '' : isSpringTraining ? '' : ' (Defunct)') +
                     '</div>' +
                     '<div style="font-size: 12px; margin-bottom: 6px;">' + statusText + '</div>' +
                     (detailsHtml ? '<div style="font-size: 12px; line-height: 1.5; border-top: 1px solid #eee; padding-top: 6px;">' + detailsHtml + '</div>' : '') +
@@ -7424,7 +7750,7 @@ const App = () => {
                         <BadgesDisplay games={data.games || []} />
                     </div>
                 )}
-                {tab === 'milestones' && <MilestonesView milestones={data.milestones || []} games={data.games || []} careerFirsts={data.careerFirsts || []} />}
+                {tab === 'milestones' && <MilestonesView milestones={data.milestones || []} games={data.games || []} careerFirsts={data.careerFirsts || []} allTimePassings={data.allTimePassings || []} />}
                 {tab === 'leaderboards' && <Leaderboards data={data} />}
                 {tab === 'players' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
                 {tab === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
