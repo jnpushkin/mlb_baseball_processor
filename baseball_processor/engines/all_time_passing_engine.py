@@ -189,19 +189,21 @@ class AllTimePassingEngine:
             if leader_id == player_id:
                 continue
 
-            # Check if player's new value exceeds this leader's value
+            # Check if player's new value equals or exceeds this leader's value
             # Note: For IP, values can be floats like 5941.1
-            if new_value > leader_value:
+            if new_value >= leader_value:
+                is_tied = (new_value == leader_value)
                 passed_players.append({
                     'player_id': leader_id,
                     'name': leader.get('name', 'Unknown'),
                     'value': leader_value,
                     'previous_rank': leader_rank,
+                    'tied': is_tied,
                 })
 
         if passed_players:
             # Calculate new rank (count how many are still ahead)
-            ahead_count = sum(1 for l in leaders if l.get('value', 0) >= new_value and l.get('player_id') != player_id)
+            ahead_count = sum(1 for l in leaders if l.get('value', 0) > new_value and l.get('player_id') != player_id)
             new_rank = ahead_count + 1
 
             # Only include if rank is in top 200 (or within leaderboard range)
@@ -537,17 +539,19 @@ def find_passings_reverse_lookup(
                         continue
 
                     # Find who was passed or tied SPECIFICALLY at this game
-                    # Note: <= means passed OR tied (reaching their exact total)
                     passed_leaders = []
                     for v in threshold_values:
-                        if career_before < v <= career_after:  # Passed or tied
+                        if career_before < v <= career_after:
                             for l in value_to_leaders.get(v, []):
                                 if l['player_id'] != player_id:
+                                    # Mark as tied if player reached exactly this value, passed if exceeded
+                                    is_tied = (career_after == v)
                                     passed_leaders.append({
                                         'player_id': l['player_id'],
                                         'name': l['name'],
                                         'value': l['value'],
                                         'previous_rank': l['rank'],
+                                        'tied': is_tied,
                                     })
 
                     if passed_leaders and career_after >= min_leaderboard_value:
@@ -564,7 +568,7 @@ def find_passings_reverse_lookup(
                         passed_leaders.sort(key=lambda x: x['previous_rank'], reverse=True)
 
                         # Note: rank is approximate based on current leaderboard
-                        ahead_count = sum(1 for l in leaders if l['value'] >= career_after and l['player_id'] != player_id)
+                        ahead_count = sum(1 for l in leaders if l['value'] > career_after and l['player_id'] != player_id)
                         approx_rank = ahead_count + 1
 
                         all_passings.append({
@@ -610,14 +614,16 @@ def find_passings_reverse_lookup(
                 # Find who they passed or tied
                 passed_leaders = []
                 for v in threshold_values:
-                    if career_before < v <= career_after:  # Passed or tied
+                    if career_before < v <= career_after:
                         for l in value_to_leaders.get(v, []):
                             if l['player_id'] != player_id:
+                                is_tied = (career_after == v)
                                 passed_leaders.append({
                                     'player_id': l['player_id'],
                                     'name': l['name'],
                                     'value': l['value'],
                                     'previous_rank': l['rank'],
+                                    'tied': is_tied,
                                 })
 
                 if passed_leaders:
@@ -628,7 +634,7 @@ def find_passings_reverse_lookup(
                     if not passed_leaders:
                         continue
 
-                    ahead_count = sum(1 for l in leaders if l['value'] >= career_after and l['player_id'] != player_id)
+                    ahead_count = sum(1 for l in leaders if l['value'] > career_after and l['player_id'] != player_id)
                     new_rank = ahead_count + 1
 
                     basic_info = game.get('basic_info', {})
@@ -800,14 +806,16 @@ def find_passings_reverse_lookup(
                         # that weren't already crossed at the previous milestone
                         passed_leaders = []
                         for v in threshold_values:
-                            if milestone_value < v <= estimated_value:  # Passed (including tied)
+                            if milestone_value < v <= estimated_value:
                                 for l in value_to_leaders.get(v, []):
                                     if l['player_id'] != player_id:
+                                        is_tied = (estimated_value == v)
                                         passed_leaders.append({
                                             'player_id': l['player_id'],
                                             'name': l['name'],
                                             'value': l['value'],
                                             'previous_rank': l['rank'],
+                                            'tied': is_tied,
                                         })
 
                         if passed_leaders:
@@ -818,7 +826,7 @@ def find_passings_reverse_lookup(
                             if not passed_leaders:
                                 continue
 
-                            ahead_count = sum(1 for l in leaders if l['value'] >= estimated_value and l['player_id'] != player_id)
+                            ahead_count = sum(1 for l in leaders if l['value'] > estimated_value and l['player_id'] != player_id)
                             new_rank = ahead_count + 1
 
                             basic_info = game.get('basic_info', {})

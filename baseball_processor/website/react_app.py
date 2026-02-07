@@ -6105,13 +6105,8 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                             ? `https://www.baseball-reference.com/boxes/${passing.game_id.substring(0, 3)}/${passing.game_id}.shtml`
                                             : null;
 
-                                        // Check if this is a tie or a pass for each player
-                                        // Only show "tied" distinction for top 100
                                         const passedPlayers = passing.passed_players || [];
-                                        const isTied = passedPlayers.length > 0 && passedPlayers[0].value === passing.new_value;
-                                        const showTiedLabel = isTied && passing.new_rank <= 100;
 
-                                        // Build passed/tied names with their values
                                         // Format IP in baseball notation (X.1 = X and 1/3, X.2 = X and 2/3)
                                         const formatIP = (val) => {
                                             let whole = Math.floor(val);
@@ -6131,11 +6126,30 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                             return Number.isInteger(val) ? val.toLocaleString() : val.toFixed(1);
                                         };
 
-                                        // Show each passed player with their individual value
-                                        const passedNamesWithValues = passedPlayers.map(p => {
+                                        // Separate tied vs passed players using the 'tied' field
+                                        const tiedPlayers = passedPlayers.filter(p => p.tied);
+                                        const actuallyPassed = passedPlayers.filter(p => !p.tied);
+
+                                        // Build display string(s)
+                                        const formatPlayerList = (players) => players.map(p => {
                                             const valueStr = formatStatValue(p.value, passing.stat);
                                             return `${p.name} (${valueStr})`;
                                         }).join(', ');
+
+                                        // Determine what to show
+                                        let passedText = '';
+                                        if (actuallyPassed.length > 0 && tiedPlayers.length > 0) {
+                                            // Mixed: show both
+                                            passedText = `passed ${formatPlayerList(actuallyPassed)}, tied ${formatPlayerList(tiedPlayers)}`;
+                                        } else if (tiedPlayers.length > 0) {
+                                            // All ties
+                                            passedText = `tied ${formatPlayerList(tiedPlayers)}`;
+                                        } else if (actuallyPassed.length > 0) {
+                                            // All passed
+                                            passedText = `passed ${formatPlayerList(actuallyPassed)}`;
+                                        } else {
+                                            passedText = 'moved up';
+                                        }
 
                                         return (
                                             <div key={idx} className="bg-white border border-purple-200 rounded-lg p-4 hover:border-purple-400 hover:shadow transition-all">
@@ -6153,7 +6167,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                                                 <span className="font-bold text-gray-900 text-lg">{passing.player_name}</span>
                                                             )}
                                                             <span className="text-purple-600 font-medium">
-                                                                {showTiedLabel ? 'tied' : 'passed'} {passedNamesWithValues || 'others'} in {passing.stat_name}
+                                                                {passedText} in {passing.stat_name}
                                                             </span>
                                                         </div>
                                                         <div className="mt-1 text-sm text-gray-600">
