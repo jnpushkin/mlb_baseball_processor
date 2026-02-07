@@ -6131,11 +6131,11 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                             return Number.isInteger(val) ? val.toLocaleString() : val.toFixed(1);
                                         };
 
+                                        // Show each passed player with their individual value
                                         const passedNamesWithValues = passedPlayers.map(p => {
                                             const valueStr = formatStatValue(p.value, passing.stat);
                                             return `${p.name} (${valueStr})`;
                                         }).join(', ');
-                                        const passedNames = passedPlayers.map(p => p.name).join(', ');
 
                                         return (
                                             <div key={idx} className="bg-white border border-purple-200 rounded-lg p-4 hover:border-purple-400 hover:shadow transition-all">
@@ -6153,17 +6153,12 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                                                 <span className="font-bold text-gray-900 text-lg">{passing.player_name}</span>
                                                             )}
                                                             <span className="text-purple-600 font-medium">
-                                                                {showTiedLabel ? 'tied' : 'passed'} {passedNames || 'others'} in {passing.stat_name}
+                                                                {showTiedLabel ? 'tied' : 'passed'} {passedNamesWithValues || 'others'} in {passing.stat_name}
                                                             </span>
                                                         </div>
                                                         <div className="mt-1 text-sm text-gray-600">
                                                             <span className="font-semibold">{formatStatValue(passing.new_value, passing.stat)}</span>
                                                             <span className="text-gray-500"> career {passing.stat_name.toLowerCase()}</span>
-                                                            {passedPlayers.length > 0 && passedPlayers[0].value !== passing.new_value && (
-                                                                <span className="text-gray-400 ml-1">
-                                                                    (passed {formatStatValue(passedPlayers[0].value, passing.stat)})
-                                                                </span>
-                                                            )}
                                                         </div>
                                                         <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
                                                             <span>{passing.date_display || passing.date}</span>
