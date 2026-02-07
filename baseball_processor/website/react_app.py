@@ -6112,8 +6112,27 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                         const showTiedLabel = isTied && passing.new_rank <= 100;
 
                                         // Build passed/tied names with their values
+                                        // Format IP in baseball notation (X.1 = X and 1/3, X.2 = X and 2/3)
+                                        const formatIP = (val) => {
+                                            const whole = Math.floor(val);
+                                            const frac = val - whole;
+                                            // Convert decimal fraction to baseball thirds
+                                            let thirds;
+                                            if (frac < 0.17) thirds = 0;
+                                            else if (frac < 0.5) thirds = 1;
+                                            else if (frac < 0.84) thirds = 2;
+                                            else thirds = 0, whole++;  // Round up
+                                            return `${whole.toLocaleString()}.${thirds}`;
+                                        };
+
+                                        // Format stat value (use IP notation for innings)
+                                        const formatStatValue = (val, stat) => {
+                                            if (stat === 'IP') return formatIP(val);
+                                            return Number.isInteger(val) ? val.toLocaleString() : val.toFixed(1);
+                                        };
+
                                         const passedNamesWithValues = passedPlayers.map(p => {
-                                            const valueStr = Number.isInteger(p.value) ? p.value.toLocaleString() : p.value.toFixed(1);
+                                            const valueStr = formatStatValue(p.value, passing.stat);
                                             return `${p.name} (${valueStr})`;
                                         }).join(', ');
                                         const passedNames = passedPlayers.map(p => p.name).join(', ');
@@ -6138,11 +6157,11 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                                             </span>
                                                         </div>
                                                         <div className="mt-1 text-sm text-gray-600">
-                                                            <span className="font-semibold">{Number.isInteger(passing.new_value) ? passing.new_value.toLocaleString() : passing.new_value.toFixed(1)}</span>
+                                                            <span className="font-semibold">{formatStatValue(passing.new_value, passing.stat)}</span>
                                                             <span className="text-gray-500"> career {passing.stat_name.toLowerCase()}</span>
                                                             {passedPlayers.length > 0 && passedPlayers[0].value !== passing.new_value && (
                                                                 <span className="text-gray-400 ml-1">
-                                                                    (passed {passedPlayers[0].value.toLocaleString()})
+                                                                    (passed {formatStatValue(passedPlayers[0].value, passing.stat)})
                                                                 </span>
                                                             )}
                                                         </div>
