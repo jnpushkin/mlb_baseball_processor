@@ -329,6 +329,67 @@ def load_gamelogs_cache() -> dict:
     return {}
 
 
+def filter_passed_players_by_date(
+    passed_leaders: list[dict],
+    game_date: str,
+    stat_key: str,
+    stat_type: str,
+    gamelogs_cache: dict
+) -> list[dict]:
+    """
+    Filter passed players to only include those who had reached their leaderboard
+    value BY the game date. This excludes players who accumulated their total AFTER
+    the passer did (e.g., Yu Darvish reaching 2075 K's after CC Sabathia did).
+
+    Args:
+        passed_leaders: List of players who were "passed" based on current leaderboard
+        game_date: Date of the game in YYYYMMDD format
+        stat_key: Stat being checked (e.g., 'SO', 'HR')
+        stat_type: 'batting' or 'pitching'
+        gamelogs_cache: Cache of player gamelogs with career totals per game
+
+    Returns:
+        Filtered list of passed players
+    """
+    if not game_date or not gamelogs_cache:
+        return passed_leaders
+
+    filtered = []
+    for leader in passed_leaders:
+        leader_id = leader.get('player_id', '')
+        leader_value = leader.get('value', 0)
+
+        # Check if we have gamelogs for this player
+        player_gamelogs = gamelogs_cache.get(leader_id, {}).get('gamelogs', {})
+
+        if not player_gamelogs:
+            # No gamelogs - include by default (we can't verify)
+            filtered.append(leader)
+            continue
+
+        # Find the player's career total at or before the game date
+        # Gamelogs have game_id format like TEX201205270 (team + date + seq)
+        career_at_date = 0
+        for gid, gdata in player_gamelogs.items():
+            if len(gid) >= 11:
+                gl_date = gid[3:11]  # Extract YYYYMMDD
+                if gl_date <= game_date:
+                    # Get their cumulative total at this game
+                    if stat_type == 'batting':
+                        val = gdata.get('batting', {}).get(stat_key, 0)
+                    else:
+                        val = gdata.get('pitching', {}).get(stat_key, 0)
+                    if val > career_at_date:
+                        career_at_date = val
+
+        # Only include if they had reached their leaderboard value by the game date
+        if career_at_date >= leader_value:
+            filtered.append(leader)
+        # else: they reached their total AFTER the game, exclude them
+
+    return filtered
+
+
 def find_passings_reverse_lookup(
     engine: AllTimePassingEngine,
     attended_games: list[dict],
@@ -492,6 +553,14 @@ def find_passings_reverse_lookup(
                     if passed_leaders and career_after >= min_leaderboard_value:
                         basic_info = game.get('basic_info', {})
                         date = basic_info.get('date_yyyymmdd', '')
+
+                        # Filter out players who reached their total AFTER this game date
+                        passed_leaders = filter_passed_players_by_date(
+                            passed_leaders, date, stat_key, stat_type, gamelogs_cache
+                        )
+                        if not passed_leaders:
+                            continue
+
                         passed_leaders.sort(key=lambda x: x['previous_rank'], reverse=True)
 
                         # Note: rank is approximate based on current leaderboard
@@ -552,6 +621,13 @@ def find_passings_reverse_lookup(
                                 })
 
                 if passed_leaders:
+                    # Filter out players who reached their total AFTER this game date
+                    passed_leaders = filter_passed_players_by_date(
+                        passed_leaders, milestone_date, stat_key, stat_type, gamelogs_cache
+                    )
+                    if not passed_leaders:
+                        continue
+
                     ahead_count = sum(1 for l in leaders if l['value'] >= career_after and l['player_id'] != player_id)
                     new_rank = ahead_count + 1
 
@@ -735,6 +811,13 @@ def find_passings_reverse_lookup(
                                         })
 
                         if passed_leaders:
+                            # Filter out players who reached their total AFTER this game date
+                            passed_leaders = filter_passed_players_by_date(
+                                passed_leaders, date, stat_key, stat_type, gamelogs_cache
+                            )
+                            if not passed_leaders:
+                                continue
+
                             ahead_count = sum(1 for l in leaders if l['value'] >= estimated_value and l['player_id'] != player_id)
                             new_rank = ahead_count + 1
 

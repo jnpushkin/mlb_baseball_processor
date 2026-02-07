@@ -6114,14 +6114,14 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                         // Build passed/tied names with their values
                                         // Format IP in baseball notation (X.1 = X and 1/3, X.2 = X and 2/3)
                                         const formatIP = (val) => {
-                                            const whole = Math.floor(val);
+                                            let whole = Math.floor(val);
                                             const frac = val - whole;
                                             // Convert decimal fraction to baseball thirds
                                             let thirds;
                                             if (frac < 0.17) thirds = 0;
                                             else if (frac < 0.5) thirds = 1;
                                             else if (frac < 0.84) thirds = 2;
-                                            else thirds = 0, whole++;  // Round up
+                                            else { thirds = 0; whole++; }  // Round up
                                             return `${whole.toLocaleString()}.${thirds}`;
                                         };
 
