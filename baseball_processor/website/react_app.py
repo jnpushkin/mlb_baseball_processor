@@ -132,8 +132,16 @@ const PlayerLink = ({ playerId, name }) => {
     return <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{name}</a>;
 };
 
-const GameLink = ({ gameId }) => {
+const GameLink = ({ gameId, mlbGamePk, source }) => {
     if (!gameId || gameId === 'UNKNOWN') return <span className="small-text">{gameId}</span>;
+
+    // Use MLB.com for spring training games (source='mlb') that have a game_pk
+    if (mlbGamePk && source === 'mlb') {
+        const url = `https://www.mlb.com/gameday/${mlbGamePk}/final/box`;
+        return <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-mono small-text">{gameId}</a>;
+    }
+
+    // Default to Baseball Reference
     const teamCode = gameId.substring(0, 3);
     const url = `https://www.baseball-reference.com/boxes/${teamCode}/${gameId}.shtml`;
     return <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-mono small-text">{gameId}</a>;
@@ -1234,7 +1242,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                 
                 {/* Footer */}
                 <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
-                    <GameLink gameId={game.gameId} />
+                    <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
                     <button onClick={onClose} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 body-text font-medium">
                         Close
                     </button>
@@ -2250,7 +2258,7 @@ const Calendar = ({ games }) => {
                                                 <span className="body-text font-bold text-blue-600">{game.date}</span>
                                                 <span className="small-text text-gray-500">{game.startTime}</span>
                                             </div>
-                                            <GameLink gameId={game.gameId} />
+                                            <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
                                         </div>
                                         <div className="flex items-center gap-4 flex-wrap">
                                             <div className="flex items-center gap-2">
@@ -2392,7 +2400,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
                                                         <span className="body-text font-bold text-blue-600">{game.date}</span>
                                                         <span className="small-text text-gray-500">{game.startTime}</span>
                                                     </div>
-                                                    <GameLink gameId={game.gameId} />
+                                                    <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
                                                 </div>
                                                 <div className="flex items-center gap-4 flex-wrap">
                                                     <div className="flex items-center gap-2">
@@ -4006,7 +4014,7 @@ const SmartInsights = ({ data }) => {
                                                         </div>
                                                         <span className="font-mono body-text bg-white px-2 py-1 rounded">{game.score}</span>
                                                     </div>
-                                                    <GameLink gameId={game.gameId} />
+                                                    <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
                                                 </div>
                                             </div>
                                         );
@@ -4097,7 +4105,7 @@ const SmartInsights = ({ data }) => {
                                                     </div>
                                                     <div className="flex items-center justify-between">
                                                         <span className="small-text text-gray-600">{game.date}</span>
-                                                        <GameLink gameId={game.gameId} />
+                                                        <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
                                                     </div>
                                                 </div>
                                             ))
@@ -4166,7 +4174,7 @@ const SmartInsights = ({ data }) => {
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="small-text text-gray-600">{firstAndLastGame.first.date}</span>
-                                        <GameLink gameId={firstAndLastGame.first.gameId} />
+                                        <GameLink gameId={firstAndLastGame.first.gameId} mlbGamePk={firstAndLastGame.first.mlbGamePk} source={firstAndLastGame.first.source} />
                                     </div>
                                 </div>
                                 {/* Most Recent Game */}
@@ -4184,7 +4192,7 @@ const SmartInsights = ({ data }) => {
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="small-text text-gray-600">{firstAndLastGame.last.date}</span>
-                                        <GameLink gameId={firstAndLastGame.last.gameId} />
+                                        <GameLink gameId={firstAndLastGame.last.gameId} mlbGamePk={firstAndLastGame.last.mlbGamePk} source={firstAndLastGame.last.source} />
                                     </div>
                                 </div>
                             </div>

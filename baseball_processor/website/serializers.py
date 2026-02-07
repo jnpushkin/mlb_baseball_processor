@@ -1035,6 +1035,10 @@ class DataSerializer:
         details['gameType'] = basic_info.get('game_type', 'regular')
         details['source'] = basic_info.get('source', 'bref')
 
+        # MLB game pk (for linking to MLB.com box scores)
+        if raw_game.get('mlb_game_pk'):
+            details['mlbGamePk'] = raw_game.get('mlb_game_pk')
+
         # Venue details (for spring training stadiums)
         if basic_info.get('venue_city'):
             details['venueCity'] = basic_info.get('venue_city')

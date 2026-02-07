@@ -19,6 +19,13 @@ import requests
 from datetime import datetime
 from typing import Optional, Union
 
+# Try to import cloudscraper for bypassing Cloudflare
+try:
+    import cloudscraper
+    HAS_CLOUDSCRAPER = True
+except ImportError:
+    HAS_CLOUDSCRAPER = False
+
 # Try to import baseball_id for player ID mapping
 try:
     from baseball_id import Lookup
@@ -142,6 +149,149 @@ def _load_name_to_bref_cache():
 
 # Cache for validated constructed IDs: (name, team, year) -> bref_id
 _constructed_id_cache = {}
+
+# Cache for register ID -> MLB ID mappings (resolved via register page)
+_register_to_mlb_cache = {}
+_register_resolution_attempted = set()  # Track IDs we've already tried to resolve
+
+
+def is_register_format_id(player_id: str) -> bool:
+    """
+    Check if a player ID is in Baseball Reference register format.
+
+    Register format: 6 chars + "000" + 3 chars (e.g., "workma000gag")
+    MLB format: typically ends with 2-digit number (e.g., "workmga01")
+    """
+    if not player_id or len(player_id) < 10:
+        return False
+    # Register format has "000" in the middle (positions 6-8)
+    return player_id[6:9] == "000"
+
+
+def resolve_register_id(register_id: str, use_cache_only: bool = False) -> Optional[str]:
+    """
+    Resolve a register-format ID to MLB-format ID.
+
+    Args:
+        register_id: Register-format BREF ID (e.g., "workma000gag")
+        use_cache_only: If True, only check cache, don't make HTTP requests
+
+    Returns:
+        MLB-format ID if found, None otherwise
+    """
+    # Check cache first
+    if register_id in _register_to_mlb_cache:
+        return _register_to_mlb_cache[register_id]
+
+    if use_cache_only:
+        return None
+
+    # Don't retry failed resolutions
+    if register_id in _register_resolution_attempted:
+        return None
+
+    _register_resolution_attempted.add(register_id)
+
+    # Try to fetch from register page (use cloudscraper to bypass Cloudflare)
+    try:
+        url = f"https://www.baseball-reference.com/register/player.fcgi?id={register_id}"
+
+        if HAS_CLOUDSCRAPER:
+            scraper = cloudscraper.create_scraper()
+            response = scraper.get(url, timeout=15)
+        else:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            }
+            response = requests.get(url, headers=headers, timeout=15)
+
+        if response.status_code != 200:
+            return None
+
+        # Look for game log links which use MLB-format ID
+        # Pattern: /players/gl.fcgi?id=XXXXXX&t=b&year=YYYY
+        match = re.search(r'/players/gl\.fcgi\?id=([a-z]+\d{2})(?:&|&amp;)', response.text)
+        if match:
+            mlb_id = match.group(1)
+            _register_to_mlb_cache[register_id] = mlb_id
+            return mlb_id
+
+    except Exception as e:
+        # Silently fail - we'll just use the register ID
+        pass
+
+    return None
+
+
+def resolve_player_ids_in_game(game_data: dict, verbose: bool = False) -> dict:
+    """
+    Resolve any register-format player IDs in a parsed game to MLB-format IDs.
+
+    This updates the game data in place and returns it.
+    """
+    resolved_count = 0
+
+    # Collect all register-format IDs first
+    register_ids = set()
+
+    for side in ['away', 'home']:
+        for player in game_data.get('batting', {}).get(side, []):
+            pid = player.get('player_id', '')
+            if is_register_format_id(pid):
+                register_ids.add(pid)
+
+        for player in game_data.get('pitching', {}).get(side, []):
+            pid = player.get('player_id', '')
+            if is_register_format_id(pid):
+                register_ids.add(pid)
+
+    if not register_ids:
+        return game_data
+
+    if verbose:
+        print(f"  Resolving {len(register_ids)} register-format player IDs...")
+
+    # Resolve each register ID
+    id_map = {}
+    for reg_id in register_ids:
+        mlb_id = resolve_register_id(reg_id)
+        if mlb_id:
+            id_map[reg_id] = mlb_id
+            resolved_count += 1
+
+    if verbose and resolved_count > 0:
+        print(f"  Resolved {resolved_count}/{len(register_ids)} IDs to MLB format")
+
+    # Update all player IDs in the game data
+    if id_map:
+        for side in ['away', 'home']:
+            for player in game_data.get('batting', {}).get(side, []):
+                old_id = player.get('player_id', '')
+                if old_id in id_map:
+                    player['player_id'] = id_map[old_id]
+                    player['bref_id'] = id_map[old_id]
+                    player['register_id'] = old_id  # Keep original for reference
+
+            for player in game_data.get('pitching', {}).get(side, []):
+                old_id = player.get('player_id', '')
+                if old_id in id_map:
+                    player['player_id'] = id_map[old_id]
+                    player['bref_id'] = id_map[old_id]
+                    player['register_id'] = old_id
+
+        # Also update play-by-play and substitutions
+        for play in game_data.get('play_by_play', []):
+            if play.get('batter_id') in id_map:
+                play['batter_id'] = id_map[play['batter_id']]
+            if play.get('pitcher_id') in id_map:
+                play['pitcher_id'] = id_map[play['pitcher_id']]
+
+        for sub in game_data.get('substitutions', []):
+            if sub.get('player_id') in id_map:
+                sub['player_id'] = id_map[sub['player_id']]
+
+    return game_data
 
 
 def construct_bref_register_id(name: str, team: str = None, year: int = None, mlb_id: int = None) -> Optional[str]:
@@ -872,7 +1022,7 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
 
     game_id = generate_game_id(basic_info, game_pk)
 
-    return {
+    game_data = {
         'basic_info': basic_info,
         'batting': batting,
         'pitching': pitching,
@@ -892,6 +1042,11 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
         'raw_plays': play_by_play,  # Use play_by_play as raw_plays too
         'footer_summary': {},
     }
+
+    # Resolve any register-format player IDs to MLB-format IDs
+    game_data = resolve_player_ids_in_game(game_data, verbose=verbose)
+
+    return game_data
 
 
 def parse_mlb_games_from_file(filepath: str, verbose: bool = False) -> list:
@@ -923,35 +1078,128 @@ def parse_mlb_games_from_file(filepath: str, verbose: bool = False) -> list:
     return games
 
 
+def update_cached_games_with_resolved_ids(cache_dir: str = None, verbose: bool = False) -> dict:
+    """
+    Update existing cached games to resolve register-format IDs to MLB-format IDs.
+
+    Args:
+        cache_dir: Path to cache directory (defaults to project cache/)
+        verbose: Print progress messages
+
+    Returns:
+        Dict with counts: {'scanned': N, 'updated': N, 'resolved': N}
+    """
+    import json
+    from pathlib import Path
+
+    if cache_dir is None:
+        cache_dir = Path(__file__).parent.parent.parent / 'cache'
+    else:
+        cache_dir = Path(cache_dir)
+
+    if not cache_dir.exists():
+        print(f"Cache directory not found: {cache_dir}")
+        return {'scanned': 0, 'updated': 0, 'resolved': 0}
+
+    stats = {'scanned': 0, 'updated': 0, 'resolved': 0}
+
+    # Find all JSON cache files (excluding career_firsts subdirectory)
+    cache_files = [f for f in cache_dir.glob("*.json") if f.is_file()]
+
+    print(f"Scanning {len(cache_files)} cached games for register-format IDs...")
+
+    for cache_file in cache_files:
+        stats['scanned'] += 1
+
+        try:
+            with open(cache_file, 'r') as f:
+                game_data = json.load(f)
+
+            # Only process MLB API games (source: 'mlb')
+            if game_data.get('basic_info', {}).get('source') != 'mlb' and game_data.get('source') != 'mlb':
+                continue
+
+            # Check if this game has register-format IDs
+            has_register_ids = False
+            for side in ['away', 'home']:
+                for player in game_data.get('batting', {}).get(side, []):
+                    if is_register_format_id(player.get('player_id', '')):
+                        has_register_ids = True
+                        break
+                if has_register_ids:
+                    break
+
+            if not has_register_ids:
+                continue
+
+            if verbose:
+                print(f"  Processing: {cache_file.name}")
+
+            # Resolve IDs
+            original_data = json.dumps(game_data)
+            game_data = resolve_player_ids_in_game(game_data, verbose=verbose)
+            new_data = json.dumps(game_data)
+
+            # Only write if something changed
+            if original_data != new_data:
+                with open(cache_file, 'w') as f:
+                    json.dump(game_data, f, indent=2)
+                stats['updated'] += 1
+
+                # Count resolved IDs
+                for side in ['away', 'home']:
+                    for player in game_data.get('batting', {}).get(side, []):
+                        if player.get('register_id'):
+                            stats['resolved'] += 1
+                    for player in game_data.get('pitching', {}).get(side, []):
+                        if player.get('register_id'):
+                            stats['resolved'] += 1
+
+        except (json.JSONDecodeError, IOError) as e:
+            if verbose:
+                print(f"  Error processing {cache_file.name}: {e}")
+            continue
+
+    print(f"\nResults: Scanned {stats['scanned']} files, updated {stats['updated']} files, resolved {stats['resolved']} player IDs")
+    return stats
+
+
 if __name__ == '__main__':
     import argparse
     import json
 
     parser = argparse.ArgumentParser(description='Parse MLB.com game box scores')
-    parser.add_argument('game', help='MLB.com URL or game ID')
+    parser.add_argument('game', nargs='?', help='MLB.com URL or game ID')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
     parser.add_argument('--json', '-j', action='store_true', help='Output as JSON')
+    parser.add_argument('--update-cache', action='store_true',
+                        help='Update existing cached games to resolve register-format player IDs')
 
     args = parser.parse_args()
 
-    game_data = parse_mlb_game(args.game, verbose=args.verbose)
+    if args.update_cache:
+        update_cached_games_with_resolved_ids(verbose=args.verbose)
+    elif args.game:
+        game_data = parse_mlb_game(args.game, verbose=args.verbose)
 
-    if args.json:
-        print(json.dumps(game_data, indent=2))
+        if args.json:
+            print(json.dumps(game_data, indent=2))
+        else:
+            bi = game_data['basic_info']
+            print(f"\n{'='*60}")
+            print(f"{bi['away_team']} ({bi['away_score']}) @ {bi['home_team']} ({bi['home_score']})")
+            print(f"{bi['date']}")
+            print(f"{bi['venue']}, {bi.get('venue_city', '')}, {bi.get('venue_state', '')}")
+            print(f"Game Type: {bi['game_type'].upper()}")
+            print(f"Game ID: {game_data['game_id']}")
+            print(f"{'='*60}")
+
+            print(f"\n{bi['away_team']} Batting:")
+            for b in game_data['batting']['away'][:5]:
+                print(f"  {b['name']}: {b['H']}-{b['AB']}, {b['R']} R, {b['RBI']} RBI")
+
+            print(f"\n{bi['home_team']} Batting:")
+            for b in game_data['batting']['home'][:5]:
+                print(f"  {b['name']}: {b['H']}-{b['AB']}, {b['R']} R, {b['RBI']} RBI")
     else:
-        bi = game_data['basic_info']
-        print(f"\n{'='*60}")
-        print(f"{bi['away_team']} ({bi['away_score']}) @ {bi['home_team']} ({bi['home_score']})")
-        print(f"{bi['date']}")
-        print(f"{bi['venue']}, {bi.get('venue_city', '')}, {bi.get('venue_state', '')}")
-        print(f"Game Type: {bi['game_type'].upper()}")
-        print(f"Game ID: {game_data['game_id']}")
-        print(f"{'='*60}")
-
-        print(f"\n{bi['away_team']} Batting:")
-        for b in game_data['batting']['away'][:5]:
-            print(f"  {b['name']}: {b['H']}-{b['AB']}, {b['R']} R, {b['RBI']} RBI")
-
-        print(f"\n{bi['home_team']} Batting:")
-        for b in game_data['batting']['home'][:5]:
-            print(f"  {b['name']}: {b['H']}-{b['AB']}, {b['R']} R, {b['RBI']} RBI")
+        parser.print_help()
