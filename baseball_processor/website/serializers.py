@@ -287,41 +287,15 @@ def find_all_time_passings(witnessed_firsts: list, career_firsts_cache: dict, ra
         return all_passings, passings_by_game
 
     # Approach 1: Check witnessed milestones
-    for milestone in witnessed_firsts:
-        # Only check career milestones (not firsts)
-        if milestone.get('category') != 'milestone':
-            continue
-
-        player_id = milestone.get('player_id', '')
-        if not player_id:
-            continue
-
-        stat = milestone.get('stat', '')
-        stat_type = milestone.get('type', 'batting')
-
-        # Get the career value at time of milestone
-        career_value = milestone.get('career_total_after') or milestone.get('milestone_number', 0)
-        if not career_value:
-            continue
-
-        # Check for passings
-        passings = engine.check_for_passings(
-            player_id=player_id,
-            player_name=milestone.get('player_name', ''),
-            stat=stat,
-            stat_type=stat_type,
-            new_value=career_value,
-            game_id=milestone.get('game_id', ''),
-            date=milestone.get('date', ''),
-            venue=milestone.get('venue', '')
-        )
-
-        for passing in passings:
-            # Add reference to the milestone
-            passing['milestone'] = milestone.get('milestone', '')
-            passing['date_display'] = milestone.get('date_display', '')
-
-            all_passings.append(passing)
+    # NOTE: This approach is now SKIPPED because it doesn't properly track
+    # which players were passed at this specific milestone vs earlier.
+    # The reverse lookup (Approach 2) handles this correctly with gamelogs.
+    # Keeping the code structure but skipping the logic.
+    #
+    # for milestone in witnessed_firsts:
+    #     ... (disabled - reverse lookup handles this better)
+    #
+    pass  # Approach 1 disabled - Approach 2 (reverse lookup) handles all cases
 
     # Approach 2: Reverse lookup from leaderboards (uses gamelogs cache if available)
     if raw_games:

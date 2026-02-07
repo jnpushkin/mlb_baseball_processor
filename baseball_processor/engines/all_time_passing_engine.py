@@ -475,11 +475,11 @@ def find_passings_reverse_lookup(
                     if career_after <= career_before:
                         continue
 
-                    # Find who was passed SPECIFICALLY at this game
-                    # Note: strictly greater than (>) means passed, equal (=) is just a tie
+                    # Find who was passed or tied SPECIFICALLY at this game
+                    # Note: <= means passed OR tied (reaching their exact total)
                     passed_leaders = []
                     for v in threshold_values:
-                        if career_before < v < career_after:  # Strictly passed, not tied
+                        if career_before < v <= career_after:  # Passed or tied
                             for l in value_to_leaders.get(v, []):
                                 if l['player_id'] != player_id:
                                     passed_leaders.append({
@@ -538,10 +538,10 @@ def find_passings_reverse_lookup(
                 else:
                     career_before = 0
 
-                # Find who they passed (strictly greater, not tied)
+                # Find who they passed or tied
                 passed_leaders = []
                 for v in threshold_values:
-                    if career_before < v < career_after:  # Strictly passed
+                    if career_before < v <= career_after:  # Passed or tied
                         for l in value_to_leaders.get(v, []):
                             if l['player_id'] != player_id:
                                 passed_leaders.append({
@@ -575,8 +575,9 @@ def find_passings_reverse_lookup(
                         'milestone': milestone.get('milestone', f"Career {stat_name} #{career_after}"),
                     })
 
-            # METHOD 2: Interpolation for games between milestones
+            # METHOD 2: Check actual game stats for games between milestones
             # For each pair of consecutive milestones, check if any attended games fall between
+            # AND verify the player actually accumulated the stat in that game
             for i in range(len(milestones)):
                 milestone = milestones[i]
                 milestone_date = milestone.get('date', '')
@@ -599,9 +600,11 @@ def find_passings_reverse_lookup(
                     if not (milestone_date < date < next_date):
                         continue
 
-                    # Check if player was in any of these games
+                    # Check if player was in any of these games AND accumulated the stat
                     for game in games:
-                        player_in_game = False
+                        player_record = None
+                        stat_in_game = 0
+
                         for side in ['home', 'away']:
                             if stat_type == 'batting':
                                 players = game.get('batting', {}).get(side, [])
@@ -609,16 +612,98 @@ def find_passings_reverse_lookup(
                                 players = game.get('pitching', {}).get(side, [])
                             for p in players:
                                 if p.get('player_id') == player_id:
-                                    player_in_game = True
+                                    player_record = p
                                     break
-                            if player_in_game:
+                            if player_record:
                                 break
 
-                        if not player_in_game:
+                        if not player_record:
                             continue
 
-                        # Interpolate career total at this game
-                        # Simple linear interpolation based on date
+                        # Check actual game stats to see if player accumulated this stat
+                        # Pitching stats
+                        if stat_type == 'pitching':
+                            if stat_key == 'SV':
+                                # Check for save - use the 'save' boolean field
+                                if player_record.get('save'):
+                                    stat_in_game = 1
+                                else:
+                                    # Also check pitcher_decisions for save_pitcher_id
+                                    decisions = game.get('pitcher_decisions', {})
+                                    if decisions.get('save_pitcher_id') == player_id:
+                                        stat_in_game = 1
+                            elif stat_key == 'W':
+                                # Check for win - use the 'win' boolean field
+                                if player_record.get('win'):
+                                    stat_in_game = 1
+                                else:
+                                    decisions = game.get('pitcher_decisions', {})
+                                    if decisions.get('winning_pitcher_id') == player_id:
+                                        stat_in_game = 1
+                            elif stat_key == 'SO':
+                                stat_in_game = int(player_record.get('SO', 0) or 0)
+                            elif stat_key == 'IP':
+                                # IP can be string like "6.1" or float
+                                ip_val = player_record.get('IP', 0)
+                                if isinstance(ip_val, str):
+                                    try:
+                                        stat_in_game = float(ip_val) if ip_val else 0
+                                    except ValueError:
+                                        stat_in_game = 0
+                                else:
+                                    stat_in_game = float(ip_val or 0)
+                            elif stat_key in ('G', 'G_pitch'):
+                                # Pitcher appeared in game
+                                stat_in_game = 1
+                            elif stat_key == 'GS':
+                                # Check if this pitcher was the starter (first in pitching list)
+                                first_pitcher = game.get('pitching', {}).get(side, [{}])[0] if side else None
+                                if first_pitcher and first_pitcher.get('player_id') == player_id:
+                                    stat_in_game = 1
+                            elif stat_key == 'CG':
+                                # Complete game - pitcher started and finished
+                                # This is harder to detect without specific field
+                                pass
+                            elif stat_key == 'SHO':
+                                # Shutout - even harder to detect
+                                pass
+
+                        # Batting stats
+                        elif stat_type == 'batting':
+                            if stat_key == 'HR':
+                                stat_in_game = int(player_record.get('HR', 0) or 0)
+                            elif stat_key == 'H':
+                                stat_in_game = int(player_record.get('H', 0) or 0)
+                            elif stat_key == 'RBI':
+                                stat_in_game = int(player_record.get('RBI', 0) or 0)
+                            elif stat_key == 'R':
+                                stat_in_game = int(player_record.get('R', 0) or 0)
+                            elif stat_key == '2B':
+                                stat_in_game = int(player_record.get('2B', 0) or 0)
+                            elif stat_key == '3B':
+                                stat_in_game = int(player_record.get('3B', 0) or 0)
+                            elif stat_key == 'SB':
+                                stat_in_game = int(player_record.get('SB', 0) or 0)
+                            elif stat_key == 'BB':
+                                stat_in_game = int(player_record.get('BB', 0) or 0)
+                            elif stat_key == 'TB':
+                                # Total bases = 1*1B + 2*2B + 3*3B + 4*HR
+                                h = int(player_record.get('H', 0) or 0)
+                                doubles = int(player_record.get('2B', 0) or 0)
+                                triples = int(player_record.get('3B', 0) or 0)
+                                hr = int(player_record.get('HR', 0) or 0)
+                                singles = h - doubles - triples - hr
+                                stat_in_game = singles + 2*doubles + 3*triples + 4*hr
+                            elif stat_key == 'G':
+                                # Player appeared in game
+                                stat_in_game = 1
+
+                        # Skip if player didn't accumulate this stat in this game
+                        if stat_in_game <= 0:
+                            continue
+
+                        # Estimate career total at this game using interpolation
+                        # This gives us an approximate value for checking thresholds
                         try:
                             d1 = int(milestone_date)
                             d2 = int(next_date) if next_date != '99999999' else int(date) + 30
@@ -631,11 +716,15 @@ def find_passings_reverse_lookup(
                         except (ValueError, ZeroDivisionError):
                             estimated_value = milestone_value
 
+                        # For single-event stats (SV, W, G, GS), ensure we're at least 1 past milestone
+                        if stat_in_game == 1 and estimated_value <= milestone_value:
+                            estimated_value = milestone_value + 1
+
                         # Check if this estimated value crosses any leaderboard thresholds
                         # that weren't already crossed at the previous milestone
                         passed_leaders = []
                         for v in threshold_values:
-                            if milestone_value < v < estimated_value:  # Strictly passed
+                            if milestone_value < v <= estimated_value:  # Passed (including tied)
                                 for l in value_to_leaders.get(v, []):
                                     if l['player_id'] != player_id:
                                         passed_leaders.append({
@@ -668,6 +757,7 @@ def find_passings_reverse_lookup(
                                 'venue': basic_info.get('venue', ''),
                                 'milestone': f"~{estimated_value:,} career {stat_name.lower()} (estimated)",
                                 'estimated': True,
+                                'stat_in_game': stat_in_game,  # How much they accumulated in this game
                             })
 
     # Sort by date ASCENDING first (so we process earliest occurrences first)
