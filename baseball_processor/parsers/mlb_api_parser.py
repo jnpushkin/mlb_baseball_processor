@@ -546,7 +546,7 @@ def parse_basic_info(feed_data: dict, box_data: dict) -> dict:
         date_obj = datetime.strptime(official_date, '%Y-%m-%d')
         formatted_date = date_obj.strftime('%A, %B %d, %Y')  # "Saturday, March 27, 2010"
         date_yyyymmdd = date_obj.strftime('%Y%m%d')
-    except:
+    except Exception:
         formatted_date = official_date
         date_yyyymmdd = official_date.replace('-', '')
 

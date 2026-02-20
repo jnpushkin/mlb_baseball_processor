@@ -452,8 +452,11 @@ class MilestoneEngine:
                         ms['maddux_games'].append(dict(milestone_common))
 
                     debug(f"Complete games list now has {len(ms['complete_games'])} items")
-                elif is_seven_inning_cg and runs == 0:
-                    ms['seven_inning_shutouts'].append(dict(milestone_common))
+                elif is_seven_inning_cg:
+                    if runs == 0:
+                        ms['seven_inning_shutouts'].append(dict(milestone_common))
+                    else:
+                        ms['complete_games'].append(dict(milestone_common))
                 else:
                     debug(f"✗ NOT a complete game")
 

@@ -291,13 +291,13 @@ const TeamChart = ({ teams }) => {
     return <canvas ref={canvasRef} className="w-full" style={{ height: '280px' }} />;
 };
 
-const StatCard = ({ title, value, subtitle, color = 'blue' }) => {
+const StatCard = ({ title, value, subtitle, color = 'blue', onClick }) => {
     const colors = {
         blue: 'border-blue-200 bg-blue-50', green: 'border-green-200 bg-green-50',
         purple: 'border-purple-200 bg-purple-50', orange: 'border-orange-200 bg-orange-50'
     };
     return (
-        <div className={`bg-white rounded-lg shadow border-l-4 ${colors[color]} p-6 hover:shadow-lg transition-all`}>
+        <div onClick={onClick} className={`bg-white rounded-lg shadow border-l-4 ${colors[color]} p-6 hover:shadow-lg transition-all ${onClick ? 'cursor-pointer' : ''}`}>
             <h3 className="small-text font-medium text-gray-600 mb-2">{title}</h3>
             <p className="text-3xl font-bold text-gray-900">{value}</p>
             {subtitle && <p className="body-text text-gray-500 mt-1">{subtitle}</p>}
@@ -660,7 +660,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                             </tr>
                         </thead>
                         <tbody className="divide-y">
-                            {gameData.awayHitters.map((p, idx) => <HitterRow key={idx} player={p} />)}
+                            {gameData.awayHitters.map((p) => <HitterRow key={p.playerId} player={p} />)}
                             <tr className="bg-blue-50 font-bold">
                                 <td className="px-3 py-2">Team Totals</td>
                                 <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.ab}</td>
@@ -698,7 +698,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                             </tr>
                         </thead>
                         <tbody className="divide-y">
-                            {gameData.homeHitters.map((p, idx) => <HitterRow key={idx} player={p} />)}
+                            {gameData.homeHitters.map((p) => <HitterRow key={p.playerId} player={p} />)}
                             <tr className="bg-blue-50 font-bold">
                                 <td className="px-3 py-2">Team Totals</td>
                                 <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.ab}</td>
@@ -737,7 +737,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
-                                    {gameData.awayPitchers.map((p, idx) => <PitcherRow key={idx} pitcher={p} />)}
+                                    {gameData.awayPitchers.map((p) => <PitcherRow key={p.playerId} pitcher={p} />)}
                                 </tbody>
                             </table>
                         </div>
@@ -761,7 +761,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
-                                    {gameData.homePitchers.map((p, idx) => <PitcherRow key={idx} pitcher={p} />)}
+                                    {gameData.homePitchers.map((p) => <PitcherRow key={p.playerId} pitcher={p} />)}
                                 </tbody>
                             </table>
                         </div>
@@ -793,8 +793,8 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                             </tr>
                         </thead>
                         <tbody className="divide-y">
-                            {lineup.sort((a, b) => a.slot - b.slot).map((player, idx) => (
-                                <tr key={idx} className="hover:bg-blue-50">
+                            {lineup.sort((a, b) => a.slot - b.slot).map((player) => (
+                                <tr key={player.playerId} className="hover:bg-blue-50">
                                     <td className="px-3 py-2 text-center font-bold text-blue-600">{player.slot}</td>
                                     <td className="px-3 py-2">
                                         <PlayerLink playerId={player.playerId} name={player.name} />
@@ -861,7 +861,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
             <div className="p-6">
                 <div className="space-y-3">
                     {game.substitutions.map((sub, idx) => (
-                        <div key={idx} className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-400 hover:shadow-md transition-all">
+                        <div key={`sub-${idx}-${sub.inning}-${sub.half}`} className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-400 hover:shadow-md transition-all">
                             <div className="flex items-start gap-3">
                                 <span className="text-2xl">{getSubIcon(sub.type)}</span>
                                 <div className="flex-1">
@@ -925,8 +925,8 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
         return (
             <div className="p-6">
                 <div className="space-y-6">
-                    {sortedInnings.map((inning, idx) => (
-                        <div key={idx} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                    {sortedInnings.map((inning) => (
+                        <div key={`${inning.half}-${inning.inning}`} className="bg-white rounded-lg shadow-sm overflow-hidden">
                             <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2">
                                 <span className="body-text font-bold">
                                     {inning.half.charAt(0).toUpperCase() + inning.half.slice(1)} of {inning.inning}
@@ -938,7 +938,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                             </div>
                             <div className="divide-y">
                                 {inning.plays.map((play, playIdx) => (
-                                    <div key={playIdx} className={`p-3 hover:bg-blue-50 ${
+                                    <div key={`play-${inning.inning}-${inning.half}-${playIdx}`} className={`p-3 hover:bg-blue-50 ${
                                         play.isHomeRun ? 'bg-orange-50' : 
                                         play.isStrikeout ? 'bg-red-50' : 
                                         play.isStolenBase ? 'bg-green-50' :
@@ -994,7 +994,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
     
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-lg shadow-2xl max-w-6xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                     <div className="flex items-center justify-between mb-2">
@@ -1042,7 +1042,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                                         <tr>
                                             <th className="px-3 py-2 text-left">Team</th>
                                             {Array.from({ length: Math.max(game.linescore.away?.innings?.length || 9, game.linescore.home?.innings?.length || 9, 9) }, (_, i) => (
-                                                <th key={i} className="px-2 py-2 w-8">{i + 1}</th>
+                                                <th key={`inning-${i}`} className="px-2 py-2 w-8">{i + 1}</th>
                                             ))}
                                             <th className="px-3 py-2 font-bold border-l-2">R</th>
                                             <th className="px-3 py-2 font-bold">H</th>
@@ -1053,7 +1053,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                                         <tr className="border-b">
                                             <td className="px-3 py-2 text-left font-semibold">{game.awayTeam}</td>
                                             {Array.from({ length: Math.max(game.linescore.away?.innings?.length || 9, game.linescore.home?.innings?.length || 9, 9) }, (_, i) => (
-                                                <td key={i} className="px-2 py-2">
+                                                <td key={`away-inning-${i}`} className="px-2 py-2">
                                                     {game.linescore.away?.innings?.[i] !== undefined ? game.linescore.away.innings[i] : '-'}
                                                 </td>
                                             ))}
@@ -1064,7 +1064,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                                         <tr>
                                             <td className="px-3 py-2 text-left font-semibold">{game.homeTeam}</td>
                                             {Array.from({ length: Math.max(game.linescore.away?.innings?.length || 9, game.linescore.home?.innings?.length || 9, 9) }, (_, i) => (
-                                                <td key={i} className="px-2 py-2">
+                                                <td key={`home-inning-${i}`} className="px-2 py-2">
                                                     {game.linescore.home?.innings?.[i] !== undefined ? game.linescore.home.innings[i] : '-'}
                                                 </td>
                                             ))}
@@ -1123,7 +1123,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                             <h5 className="small-text font-bold mb-3 text-gray-700">⚾ Key Plays</h5>
                             <div className="space-y-2">
                                 {game.keyPlays.map((play, idx) => (
-                                    <div key={idx} className="flex items-start gap-2 p-2 bg-orange-50 rounded border-l-4 border-orange-400">
+                                    <div key={`keyplay-${play.inning}-${play.batter}-${idx}`} className="flex items-start gap-2 p-2 bg-orange-50 rounded border-l-4 border-orange-400">
                                         <span className="text-lg">
                                             {play.type === 'grand_slam' ? '💣' : '🏠'}
                                         </span>
@@ -1151,7 +1151,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                                 <h5 className="small-text font-bold mb-3 text-gray-700">🏆 Milestones Achieved</h5>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {gameMilestones.map((milestone, idx) => (
-                                        <div key={idx} className="bg-white rounded-lg p-3 shadow-sm border-l-4 border-purple-400">
+                                        <div key={milestone.id || `${milestone.type}-${milestone.gameId}-${idx}`} className="bg-white rounded-lg p-3 shadow-sm border-l-4 border-purple-400">
                                             <div className="flex items-start gap-2">
                                                 <span className="text-xl">
                                                     {milestone.type.includes('HR') ? '⚾' :
@@ -1183,7 +1183,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                             <h5 className="small-text font-bold mb-3 text-amber-800">⭐ Career Milestones Witnessed</h5>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {careerFirsts.map((first, idx) => (
-                                    <div key={idx} className="bg-white rounded-lg p-3 shadow-sm border-l-4 border-amber-400">
+                                    <div key={`career-${first.milestone}-${first.player || idx}`} className="bg-white rounded-lg p-3 shadow-sm border-l-4 border-amber-400">
                                         <div className="flex items-start gap-2">
                                             <span className="text-xl">
                                                 {first.milestone.includes('Home Run') ? '💣' :
@@ -1365,11 +1365,11 @@ const PlayerTimeline = ({ playerId, playerName, playerGames }) => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
-                                {sortedGameLog.map((game, idx) => {
+                                {sortedGameLog.map((game) => {
                                     const isMultiHit = game.h >= 2;
                                     const isHR = game.hr > 0;
                                     return (
-                                        <tr key={idx} className={`hover:bg-blue-50 ${isHR ? 'bg-orange-50' : isMultiHit ? 'bg-green-50' : ''}`}>
+                                        <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 ${isHR ? 'bg-orange-50' : isMultiHit ? 'bg-green-50' : ''}`}>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{game.date}</td>
                                             <td className="px-3 py-2">{game.team}</td>
                                             <td className="px-3 py-2">{game.opponent}</td>
@@ -1438,8 +1438,8 @@ const PlayerTimeline = ({ playerId, playerName, playerGames }) => {
             
             {/* Year-by-year timeline */}
             <div className="space-y-4">
-                {timelineData.map((season, idx) => (
-                    <div key={idx} className="relative pl-8 pb-4 border-l-2 border-blue-200 last:border-l-0">
+                {timelineData.map((season) => (
+                    <div key={`season-${season.year}`} className="relative pl-8 pb-4 border-l-2 border-blue-200 last:border-l-0">
                         <div className="absolute left-0 top-0 -ml-2.5 w-5 h-5 bg-blue-600 rounded-full border-2 border-white"></div>
                         <div className="bg-gray-50 rounded-lg p-4 hover:bg-blue-50 transition-colors">
                             <div className="flex justify-between items-start mb-3">
@@ -1631,12 +1631,12 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames }) => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
-                                {sortedGameLog.map((game, idx) => {
+                                {sortedGameLog.map((game) => {
                                     const isWin = game.decision === 'W';
                                     const isQS = parseFloat(game.ip) >= 6 && game.er <= 3;
                                     const isHighSO = game.so >= 8;
                                     return (
-                                        <tr key={idx} className={`hover:bg-blue-50 ${isWin ? 'bg-green-50' : ''} ${isQS ? 'bg-blue-50' : ''}`}>
+                                        <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 ${isWin ? 'bg-green-50' : ''} ${isQS ? 'bg-blue-50' : ''}`}>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{game.date}</td>
                                             <td className="px-3 py-2">{game.team}</td>
                                             <td className="px-3 py-2">{game.opponent}</td>
@@ -1708,8 +1708,8 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames }) => {
             
             {/* Year-by-year timeline */}
             <div className="space-y-4">
-                {timelineData.map((season, idx) => (
-                    <div key={idx} className="relative pl-8 pb-4 border-l-2 border-purple-200 last:border-l-0">
+                {timelineData.map((season) => (
+                    <div key={`season-${season.year}`} className="relative pl-8 pb-4 border-l-2 border-purple-200 last:border-l-0">
                         <div className="absolute left-0 top-0 -ml-2.5 w-5 h-5 bg-purple-600 rounded-full border-2 border-white"></div>
                         <div className="bg-gray-50 rounded-lg p-4 hover:bg-purple-50 transition-colors">
                             <div className="flex justify-between items-start mb-3">
@@ -2179,16 +2179,16 @@ const Calendar = ({ games }) => {
                 </div>
                 <div className="grid grid-cols-7 gap-0.5">
                     {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                        <div key={i} className="text-center text-gray-500 font-medium" style={{ fontSize: '9px' }}>{day}</div>
+                        <div key={`day-header-${i}`} className="text-center text-gray-500 font-medium" style={{ fontSize: '9px' }}>{day}</div>
                     ))}
                     {days.map((day, idx) => {
-                        if (!day) return <div key={idx} className="aspect-square" />;
+                        if (!day) return <div key={`empty-${idx}`} className="aspect-square" />;
                         const hasGames = day.games.length > 0;
                         const bgColor = getHeatmapColor(day.games.length);
                         const textColor = getTextColor(day.games.length);
                         return (
                             <div
-                                key={idx}
+                                key={`day-${day.day}`}
                                 onClick={() => handleDateClick(day, monthIndex)}
                                 className={`aspect-square border rounded flex items-center justify-center transition-all ${bgColor} ${hasGames ? 'cursor-pointer hover:scale-110 hover:shadow-md' : ''}`}
                                 title={hasGames ? `${day.games.length} game${day.games.length > 1 ? 's' : ''}` : ''}
@@ -2244,15 +2244,15 @@ const Calendar = ({ games }) => {
             </div>
             {showModal && selectedDate && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                             <h3 className="section-title font-bold">{monthNames[monthIndices.indexOf(selectedMonthForModal)]} {selectedDate.day} • All Years</h3>
                             <p className="body-text text-blue-100 mt-1">{selectedDate.games.length} game{selectedDate.games.length !== 1 ? 's' : ''} attended</p>
                         </div>
                         <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
                             <div className="divide-y">
-                                {selectedDate.games.sort((a, b) => new Date(b.date) - new Date(a.date)).map((game, idx) => (
-                                    <div key={idx} className="p-4 hover:bg-blue-50 transition-colors">
+                                {selectedDate.games.sort((a, b) => new Date(b.date) - new Date(a.date)).map((game) => (
+                                    <div key={game.gameId} className="p-4 hover:bg-blue-50 transition-colors">
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-3">
                                                 <span className="body-text font-bold text-blue-600">{game.date}</span>
@@ -2355,8 +2355,8 @@ const MatchupMatrix = ({ matchupData, games }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {matrix.map((row, idx) => (
-                                <tr key={idx}>
+                            {matrix.map((row) => (
+                                <tr key={row.team}>
                                     <td className="border font-bold bg-gray-100" style={{ fontSize: '8px', padding: '1px' }}>{row.team}</td>
                                     {teams.map(opponent => {
                                         const value = row[opponent];
@@ -2383,7 +2383,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
             </div>
             {showModal && selectedMatchup && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                             <h3 className="section-title font-bold">{selectedMatchup.team} vs {selectedMatchup.opponent}</h3>
                             <p className="body-text text-blue-100 mt-1">{selectedMatchup.count} game{selectedMatchup.count !== 1 ? 's' : ''} attended</p>
@@ -2391,10 +2391,10 @@ const MatchupMatrix = ({ matchupData, games }) => {
                         <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
                             {selectedMatchup.games.length > 0 ? (
                                 <div className="divide-y">
-                                    {selectedMatchup.games.map((game, idx) => {
+                                    {selectedMatchup.games.map((game) => {
                                         const isHomeGame = game.homeTeam === selectedMatchup.team;
                                         return (
-                                            <div key={idx} className="p-4 hover:bg-blue-50 transition-colors">
+                                            <div key={game.gameId} className="p-4 hover:bg-blue-50 transition-colors">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-3">
                                                         <span className="body-text font-bold text-blue-600">{game.date}</span>
@@ -2892,8 +2892,8 @@ const OriolesDashboard = ({ orioles, games }) => {
                         </div>
                         <h4 className="font-semibold text-sm text-gray-600 mb-2">Last 10 Games</h4>
                         <div className="flex gap-1 flex-wrap">
-                            {streaksData.recentGames.map((g, i) => (
-                                <div key={i} className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold text-white ${g.result === 'W' ? 'bg-green-500' : 'bg-red-500'}`} title={`${g.date}: ${g.result} ${g.score} vs ${g.opponent}`}>
+                            {streaksData.recentGames.map((g) => (
+                                <div key={g.gameId || `${g.date}-${g.opponent}`} className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold text-white ${g.result === 'W' ? 'bg-green-500' : 'bg-red-500'}`} title={`${g.date}: ${g.result} ${g.score} vs ${g.opponent}`}>
                                     {g.result}
                                 </div>
                             ))}
@@ -3313,15 +3313,15 @@ const CompanionsView = ({ companionData }) => {
             {/* Modal for all games */}
             {showGames && selectedCompanion && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowGames(false)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                             <h3 className="section-title font-bold">Games with {selectedCompanion.name}</h3>
                             <p className="body-text text-blue-100 mt-1">{selectedCompanion.totalGames} total games</p>
                         </div>
                         <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
                             <div className="divide-y">
-                                {selectedCompanion.games.map((game, idx) => (
-                                    <div key={idx} className="p-4 hover:bg-blue-50 transition-colors">
+                                {selectedCompanion.games.map((game) => (
+                                    <div key={game.gameId || `${game.date}-${game.awayTeam}-${game.homeTeam}`} className="p-4 hover:bg-blue-50 transition-colors">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-4">
                                                 <span className="font-bold text-blue-600">{(game.date || '').split(' ')[0]}</span>
@@ -3996,11 +3996,11 @@ const SmartInsights = ({ data }) => {
                         <div className="p-4">
                             {thisWeekGames.length > 0 ? (
                                 <div className="space-y-3">
-                                    {thisWeekGames.slice(0, 10).map((game, idx) => {
+                                    {thisWeekGames.slice(0, 10).map((game) => {
                                         const gameDate = new Date(game.date);
                                         const yearsAgo = today.getFullYear() - gameDate.getFullYear();
                                         return (
-                                            <div key={idx} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                            <div key={game.gameId || `${game.date}-${game.awayTeam}-${game.homeTeam}`} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
                                                         <div className="text-center min-w-[60px]">
@@ -4064,8 +4064,8 @@ const SmartInsights = ({ data }) => {
                                 <div>
                                     <h3 className="subsection-title font-bold mb-3">🔥 Highest Scoring</h3>
                                     <div className="space-y-2">
-                                        {bestGames.highestScoring.map((game, idx) => (
-                                            <div key={idx} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                                        {bestGames.highestScoring.map((game) => (
+                                            <div key={game.gameId || `${game.date}-${game.awayTeam}-${game.homeTeam}`} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <span className="body-text font-bold text-gray-500">{idx + 1}.</span>
                                                     <span className="body-text">{game.awayTeam} @ {game.homeTeam}</span>
@@ -4080,8 +4080,8 @@ const SmartInsights = ({ data }) => {
                                 <div>
                                     <h3 className="subsection-title font-bold mb-3">😰 Nail-Biters (1-Run)</h3>
                                     <div className="space-y-2">
-                                        {bestGames.closestGames.slice(0, 5).map((game, idx) => (
-                                            <div key={idx} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                                        {bestGames.closestGames.slice(0, 5).map((game) => (
+                                            <div key={game.gameId || `${game.date}-${game.awayTeam}-${game.homeTeam}`} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <span className="body-text font-bold text-gray-500">{idx + 1}.</span>
                                                     <span className="body-text">{game.awayTeam} @ {game.homeTeam}</span>
@@ -4097,8 +4097,8 @@ const SmartInsights = ({ data }) => {
                                     <h3 className="subsection-title font-bold mb-3">🎉 Walk-Off Wins</h3>
                                     <div className="space-y-2">
                                         {bestGames.walkoffGames.length > 0 ? (
-                                            bestGames.walkoffGames.slice(0, 5).map((game, idx) => (
-                                                <div key={idx} className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                                            bestGames.walkoffGames.slice(0, 5).map((game) => (
+                                                <div key={game.gameId || `${game.date}-${game.awayTeam}-${game.homeTeam}`} className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <span className="body-text">{game.awayTeam} @ {game.homeTeam}</span>
                                                         <span className="font-mono body-text bg-green-600 text-white px-2 py-1 rounded font-bold">{game.score}</span>
@@ -4126,8 +4126,8 @@ const SmartInsights = ({ data }) => {
                         </div>
                         <div className="p-4">
                             <div className="space-y-3">
-                                {topRivalries.map((rivalry, idx) => (
-                                    <div key={idx} className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                                {topRivalries.map((rivalry) => (
+                                    <div key={rivalry.name} className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-4">
                                                 <span className="text-2xl font-bold text-blue-600">{idx + 1}</span>
@@ -4213,11 +4213,11 @@ const SmartInsights = ({ data }) => {
                         <div className="p-6">
                             <div className="relative" style={{ height: '320px' }}>
                                 <div className="absolute inset-0 flex items-end justify-between gap-2">
-                                    {yearlyTrends.map((data, idx) => {
+                                    {yearlyTrends.map((data) => {
                                         const maxGames = Math.max(...yearlyTrends.map(y => y.games));
                                         const heightPercent = (data.games / maxGames) * 100;
                                         return (
-                                            <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full">
+                                            <div key={data.year} className="flex-1 flex flex-col items-center justify-end h-full">
                                                 <div 
                                                     className="w-full bg-blue-600 rounded-t transition-all hover:bg-blue-700 cursor-pointer relative group flex items-start justify-center pt-2" 
                                                     style={{ height: `${heightPercent}%` }}
@@ -4435,7 +4435,7 @@ const SmartInsights = ({ data }) => {
                                                                 : [];
 
                                                             return (
-                                                                <div key={idx} className={`bg-white rounded-xl p-5 border-2 border-${config.color}-200 hover:border-${config.color}-400 hover:shadow-xl transition-all`}>
+                                                                <div key={`${categoryName}-${record.record}`} className={`bg-white rounded-xl p-5 border-2 border-${config.color}-200 hover:border-${config.color}-400 hover:shadow-xl transition-all`}>
                                                                     {/* Header with title and value */}
                                                                     <div className="flex items-start justify-between gap-4 mb-4">
                                                                         <h4 className="text-lg font-bold text-gray-900 leading-tight flex-1">
@@ -4801,8 +4801,8 @@ const SmartInsights = ({ data }) => {
                                 <div className="bg-gray-50 rounded-lg p-4">
                                     <h3 className="subsection-title font-bold mb-4">Top 10 Teams (Click to Filter)</h3>
                                     <div className="space-y-2">
-                                        {Object.entries(attendancePatterns.byTeam).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([team, count], idx) => (
-                                            <div key={idx} 
+                                        {Object.entries(attendancePatterns.byTeam).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([team, count]) => (
+                                            <div key={team}
                                                  onClick={() => setSelectedTeam(team)}
                                                  className="flex items-center justify-between p-2 bg-white rounded border cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
                                                 <div className="flex items-center gap-2">
@@ -4819,8 +4819,8 @@ const SmartInsights = ({ data }) => {
                                 <div className="bg-gray-50 rounded-lg p-4">
                                     <h3 className="subsection-title font-bold mb-4">Top 10 Venues</h3>
                                     <div className="space-y-2">
-                                        {Object.entries(attendancePatterns.byVenue).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([venue, count], idx) => (
-                                            <div key={idx} className="flex items-center justify-between p-2 bg-white rounded border">
+                                        {Object.entries(attendancePatterns.byVenue).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([venue, count]) => (
+                                            <div key={venue} className="flex items-center justify-between p-2 bg-white rounded border">
                                                 <div className="flex items-center gap-2">
                                                     <span className="small-text text-gray-500 w-6">{idx + 1}.</span>
                                                     <span className="body-text text-gray-700" title={venue}>{venue.length > 30 ? venue.substring(0, 30) + '...' : venue}</span>
@@ -5178,18 +5178,18 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
                         <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
                     </thead>
                     <tbody className="divide-y">
-                        {sorted.map((row, idx) => (
-                            <tr key={idx} className="hover:bg-blue-50">
+                        {sorted.map((row) => (
+                            <tr key={row.playerId} className="hover:bg-blue-50">
                                 {columns.map(col => <td key={col.key} className="px-4 py-3 body-text">{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
-            
+
             {selectedPlayer && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPlayer(null)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
                             <h3 className="section-title font-bold">Career Timeline</h3>
                             <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
@@ -5367,18 +5367,18 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
                         <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
                     </thead>
                     <tbody className="divide-y">
-                        {sorted.map((row, idx) => (
-                            <tr key={idx} className="hover:bg-blue-50">
+                        {sorted.map((row) => (
+                            <tr key={row.playerId} className="hover:bg-blue-50">
                                 {columns.map(col => <td key={col.key} className="px-4 py-3 body-text">{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
-            
+
             {selectedPitcher && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPitcher(null)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
                             <h3 className="section-title font-bold">Career Timeline</h3>
                             <button onClick={() => setSelectedPitcher(null)} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
@@ -5516,7 +5516,7 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                     </thead>
                     <tbody className="divide-y">
                         {sorted.map((row, idx) => (
-                            <tr key={idx} className="hover:bg-blue-50">
+                            <tr key={row.gameId || row.id || `item-${idx}`} className="hover:bg-blue-50">
                                 {columns.map(col => <td key={col.key} className="px-4 py-3 body-text">{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
                             </tr>
                         ))}
@@ -5561,50 +5561,59 @@ const Leaderboards = ({ data }) => {
         const all = playersData;
         const qualified = all.filter(p => p.ab >= minAB);
         return {
-            avg: [...qualified].sort((a, b) => parseFloat(b.avg) - parseFloat(a.avg)).slice(0, 10),
-            obp: [...qualified].sort((a, b) => parseFloat(b.obp) - parseFloat(a.obp)).slice(0, 10),
-            slg: [...qualified].sort((a, b) => parseFloat(b.slg) - parseFloat(a.slg)).slice(0, 10),
-            ops: [...qualified].sort((a, b) => parseFloat(b.ops) - parseFloat(a.ops)).slice(0, 10),
-            hr: [...all].sort((a, b) => b.hr - a.hr).slice(0, 10),
-            rbi: [...all].sort((a, b) => b.rbi - a.rbi).slice(0, 10),
-            hits: [...all].sort((a, b) => b.h - a.h).slice(0, 10),
-            runs: [...all].sort((a, b) => b.r - a.r).slice(0, 10),
-            sb: [...all].sort((a, b) => b.sb - a.sb).slice(0, 10),
-            doubles: [...all].sort((a, b) => b.doubles - a.doubles).slice(0, 10),
+            avg: [...qualified].sort((a, b) => parseFloat(b.avg) - parseFloat(a.avg)).slice(0, 25),
+            obp: [...qualified].sort((a, b) => parseFloat(b.obp) - parseFloat(a.obp)).slice(0, 25),
+            slg: [...qualified].sort((a, b) => parseFloat(b.slg) - parseFloat(a.slg)).slice(0, 25),
+            ops: [...qualified].sort((a, b) => parseFloat(b.ops) - parseFloat(a.ops)).slice(0, 25),
+            hr: [...all].sort((a, b) => b.hr - a.hr).slice(0, 25),
+            rbi: [...all].sort((a, b) => b.rbi - a.rbi).slice(0, 25),
+            hits: [...all].sort((a, b) => b.h - a.h).slice(0, 25),
+            runs: [...all].sort((a, b) => b.r - a.r).slice(0, 25),
+            sb: [...all].sort((a, b) => b.sb - a.sb).slice(0, 25),
+            doubles: [...all].sort((a, b) => b.doubles - a.doubles).slice(0, 25),
         };
     }, [playersData, minAB]);
-    
+
     const pitchingLeaders = useMemo(() => {
         const all = pitchersData;
         const qualified = all.filter(p => parseFloat(p.ip) >= minIP);
         return {
-            era: [...qualified].filter(p => p.era !== 'N/A').sort((a, b) => parseFloat(a.era) - parseFloat(b.era)).slice(0, 10),
-            whip: [...qualified].filter(p => p.whip !== 'N/A').sort((a, b) => parseFloat(a.whip) - parseFloat(b.whip)).slice(0, 10),
-            wins: [...all].sort((a, b) => b.wins - a.wins).slice(0, 10),
-            so: [...all].sort((a, b) => b.so - a.so).slice(0, 10),
-            saves: [...all].sort((a, b) => b.saves - a.saves).slice(0, 10),
-            ip: [...all].sort((a, b) => parseFloat(b.ip) - parseFloat(a.ip)).slice(0, 10),
+            era: [...qualified].filter(p => p.era !== 'N/A').sort((a, b) => parseFloat(a.era) - parseFloat(b.era)).slice(0, 25),
+            whip: [...qualified].filter(p => p.whip !== 'N/A').sort((a, b) => parseFloat(a.whip) - parseFloat(b.whip)).slice(0, 25),
+            wins: [...all].sort((a, b) => b.wins - a.wins).slice(0, 25),
+            so: [...all].sort((a, b) => b.so - a.so).slice(0, 25),
+            saves: [...all].sort((a, b) => b.saves - a.saves).slice(0, 25),
+            ip: [...all].sort((a, b) => parseFloat(b.ip) - parseFloat(a.ip)).slice(0, 25),
         };
     }, [pitchersData, minIP]);
     
-    const LeaderCard = ({ title, leaders, stat, isRateStat = false }) => (
-        <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="subsection-title font-bold text-gray-900 mb-1">{title}</h3>
-            {isRateStat && <p className="small-text text-blue-600 italic mb-2">Qualified</p>}
-            <div className="space-y-2">
-                {leaders.map((player, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-1 border-b last:border-0">
-                        <div className="flex items-center gap-2">
-                            <span className="text-gray-500 body-text w-6">{idx + 1}.</span>
-                            <PlayerLink playerId={player.playerId} name={player.name} />
-                            <span className="small-text text-gray-500">({player.team})</span>
+    const LeaderCard = ({ title, leaders, stat, isRateStat = false }) => {
+        const [expanded, setExpanded] = useState(false);
+        const shown = expanded ? leaders : leaders.slice(0, 10);
+        return (
+            <div className="bg-white rounded-lg shadow p-4">
+                <h3 className="subsection-title font-bold text-gray-900 mb-1">{title}</h3>
+                {isRateStat && <p className="small-text text-blue-600 italic mb-2">Qualified</p>}
+                <div className="space-y-2">
+                    {shown.map((player, idx) => (
+                        <div key={player.playerId} className="flex items-center justify-between py-1 border-b last:border-0">
+                            <div className="flex items-center gap-2">
+                                <span className="text-gray-500 body-text w-6">{idx + 1}.</span>
+                                <PlayerLink playerId={player.playerId} name={player.name} />
+                                <span className="small-text text-gray-500">({player.team})</span>
+                            </div>
+                            <span className="font-bold text-blue-600 body-text">{player[stat]}</span>
                         </div>
-                        <span className="font-bold text-blue-600 body-text">{player[stat]}</span>
-                    </div>
-                ))}
+                    ))}
+                </div>
+                {leaders.length > 10 && (
+                    <button onClick={() => setExpanded(!expanded)} className="mt-2 w-full text-center small-text text-blue-600 hover:text-blue-800 font-medium py-1">
+                        {expanded ? 'Show Top 10' : `View All ${leaders.length}`}
+                    </button>
+                )}
             </div>
-        </div>
-    );
+        );
+    };
     
     return (
         <div className="space-y-6">
@@ -5685,7 +5694,6 @@ const Leaderboards = ({ data }) => {
 const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) => {
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [showCareerFirsts, setShowCareerFirsts] = useState(true);
     const [careerMilestoneSort, setCareerMilestoneSort] = useState('event'); // 'event' or 'date'
 
     // Build game lookup for additional context
@@ -6152,7 +6160,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                         }
 
                                         return (
-                                            <div key={idx} className="bg-white border border-purple-200 rounded-lg p-4 hover:border-purple-400 hover:shadow transition-all">
+                                            <div key={`${passing.player_id}-${passing.stat}-${passing.game_id}`} className="bg-white border border-purple-200 rounded-lg p-4 hover:border-purple-400 hover:shadow transition-all">
                                                 <div className="flex items-start gap-4">
                                                     <div className={`flex-shrink-0 w-12 h-12 ${passing.new_rank <= 10 ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : passing.new_rank <= 50 ? 'bg-gradient-to-br from-purple-500 to-violet-600' : 'bg-gradient-to-br from-purple-400 to-purple-500'} rounded-full flex items-center justify-center text-white font-bold text-lg`}>
                                                         #{passing.new_rank}
@@ -6273,7 +6281,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                                                     ? `https://www.baseball-reference.com/boxes/${m.gameId.substring(0, 3)}/${m.gameId}.shtml`
                                                                     : null;
                                                                 return (
-                                                                    <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-rose-300 hover:shadow transition-all">
+                                                                    <div key={`${m.gameId}-${m.playerId}-${m.type}`} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-rose-300 hover:shadow transition-all">
                                                                         <div className="flex items-start justify-between gap-2">
                                                                             <div className="flex-1 min-w-0">
                                                                                 <div className="flex items-center gap-2 mb-1">
@@ -6330,7 +6338,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                                 : null;
 
                                             return (
-                                                <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 hover:shadow transition-all">
+                                                <div key={`${m.gameId}-${m.playerId}-${m.type}`} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 hover:shadow transition-all">
                                                     <div className="flex items-start justify-between gap-2">
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2 mb-1">
@@ -6391,28 +6399,103 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
     );
 };
 
-const Dashboard = ({ data }) => {
-    const [filteredGames, setFilteredGames] = useState(data.games || []);
+const PlayersTab = ({ data }) => {
+    const [view, setView] = useState('hitters');
+    return (
+        <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex gap-4">
+                    <button onClick={() => setView('hitters')} className={`px-6 py-2 rounded body-text font-medium ${view === 'hitters' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>👤 Hitters</button>
+                    <button onClick={() => setView('pitchers')} className={`px-6 py-2 rounded body-text font-medium ${view === 'pitchers' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>⚾ Pitchers</button>
+                </div>
+            </div>
+            {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
+            {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
+        </div>
+    );
+};
+
+const Dashboard = ({ data, onTabChange }) => {
+    // Get recent highlights for the dashboard
+    const toSortDate = (d) => { const p = (d || '').split('/'); return p.length === 3 ? `${p[2]}${p[0]}${p[1]}` : d || ''; };
+    const recentDebuts = useMemo(() => [...(data.debuts || [])].sort((a, b) => toSortDate(b.date).localeCompare(toSortDate(a.date))).slice(0, 5), [data.debuts]);
+    const recentFinalGames = useMemo(() => [...(data.finalGames || [])].sort((a, b) => toSortDate(b.date).localeCompare(toSortDate(a.date))).slice(0, 5), [data.finalGames]);
 
     return (
         <div className="space-y-6">
-            {/* Advanced Filters */}
-            <AdvancedFilters
-                games={data.games || []}
-                onFilterChange={setFilteredGames}
-            />
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard title="Filtered Games" value={filteredGames.length} subtitle={filteredGames.length < data.games?.length ? `of ${data.games?.length} total` : ''} color="blue" />
-            <StatCard title="Players" value={data.players?.length || 0} color="green" />
-            <StatCard title="Milestones" value={data.milestones?.length || 0} color="purple" />
-            <StatCard title="Teams" value={data.teams?.length || 0} color="orange" />
+                <StatCard title="Games" value={data.games?.length || 0} color="blue" onClick={() => onTabChange && onTabChange('gamelog')} />
+                <StatCard title="Players" value={data.players?.length || 0} color="green" onClick={() => onTabChange && onTabChange('players')} />
+                <StatCard title="Milestones" value={data.milestones?.length || 0} color="purple" onClick={() => onTabChange && onTabChange('milestones')} />
+                <StatCard title="Teams" value={data.teams?.length || 0} color="orange" onClick={() => onTabChange && onTabChange('venues')} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-lg shadow p-6"><MilestoneChart milestones={data.milestones} /></div>
+                <div className="bg-white rounded-lg shadow p-6"><TeamChart teams={data.teams} /></div>
+            </div>
+
+            {/* Recent Highlights */}
+            {(recentDebuts.length > 0 || recentFinalGames.length > 0) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {recentDebuts.length > 0 && (
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="subsection-title font-bold text-gray-900">🌟 Recent MLB Debuts</h3>
+                                <button onClick={() => onTabChange && onTabChange('special')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
+                            </div>
+                            <div className="space-y-3">
+                                {recentDebuts.map((d, i) => (
+                                    <div key={`debut-${d.playerId || i}`} className="flex items-center justify-between py-2 border-b last:border-0">
+                                        <div>
+                                            <PlayerLink playerId={d.playerId} name={d.player} />
+                                            <span className="small-text text-gray-500 ml-2">{d.team}</span>
+                                        </div>
+                                        <span className="small-text text-gray-400">{d.date}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {recentFinalGames.length > 0 && (
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="subsection-title font-bold text-gray-900">👋 Recent Final Games</h3>
+                                <button onClick={() => onTabChange && onTabChange('special')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
+                            </div>
+                            <div className="space-y-3">
+                                {recentFinalGames.map((d, i) => (
+                                    <div key={`final-${d.playerId || i}`} className="flex items-center justify-between py-2 border-b last:border-0">
+                                        <div>
+                                            <PlayerLink playerId={d.playerId} name={d.player} />
+                                            <span className="small-text text-gray-500 ml-2">{d.team}</span>
+                                        </div>
+                                        <span className="small-text text-gray-400">{d.date}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Companions summary */}
+            {data.companionData?.companions?.length > 0 && (
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="subsection-title font-bold text-gray-900">👥 Top Game Companions</h3>
+                        <button onClick={() => onTabChange && onTabChange('companions')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {data.companionData.companions.slice(0, 6).map((c, i) => (
+                            <div key={`comp-${c.name || i}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <span className="body-text font-medium text-gray-900">{c.name}</span>
+                                <span className="small-text text-gray-500">{c.games} games</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow p-6"><MilestoneChart milestones={data.milestones} /></div>
-            <div className="bg-white rounded-lg shadow p-6"><TeamChart teams={data.teams} /></div>
-        </div>
-    </div>
     );
 };
 
@@ -6425,7 +6508,7 @@ const BadgeCell = ({ badges, badgeColors }) => {
         <div className="flex flex-wrap gap-1 max-w-xs">
             {displayBadges.map((badge, i) => (
                 <span
-                    key={i}
+                    key={`${badge.type}-${badge.text}-${i}`}
                     className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-gray-100 text-gray-700'}`}
                     title={badge.title}
                 >
@@ -7731,59 +7814,277 @@ const BadgesDisplay = ({ games }) => {
     );
 };
 
+// Error Boundary to catch rendering errors gracefully
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error, info) {
+        console.error('React Error Boundary caught:', error, info);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                    <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg text-center">
+                        <h2 className="text-xl font-bold text-red-600 mb-4">Something went wrong</h2>
+                        <p className="text-gray-600 mb-4">{this.state.error?.message || 'An unexpected error occurred while rendering.'}</p>
+                        <button onClick={() => { this.setState({ hasError: false, error: null }); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mr-2">Try Again</button>
+                        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Reload Page</button>
+                    </div>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
+const VALID_TABS = new Set(['dashboard','gamelog','calendar','progress','milestones','leaderboards','players','venues','matchups','special','companions','orioles']);
+
 const App = () => {
-    const [tab, setTab] = useState('dashboard');
+    const [tab, setTab] = useState(() => {
+        const hash = window.location.hash.slice(1);
+        if (hash && VALID_TABS.has(hash)) return hash;
+        return localStorage.getItem('baseballActiveTab') || 'dashboard';
+    });
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem('baseballDarkMode');
         if (saved !== null) return saved === 'true';
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     });
+    const [data, setData] = useState(BASEBALL_DATA);
+    const [loadError, setLoadError] = useState(DATA_LOAD_ERROR);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [showScrollTop, setShowScrollTop] = useState(false);
+    const searchRef = useRef(null);
+
+    useEffect(() => {
+        if (!data && !loadError) {
+            window.__onDataReady = (d) => setData(d);
+            window.__onDataError = (e) => setLoadError(e);
+            if (BASEBALL_DATA) setData(BASEBALL_DATA);
+            if (DATA_LOAD_ERROR) setLoadError(DATA_LOAD_ERROR);
+        }
+        return () => { window.__onDataReady = null; window.__onDataError = null; };
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('baseballActiveTab', tab);
+        if (window.location.hash.slice(1) !== tab) {
+            history.replaceState(null, '', '#' + tab);
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [tab]);
+
+    useEffect(() => {
+        const onHashChange = () => {
+            const hash = window.location.hash.slice(1);
+            if (hash && VALID_TABS.has(hash)) setTab(hash);
+        };
+        window.addEventListener('hashchange', onHashChange);
+        return () => window.removeEventListener('hashchange', onHashChange);
+    }, []);
 
     useEffect(() => {
         document.documentElement.classList.toggle('dark', darkMode);
         localStorage.setItem('baseballDarkMode', darkMode);
     }, [darkMode]);
 
-    const data = BASEBALL_DATA;
+    // Global tab navigation for cross-linking from child components
+    useEffect(() => {
+        window.__navigateTab = (tabId) => { if (VALID_TABS.has(tabId)) setTab(tabId); };
+        return () => { window.__navigateTab = null; };
+    }, []);
+
+    // Scroll-to-top visibility
+    useEffect(() => {
+        const onScroll = () => setShowScrollTop(window.scrollY > 400);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const tabIds = [...VALID_TABS];
+        const onKey = (e) => {
+            if (e.key === 'Escape') {
+                if (searchOpen) { setSearchOpen(false); return; }
+                // Close any open modal by dispatching a custom event
+                window.dispatchEvent(new CustomEvent('closeModals'));
+            }
+            // Don't navigate tabs if user is typing in an input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                const idx = tabIds.indexOf(tab);
+                if (idx === -1) return;
+                const next = e.key === 'ArrowRight' ? (idx + 1) % tabIds.length : (idx - 1 + tabIds.length) % tabIds.length;
+                setTab(tabIds[next]);
+            }
+            // "/" focuses search
+            if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                const input = searchRef.current?.querySelector('input');
+                if (input) { input.focus(); setSearchOpen(true); }
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [tab, searchOpen]);
+
+    const searchResults = useMemo(() => {
+        if (!data || !searchQuery || searchQuery.length < 2) return [];
+        const q = searchQuery.toLowerCase();
+        const results = [];
+        const limit = 8;
+
+        // Search players
+        const seenPlayers = new Set();
+        (data.playerGames || []).forEach(pg => {
+            if (results.length >= limit) return;
+            if (pg.name && pg.name.toLowerCase().includes(q) && !seenPlayers.has(pg.playerId)) {
+                seenPlayers.add(pg.playerId);
+                results.push({ type: 'player', label: pg.name, sub: pg.team || '', tab: 'players', id: pg.playerId });
+            }
+        });
+        (data.pitcherGames || []).forEach(pg => {
+            if (results.length >= limit) return;
+            if (pg.name && pg.name.toLowerCase().includes(q) && !seenPlayers.has(pg.playerId)) {
+                seenPlayers.add(pg.playerId);
+                results.push({ type: 'pitcher', label: pg.name, sub: pg.team || '', tab: 'pitchers', id: pg.playerId });
+            }
+        });
+
+        // Search games (by team name or date)
+        const seenGames = new Set();
+        (data.games || []).forEach(g => {
+            if (results.length >= limit) return;
+            const text = `${g.awayTeam || ''} ${g.homeTeam || ''} ${g.date || ''} ${g.venue || ''}`.toLowerCase();
+            if (text.includes(q) && !seenGames.has(g.gameId)) {
+                seenGames.add(g.gameId);
+                results.push({ type: 'game', label: `${g.awayTeam} @ ${g.homeTeam}`, sub: g.date || '', tab: 'gamelog', id: g.gameId });
+            }
+        });
+
+        // Search milestones
+        (data.milestones || []).slice(0, 200).forEach(m => {
+            if (results.length >= limit) return;
+            const text = `${m.player || ''} ${m.type || ''} ${m.description || ''}`.toLowerCase();
+            if (text.includes(q)) {
+                results.push({ type: 'milestone', label: m.player || m.type, sub: m.description || m.type || '', tab: 'milestones' });
+            }
+        });
+
+        return results;
+    }, [data, searchQuery]);
+
+    useEffect(() => {
+        if (!searchOpen) return;
+        const handleClick = (e) => {
+            if (searchRef.current && !searchRef.current.contains(e.target)) setSearchOpen(false);
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [searchOpen]);
+
+    if (loadError) {
+        const isFileProtocol = loadError === 'file_protocol';
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg text-center">
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">{isFileProtocol ? 'Local File Access' : 'Failed to Load Data'}</h2>
+                    {isFileProtocol ? (
+                        <div className="text-left text-gray-600 space-y-3">
+                            <p>This page needs a local server to load data. Run one of these from the folder containing this file:</p>
+                            <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">python3 -m http.server 8000</pre>
+                            <p>Then open <a href="http://localhost:8000" className="text-blue-600 underline">http://localhost:8000</a></p>
+                        </div>
+                    ) : (
+                        <p className="text-gray-600">{loadError}</p>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    if (!data) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                <div className="text-center">
+                    <div className="inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full" style={{ animation: 'spin 1s linear infinite' }}></div>
+                    <p className="mt-4 text-lg font-medium text-gray-600">Loading baseball data...</p>
+                </div>
+            </div>
+        );
+    }
 
     const tabs = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'gamelog', label: 'Games', icon: '📋' },
         { id: 'calendar', label: 'Calendar', icon: '📅' },
-        { id: 'progress', label: 'Progress', icon: '🏁' },  // Combined: divisions + badges
+        { id: 'progress', label: 'Progress', icon: '🏁' },
         { id: 'milestones', label: 'Milestones', icon: '🏆' },
         { id: 'leaderboards', label: 'Leaders', icon: '🏅' },
-        { id: 'players', label: 'Hitters', icon: '👤' },
-        { id: 'pitchers', label: 'Pitchers', icon: '⚾' },
-        { id: 'venues', label: 'Venues', icon: '🏟️' },  // Combined: teams + stadiums + map
+        { id: 'players', label: 'Players', icon: '👤' },
+        { id: 'venues', label: 'Venues', icon: '🏟️' },
         { id: 'matchups', label: 'Matchups', icon: '🎯' },
-        { id: 'special', label: 'Special', icon: '🌟' },  // Combined: debuts + finals + signature
+        { id: 'special', label: 'Special', icon: '🌟' },
         { id: 'companions', label: 'With', icon: '👥' },
         { id: 'orioles', label: 'Orioles', icon: '🧡' },
     ];
     
     return (
         <div className={`min-h-screen transition-colors duration-200 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
-            <header className={`shadow-2xl ${darkMode ? 'bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800' : 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'} text-white`}>
-                <div className="max-w-7xl mx-auto px-4 py-8 flex justify-between items-start">
+            <header className={`shadow-2xl ${darkMode ? 'bg-gradient-to-r from-gray-800 via-blue-950 to-gray-800' : 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'} text-white`}>
+                <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                     <div>
-                        <h1 className="page-title font-bold">⚾ Baseball Statistics Portal</h1>
-                        <p className={`body-text mt-2 ${darkMode ? 'text-gray-300' : 'text-blue-100'}`}>{data.games?.length || 0} games • {data.playerGames?.length || 0} player-games</p>
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">⚾ Baseball Statistics Portal</h1>
+                        <p className={`text-xs sm:text-sm mt-1 sm:mt-2 ${darkMode ? 'text-gray-300' : 'text-blue-100'}`}>{data.games?.length || 0} games • {data.playerGames?.length || 0} player-games</p>
                     </div>
-                    <button
-                        onClick={() => setDarkMode(!darkMode)}
-                        className={`px-4 py-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white/20 hover:bg-white/30'}`}
-                        title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-                    >
-                        {darkMode ? '☀️' : '🌙'}
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <div ref={searchRef} className="relative flex-1 sm:flex-none">
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                value={searchQuery}
+                                onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
+                                onFocus={() => setSearchOpen(true)}
+                                className={`w-full sm:w-48 md:w-64 px-3 py-2 rounded-lg text-sm transition-colors ${darkMode ? 'bg-gray-700 text-white placeholder-gray-400 focus:bg-gray-600' : 'bg-white/20 text-white placeholder-white/70 focus:bg-white/30'} outline-none`}
+                            />
+                            {searchOpen && searchResults.length > 0 && (
+                                <div className={`absolute top-full right-0 mt-1 w-80 rounded-lg shadow-xl border z-[60] max-h-96 overflow-y-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                                    {searchResults.map((r, i) => (
+                                        <button key={`search-${r.type}-${r.id || r.label}-${i}`} onClick={() => { setTab(r.tab); setSearchQuery(''); setSearchOpen(false); }}
+                                            className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${darkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-800'}`}>
+                                            <span className="text-xs font-medium uppercase opacity-50 w-14 shrink-0">{r.type}</span>
+                                            <div className="min-w-0">
+                                                <div className="text-sm font-medium truncate">{r.label}</div>
+                                                {r.sub && <div className={`text-xs truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{r.sub}</div>}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setDarkMode(!darkMode)}
+                            className={`px-4 py-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white/20 hover:bg-white/30'}`}
+                            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                        >
+                            {darkMode ? '☀️' : '🌙'}
+                        </button>
+                    </div>
                 </div>
             </header>
             <nav className={`shadow-md sticky top-0 z-50 border-b-2 overflow-x-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-100'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="flex space-x-1">
                         {tabs.map(t => (
-                            <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-3 font-medium body-text whitespace-nowrap transition-all ${
+                            <button key={t.id} onClick={() => setTab(t.id)} className={`px-2 sm:px-4 py-2 sm:py-3 font-medium text-xs sm:text-sm whitespace-nowrap transition-all ${
                                 tab === t.id
                                     ? (darkMode ? 'bg-gray-700 text-blue-400 border-b-4 border-blue-400' : 'bg-blue-50 text-blue-600 border-b-4 border-blue-600')
                                     : (darkMode ? 'text-gray-300 hover:bg-gray-700 border-b-4 border-transparent' : 'text-gray-600 hover:bg-gray-50 border-b-4 border-transparent')
@@ -7794,21 +8095,22 @@ const App = () => {
                     </div>
                 </div>
             </nav>
-            <main className="max-w-7xl mx-auto px-4 py-8">
-                {tab === 'dashboard' && <Dashboard data={data} />}
-                {tab === 'gamelog' && <GameLogWithDetails games={data.games || []} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} />}
-                {tab === 'calendar' && <Calendar games={data.games || []} />}
+            <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+                {tab === 'dashboard' && <Dashboard data={data} onTabChange={setTab} />}
+                {tab === 'gamelog' && (data.games?.length ? <GameLogWithDetails games={data.games} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} /> : <EmptyState icon="📋" title="No Games" message="Add game HTML files to the Current Season Games folder and run the processor." />)}
+                {tab === 'calendar' && (data.games?.length ? <Calendar games={data.games} /> : <EmptyState icon="📅" title="No Games" message="No games to display on the calendar." />)}
                 {tab === 'progress' && (
                     <div className="space-y-6">
                         <DivisionChecklist divisionChecklist={data.divisionChecklist} games={data.games || []} />
                         <BadgesDisplay games={data.games || []} />
                     </div>
                 )}
-                {tab === 'milestones' && <MilestonesView milestones={data.milestones || []} games={data.games || []} careerFirsts={data.careerFirsts || []} allTimePassings={data.allTimePassings || []} />}
-                {tab === 'leaderboards' && <Leaderboards data={data} />}
-                {tab === 'players' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
-                {tab === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
-                {tab === 'venues' && (
+                {tab === 'milestones' && (data.milestones?.length ? <MilestonesView milestones={data.milestones} games={data.games || []} careerFirsts={data.careerFirsts || []} allTimePassings={data.allTimePassings || []} /> : <EmptyState icon="🏆" title="No Milestones" message="No milestones have been recorded yet." />)}
+                {tab === 'leaderboards' && (data.players?.length ? <Leaderboards data={data} /> : <EmptyState icon="🏅" title="No Player Data" message="No player statistics available." />)}
+                {tab === 'players' && (
+                    <PlayersTab data={data} />
+                )}
+                {tab === 'venues' && ((data.stadiums?.length || data.teams?.length) ? (
                     <div className="space-y-6">
                         <StadiumMap stadiums={data.stadiums || []} games={data.games || []} orioles={data.orioles || []} />
                         <DataTable title="🏟️ Teams" data={data.teams || []} defaultSortKey="games" columns={[
@@ -7824,8 +8126,8 @@ const App = () => {
                             { key: 'teamsSeen', label: 'Teams' }, { key: 'homeTeamRecord', label: 'Home Record' }
                         ]} />
                     </div>
-                )}
-                {tab === 'matchups' && <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} />}
+                ) : <EmptyState icon="🏟️" title="No Venue Data" message="No stadium or team records available." />)}
+                {tab === 'matchups' && (data.matchupMatrix ? <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} /> : <EmptyState icon="🎯" title="No Matchup Data" message="No matchup data available." />)}
                 {tab === 'special' && (
                     <div className="space-y-6">
                         <DataTable title="🌟 MLB Debuts" data={data.debuts || []} defaultSortKey="date" enableDateFilter={true} columns={[
@@ -7874,16 +8176,27 @@ const App = () => {
                 {tab === 'companions' && <CompanionsView companionData={data.companionData} />}
                 {tab === 'orioles' && <OriolesDashboard orioles={data.orioles || []} games={data.games || []} />}
             </main>
-            <footer className="bg-white border-t mt-12">
+            <footer className={`border-t mt-12 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                 <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-                    <p className="body-text text-gray-600 font-medium">Baseball Statistics Portal</p>
-                    <p className="small-text text-gray-400">Enhanced insights with interactive filtering</p>
+                    <p className={`body-text font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Baseball Statistics Portal</p>
+                    <p className={`small-text ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Enhanced insights with interactive filtering</p>
+                    {data.generatedAt && <p className={`small-text mt-1 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`}>Last updated: {data.generatedAt}</p>}
                 </div>
             </footer>
+            {showScrollTop && (
+                <button
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className={`fixed bottom-6 right-6 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all z-50 ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                    title="Scroll to top"
+                    aria-label="Scroll to top"
+                >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3L3 8h3v5h4V8h3L8 3z" fill="currentColor"/></svg>
+                </button>
+            )}
         </div>
     );
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+root.render(<ErrorBoundary><App /></ErrorBoundary>);
 """

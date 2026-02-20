@@ -414,7 +414,7 @@ def parse_mlb_pdf(pdf_path: str, save_to_cache: bool = False, cache_dir: str = N
             date_obj = datetime.strptime(date_str, '%Y-%m-%d')
             formatted_date = date_obj.strftime('%A, %B %d, %Y')
             date_yyyymmdd = date_obj.strftime('%Y%m%d')
-        except:
+        except Exception:
             formatted_date = date_str
             date_yyyymmdd = date_str.replace('-', '')
     else:

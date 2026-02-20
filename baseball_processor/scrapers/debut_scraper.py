@@ -198,7 +198,7 @@ def process_downloaded_csv(input_file: str, year: int = None, output_dir: str = 
             # Dates are like "May 18" - we need the year from filename or user
             print("Warning: Year not specified. Please provide the year parameter.")
             year = datetime.now().year
-        except:
+        except Exception:
             year = datetime.now().year
 
     return save_debuts_csv(df, year, output_dir)

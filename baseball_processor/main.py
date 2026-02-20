@@ -1,8 +1,7 @@
 import os
-import sys
 import json
 import argparse
-import traceback
+import logging
 import re
 import pandas as pd
 from pathlib import Path
@@ -72,11 +71,16 @@ def deploy_to_surge(html_path: str, domain: str | None = None) -> bool:
 
     info(f"🚀 Deploying to Surge: {domain}")
 
-    # Create temp directory with the HTML file as index.html
+    # Create temp directory with the HTML file as index.html and data.json
     with tempfile.TemporaryDirectory() as temp_dir:
         # Copy HTML to temp dir as index.html
         temp_html = os.path.join(temp_dir, 'index.html')
         shutil.copy(html_path, temp_html)
+
+        # Copy data.json if it exists alongside the HTML file
+        data_json = os.path.join(os.path.dirname(html_path), 'data.json')
+        if os.path.exists(data_json):
+            shutil.copy(data_json, os.path.join(temp_dir, 'data.json'))
 
         try:
             # Run surge deployment
@@ -149,9 +153,11 @@ def process_html_file(file_path, index=None, total=None):
 
         info(f"  📊 Parsed game: {game_id}")
         
-        # Save to cache using filename as key
-        with open(cache_path, 'w', encoding='utf-8') as f:
+        # Save to cache atomically (write to temp, then rename)
+        temp_cache = cache_path.with_suffix('.tmp')
+        with open(temp_cache, 'w', encoding='utf-8') as f:
             json.dump(game_data, f, indent=2)
+        temp_cache.replace(cache_path)
         info("  💾 Saved to cache")
 
         return game_data
@@ -159,7 +165,7 @@ def process_html_file(file_path, index=None, total=None):
     except Exception as e:
         error_msg = str(e)
         warn(f"❌ Error processing {file_path}: {error_msg}")
-        traceback.print_exc()
+        logging.exception("Error details:")
         # Return a special dict to indicate failure
         return {"_error": True, "file": file_path, "error": error_msg}
   
@@ -552,12 +558,7 @@ def main():
         elif args.excel_only:
             # Generate only Excel
             info("\n📊 Excel-only mode: Skipping website generation...")
-            
-            # Clean up any existing file to prevent duplicates
-            if os.path.exists(args.output_excel):
-                info(f"🗑️ Removing existing file: {args.output_excel}")
-                os.remove(args.output_excel)
-            
+
             processed_data = generate_excel_workbook(
                 games_data, 
                 args.output_excel,  # Still pass the path (needed for html naming)
@@ -575,12 +576,7 @@ def main():
         else:
             # Generate both (default behavior)
             info("\n📊 Generating both Excel and website...")
-            
-            # Clean up any existing file to prevent duplicates
-            if os.path.exists(args.output_excel):
-                info(f"🗑️ Removing existing file: {args.output_excel}")
-                os.remove(args.output_excel)
-            
+
             processed_data = generate_excel_workbook(
                 games_data, 
                 args.output_excel,  # Still pass the path (needed for html naming)

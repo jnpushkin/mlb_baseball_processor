@@ -171,7 +171,7 @@ class WeatherTimingTracker:
                     self.weekend_games.append(game_id)
                 else:
                     self.weekday_games.append(game_id)
-            except:
+            except Exception:
                 pass
     
     def get_summary_stats(self):

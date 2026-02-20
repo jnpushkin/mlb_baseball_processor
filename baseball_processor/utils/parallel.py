@@ -52,9 +52,11 @@ def _parse_single_file(args: Tuple[str, Path]) -> Tuple[str, Optional[Dict[str, 
 
         game_data = parse_baseball_reference_boxscore(html_content)
 
-        # Save to cache
-        with open(cache_path, 'w', encoding='utf-8') as f:
+        # Save to cache atomically (write to temp, then rename)
+        temp_cache = cache_path.with_suffix('.tmp')
+        with open(temp_cache, 'w', encoding='utf-8') as f:
             json.dump(game_data, f, indent=2)
+        temp_cache.replace(cache_path)
 
         return (file_path, game_data, None)
 

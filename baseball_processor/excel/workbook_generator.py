@@ -1,4 +1,5 @@
 import os
+import logging
 import pandas as pd
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
@@ -44,7 +45,7 @@ def safe_write_sheet(xl, df, sheet_name, formatter_func=None, **kwargs):
     """Safely write sheet with error handling."""
     try:
         if df is None or df.empty:
-            print(f"   ⚠️ Skipping empty sheet: {sheet_name}")
+            logging.warning(f"Skipping empty sheet: {sheet_name}")
             return False
             
         df.to_excel(xl, sheet_name=sheet_name, index=False)
@@ -52,11 +53,11 @@ def safe_write_sheet(xl, df, sheet_name, formatter_func=None, **kwargs):
         if formatter_func:
             formatter_func(xl, df, sheet_name, **kwargs)
             
-        print(f"   ✅ Successfully wrote {sheet_name} ({len(df)} rows)")
+        logging.info(f"Successfully wrote {sheet_name} ({len(df)} rows)")
         return True
         
     except Exception as e:
-        print(f"   ❌ Error writing {sheet_name}: {e}")
+        logging.error(f"Error writing {sheet_name}: {e}")
         return False
 
 def apply_column_number_formatting(worksheet, df, format_specs, workbook, colors):
@@ -93,7 +94,7 @@ def apply_column_number_formatting(worksheet, df, format_specs, workbook, colors
                         except (ValueError, TypeError):
                             worksheet.write_string(row, col_idx, str(cell_value), fmt)
             except Exception as e:
-                print(f"   ⚠️ Error formatting {col_name} row {row}: {e}")
+                logging.warning(f"Error formatting {col_name} row {row}: {e}")
 
 def fix_single_gameid_column(worksheet, df, workbook, colors, width=GAMEID_WIDTH):
     """Apply formatting to single GameID columns (not GameIDs plural)."""
@@ -131,7 +132,7 @@ def fix_single_gameid_column(worksheet, df, workbook, colors, width=GAMEID_WIDTH
                 
                 worksheet.write_url(excel_row, gameid_col, url, hyperlink_format, string=game_id)
         except Exception as e:
-            print(f"   ⚠️ Error adding GameID hyperlink row {row_idx}: {e}")
+            logging.warning(f"Error adding GameID hyperlink row {row_idx}: {e}")
 
 def apply_advanced_stat_formatting(worksheet, df, stat_columns, workbook, colors):
     """Apply 3-decimal formatting to advanced stats (AVG, OBP, SLG, OPS)."""
@@ -156,11 +157,11 @@ def apply_advanced_stat_formatting(worksheet, df, stat_columns, workbook, colors
                     
                     worksheet.write_number(row, col_idx, float(cell_value), fmt)
             except Exception as e:
-                print(f"   ⚠️ Error formatting {col_name} row {row}: {e}")
+                logging.warning(f"Error formatting {col_name} row {row}: {e}")
 
 def process_all_game_data(games, debut_entries, hof_df):
     """Process all game data and return structured results."""
-    print(f"📊 Processing {len(games)} games for analysis...")
+    logging.info(f"Processing {len(games)} games for analysis...")
     
     try:
         # Core data processing
@@ -171,21 +172,21 @@ def process_all_game_data(games, debut_entries, hof_df):
         hitters, pitchers, players_without_stats_df, all_players = player_processor.process_all_player_stats()
         
         # Initialize enhanced trackers
-        print("🔄 Initializing enhanced tracking systems...")
+        logging.info("Initializing enhanced tracking systems...")
         weather_tracker = WeatherTimingTracker()
         saber_tracker = SabermetricsTracker()
         situation_tracker = SituationalHittingTracker()
         defense_tracker = DefensiveLineupTracker()
         
         # Process each game through enhanced trackers
-        print("📊 Processing enhanced statistics...")
+        logging.info("Processing enhanced statistics...")
         for game in games:
             weather_tracker.process_weather(game)
             weather_tracker.process_timing(game)
             saber_tracker.process_player_sabermetrics(game)
             situation_tracker.process_game_situations(game)
             defense_tracker.process_game_defense_lineup(game)
-        print("✅ Enhanced statistics processing complete!")
+        logging.info("Enhanced statistics processing complete!")
 
         # Milestones and special events
         milestone_processor = MilestonesProcessor(games)
@@ -255,7 +256,7 @@ def process_all_game_data(games, debut_entries, hof_df):
         }
         
     except Exception as e:
-        print(f"❌ Error processing game data: {e}")
+        logging.error(f"Error processing game data: {e}")
         raise
 
 def process_career_milestones(games, debut_entries, all_players):
@@ -279,7 +280,7 @@ def process_career_milestones(games, debut_entries, all_players):
         return mlb_debut_rows, final_game_rows
         
     except Exception as e:
-        print(f"❌ Error processing career milestones: {e}")
+        logging.error(f"Error processing career milestones: {e}")
         return [], []
 
 def create_enhanced_hof_dataframe(hof_df, hitters, pitchers, all_players, milestones):
@@ -402,7 +403,7 @@ def create_enhanced_hof_dataframe(hof_df, hitters, pitchers, all_players, milest
         return enhanced_hof_df
         
     except Exception as e:
-        print(f"❌ Error creating enhanced HOF DataFrame: {e}")
+        logging.error(f"Error creating enhanced HOF DataFrame: {e}")
         return pd.DataFrame()
 
 def calculate_game_span(first_game_id, last_game_id):
@@ -517,7 +518,7 @@ def write_main_data_sheets(xl, data, workbook, colors):
                            workbook=workbook, colors=colors, sheet_type="default", exclude_cols=[""])
 
     except Exception as e:
-        print(f"❌ Error writing main data sheets: {e}")
+        logging.error(f"Error writing main data sheets: {e}")
 
 def write_career_milestone_sheets(xl, data, workbook, colors):
     """Write MLB Debuts and Final Games sheets."""
@@ -586,7 +587,7 @@ def write_career_milestone_sheets(xl, data, workbook, colors):
                     apply_column_number_formatting(ws_finals, df_finals, ip_formats, workbook, colors)
 
     except Exception as e:
-        print(f"❌ Error writing career milestone sheets: {e}")
+        logging.error(f"Error writing career milestone sheets: {e}")
 
 def write_stadium_sheets(xl, data, workbook, colors):
     """Write stadium-related sheets."""
@@ -662,7 +663,7 @@ def write_stadium_sheets(xl, data, workbook, colors):
                 apply_column_number_formatting(ws_team, team_records, team_formats, workbook, colors)
 
     except Exception as e:
-        print(f"❌ Error writing stadium sheets: {e}")
+        logging.error(f"Error writing stadium sheets: {e}")
 
 def write_milestone_sheets(xl, data, workbook, colors):
     """Write all milestone sheets."""
@@ -691,10 +692,10 @@ def write_milestone_sheets(xl, data, workbook, colors):
                     else:
                         xl.sheets[sheet].hide()
         
-        print(f"   ✅ Wrote {sheets_written} milestone sheets")
+        logging.info(f"Wrote {sheets_written} milestone sheets")
         
     except Exception as e:
-        print(f"❌ Error writing milestone sheets: {e}")
+        logging.error(f"Error writing milestone sheets: {e}")
 
 def write_weather_timing_sheet(xl, weather_tracker, workbook, colors):
     """Write the Weather & Timing statistics sheet."""
@@ -922,7 +923,7 @@ def write_enhanced_stats_sheets(xl, data, workbook, colors):
         info("✅ Enhanced statistics tabs added!")
         
     except Exception as e:
-        print(f"❌ Error writing enhanced stats sheets: {e}")
+        logging.error(f"Error writing enhanced stats sheets: {e}")
         
 def write_analysis_sheets(xl, data, games, workbook, colors, umpire_tracker):
     """Write analysis sheets (Matchup Matrix, Scorigami, Calendar, Summary)."""
@@ -949,7 +950,7 @@ def write_analysis_sheets(xl, data, games, workbook, colors, umpire_tracker):
         write_summary_stats_sheet(xl, data['summary_rows'], workbook, colors)
         
     except Exception as e:
-        print(f"❌ Error writing analysis sheets: {e}")
+        logging.error(f"Error writing analysis sheets: {e}")
 
 def write_umpires_sheet(xl, workbook, colors, umpire_tracker):
     """Write the Umpires sheet."""
@@ -983,10 +984,10 @@ def write_umpires_sheet(xl, workbook, colors, umpire_tracker):
             safe_write_sheet(xl, df_umpires, "Umpires", format_sheet_comprehensively,
                            workbook=workbook, colors=colors, sheet_type="default", exclude_cols=[""])
         else:
-            print("   ⚠️ No umpire data available")
+            logging.warning("No umpire data available")
             
     except Exception as e:
-        print(f"❌ Error writing umpires sheet: {e}")
+        logging.error(f"Error writing umpires sheet: {e}")
 
 def write_matchup_matrix(xl, df_matchups, workbook, colors):
     """Write the Matchup Matrix sheet."""
@@ -1036,7 +1037,7 @@ def write_matchup_matrix(xl, df_matchups, workbook, colors):
         ws_matchups.freeze_panes(1, 1)
         
     except Exception as e:
-        print(f"❌ Error writing matchup matrix: {e}")
+        logging.error(f"Error writing matchup matrix: {e}")
 
 def write_summary_stats_sheet(xl, summary_rows, workbook, colors):
     """Write the Summary Stats sheet with section headers."""
@@ -1073,7 +1074,7 @@ def write_summary_stats_sheet(xl, summary_rows, workbook, colors):
             apply_summary_stats_formatting(ws_summary, df_summary_for_excel, expanded_summary_rows, workbook, colors)
         
     except Exception as e:
-        print(f"❌ Error writing summary stats: {e}")
+        logging.error(f"Error writing summary stats: {e}")
 
 
 def create_summary_with_sections(summary_rows, section_breaks):
@@ -1277,7 +1278,7 @@ def apply_summary_stats_formatting(ws_summary, df_summary_for_excel, expanded_su
                             # FIXED: Empty cells get no formatting (no write operation = no border)
 
     except Exception as e:
-        print(f"Error applying summary stats formatting: {e}")
+        logging.error(f"applying summary stats formatting: {e}")
 
 def write_scorigami_chart(xl, games, workbook):
     """Write the Personal Scorigami chart."""
@@ -1349,7 +1350,7 @@ def write_scorigami_chart(xl, games, workbook):
         ws_scorigami.freeze_panes(1, 1)
         
     except Exception as e:
-        print(f"❌ Error writing scorigami chart: {e}")
+        logging.error(f"Error writing scorigami chart: {e}")
 
 def write_calendar_grid(xl, game_log, workbook):
     """Write the Calendar Grid sheet."""
@@ -1420,7 +1421,7 @@ def write_calendar_grid(xl, game_log, workbook):
             ws_cal.freeze_panes(1, 1)
             
     except Exception as e:
-        print(f"❌ Error writing calendar grid: {e}")
+        logging.error(f"Error writing calendar grid: {e}")
 
 # Legacy functions (kept for now to avoid breaking existing functionality)
 def check_mlb_debuts(game, debut_entries):
@@ -1504,7 +1505,7 @@ def check_mlb_debuts(game, debut_entries):
                                 "SO_P": player.get("SO", 0), "Decision": player.get("decision", "")
                             }
                             break
-                    except:
+                    except Exception:
                         continue
 
         # Create debut match if found
@@ -1606,7 +1607,7 @@ def check_final_mlb_games(all_players, games, final_game_dates, bbref_to_retro):
                                         "SO_P": player.get("SO", 0), "Decision": player.get("decision", "")
                                     }
                                     break
-                            except:
+                            except Exception:
                                 continue
 
                 if player_team:
@@ -1646,7 +1647,7 @@ def generate_excel_workbook(games, output_file, debut_entries, hof_df, umpire_tr
     Returns:
         dict: Processed data dictionary containing all DataFrames
     """
-    print(f"🗂️ Processing {len(games)} games for analysis...")
+    logging.info(f"Processing {len(games)} games for analysis...")
 
     try:
         # Step 1: Process all game data (always do this)
@@ -1657,11 +1658,11 @@ def generate_excel_workbook(games, output_file, debut_entries, hof_df, umpire_tr
             if not output_file:
                 raise ValueError("output_file must be provided when write_file=True")
             
-            print(f"📊 Creating Excel workbook: {output_file}")
+            logging.info(f"Creating Excel workbook: {output_file}")
             create_excel_file(data, output_file, hof_df, games, umpire_tracker)
-            print(f"✅ Excel workbook created successfully: {output_file}")
+            logging.info(f"Excel workbook created successfully: {output_file}")
         else:
-            print(f"⏭️  Skipping Excel file creation (write_file=False)")
+            logging.info(f"Skipping Excel file creation (write_file=False)")
         
         # Step 3: Show comprehensive milestone summary at the very end
         if 'milestone_processor' in data and 'milestones' in data:
@@ -1670,16 +1671,30 @@ def generate_excel_workbook(games, output_file, debut_entries, hof_df, umpire_tr
         return data
         
     except Exception as e:
-        print(f"❌ Failed to process game data: {e}")
+        logging.error(f"Failed to process game data: {e}")
         raise
     
 def create_excel_file(data, output_file, hof_df, games, umpire_tracker):
-    """Create the Excel file with all sheets."""
+    """Create the Excel file with all sheets (writes atomically via temp file)."""
+    import tempfile, shutil
+    output_dir = os.path.dirname(os.path.abspath(output_file))
+    temp_fd, temp_path = tempfile.mkstemp(suffix='.xlsx', dir=output_dir)
+    os.close(temp_fd)
+    try:
+        _write_excel_sheets(temp_path, data, hof_df, games, umpire_tracker)
+        shutil.move(temp_path, output_file)
+    except Exception:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise
+
+def _write_excel_sheets(output_file, data, hof_df, games, umpire_tracker):
+    """Write all sheets to an Excel file."""
     with pd.ExcelWriter(output_file, engine="xlsxwriter", datetime_format="mm/dd/yyyy") as xl:
         workbook = xl.book
         formats, colors = create_workbook_theme(workbook)
 
-        print("📝 Writing Excel sheets...")
+        logging.info("Writing Excel sheets...")
         
         # Write main data sheets
         write_main_data_sheets(xl, data, workbook, colors)
@@ -1718,7 +1733,7 @@ def write_enhanced_hof_sheet(xl, hof_df, data, workbook, colors):
             safe_write_sheet(xl, enhanced_hof_df, "HOFers Seen", format_sheet_comprehensively,
                            workbook=workbook, colors=colors, sheet_type="default", exclude_cols=[''])
         else:
-            print("   ⚠️ No Hall of Famers found in dataset")
+            logging.warning("No Hall of Famers found in dataset")
             
     except Exception as e:
-        print(f"❌ Error writing enhanced HOF sheet: {e}")
+        logging.error(f"Error writing enhanced HOF sheet: {e}")

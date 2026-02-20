@@ -145,7 +145,7 @@ class SituationalHittingTracker:
                         opp_score = int(score_parts[1])
                     
                     score_diff = team_score - opp_score
-                except:
+                except Exception:
                     score_diff = 0
             else:
                 score_diff = 0
@@ -155,13 +155,6 @@ class SituationalHittingTracker:
             has_runner_3rd = '3' in runners
             risp = has_runner_2nd or has_runner_3rd
             bases_loaded = '1' in runners and '2' in runners and '3' in runners
-            
-            # DEBUG: Print first 5 RISP situations to see what's happening
-            if risp and not hasattr(self, '_debug_count'):
-                self._debug_count = 0
-            if risp and self._debug_count < 5:
-                debug(f"RISP situation: runners='{runners}', batter={batter_name_normalized}, is_pa={is_pa}")
-                self._debug_count += 1
             
             # Track RISP situations
             if risp:

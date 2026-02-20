@@ -754,7 +754,7 @@ class MilestonesProcessor(BaseProcessor):
                             record["Date"] = date_obj.strftime("%m/%d/%Y")
                         else:
                             record["Date"] = ""
-                    except:
+                    except Exception:
                         record["Date"] = record.get("_sort_date", "")
                     
                     # Remove sorting fields
@@ -1315,7 +1315,7 @@ class MilestonesProcessor(BaseProcessor):
                 if not events_2025.empty:
                     events_2025_by_category[category] = events_2025
                     total_2025 += len(events_2025)
-            except:
+            except Exception:
                 continue
         
         if events_2025_by_category:

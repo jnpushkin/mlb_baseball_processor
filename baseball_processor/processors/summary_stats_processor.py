@@ -1,4 +1,5 @@
 import re
+import logging
 from collections import defaultdict, Counter
 from datetime import datetime
 import pandas as pd
@@ -319,7 +320,7 @@ class SummaryStatsProcessor(BaseProcessor):
             for idx, val in enumerate(innings):
                 try:
                     runs = int(val)
-                except:
+                except Exception:
                     continue
                 
                 # Track most runs in a single inning
@@ -685,8 +686,7 @@ class SummaryStatsProcessor(BaseProcessor):
                     
         except Exception as e:
             print(f"   ⚠️ Error calculating unique achievements: {e}")
-            import traceback
-            traceback.print_exc()
+            logging.exception("Error details:")
 
     def _process_attendance_statistics(self, game, game_id, basic_info):
         """Process attendance statistics."""
@@ -1325,7 +1325,7 @@ class SummaryStatsProcessor(BaseProcessor):
                 try:
                     game = next(g for g in self.games if g["game_id"] == gid)
                     scores.append(self._create_score_string(game["basic_info"]))
-                except:
+                except Exception:
                     scores.append("")
             
             summary_rows.append({
@@ -1765,7 +1765,7 @@ class SummaryStatsProcessor(BaseProcessor):
             
             if record_name == "Complete Games" and not cg_shutouts_df.empty:
                 if "CG" in cg_shutouts_df.columns:
-                    cg_records = cg_shutouts_df[cg_shutouts_df["CG"] == True]
+                    cg_records = cg_shutouts_df[cg_shutouts_df["CG"].astype(bool)]
                     pitch_count = len(cg_records)
                     if pitch_count > 0 and "GameID" in cg_records.columns:
                         unique_ids = sorted(cg_records["GameID"].unique())
@@ -1773,7 +1773,7 @@ class SummaryStatsProcessor(BaseProcessor):
                         
             elif record_name == "Shutouts" and not cg_shutouts_df.empty:
                 if "SHO" in cg_shutouts_df.columns:
-                    sho_records = cg_shutouts_df[cg_shutouts_df["SHO"] == True]
+                    sho_records = cg_shutouts_df[cg_shutouts_df["SHO"].astype(bool)]
                     pitch_count = len(sho_records)
                     if pitch_count > 0 and "GameID" in sho_records.columns:
                         unique_ids = sorted(sho_records["GameID"].unique())

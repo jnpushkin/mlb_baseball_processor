@@ -1,3 +1,4 @@
+import logging
 import os
 import pandas as pd
 from ..excel.generators import ExcelGeneratorUtils
@@ -109,8 +110,7 @@ class SignatureHomeRunsProcessor(BaseProcessor):
             
         except Exception as e:
             print(f"   ⚠️ Error loading reference data: {e}")
-            import traceback
-            traceback.print_exc()
+            logging.exception("Error details:")
             return {}
     
     def _prepare_date_column(self, df):
@@ -137,7 +137,7 @@ class SignatureHomeRunsProcessor(BaseProcessor):
                     corrected_date = self._fix_2digit_year(date_str)
                     try:
                         parsed_date = pd.to_datetime(corrected_date, format="%m/%d/%Y")
-                    except:
+                    except Exception:
                         pass
                 
                 # Step 2: Try standard date formats
@@ -155,14 +155,14 @@ class SignatureHomeRunsProcessor(BaseProcessor):
                             parsed_date = pd.to_datetime(date_str, format=fmt)
                             if pd.notna(parsed_date):
                                 break
-                        except:
+                        except Exception:
                             continue
                 
                 # Step 3: Fallback to pandas general parser
                 if parsed_date is None or pd.isna(parsed_date):
                     try:
                         parsed_date = pd.to_datetime(date_str, errors='coerce')
-                    except:
+                    except Exception:
                         parsed_date = pd.NaT
                 
                 # Store the result
@@ -433,8 +433,7 @@ class SignatureHomeRunsProcessor(BaseProcessor):
             
         except Exception as e:
             print(f"   ⚠️ Error creating signature match for {row.get('Player', 'Unknown')}: {e}")
-            import traceback
-            traceback.print_exc()
+            logging.exception("Error details:")
             return None
     
     def _create_signature_dataframe(self, matches):
@@ -474,8 +473,8 @@ class SignatureHomeRunsProcessor(BaseProcessor):
                         # Try to parse string
                         try:
                             date_series[i] = pd.to_datetime(val)
-                        except:
-                            print(f"   ⚠️ Could not parse date: {val}")
+                        except Exception:
+                            logging.debug(f"Could not parse date: {val}")
                             date_series[i] = pd.NaT
                 
                 # Convert to datetime type
@@ -506,7 +505,6 @@ class SignatureHomeRunsProcessor(BaseProcessor):
 
         except Exception as e:
             print(f"   ⚠️ Error creating signature DataFrame: {e}")
-            import traceback
-            traceback.print_exc()
+            logging.exception("Error details:")
             return pd.DataFrame()
  

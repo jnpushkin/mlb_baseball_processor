@@ -1,30 +1,32 @@
 import re
+import logging
 import unicodedata
 from ..utils.stat_utils import StatUtils
 from ..utils.helpers import standardize_team_code
+from ..utils.log import debug, warn
 
 def extract_substitutions_from_html(soup):
     """Extract ALL substitution types from HTML comment blocks."""
     import re
     from bs4 import Comment, BeautifulSoup
-    
-    print("🔍 Searching for substitutions in HTML comment blocks...")
-    
+
+    debug("Searching for substitutions in HTML comment blocks...")
+
     substitutions = []
-    
+
     pbp_div = soup.find('div', id='all_play_by_play') or soup.find('div', id='play_by_play')
     if not pbp_div:
-        print("❌ No play-by-play div found")
+        debug("No play-by-play div found")
         return []
 
     comments = pbp_div.find_all(string=lambda t: isinstance(t, Comment))
-    print(f"🔍 Found {len(comments)} comment blocks")
+    debug(f"Found {len(comments)} comment blocks")
     
     for i, comment in enumerate(comments):
         comment_text = str(comment).lower()
         
         if 'pinch' in comment_text or 'moves from' in comment_text:
-            print(f"📍 Comment {i} contains substitution info")
+            debug(f"Comment {i} contains substitution info")
             
             try:
                 comment_soup = BeautifulSoup(comment, 'html.parser')
@@ -34,7 +36,7 @@ def extract_substitutions_from_html(soup):
                     all_rows = comment_soup.find_all('tr')
                     substitution_rows = [row for row in all_rows if 'pinch' in row.get_text().lower() or 'moves from' in row.get_text().lower()]
                 
-                print(f"   Found {len(substitution_rows)} substitution rows in comment")
+                debug(f"   Found {len(substitution_rows)} substitution rows in comment")
                 
                 for sub_row in substitution_rows:
                     divs = sub_row.find_all('div')
@@ -43,7 +45,7 @@ def extract_substitutions_from_html(soup):
                         
                         # Type 1: Initial pinch hit substitution
                         if 'pinch hits for' in div_text.lower():
-                            print(f"🔄 Found pinch hit: '{div_text}'")
+                            debug(f"🔄 Found pinch hit: '{div_text}'")
                             
                             match = re.search(r'([^,\n]+?)\s+pinch hits for\s+([^,\(\n]+)', div_text, re.IGNORECASE)
                             if match:
@@ -101,9 +103,9 @@ def extract_substitutions_from_html(soup):
                                                         pass
 
                                 except Exception as e:
-                                    print(f"   ⚠️ Could not extract inning from HTML structure: {e}")
+                                    debug(f"   ⚠️ Could not extract inning from HTML structure: {e}")
 
-                                print(f"   🔍 Extracted inning {actual_inning} for {pinch_hitter}")
+                                debug(f"   🔍 Extracted inning {actual_inning} for {pinch_hitter}")
 
                                 substitutions.append({
                                     'type': 'pinch_hit',
@@ -113,11 +115,11 @@ def extract_substitutions_from_html(soup):
                                     'text': div_text
                                 })
                                 
-                                print(f"✅ Extracted pinch hit: {pinch_hitter} replaces {replaced_player}")
+                                debug(f"✅ Extracted pinch hit: {pinch_hitter} replaces {replaced_player}")
                         
                         # Type 2: Pinch hitter moves to defensive position (NO LONGER PINCH HITTING)
                         elif 'moves from PH to' in div_text:
-                            print(f"🔄 Found PH→defense move: '{div_text}'")
+                            debug(f"🔄 Found PH→defense move: '{div_text}'")
                             
                             match = re.search(r'([^,\n]+?)\s+moves from PH to\s+([A-Z0-9]+)', div_text, re.IGNORECASE)
                             if match:
@@ -134,13 +136,13 @@ def extract_substitutions_from_html(soup):
                                     'text': div_text
                                 })
                                 
-                                print(f"✅ Extracted PH→defense: {player_name} moves to {new_position}")
+                                debug(f"✅ Extracted PH→defense: {player_name} moves to {new_position}")
                 
             except Exception as e:
-                print(f"   ❌ Error parsing comment {i}: {e}")
+                debug(f"   ❌ Error parsing comment {i}: {e}")
                 continue
     
-    print(f"📊 Total substitutions found: {len(substitutions)}")
+    debug(f"📊 Total substitutions found: {len(substitutions)}")
     return substitutions
 
 
@@ -222,7 +224,7 @@ class SpecialEventsEngine:
         if self.soup:
             self.detect_pinch_hit_hrs_from_html()
         else:
-            print("⚠️ No HTML soup available - pinch hit detection skipped")
+            debug("⚠️ No HTML soup available - pinch hit detection skipped")
         
         return self.game_data
 
@@ -230,7 +232,7 @@ class SpecialEventsEngine:
         if self.home_score > self.away_score:
             plays = self.game_data.get("play_by_play", [])
             last_play = plays[-1] if plays else None
-            if last_play and last_play.get("half") == "bottom" and last_play.get("run_scored", False):
+            if last_play and last_play.get("half") == "bottom" and (last_play.get("run_scored", False) or last_play.get("home_run", False)):
                 self.special_events["walkoff"] = {
                     "batter": last_play.get("batter", "Unknown"),
                     "batter_id": last_play.get("batter_id", ""),
@@ -363,17 +365,17 @@ class SpecialEventsEngine:
         """Detect pinch hit home runs with chronological substitution processing."""
         try:
             if not self.soup:
-                print("❌ No HTML soup available for substitution parsing")
+                debug("❌ No HTML soup available for substitution parsing")
                 return
             
             # Extract ALL substitution types from HTML
             substitutions = extract_substitutions_from_html(self.soup)
             
             for i, sub in enumerate(substitutions):
-                print(f"   Sub {i+1}: {sub.get('type')} - {sub.get('pinch_hitter', sub.get('player_name', 'Unknown'))} in inning {sub.get('inning')}")
+                debug(f"   Sub {i+1}: {sub.get('type')} - {sub.get('pinch_hitter', sub.get('player_name', 'Unknown'))} in inning {sub.get('inning')}")
             
             if not substitutions:
-                print("❌ No substitutions found in HTML")
+                debug("❌ No substitutions found in HTML")
                 return
             
             # Build name-to-player-ID lookup from roster data
@@ -396,7 +398,7 @@ class SpecialEventsEngine:
                         normalized = player_name.replace('&nbsp;', ' ').strip()
                         name_to_id[normalized] = player_id
             
-            print(f"🔍 Built name-to-ID lookup for {len(name_to_id)} players")
+            debug(f"🔍 Built name-to-ID lookup for {len(name_to_id)} players")
             
             # Track active pinch hitters by player ID
             pinch_hitters_by_id = {}
@@ -405,7 +407,7 @@ class SpecialEventsEngine:
             max_inning = max((play.get('inning', 0) for play in self.game_data.get("play_by_play", [])), default=9)
             
             for current_inning in range(1, max_inning + 1):
-                print(f"📍 Processing inning {current_inning}")
+                debug(f"📍 Processing inning {current_inning}")
                 
                 # STEP 1: Apply any substitutions that happen at the start of this inning
                 inning_substitutions = [sub for sub in substitutions if sub.get('inning', 0) == current_inning]
@@ -431,7 +433,7 @@ class SpecialEventsEngine:
                                 'player_name': pinch_hitter_name,
                                 'replaced_player': sub['replaced_player']
                             }
-                            print(f"🔄 ACTIVATED pinch hitter: {pinch_hitter_name} (ID: {player_id})")
+                            debug(f"🔄 ACTIVATED pinch hitter: {pinch_hitter_name} (ID: {player_id})")
                     
                     elif sub_type == 'ph_to_defense':
                         # Player moves from PH to defensive position
@@ -440,13 +442,13 @@ class SpecialEventsEngine:
                         for player_id, info in pinch_hitters_by_id.items():
                             if info['player_name'].lower() == player_name.lower() and info['active']:
                                 info['active'] = False
-                                print(f"🔄 DEACTIVATED pinch hitter: {player_name} (moved to {sub['new_position']})")
+                                debug(f"🔄 DEACTIVATED pinch hitter: {player_name} (moved to {sub['new_position']})")
                                 break
                 
                 # STEP 2: Check this inning's plays for home runs by active pinch hitters
                 inning_plays = [play for play in self.game_data.get("play_by_play", []) if play.get('inning', 0) == current_inning]
-                print(f"   📊 {len(inning_plays)} plays in this inning")
-                print(f"   👤 Active pinch hitters: {[(pid, info['player_name']) for pid, info in pinch_hitters_by_id.items() if info['active']]}")
+                debug(f"   📊 {len(inning_plays)} plays in this inning")
+                debug(f"   👤 Active pinch hitters: {[(pid, info['player_name']) for pid, info in pinch_hitters_by_id.items() if info['active']]}")
                 
                 for play in inning_plays:
                     batter_name = play.get('batter', '').strip()
@@ -485,19 +487,19 @@ class SpecialEventsEngine:
                         
                         # Show all name matching attempts
                         if actual_player_id:
-                            print(f"   ✅ Resolved player ID: {actual_player_id}")
+                            debug(f"   ✅ Resolved player ID: {actual_player_id}")
                         else:
-                            print(f"   ❌ Could not resolve player ID for '{batter_name}'")
-                            print(f"   📝 Available names in lookup: {list(name_to_id.keys())}")
+                            debug(f"   ❌ Could not resolve player ID for '{batter_name}'")
+                            debug(f"   📝 Available names in lookup: {list(name_to_id.keys())}")
                         
-                        print(f"🏠 Home run by '{batter_name}' (ID: {actual_player_id}) in inning {current_inning}")
+                        debug(f"🏠 Home run by '{batter_name}' (ID: {actual_player_id}) in inning {current_inning}")
                         
                         if actual_player_id and actual_player_id in pinch_hitters_by_id:
                             pinch_info = pinch_hitters_by_id[actual_player_id]
-                            print(f"   📋 Pinch hitter status: active={pinch_info['active']}, entered inning {pinch_info['inning']}")
+                            debug(f"   📋 Pinch hitter status: active={pinch_info['active']}, entered inning {pinch_info['inning']}")
                             
                             if pinch_info['active']:
-                                print(f"🎯 PINCH HIT HR CONFIRMED: {batter_name} (ID: {actual_player_id})")
+                                debug(f"🎯 PINCH HIT HR CONFIRMED: {batter_name} (ID: {actual_player_id})")
                                 
                                 # Extract RBI from the play features (already calculated)
                                 play_rbi = play.get('rbi', 1)  # Default to 1 if not calculated
@@ -529,19 +531,19 @@ class SpecialEventsEngine:
                                 
                                 # Deactivate after pinch hit HR
                                 pinch_info['active'] = False
-                                print(f"✅ Added pinch hit HR and deactivated {batter_name}")
+                                debug(f"✅ Added pinch hit HR and deactivated {batter_name}")
                                 
                             else:
-                                print(f"   ⚠️ Former pinch hitter {batter_name} but no longer active")
+                                debug(f"   ⚠️ Former pinch hitter {batter_name} but no longer active")
                         else:
-                            print(f"   ℹ️ Regular HR by {batter_name} (not a tracked pinch hitter)")
+                            debug(f"   ℹ️ Regular HR by {batter_name} (not a tracked pinch hitter)")
                     
                     # Deactivate pinch hitters after any plate appearance
                     elif actual_player_id and actual_player_id in pinch_hitters_by_id:
                         pinch_info = pinch_hitters_by_id[actual_player_id]
                         if pinch_info['active']:
                             description = play.get('description', '').lower()
-                            print(f"   🔍 Non-HR play by active pinch hitter {batter_name}: '{description}'")
+                            debug(f"   🔍 Non-HR play by active pinch hitter {batter_name}: '{description}'")
                             
                             # Comprehensive plate appearance keywords (any PA result should deactivate)
                             pa_keywords = [
@@ -567,28 +569,27 @@ class SpecialEventsEngine:
                             
                             if matched_keyword:
                                 pinch_info['active'] = False
-                                print(f"🔥 Deactivated {batter_name} after completing pinch hit PA (matched: '{matched_keyword}')")
+                                debug(f"🔥 Deactivated {batter_name} after completing pinch hit PA (matched: '{matched_keyword}')")
                             else:
-                                print(f"   🔍 No deactivation keywords found in: '{description}'")
-                                print(f"   🔍 Looking for: {pa_keywords}")
+                                debug(f"   🔍 No deactivation keywords found in: '{description}'")
+                                debug(f"   🔍 Looking for: {pa_keywords}")
                     else:
                         # Debug: show all plate appearances
                         if batter_name:
                             description = play.get('description', '')
-                            print(f"   📝 Regular play by {batter_name}: '{description}'")
+                            debug(f"   📝 Regular play by {batter_name}: '{description}'")
                 
                 # End of inning summary
-                print(f"🔚 End of inning {current_inning} summary:")
+                debug(f"🔚 End of inning {current_inning} summary:")
                 for pid, info in pinch_hitters_by_id.items():
                     status = "ACTIVE" if info['active'] else "inactive"
-                    print(f"   {info['player_name']}: {status} (entered inning {info['inning']})")
+                    debug(f"   {info['player_name']}: {status} (entered inning {info['inning']})")
             
-            print(f"🔍 Final result: Found {len(self.special_events.get('pinch_hit_hrs', []))} pinch hit HRs")
+            debug(f"🔍 Final result: Found {len(self.special_events.get('pinch_hit_hrs', []))} pinch hit HRs")
             
         except Exception as e:
-            print(f"❌ Exception in pinch hit detection: {e}")
-            import traceback
-            traceback.print_exc()
+            debug(f"Exception in pinch hit detection: {e}")
+            logging.exception("Error details:")
 
     def determine_play_type(self, play):
         if play.get("home_run", False):

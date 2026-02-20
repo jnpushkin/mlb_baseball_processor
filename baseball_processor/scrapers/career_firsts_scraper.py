@@ -263,8 +263,36 @@ class NotFoundError(Exception):
     pass
 
 
-# Cache for register ID -> MLB ID mappings
+# Cache for register ID -> MLB ID mappings (loaded from disk on first use)
 _register_to_mlb_id_cache = {}
+_register_cache_loaded = False
+_REGISTER_CACHE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'cache', 'register_id_cache.json')
+
+
+def _load_register_cache():
+    """Load register ID -> MLB ID cache from disk."""
+    global _register_to_mlb_id_cache, _register_cache_loaded
+    if _register_cache_loaded:
+        return
+    _register_cache_loaded = True
+    try:
+        if os.path.exists(_REGISTER_CACHE_PATH):
+            with open(_REGISTER_CACHE_PATH, 'r') as f:
+                _register_to_mlb_id_cache.update(json.load(f))
+    except (json.JSONDecodeError, OSError):
+        pass
+
+
+def _save_register_cache():
+    """Persist register ID -> MLB ID cache to disk."""
+    try:
+        os.makedirs(os.path.dirname(_REGISTER_CACHE_PATH), exist_ok=True)
+        tmp = _REGISTER_CACHE_PATH + '.tmp'
+        with open(tmp, 'w') as f:
+            json.dump(_register_to_mlb_id_cache, f, indent=2)
+        os.replace(tmp, _REGISTER_CACHE_PATH)
+    except OSError:
+        pass
 
 
 def is_register_format_id(player_id: str) -> bool:
@@ -287,6 +315,7 @@ def get_mlb_id_from_register(register_id: str, scraper=None) -> Optional[str]:
     The register page contains links to game logs using the MLB-format ID.
     Returns None if the ID cannot be found.
     """
+    _load_register_cache()
     if register_id in _register_to_mlb_id_cache:
         return _register_to_mlb_id_cache[register_id]
 
@@ -315,6 +344,7 @@ def get_mlb_id_from_register(register_id: str, scraper=None) -> Optional[str]:
         if match:
             mlb_id = match.group(1)
             _register_to_mlb_id_cache[register_id] = mlb_id
+            _save_register_cache()
             return mlb_id
 
     return None

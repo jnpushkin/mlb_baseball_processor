@@ -1,4 +1,5 @@
 import calendar
+import logging
 import re
 import pandas as pd
 from collections import defaultdict, Counter
@@ -46,30 +47,19 @@ class StadiumRecordsProcessor(BaseProcessor):
         
         team_tracker = defaultdict(lambda: {"Games": 0, "Wins": 0, "Losses": 0, "IDs": []})
         
-        # DEBUG: Track all team codes seen
-        all_team_codes = set()
-        orioles_games_found = 0
-        
         # Process each game
         for game in self.games:
             try:
-                # DEBUG: Track team codes
                 basic_info = game.get("basic_info", {})
                 away_code = safe_get_str(basic_info, "away_team_code", "UNK")
                 home_code = safe_get_str(basic_info, "home_team_code", "UNK")
                 unified_away = unify_team_code(away_code)
                 unified_home = unify_team_code(home_code)
-                
-                all_team_codes.add(f"{away_code}->{unified_away}")
-                all_team_codes.add(f"{home_code}->{unified_home}")
-                
-                if "BAL" in (unified_away, unified_home):
-                    orioles_games_found += 1
-                
+
                 self._process_game_records_enhanced(game, stadium_tracker, orioles_tracker, team_tracker)
             except Exception as e:
                 game_id = safe_get_str(game, "game_id", "UNKNOWN")
-                print(f"   ⚠️ Error processing records for game {game_id}: {e}")
+                logging.warning(f"Error processing records for game {game_id}: {e}")
                 continue
 
         
@@ -116,7 +106,7 @@ class StadiumRecordsProcessor(BaseProcessor):
             try:
                 game_date = datetime.strptime(date_str, "%Y%m%d")
                 stadium_record["dates"].append(game_date)
-            except:
+            except Exception:
                 pass
         
         # Attendance
@@ -349,8 +339,7 @@ class StadiumRecordsProcessor(BaseProcessor):
             
         except Exception as e:
             print(f"   ⚠️ Error creating enhanced stadiums DataFrame: {e}")
-            import traceback
-            traceback.print_exc()
+            logging.exception("Error details:")
             return pd.DataFrame()  
    
     def _unify_stadium_name(self, venue_name):
@@ -376,7 +365,7 @@ class StadiumRecordsProcessor(BaseProcessor):
             # Get the full game data for this game_id
             game = next((g for g in self.games if g.get("game_id") == game_id), None)
             if not game:
-                print(f"DEBUG: Could not find game data for {game_id}")
+                logging.debug(f"Could not find game data for {game_id}")
                 return
                 
             basic_info = game.get("basic_info", {})
@@ -403,7 +392,7 @@ class StadiumRecordsProcessor(BaseProcessor):
                 try:
                     game_date = datetime.strptime(date_str, "%Y%m%d")
                     orioles_record["dates"].append(game_date)
-                except:
+                except Exception:
                     pass
             
             # Attendance & Environment
@@ -496,8 +485,7 @@ class StadiumRecordsProcessor(BaseProcessor):
                     
         except Exception as e:
             print(f"   ⚠️ Error tracking enhanced Orioles record: {e}")
-            import traceback
-            traceback.print_exc()
+            logging.exception("Error details:")
 
     def _track_team_records(self, team_tracker, game_id, 
                            away_team_code, home_team_code, away_score, home_score):
@@ -693,8 +681,7 @@ class StadiumRecordsProcessor(BaseProcessor):
             
         except Exception as e:
             print(f"   ⚠️ Error creating enhanced Orioles DataFrame: {e}")
-            import traceback
-            traceback.print_exc()
+            logging.exception("Error details:")
             return pd.DataFrame()  
         
     def _create_team_records_dataframe(self, team_tracker):
@@ -883,7 +870,7 @@ class EnhancedTeamRecordsProcessor(BaseProcessor):
             date_str = game.get("basic_info", {}).get("date_yyyymmdd", "")
             try:
                 return datetime.strptime(date_str, "%Y%m%d")
-            except:
+            except Exception:
                 return datetime.min
                 
         return sorted(self.games, key=parse_game_date)
@@ -907,7 +894,7 @@ class EnhancedTeamRecordsProcessor(BaseProcessor):
             try:
                 game_date = datetime.strptime(date_str, "%Y%m%d")
                 month_key = game_date.strftime("%Y-%m")
-            except:
+            except Exception:
                 game_date = None
                 month_key = "Unknown"
             

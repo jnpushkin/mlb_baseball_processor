@@ -1,3 +1,4 @@
+import logging
 import pandas as pd
 from xlsxwriter.utility import xl_col_to_name
 
@@ -755,5 +756,4 @@ def polish_last_sheet(writer, df, sheet_name, wrap_cols=("Detail","Description",
     except (AttributeError, KeyError, RuntimeError, TypeError) as e:
         # formatting is best-effort; never break the export
         # but log for debugging
-        import sys
-        print(f"Warning: Sheet formatting failed for {sheet_name}: {e}", file=sys.stderr)
+        logging.warning(f"Sheet formatting failed for {sheet_name}: {e}")

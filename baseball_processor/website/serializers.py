@@ -3,6 +3,7 @@ Data serializers for converting DataFrames to JSON format for website.
 Complete version with all stats fields and game-by-game data.
 """
 import json
+from datetime import datetime
 from pathlib import Path
 import pandas as pd
 
@@ -405,6 +406,7 @@ class DataSerializer:
             "allTimePassings": all_time_passings,
             "allTimePassingsByGame": passings_by_game,
             "gameTypeCounts": game_type_counts,
+            "generatedAt": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
         }
 
         counts = [
@@ -1187,7 +1189,7 @@ class DataSerializer:
                 hours = int(total_hours)
                 minutes = int((total_hours - hours) * 60)
                 return f"{hours}:{minutes:02d}"
-            except:
+            except Exception:
                 return ""
         
         return str(game_length)
