@@ -6548,34 +6548,51 @@ const CollegePlayersView = ({ data }) => {
     const { seenPlayers, notSeenPlayers } = useMemo(() => {
         const matched = [];
         const seen = new Set();
+        const buildPlayerRow = (ncaa, overrides = {}) => {
+            const ncaaStats = ncaa.ncaa_stats || {};
+            const proStats = ncaa.pro_stats || {};
+            const hasNCAA = (ncaaStats.G || 0) > 0;
+            const stats = hasNCAA ? ncaaStats : proStats;
+            const college = (ncaa.ncaa_teams || []).join(', ');
+            const levels = (ncaa.levels || []);
+            const hasNCAALevel = levels.includes('NCAA');
+            const isPitcher = stats.is_pitcher || false;
+            return {
+                college: college || (hasNCAALevel ? 'Unknown' : '—'),
+                levels: levels.join(', '),
+                source: hasNCAA ? 'NCAA' : 'MiLB',
+                G: stats.G || 0,
+                isPitcher,
+                // Batting stats
+                AB: isPitcher ? null : (stats.AB || 0),
+                H: isPitcher ? null : (stats.H || 0),
+                HR: isPitcher ? null : (stats.HR || 0),
+                AVG: isPitcher ? null : (stats.AVG || '.000'),
+                // Pitching stats
+                IP: isPitcher ? (stats.IP_display || '0.0') : null,
+                K: isPitcher ? (stats.K || 0) : null,
+                ER: isPitcher ? (stats.ER || 0) : null,
+                // Display column: show relevant stats inline
+                statLine: isPitcher
+                    ? `${stats.IP_display || '0.0'} IP, ${stats.H || 0} H, ${stats.R || 0} R, ${stats.ER || 0} ER, ${stats.BB || 0} BB, ${stats.K || 0} K`
+                    : `${stats.H || 0}-${stats.AB || 0}, ${stats.R || 0} R, ${stats.RBI || 0} RBI, ${stats.HR || 0} HR, ${stats.BB || 0} BB, ${stats.K || 0} K`,
+                websiteUrl: ncaa.website_url || '',
+                ...overrides,
+            };
+        };
+
         // Players seen in both college and MLB games
         allPlayers.forEach(p => {
             const pid = p.playerId;
             if (pid && ncaaRef[pid] && !seen.has(pid)) {
                 seen.add(pid);
                 const ncaa = ncaaRef[pid];
-                const ncaaStats = ncaa.ncaa_stats || {};
-                const proStats = ncaa.pro_stats || {};
-                const hasNCAA = (ncaaStats.G || 0) > 0;
-                const stats = hasNCAA ? ncaaStats : proStats;
-                const college = (ncaa.ncaa_teams || []).join(', ');
-                const levels = (ncaa.levels || []);
-                const hasNCAALevel = levels.includes('NCAA');
-                matched.push({
+                matched.push(buildPlayerRow(ncaa, {
                     name: p.name,
                     playerId: pid,
                     mlbTeam: p.team,
-                    college: college || (hasNCAALevel ? 'Unknown' : '—'),
-                    levels: levels.join(', '),
-                    source: hasNCAA ? 'NCAA' : 'MiLB',
-                    G: stats.G || 0,
-                    AB: stats.AB || 0,
-                    H: stats.H || 0,
-                    HR: stats.HR || 0,
-                    AVG: stats.AVG || '.000',
-                    websiteUrl: ncaa.website_url || '',
                     seenInMlb: true,
-                });
+                }));
             }
         });
         // NCAA players who reached MLB but weren't at user's MLB games
@@ -6584,27 +6601,16 @@ const CollegePlayersView = ({ data }) => {
             if (seen.has(key)) return;
             const levels = ncaa.levels || [];
             if (!levels.includes('MLB') || !levels.includes('NCAA')) return;
-            if (ncaa.seen_in_mlb) return; // Already matched above
+            if (ncaa.seen_in_mlb) return;
             const mlbBrefId = ncaa.mlb_bref_id || '';
             if (seen.has(mlbBrefId)) return;
             seen.add(key);
             if (mlbBrefId) seen.add(mlbBrefId);
-            const ncaaStats = ncaa.ncaa_stats || {};
-            const college = (ncaa.ncaa_teams || []).join(', ');
-            notSeen.push({
+            notSeen.push(buildPlayerRow(ncaa, {
                 name: ncaa.name || key,
                 playerId: mlbBrefId,
-                college: college || 'Unknown',
-                levels: levels.join(', '),
-                source: 'NCAA',
-                G: ncaaStats.G || 0,
-                AB: ncaaStats.AB || 0,
-                H: ncaaStats.H || 0,
-                HR: ncaaStats.HR || 0,
-                AVG: ncaaStats.AVG || '.000',
-                websiteUrl: ncaa.website_url || '',
                 seenInMlb: false,
-            });
+            }));
         });
         return {
             seenPlayers: matched.sort((a, b) => {
@@ -6638,10 +6644,9 @@ const CollegePlayersView = ({ data }) => {
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'NCAA' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>{v}</span>
                         )},
                         { key: 'G', label: 'G' },
-                        { key: 'AB', label: 'AB' },
-                        { key: 'H', label: 'H' },
-                        { key: 'HR', label: 'HR' },
-                        { key: 'AVG', label: 'AVG' },
+                        { key: 'statLine', label: 'College Stats', render: (v, r) => (
+                            <span className="font-mono text-sm">{v}</span>
+                        )},
                         { key: 'websiteUrl', label: '', render: (v) => v ? <a href={v} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800 small-text font-medium">View on NCAA site →</a> : null },
                     ]}
                 />
@@ -6657,10 +6662,9 @@ const CollegePlayersView = ({ data }) => {
                         { key: 'college', label: 'College' },
                         { key: 'levels', label: 'Levels' },
                         { key: 'G', label: 'College G' },
-                        { key: 'AB', label: 'College AB' },
-                        { key: 'H', label: 'College H' },
-                        { key: 'HR', label: 'College HR' },
-                        { key: 'AVG', label: 'College AVG' },
+                        { key: 'statLine', label: 'College Stats', render: (v, r) => (
+                            <span className="font-mono text-sm">{v}</span>
+                        )},
                         { key: 'websiteUrl', label: '', render: (v) => v ? <a href={v} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800 small-text font-medium">View on NCAA site →</a> : null },
                     ]}
                 />
