@@ -542,6 +542,7 @@ def find_passings_reverse_lookup(
                     passed_leaders = []
                     for v in threshold_values:
                         if career_before < v <= career_after:
+                            # Standard detection: crossed or reached a threshold value
                             for l in value_to_leaders.get(v, []):
                                 if l['player_id'] != player_id:
                                     # Mark as tied if player reached exactly this value, passed if exceeded
@@ -552,6 +553,17 @@ def find_passings_reverse_lookup(
                                         'value': l['value'],
                                         'previous_rank': l['rank'],
                                         'tied': is_tied,
+                                    })
+                        elif career_before == v and career_after > v:
+                            # Surpass detection: was tied at this value, now moved ahead
+                            for l in value_to_leaders.get(v, []):
+                                if l['player_id'] != player_id:
+                                    passed_leaders.append({
+                                        'player_id': l['player_id'],
+                                        'name': l['name'],
+                                        'value': l['value'],
+                                        'previous_rank': l['rank'],
+                                        'tied': False,
                                     })
 
                     if passed_leaders and career_after >= min_leaderboard_value:
@@ -624,6 +636,16 @@ def find_passings_reverse_lookup(
                                     'value': l['value'],
                                     'previous_rank': l['rank'],
                                     'tied': is_tied,
+                                })
+                    elif career_before == v and career_after > v:
+                        for l in value_to_leaders.get(v, []):
+                            if l['player_id'] != player_id:
+                                passed_leaders.append({
+                                    'player_id': l['player_id'],
+                                    'name': l['name'],
+                                    'value': l['value'],
+                                    'previous_rank': l['rank'],
+                                    'tied': False,
                                 })
 
                 if passed_leaders:
@@ -816,6 +838,16 @@ def find_passings_reverse_lookup(
                                             'value': l['value'],
                                             'previous_rank': l['rank'],
                                             'tied': is_tied,
+                                        })
+                            elif milestone_value == v and estimated_value > v:
+                                for l in value_to_leaders.get(v, []):
+                                    if l['player_id'] != player_id:
+                                        passed_leaders.append({
+                                            'player_id': l['player_id'],
+                                            'name': l['name'],
+                                            'value': l['value'],
+                                            'previous_rank': l['rank'],
+                                            'tied': False,
                                         })
 
                         if passed_leaders:

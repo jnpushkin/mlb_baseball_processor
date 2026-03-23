@@ -104,6 +104,51 @@ const aggregatePitcherStats = (pitcherGames) => {
     });
 };
 
+const exportToJSON = (data, filename) => {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+};
+
+const usePagination = (data, rowsPerPage = 50) => {
+    const [page, setPage] = useState(1);
+    const totalPages = Math.ceil(data.length / rowsPerPage);
+    const paginatedData = data.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
+    useEffect(() => { setPage(1); }, [data.length]);
+
+    return { page, setPage, totalPages, paginatedData, totalItems: data.length };
+};
+
+const PaginationControls = ({ page, setPage, totalPages, totalItems, rowsPerPage = 50 }) => {
+    if (totalPages <= 1) return null;
+    const start = (page - 1) * rowsPerPage + 1;
+    const end = Math.min(page * rowsPerPage, totalItems);
+    return (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', fontSize: '0.8rem', color: '#6b7280' }}>
+            <span>Showing {start}-{end} of {totalItems}</span>
+            <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                    onClick={() => setPage(Math.max(1, page - 1))}
+                    disabled={page === 1}
+                    style={{ padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
+                >← Prev</button>
+                <span style={{ padding: '4px 8px' }}>{page} / {totalPages}</span>
+                <button
+                    onClick={() => setPage(Math.min(totalPages, page + 1))}
+                    disabled={page === totalPages}
+                    style={{ padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', cursor: page === totalPages ? 'default' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
+                >Next →</button>
+            </div>
+        </div>
+    );
+};
+
 const exportToCSV = (data, columns, filename) => {
     const headers = columns.map(col => col.label).join(',');
     const rows = data.map(row => 
@@ -993,7 +1038,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
     };
     
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-2xl max-w-6xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
@@ -2243,7 +2288,7 @@ const Calendar = ({ games }) => {
                 </div>
             </div>
             {showModal && selectedDate && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+                <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
                     <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                             <h3 className="section-title font-bold">{monthNames[monthIndices.indexOf(selectedMonthForModal)]} {selectedDate.day} • All Years</h3>
@@ -2382,7 +2427,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
                 </div>
             </div>
             {showModal && selectedMatchup && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+                <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
                     <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                             <h3 className="section-title font-bold">{selectedMatchup.team} vs {selectedMatchup.opponent}</h3>
@@ -3312,7 +3357,7 @@ const CompanionsView = ({ companionData }) => {
 
             {/* Modal for all games */}
             {showGames && selectedCompanion && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowGames(false)}>
+                <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowGames(false)}>
                     <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                             <h3 className="section-title font-bold">Games with {selectedCompanion.name}</h3>
@@ -5188,7 +5233,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
             </div>
 
             {selectedPlayer && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPlayer(null)}>
+                <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPlayer(null)}>
                     <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
                             <h3 className="section-title font-bold">Career Timeline</h3>
@@ -5377,7 +5422,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
             </div>
 
             {selectedPitcher && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPitcher(null)}>
+                <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPitcher(null)}>
                     <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
                             <h3 className="section-title font-bold">Career Timeline</h3>
@@ -5397,7 +5442,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
     );
 };
 
-const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions = null, enableDateFilter = false, enableExport = true }) => {
+const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions = null, enableDateFilter = false, enableExport = true, paginate = true }) => {
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState(defaultSortKey || columns[0]?.key);
     const [sortDir, setSortDir] = useState('desc');
@@ -5448,6 +5493,9 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
         });
     }, [filtered, sortKey, sortDir]);
 
+    const { page, setPage, totalPages, paginatedData, totalItems } = usePagination(sorted, 50);
+    const displayData = paginate ? paginatedData : sorted;
+
     const handleSort = (key) => {
         if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
         else { setSortKey(key); setSortDir('desc'); }
@@ -5475,7 +5523,10 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                     <h2 className="section-title font-bold">{title}</h2>
                     <div className="flex items-center gap-2">
                         <span className="body-text text-gray-500">{sorted.length} of {data.length}</span>
-                        {enableExport && <button onClick={() => exportToCSV(sorted, columns, `${title.replace(/[^a-z0-9]/gi, '_')}.csv`)} className="px-3 py-1 bg-green-600 text-white body-text rounded hover:bg-green-700">📥 Export</button>}
+                        {enableExport && <>
+                            <button onClick={() => exportToCSV(sorted, columns, `${title.replace(/[^a-z0-9]/gi, '_')}.csv`)} className="px-3 py-1 bg-green-600 text-white body-text rounded hover:bg-green-700">📥 CSV</button>
+                            <button onClick={() => exportToJSON(sorted, `${title.replace(/[^a-z0-9]/gi, '_')}.json`)} className="px-3 py-1 bg-blue-600 text-white body-text rounded hover:bg-blue-700">📥 JSON</button>
+                        </>}
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-4">
@@ -5509,13 +5560,14 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                     )}
                 </div>
             </div>
+            {paginate && <PaginationControls page={page} setPage={setPage} totalPages={totalPages} totalItems={totalItems} />}
             <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                 <table className="w-full">
                     <thead className="bg-gray-50 sticky top-0">
-                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
+                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
                     </thead>
                     <tbody className="divide-y">
-                        {sorted.map((row, idx) => (
+                        {displayData.map((row, idx) => (
                             <tr key={row.gameId || row.id || `item-${idx}`} className="hover:bg-blue-50">
                                 {columns.map(col => <td key={col.key} className="px-4 py-3 body-text">{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
                             </tr>
@@ -5523,6 +5575,7 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                     </tbody>
                 </table>
             </div>
+            {paginate && <PaginationControls page={page} setPage={setPage} totalPages={totalPages} totalItems={totalItems} />}
         </div>
     );
 };
@@ -5904,7 +5957,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                                 const sortedEvents = Object.values(byEventType).sort((a, b) => a.order - b.order);
 
                                 // Shorten milestone for date view
-                                const shortenMilestone = (m) => (m || '').replace('First Career ', '1st ').replace('Career ', '').replace('Home Run', 'HR').replace('Stolen Base', 'SB').replace('Run Scored', 'Run').replace('Strikeout', 'K').replace('Inning Pitched', 'IP').replace('Double', '2B').replace('Triple', '3B');
+                                const shortenMilestone = (m) => (m || '').replace('First Career ', '1st Career ').replace('Home Run', 'HR').replace('Stolen Base', 'SB').replace('Run Scored', 'Run').replace('Strikeout', 'K').replace('Inning Pitched', 'IP').replace('Double', '2B').replace('Triple', '3B');
 
                                 // DATE VIEW
                                 if (careerMilestoneSort === 'date') {
@@ -6399,7 +6452,81 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
     );
 };
 
+const CollegePlayersView = ({ data }) => {
+    const ncaaRef = data.ncaaCrossRef || {};
+    const allPlayers = [...(data.players || []), ...(data.pitchers || [])];
+    const collegePlayers = useMemo(() => {
+        const matched = [];
+        const seen = new Set();
+        allPlayers.forEach(p => {
+            const pid = p.playerId;
+            if (pid && ncaaRef[pid] && !seen.has(pid)) {
+                seen.add(pid);
+                const ncaa = ncaaRef[pid];
+                const ncaaStats = ncaa.ncaa_stats || {};
+                const proStats = ncaa.pro_stats || {};
+                // Use NCAA stats if the player has NCAA games, otherwise show MiLB stats
+                const hasNCAA = (ncaaStats.G || 0) > 0;
+                const stats = hasNCAA ? ncaaStats : proStats;
+                const college = (ncaa.ncaa_teams || []).join(', ');
+                const levels = (ncaa.levels || []);
+                const hasNCAALevel = levels.includes('NCAA');
+                matched.push({
+                    name: p.name,
+                    playerId: pid,
+                    mlbTeam: p.team,
+                    college: college || (hasNCAALevel ? 'Unknown' : '—'),
+                    levels: levels.join(', '),
+                    source: hasNCAA ? 'NCAA' : 'MiLB',
+                    G: stats.G || 0,
+                    AB: stats.AB || 0,
+                    H: stats.H || 0,
+                    HR: stats.HR || 0,
+                    AVG: stats.AVG || '.000',
+                    websiteUrl: ncaa.website_url || '',
+                });
+            }
+        });
+        return matched.sort((a, b) => {
+            // NCAA players first, then by games
+            if (a.source !== b.source) return a.source === 'NCAA' ? -1 : 1;
+            return b.G - a.G;
+        });
+    }, [allPlayers, ncaaRef]);
+
+    if (Object.keys(ncaaRef).length === 0) {
+        return <EmptyState icon="🎓" title="No College Data" message="Run the NCAA processor with --export-players to generate cross-reference data." />;
+    }
+    if (collegePlayers.length === 0) {
+        return <EmptyState icon="🎓" title="No College Matches" message="No players in your games were found in the NCAA processor data." />;
+    }
+
+    return (
+        <DataTable
+            title={`🎓 College & Minor League Background (${collegePlayers.length} players)`}
+            data={collegePlayers}
+            defaultSortKey="G"
+            columns={[
+                { key: 'name', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
+                { key: 'mlbTeam', label: 'MLB Team' },
+                { key: 'college', label: 'College' },
+                { key: 'levels', label: 'Levels' },
+                { key: 'source', label: 'Stats From', render: (v) => (
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'NCAA' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>{v}</span>
+                )},
+                { key: 'G', label: 'G' },
+                { key: 'AB', label: 'AB' },
+                { key: 'H', label: 'H' },
+                { key: 'HR', label: 'HR' },
+                { key: 'AVG', label: 'AVG' },
+                { key: 'websiteUrl', label: '', render: (v) => v ? <a href={v} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800 small-text font-medium">View on NCAA site →</a> : null },
+            ]}
+        />
+    );
+};
+
 const PlayersTab = ({ data }) => {
+    const hasCollegeData = Object.keys(data.ncaaCrossRef || {}).length > 0;
     const [view, setView] = useState('hitters');
     return (
         <div className="space-y-4">
@@ -6407,10 +6534,12 @@ const PlayersTab = ({ data }) => {
                 <div className="flex gap-4">
                     <button onClick={() => setView('hitters')} className={`px-6 py-2 rounded body-text font-medium ${view === 'hitters' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>👤 Hitters</button>
                     <button onClick={() => setView('pitchers')} className={`px-6 py-2 rounded body-text font-medium ${view === 'pitchers' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>⚾ Pitchers</button>
+                    {hasCollegeData && <button onClick={() => setView('college')} className={`px-6 py-2 rounded body-text font-medium ${view === 'college' ? 'bg-green-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🎓 College</button>}
                 </div>
             </div>
             {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
             {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
+            {view === 'college' && <CollegePlayersView data={data} />}
         </div>
     );
 };
@@ -6527,12 +6656,162 @@ const BadgeCell = ({ badges, badgeColors }) => {
     );
 };
 
+const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
+    const badges = {};
+    const STAT_MILESTONES = [100, 250, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000];
+
+    const pgByGame = {};
+    (playerGames || []).forEach(pg => {
+        const gid = pg.gameId;
+        if (!pgByGame[gid]) pgByGame[gid] = [];
+        pgByGame[gid].push(pg);
+    });
+    const pitByGame = {};
+    (pitcherGames || []).forEach(pg => {
+        const gid = pg.gameId;
+        if (!pitByGame[gid]) pitByGame[gid] = [];
+        pitByGame[gid].push(pg);
+    });
+
+    const parseDate = (d) => {
+        if (!d) return '';
+        if (d.includes('/')) { const [m, dd, y] = d.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; }
+        return d;
+    };
+    const springGameIds = new Set((games || []).filter(g => g.gameType === 'spring').map(g => g.gameId));
+    const sorted = [...games].filter(g => !springGameIds.has(g.gameId)).sort((a, b) => parseDate(a.date).localeCompare(parseDate(b.date)));
+
+    let totals = { H: 0, R: 0, HR: 0, RBI: 0, SO: 0, BB: 0, SB: 0, '2B': 0, '3B': 0 };
+    let pitK = 0;
+    let prevTotals = { ...totals };
+    let prevPitK = 0;
+
+    // Venue-specific tracking
+    const VENUE_MILESTONES = [50, 100, 250, 500, 750, 1000];
+    const venueTotals = {};  // venue -> { H, R, HR, ... }
+    const venuePrev = {};    // venue -> prev totals snapshot
+
+    sorted.forEach(game => {
+        const gid = game.gameId;
+        if (!gid) return;
+        badges[gid] = [];
+        const venue = game.venue || '';
+
+        // Initialize venue tracking
+        if (venue && !venueTotals[venue]) {
+            venueTotals[venue] = { H: 0, R: 0, HR: 0, RBI: 0, SO: 0, BB: 0, SB: 0, '2B': 0, '3B': 0 };
+            venuePrev[venue] = { H: 0, R: 0, HR: 0, RBI: 0, SO: 0, BB: 0, SB: 0, '2B': 0, '3B': 0 };
+        }
+
+        (pgByGame[gid] || []).forEach(pg => {
+            totals.H += (pg.h || 0);
+            totals.R += (pg.r || 0);
+            totals.HR += (pg.hr || 0);
+            totals.RBI += (pg.rbi || 0);
+            totals.SO += (pg.so || 0);
+            totals.BB += (pg.bb || 0);
+            totals.SB += (pg.sb || 0);
+            totals['2B'] += (pg.doubles || 0);
+            totals['3B'] += (pg.triples || 0);
+            if (venue) {
+                venueTotals[venue].H += (pg.h || 0);
+                venueTotals[venue].R += (pg.r || 0);
+                venueTotals[venue].HR += (pg.hr || 0);
+                venueTotals[venue].RBI += (pg.rbi || 0);
+                venueTotals[venue].SO += (pg.so || 0);
+                venueTotals[venue].BB += (pg.bb || 0);
+                venueTotals[venue].SB += (pg.sb || 0);
+                venueTotals[venue]['2B'] += (pg.doubles || 0);
+                venueTotals[venue]['3B'] += (pg.triples || 0);
+            }
+        });
+        (pitByGame[gid] || []).forEach(pg => {
+            pitK += (pg.so || 0);
+        });
+
+        const labels = { H: 'Hits', R: 'Runs', HR: 'HRs', RBI: 'RBI', SO: 'K', BB: 'Walks', SB: 'Steals', '2B': 'Doubles', '3B': 'Triples' };
+        Object.entries(totals).forEach(([stat, val]) => {
+            const prev = prevTotals[stat];
+            STAT_MILESTONES.forEach(m => {
+                if (val >= m && prev < m) {
+                    badges[gid].push({
+                        type: 'cumulative-stat',
+                        text: `${m.toLocaleString()} ${labels[stat]} Witnessed`,
+                        title: `You've now witnessed ${m.toLocaleString()} total ${labels[stat].toLowerCase()} across all games`
+                    });
+                }
+            });
+        });
+        STAT_MILESTONES.forEach(m => {
+            if (pitK >= m && prevPitK < m) {
+                badges[gid].push({
+                    type: 'cumulative-stat',
+                    text: `${m.toLocaleString()} K Witnessed`,
+                    title: `You've now witnessed ${m.toLocaleString()} total strikeouts (pitching) across all games`
+                });
+            }
+        });
+
+        // Venue-specific milestones
+        if (venue) {
+            const shortVenue = venue.replace(/ Stadium| Park| Field| Coliseum| Centre| Arena/gi, '').trim();
+            Object.entries(venueTotals[venue]).forEach(([stat, val]) => {
+                const prev = venuePrev[venue][stat];
+                VENUE_MILESTONES.forEach(m => {
+                    if (val >= m && prev < m) {
+                        badges[gid].push({
+                            type: 'venue-stat',
+                            text: `${m.toLocaleString()} ${labels[stat]} at ${shortVenue}`,
+                            title: `You've witnessed ${m.toLocaleString()} ${labels[stat].toLowerCase()} at ${venue}`
+                        });
+                    }
+                });
+            });
+            venuePrev[venue] = { ...venueTotals[venue] };
+        }
+
+        prevTotals = { ...totals };
+        prevPitK = pitK;
+    });
+
+    return badges;
+};
+
 const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGame }) => {
     const [selectedGame, setSelectedGame] = useState(null);
+    const [badgeTypeFilter, setBadgeTypeFilter] = useState('all');
+    const [badgeTextFilter, setBadgeTextFilter] = useState('');
+
+    // Compute total stats witnessed across all games (excluding spring training)
+    const totalStats = useMemo(() => {
+        const springGameIds = new Set((games || []).filter(g => g.gameType === 'spring').map(g => g.gameId));
+        const stats = { H: 0, R: 0, HR: 0, RBI: 0, SO: 0, BB: 0, SB: 0, '2B': 0, '3B': 0 };
+        let pitK = 0;
+        (playerGames || []).forEach(pg => {
+            if (springGameIds.has(pg.gameId)) return;
+            stats.H += (pg.h || 0);
+            stats.R += (pg.r || 0);
+            stats.HR += (pg.hr || 0);
+            stats.RBI += (pg.rbi || 0);
+            stats.SO += (pg.so || 0);
+            stats.BB += (pg.bb || 0);
+            stats.SB += (pg.sb || 0);
+            stats['2B'] += (pg.doubles || 0);
+            stats['3B'] += (pg.triples || 0);
+        });
+        (pitcherGames || []).forEach(pg => {
+            if (springGameIds.has(pg.gameId)) return;
+            pitK += (pg.so || 0);
+        });
+        return { ...stats, pitK, gameCount: (games || []).length - springGameIds.size };
+    }, [games, playerGames, pitcherGames]);
 
     // Compute milestones for badge display
     const milestoneData = useMemo(() => computeGameMilestones(games), [games]);
     const gameMilestones = milestoneData.milestones || {};
+
+    // Compute cumulative stat badges (total hits/runs/HRs witnessed)
+    const cumulativeBadges = useMemo(() => computeCumulativeStatBadges(games, playerGames, pitcherGames), [games, playerGames, pitcherGames]);
 
     // Badge colors by type
     const badgeColors = {
@@ -6544,14 +6823,137 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         'div-stadiums': 'bg-indigo-100 text-indigo-700 font-bold',
         'matchup': 'bg-gray-100 text-gray-700',
         'holiday': 'bg-red-100 text-red-700',
-        'career-first': 'bg-amber-100 text-amber-800 font-bold'
+        'career-first': 'bg-amber-100 text-amber-800 font-bold',
+        'cumulative-stat': 'bg-teal-100 text-teal-800 font-bold',
+        'venue-stat': 'bg-purple-100 text-purple-800 font-bold'
     };
+
+    const badgeTypeLabels = {
+        'game-count': 'Game Count',
+        'team': 'Team',
+        'venue': 'Venue',
+        'div-first': 'Division First',
+        'div-complete': 'Division Complete',
+        'div-stadiums': 'Division Stadiums',
+        'matchup': 'Matchup',
+        'holiday': 'Holiday',
+        'career-first': 'Career First',
+        'cumulative-stat': 'Cumulative Stat',
+        'venue-stat': 'Venue Stat'
+    };
+
+    // Precompute all badges per game for filtering
+    const allBadgesByGame = useMemo(() => {
+        const result = {};
+        const shortenMilestone = (m) => (m || '').replace('First Career ', '1st Career ').replace('Home Run', 'HR').replace('Stolen Base', 'SB').replace('Run Scored', 'Run').replace('Strikeout', 'K').replace('Inning Pitched', 'IP').replace('Double', '2B').replace('Triple', '3B');
+        const getLastName = (name) => { const parts = (name || '').split(' '); return parts[parts.length - 1] || name || '?'; };
+        games.forEach(game => {
+            const gid = game.gameId;
+            if (!gid) return;
+            const regularBadges = gameMilestones[gid]?.badges || [];
+            const gameCareerFirsts = careerFirstsByGame?.[gid] || [];
+            const careerFirstBadges = gameCareerFirsts.map(f => ({
+                type: 'career-first',
+                text: `⭐ ${getLastName(f.player_name)}: ${shortenMilestone(f.milestone)}`,
+                title: `${f.player_name || 'Unknown'}'s ${f.milestone || 'milestone'}`
+            }));
+            result[gid] = [...regularBadges, ...careerFirstBadges, ...(cumulativeBadges[gid] || [])];
+        });
+        return result;
+    }, [games, gameMilestones, careerFirstsByGame, cumulativeBadges]);
+
+    // Collect all badge types that actually appear
+    const availableBadgeTypes = useMemo(() => {
+        const types = new Set();
+        Object.values(allBadgesByGame).forEach(badges => badges.forEach(b => types.add(b.type)));
+        return [...types].sort();
+    }, [allBadgesByGame]);
+
+    // Filter games by badge criteria
+    const badgeFilteredGames = useMemo(() => {
+        if (badgeTypeFilter === 'all' && !badgeTextFilter) return games;
+        if (badgeTypeFilter === 'any-badge') {
+            return games.filter(g => (allBadgesByGame[g.gameId] || []).length > 0);
+        }
+        return games.filter(game => {
+            const badges = allBadgesByGame[game.gameId] || [];
+            if (badges.length === 0) return false;
+            let matched = badges;
+            if (badgeTypeFilter && badgeTypeFilter !== 'all') {
+                matched = matched.filter(b => b.type === badgeTypeFilter);
+            }
+            if (badgeTextFilter) {
+                const q = badgeTextFilter.toLowerCase();
+                matched = matched.filter(b => (b.text || '').toLowerCase().includes(q) || (b.title || '').toLowerCase().includes(q));
+            }
+            return matched.length > 0;
+        });
+    }, [games, badgeTypeFilter, badgeTextFilter, allBadgesByGame]);
+
+    const hasBadgeFilter = badgeTypeFilter !== 'all' || badgeTextFilter;
 
     return (
         <>
+            {/* Total Stats Witnessed */}
+            <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-lg shadow-lg p-5 text-white mb-4">
+                <h2 className="text-xl font-bold mb-3">📊 Total Stats Witnessed <span className="text-sm font-normal opacity-80">({totalStats.gameCount} regular season & postseason games)</span></h2>
+                <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3">
+                    {[
+                        { label: 'Hits', val: totalStats.H },
+                        { label: 'Runs', val: totalStats.R },
+                        { label: 'HR', val: totalStats.HR },
+                        { label: 'RBI', val: totalStats.RBI },
+                        { label: '2B', val: totalStats['2B'] },
+                        { label: '3B', val: totalStats['3B'] },
+                        { label: 'K', val: totalStats.pitK },
+                        { label: 'BB', val: totalStats.BB },
+                        { label: 'SB', val: totalStats.SB },
+                    ].map(s => (
+                        <div key={s.label} className="bg-white/20 rounded-lg p-2 text-center">
+                            <div className="text-2xl font-bold">{s.val.toLocaleString()}</div>
+                            <div className="text-xs opacity-90">{s.label}</div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            {/* Badge filter bar */}
+            <div className="bg-white rounded-lg shadow mb-2 p-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    <span className="small-text font-semibold text-gray-600">🏅 Badge Filter:</span>
+                    <select
+                        value={badgeTypeFilter}
+                        onChange={(e) => setBadgeTypeFilter(e.target.value)}
+                        className="px-3 py-1.5 body-text border rounded-lg"
+                    >
+                        <option value="all">All Games</option>
+                        <option value="any-badge">Any Badge</option>
+                        {availableBadgeTypes.map(t => (
+                            <option key={t} value={t}>{badgeTypeLabels[t] || t}</option>
+                        ))}
+                    </select>
+                    <input
+                        type="text"
+                        placeholder="Search badge text..."
+                        value={badgeTextFilter}
+                        onChange={(e) => setBadgeTextFilter(e.target.value)}
+                        className="px-3 py-1.5 body-text border rounded-lg min-w-[200px]"
+                    />
+                    {hasBadgeFilter && (
+                        <button
+                            onClick={() => { setBadgeTypeFilter('all'); setBadgeTextFilter(''); }}
+                            className="px-3 py-1.5 body-text text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+                        >
+                            Clear
+                        </button>
+                    )}
+                    {hasBadgeFilter && (
+                        <span className="small-text text-gray-500">{badgeFilteredGames.length} of {games.length} games</span>
+                    )}
+                </div>
+            </div>
             <DataTable
                 title="📋 Game Log"
-                data={games}
+                data={badgeFilteredGames}
                 defaultSortKey="date"
                 enableDateFilter={true}
                 filterOptions={[
@@ -6568,25 +6970,12 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                     {
                         key: 'badges',
                         label: 'Badges',
-                        render: (_, row) => {
-                            // Combine regular badges with career first badges
-                            const regularBadges = gameMilestones[row.gameId]?.badges || [];
-                            const gameCareerFirsts = careerFirstsByGame?.[row.gameId] || [];
-                            const shortenMilestone = (m) => (m || '').replace('First Career ', '1st ').replace('Career ', '').replace('Home Run', 'HR').replace('Stolen Base', 'SB').replace('Run Scored', 'Run').replace('Strikeout', 'K').replace('Inning Pitched', 'IP').replace('Double', '2B').replace('Triple', '3B');
-                            const getLastName = (name) => { const parts = (name || '').split(' '); return parts[parts.length - 1] || name || '?'; };
-                            const careerFirstBadges = gameCareerFirsts.map(f => ({
-                                type: 'career-first',
-                                text: `⭐ ${getLastName(f.player_name)}: ${shortenMilestone(f.milestone)}`,
-                                title: `${f.player_name || 'Unknown'}'s ${f.milestone || 'milestone'}`
-                            }));
-                            const allBadges = [...regularBadges, ...careerFirstBadges];
-                            return (
-                                <BadgeCell
-                                    badges={allBadges}
-                                    badgeColors={badgeColors}
-                                />
-                            );
-                        }
+                        render: (_, row) => (
+                            <BadgeCell
+                                badges={allBadgesByGame[row.gameId] || []}
+                                badgeColors={badgeColors}
+                            />
+                        )
                     },
                     {
                         key: 'gameId',
@@ -8046,10 +8435,11 @@ const App = () => {
                         <p className={`text-xs sm:text-sm mt-1 sm:mt-2 ${darkMode ? 'text-gray-300' : 'text-blue-100'}`}>{data.games?.length || 0} games • {data.playerGames?.length || 0} player-games</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div ref={searchRef} className="relative flex-1 sm:flex-none">
+                        <div ref={searchRef} role="search" className="relative flex-1 sm:flex-none">
                             <input
                                 type="text"
                                 placeholder="Search..."
+                                aria-label="Search players, games, and milestones"
                                 value={searchQuery}
                                 onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
                                 onFocus={() => setSearchOpen(true)}
@@ -8082,9 +8472,9 @@ const App = () => {
             </header>
             <nav className={`shadow-md sticky top-0 z-50 border-b-2 overflow-x-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-100'}`}>
                 <div className="max-w-7xl mx-auto px-4">
-                    <div className="flex space-x-1">
+                    <div className="flex space-x-1" role="tablist" aria-label="Main navigation">
                         {tabs.map(t => (
-                            <button key={t.id} onClick={() => setTab(t.id)} className={`px-2 sm:px-4 py-2 sm:py-3 font-medium text-xs sm:text-sm whitespace-nowrap transition-all ${
+                            <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={`px-2 sm:px-4 py-2 sm:py-3 font-medium text-xs sm:text-sm whitespace-nowrap transition-all ${
                                 tab === t.id
                                     ? (darkMode ? 'bg-gray-700 text-blue-400 border-b-4 border-blue-400' : 'bg-blue-50 text-blue-600 border-b-4 border-blue-600')
                                     : (darkMode ? 'text-gray-300 hover:bg-gray-700 border-b-4 border-transparent' : 'text-gray-600 hover:bg-gray-50 border-b-4 border-transparent')
@@ -8095,7 +8485,7 @@ const App = () => {
                     </div>
                 </div>
             </nav>
-            <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+            <main role="tabpanel" className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
                 {tab === 'dashboard' && <Dashboard data={data} onTabChange={setTab} />}
                 {tab === 'gamelog' && (data.games?.length ? <GameLogWithDetails games={data.games} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} /> : <EmptyState icon="📋" title="No Games" message="Add game HTML files to the Current Season Games folder and run the processor." />)}
                 {tab === 'calendar' && (data.games?.length ? <Calendar games={data.games} /> : <EmptyState icon="📅" title="No Games" message="No games to display on the calendar." />)}

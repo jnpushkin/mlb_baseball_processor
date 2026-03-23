@@ -38,6 +38,10 @@ except ImportError:
     import requests
     HAS_CLOUDSCRAPER = False
 
+from ..utils.http import create_retry_session, get_with_retry
+
+_session = create_retry_session()
+
 
 # All-time leaderboard configurations
 # Maps our stat key to Baseball Reference URL path and column name
@@ -215,7 +219,7 @@ def fetch_url(url: str, scraper=None, timeout: int = 30, max_retries: int = 3) -
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                     "Accept-Language": "en-US,en;q=0.5",
                 }
-                response = requests.get(url, headers=headers, timeout=timeout)
+                response = get_with_retry(_session, url, headers=headers, timeout=timeout)
 
             if response.status_code == 429:
                 raise RateLimitError("Rate limited (429 Too Many Requests)")

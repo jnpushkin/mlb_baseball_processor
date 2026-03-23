@@ -19,6 +19,10 @@ import requests
 from datetime import datetime
 from typing import Optional, Union
 
+from ..utils.http import create_retry_session, get_with_retry
+
+_session = create_retry_session()
+
 # Try to import cloudscraper for bypassing Cloudflare
 try:
     import cloudscraper
@@ -204,7 +208,7 @@ def resolve_register_id(register_id: str, use_cache_only: bool = False) -> Optio
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             }
-            response = requests.get(url, headers=headers, timeout=15)
+            response = get_with_retry(_session, url, headers=headers, timeout=15)
 
         if response.status_code != 200:
             return None
@@ -517,13 +521,13 @@ def fetch_game_data(game_pk: int) -> dict:
     """Fetch game data from MLB Stats API."""
     # Get live feed for game metadata
     feed_url = f"{MLB_API_BASE}/game/{game_pk}/feed/live"
-    feed_response = requests.get(feed_url, timeout=30)
+    feed_response = get_with_retry(_session, feed_url, timeout=30)
     feed_response.raise_for_status()
     feed_data = feed_response.json()
 
     # Get boxscore for detailed stats
     box_url = f"https://statsapi.mlb.com/api/v1/game/{game_pk}/boxscore"
-    box_response = requests.get(box_url, timeout=30)
+    box_response = get_with_retry(_session, box_url, timeout=30)
     box_response.raise_for_status()
     box_data = box_response.json()
 

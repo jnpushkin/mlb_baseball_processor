@@ -35,6 +35,10 @@ except ImportError:
     import requests
     HAS_CLOUDSCRAPER = False
 
+from ..utils.http import create_retry_session, get_with_retry
+
+_session = create_retry_session()
+
 
 def scrape_debuts(year: int, verbose: bool = True) -> pd.DataFrame:
     """
@@ -77,7 +81,7 @@ def scrape_debuts(year: int, verbose: bool = True) -> pd.DataFrame:
                 "Connection": "keep-alive",
                 "Upgrade-Insecure-Requests": "1",
             }
-            response = requests.get(url, headers=headers, timeout=30)
+            response = get_with_retry(_session, url, headers=headers, timeout=30)
 
         response.raise_for_status()
 

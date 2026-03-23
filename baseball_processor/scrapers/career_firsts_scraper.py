@@ -40,6 +40,10 @@ try:
 except ImportError:
     HAS_CLOUDSCRAPER = False
 
+from ..utils.http import create_retry_session, get_with_retry
+
+_session = create_retry_session()
+
 
 def parse_ip(ip_str: str) -> float:
     """
@@ -387,7 +391,7 @@ def fetch_url(url: str, scraper=None, timeout: int = 30, max_retries: int = 3) -
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                     "Accept-Language": "en-US,en;q=0.5",
                 }
-                response = requests.get(url, headers=headers, timeout=timeout)
+                response = get_with_retry(_session, url, headers=headers, timeout=timeout)
 
             # Check for rate limiting
             if response.status_code == 429:

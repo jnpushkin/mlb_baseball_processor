@@ -382,6 +382,16 @@ class DataSerializer:
             else:
                 game_type_counts['regular'] += 1
 
+        # Load NCAA cross-reference data if available
+        ncaa_cross_ref = {}
+        try:
+            from ..exporters.shared_players import load_ncaa_processor_export, build_ncaa_cross_reference
+            ncaa_export = load_ncaa_processor_export()
+            if ncaa_export:
+                ncaa_cross_ref = build_ncaa_cross_reference(ncaa_export)
+        except Exception as e:
+            print(f"      Note: NCAA cross-reference not available: {e}")
+
         json_data = {
             "summary": self._serialize_summary(data.get('summary_rows', [])),
             "milestones": self._serialize_milestones(data.get('milestones', {})),
@@ -406,6 +416,7 @@ class DataSerializer:
             "allTimePassings": all_time_passings,
             "allTimePassingsByGame": passings_by_game,
             "gameTypeCounts": game_type_counts,
+            "ncaaCrossRef": ncaa_cross_ref,
             "generatedAt": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
         }
 
@@ -728,7 +739,32 @@ class DataSerializer:
                         
                         # Get extra stats for this player by ID
                         player_extra = extra_stats.get(player_id, {})
-                        
+
+                        # Parse SB/CS from Details column (e.g., "2·SB", "SB,CS", "2B,SB")
+                        details_sb = 0
+                        details_cs = 0
+                        details = player.get('Details', '')
+                        if isinstance(details, str) and details:
+                            for item in details.split(','):
+                                item = item.strip()
+                                if item == 'SB':
+                                    details_sb += 1
+                                elif '·' in item and item.endswith('SB'):
+                                    try:
+                                        details_sb += int(item.split('·')[0])
+                                    except ValueError:
+                                        details_sb += 1
+                                elif item == 'CS':
+                                    details_cs += 1
+                                elif '·' in item and item.endswith('CS'):
+                                    try:
+                                        details_cs += int(item.split('·')[0])
+                                    except ValueError:
+                                        details_cs += 1
+
+                        sb = max(int(player.get('SB', 0)), player_extra.get('SB', 0), details_sb)
+                        cs = max(int(player.get('CS', 0)), player_extra.get('CS', 0), details_cs)
+
                         player_games.append({
                             'date': formatted_date,
                             'dateSort': sortable_date,
@@ -745,8 +781,8 @@ class DataSerializer:
                             'hr': player_extra.get('HR', 0),
                             'doubles': player_extra.get('2B', 0),
                             'triples': player_extra.get('3B', 0),
-                            'sb': max(int(player.get('SB', 0)), player_extra.get('SB', 0)),
-                            'cs': max(int(player.get('CS', 0)), player_extra.get('CS', 0)),
+                            'sb': sb,
+                            'cs': cs,
                             'bb': int(player.get('BB', 0)),
                             'so': int(player.get('SO', 0)),
                             'hbp': player_extra.get('HBP', 0),

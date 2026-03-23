@@ -362,6 +362,26 @@ def main():
         dest='scrape_career_firsts',
         help='Scrape career firsts for players in processed games (skips already cached players)'
     )
+    parser.add_argument(
+        '--export-players',
+        action='store_true',
+        help='Export shared player data for cross-project linking with NCAA processor'
+    )
+    parser.add_argument(
+        '--migrate-cache',
+        action='store_true',
+        help='Migrate JSON cache files into SQLite database'
+    )
+    parser.add_argument(
+        '--db-stats',
+        action='store_true',
+        help='Show database statistics and exit'
+    )
+    parser.add_argument(
+        '--from-db',
+        action='store_true',
+        help='Load games from SQLite database instead of cache/HTML'
+    )
 
     args = parser.parse_args()
 
@@ -379,7 +399,24 @@ def main():
         warn("❌ Error: Cannot use both --excel-only and --website-only flags")
         return
 
-    if not os.path.exists(args.input_path) and not args.from_cache_only:
+    # Handle database commands early
+    if args.db_stats:
+        from .db.database import Database
+        db = Database()
+        stats = db.get_stats()
+        info("📊 Database Statistics:")
+        for key, val in stats.items():
+            info(f"  {key}: {val}")
+        return
+
+    if args.migrate_cache:
+        from .db.database import Database
+        db = Database()
+        imported, errors = db.migrate_from_cache(CACHE_DIR)
+        info(f"Migration complete: {imported} imported, {errors} errors")
+        return
+
+    if not os.path.exists(args.input_path) and not args.from_cache_only and not args.from_db:
         warn(f"❌ Input path does not exist: {args.input_path}")
         return
 
@@ -419,7 +456,16 @@ def main():
         hof_df.rename(columns={"Name-additional": "PlayerID"}, inplace=True)
 
     # Step 2: Load game data
-    if args.from_cache_only:
+    if args.from_db:
+        info("🗄️ Loading games from database...")
+        from .db.database import Database
+        db = Database()
+        games_data = db.get_all_games()
+        spring_count = sum(1 for g in games_data if g.get('basic_info', {}).get('game_type') == 'spring')
+        info(f"  Loaded {len(games_data)} games from database")
+        if spring_count > 0:
+            info(f"  Found {spring_count} spring training games")
+    elif args.from_cache_only:
         info("📦 Loading games from cache only...")
         games_data = []
         spring_count = 0
@@ -610,6 +656,15 @@ def main():
             export_all_to_csv(processed_data, csv_dir)
             export_raw_games_to_csv(games_data, csv_dir / "mlb_tracker_raw_games.csv")
             info(f"✅ CSV files exported to: {csv_dir}")
+
+        # Export shared players if requested
+        if args.export_players:
+            info(f"\n🔗 Exporting shared player data...")
+            from .exporters.shared_players import generate_shared_export
+            surge_domain = args.surge_domain or load_surge_domain()
+            website_url = f"https://{surge_domain}" if surge_domain else "https://mlb-passport.surge.sh"
+            export_path = generate_shared_export(processed_data, website_url=website_url)
+            info(f"✅ Shared player export: {export_path}")
 
         # Scrape career firsts if requested
         if args.scrape_career_firsts:
