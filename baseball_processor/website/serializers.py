@@ -1662,9 +1662,20 @@ class DataSerializer:
                     stats["oriolesGames"] += 1
                     stats["oriolesStadiums"].add(normalized_venue)
 
+                # Format date consistently as MM/DD/YYYY
+                formatted_date = date
+                if hasattr(game_row.get('Date'), 'strftime'):
+                    formatted_date = game_row.get('Date').strftime("%m/%d/%Y")
+                elif date and '-' in date:
+                    # Handle "2025-09-28 00:00:00" or "2025-09-28" format
+                    date_part = date.split(' ')[0]
+                    parts = date_part.split('-')
+                    if len(parts) == 3:
+                        formatted_date = f"{parts[1]}/{parts[2]}/{parts[0]}"
+
                 stats["games"].append({
                     "gameId": game_id,
-                    "date": date,
+                    "date": formatted_date,
                     "venue": venue,
                     "homeTeam": home_team,
                     "awayTeam": away_team
@@ -1682,7 +1693,11 @@ class DataSerializer:
                 "oriolesGames": stats["oriolesGames"],
                 "oriolesStadiums": len(stats["oriolesStadiums"]),
                 "oriolesStadiumsList": sorted(list(stats["oriolesStadiums"])),
-                "games": sorted(stats["games"], key=lambda x: x["date"], reverse=True)
+                "games": sorted(stats["games"], key=lambda x: (
+                    # Convert MM/DD/YYYY to YYYYMMDD for proper chronological sort
+                    (lambda d: f"{d[2]}{d[0].zfill(2)}{d[1].zfill(2)}" if len(d) == 3 else "")
+                    (x.get("date", "").split("/"))
+                ), reverse=True)
             }
 
         return {

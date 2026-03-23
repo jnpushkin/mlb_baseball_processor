@@ -216,13 +216,15 @@ def build_ncaa_cross_reference(ncaa_export: Optional[Dict] = None) -> Dict[str, 
             'ncaa_teams': player.get('ncaa_teams', []),
             'pro_stats': player.get('pro_stats', {}),
             'levels': player.get('levels', []),
+            'mlb_bref_id': player.get('mlb_bref_id', ''),
+            'seen_in_mlb': player.get('seen_in_mlb', False),
         }
 
         # Index by the NCAA bref_id (minors format) as fallback
         cross_ref[ncaa_bref_id] = entry
 
-        # Also index by the MLB bref_id via register mapping
-        mlb_bref_id = register_map.get(ncaa_bref_id)
+        # Also index by the MLB bref_id via register mapping or from export
+        mlb_bref_id = player.get('mlb_bref_id') or register_map.get(ncaa_bref_id)
         if mlb_bref_id:
             cross_ref[mlb_bref_id] = entry
 

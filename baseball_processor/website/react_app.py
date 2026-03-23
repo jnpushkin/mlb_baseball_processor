@@ -4286,6 +4286,220 @@ const SmartInsights = ({ data }) => {
                         </div>
                     </div>
                     
+                    {/* Cumulative Stats Over Time */}
+                    {(() => {
+                        const springGameIds = new Set((data.games || []).filter(g => g.gameType === 'spring').map(g => g.gameId));
+                        const parseDate = (d) => {
+                            if (!d) return '';
+                            if (d.includes('/')) { const [m, dd, y] = d.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; }
+                            return d;
+                        };
+                        // Group playerGames by game, sorted chronologically
+                        const pgByGame = {};
+                        (data.playerGames || []).forEach(pg => {
+                            if (springGameIds.has(pg.gameId)) return;
+                            if (!pgByGame[pg.gameId]) pgByGame[pg.gameId] = [];
+                            pgByGame[pg.gameId].push(pg);
+                        });
+                        const pitByGame = {};
+                        (data.pitcherGames || []).forEach(pg => {
+                            if (springGameIds.has(pg.gameId)) return;
+                            if (!pitByGame[pg.gameId]) pitByGame[pg.gameId] = [];
+                            pitByGame[pg.gameId].push(pg);
+                        });
+
+                        const sortedGames = [...(data.games || [])].filter(g => !springGameIds.has(g.gameId)).sort((a, b) => parseDate(a.date).localeCompare(parseDate(b.date)));
+
+                        const statDefs = [
+                            { key: 'H', label: 'Hits', color: '#2563eb' },
+                            { key: 'R', label: 'Runs', color: '#16a34a' },
+                            { key: 'HR', label: 'HRs', color: '#dc2626' },
+                            { key: 'RBI', label: 'RBI', color: '#9333ea' },
+                            { key: 'K', label: 'K (pitching)', color: '#ea580c' },
+                            { key: 'BB', label: 'Walks', color: '#0891b2' },
+                            { key: 'SB', label: 'Steals', color: '#65a30d' },
+                            { key: '2B', label: 'Doubles', color: '#d97706' },
+                        ];
+
+                        // Compute cumulative totals
+                        const cumulativeData = [];
+                        let totals = { H: 0, R: 0, HR: 0, RBI: 0, K: 0, BB: 0, SB: 0, '2B': 0 };
+                        sortedGames.forEach((game, i) => {
+                            const gid = game.gameId;
+                            (pgByGame[gid] || []).forEach(pg => {
+                                totals.H += (pg.h || 0);
+                                totals.R += (pg.r || 0);
+                                totals.HR += (pg.hr || 0);
+                                totals.RBI += (pg.rbi || 0);
+                                totals.BB += (pg.bb || 0);
+                                totals.SB += (pg.sb || 0);
+                                totals['2B'] += (pg.doubles || 0);
+                            });
+                            (pitByGame[gid] || []).forEach(pg => {
+                                totals.K += (pg.so || 0);
+                            });
+                            cumulativeData.push({ ...totals, date: game.date, idx: i });
+                        });
+
+                        if (cumulativeData.length < 2) return null;
+
+                        // SVG chart
+                        const [activeStat, setActiveStat] = React.useState('H');
+                        const width = 800;
+                        const height = 300;
+                        const pad = { top: 20, right: 20, bottom: 30, left: 60 };
+                        const chartW = width - pad.left - pad.right;
+                        const chartH = height - pad.top - pad.bottom;
+
+                        const maxVal = Math.max(...cumulativeData.map(d => d[activeStat]), 1);
+                        const points = cumulativeData.map((d, i) => {
+                            const x = pad.left + (i / (cumulativeData.length - 1)) * chartW;
+                            const y = pad.top + chartH - (d[activeStat] / maxVal) * chartH;
+                            return `${x},${y}`;
+                        }).join(' ');
+
+                        const activeColor = statDefs.find(s => s.key === activeStat)?.color || '#2563eb';
+
+                        // Y-axis labels
+                        const yLabels = [0, 0.25, 0.5, 0.75, 1].map(pct => ({
+                            val: Math.round(maxVal * pct),
+                            y: pad.top + chartH - pct * chartH
+                        }));
+
+                        // X-axis: show year labels
+                        const yearLabels = [];
+                        let lastYear = '';
+                        cumulativeData.forEach((d, i) => {
+                            const dateStr = d.date || '';
+                            let year = '';
+                            if (dateStr.includes('/')) year = dateStr.split('/')[2];
+                            else if (dateStr.includes('-')) year = dateStr.split('-')[0];
+                            if (year && year !== lastYear) {
+                                yearLabels.push({ year, x: pad.left + (i / (cumulativeData.length - 1)) * chartW });
+                                lastYear = year;
+                            }
+                        });
+
+                        // Monthly breakdown table
+                        const monthlyStats = {};
+                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        sortedGames.forEach(game => {
+                            const dateStr = game.date || '';
+                            let monthIdx = -1;
+                            if (dateStr.includes('/')) monthIdx = parseInt(dateStr.split('/')[0]) - 1;
+                            if (monthIdx < 0 || monthIdx > 11) return;
+                            const key = monthNames[monthIdx];
+                            if (!monthlyStats[key]) monthlyStats[key] = { games: 0, H: 0, HR: 0, R: 0, RBI: 0, K: 0, BB: 0, SB: 0 };
+                            monthlyStats[key].games++;
+                            const gid = game.gameId;
+                            (pgByGame[gid] || []).forEach(pg => {
+                                monthlyStats[key].H += (pg.h || 0);
+                                monthlyStats[key].HR += (pg.hr || 0);
+                                monthlyStats[key].R += (pg.r || 0);
+                                monthlyStats[key].RBI += (pg.rbi || 0);
+                                monthlyStats[key].BB += (pg.bb || 0);
+                                monthlyStats[key].SB += (pg.sb || 0);
+                            });
+                            (pitByGame[gid] || []).forEach(pg => { monthlyStats[key].K += (pg.so || 0); });
+                        });
+                        const monthOrder = monthNames.filter(m => monthlyStats[m]);
+
+                        return (
+                            <>
+                                <div className="bg-white rounded-lg shadow">
+                                    <div className="p-4 border-b">
+                                        <h2 className="section-title font-bold">📈 Cumulative Stats Over Time</h2>
+                                        <p className="body-text text-gray-500 mt-1">Watch your witnessed stats grow game by game</p>
+                                    </div>
+                                    <div className="p-4">
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            {statDefs.map(s => (
+                                                <button key={s.key} onClick={() => setActiveStat(s.key)}
+                                                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${activeStat === s.key ? 'text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                                    style={activeStat === s.key ? { backgroundColor: s.color } : {}}>
+                                                    {s.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="w-full overflow-x-auto">
+                                            <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ minWidth: '400px' }}>
+                                                {/* Grid lines */}
+                                                {yLabels.map((l, i) => (
+                                                    <g key={i}>
+                                                        <line x1={pad.left} y1={l.y} x2={width - pad.right} y2={l.y} stroke="#e5e7eb" strokeWidth="1" />
+                                                        <text x={pad.left - 8} y={l.y + 4} textAnchor="end" fill="#6b7280" fontSize="11">{l.val.toLocaleString()}</text>
+                                                    </g>
+                                                ))}
+                                                {/* Year labels */}
+                                                {yearLabels.map((l, i) => (
+                                                    <text key={i} x={l.x} y={height - 5} textAnchor="middle" fill="#6b7280" fontSize="11">{l.year}</text>
+                                                ))}
+                                                {/* Area fill */}
+                                                <polygon points={`${pad.left},${pad.top + chartH} ${points} ${width - pad.right},${pad.top + chartH}`} fill={activeColor} fillOpacity="0.1" />
+                                                {/* Line */}
+                                                <polyline points={points} fill="none" stroke={activeColor} strokeWidth="2.5" strokeLinejoin="round" />
+                                                {/* End point */}
+                                                {cumulativeData.length > 0 && (() => {
+                                                    const last = cumulativeData[cumulativeData.length - 1];
+                                                    const x = width - pad.right;
+                                                    const y = pad.top + chartH - (last[activeStat] / maxVal) * chartH;
+                                                    return <circle cx={x} cy={y} r="4" fill={activeColor} />;
+                                                })()}
+                                            </svg>
+                                        </div>
+                                        <div className="text-center mt-2 text-sm text-gray-500">
+                                            Total: <span className="font-bold" style={{ color: activeColor }}>{cumulativeData[cumulativeData.length - 1]?.[activeStat]?.toLocaleString()}</span> {statDefs.find(s => s.key === activeStat)?.label.toLowerCase()} across {cumulativeData.length} games
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Monthly Breakdown */}
+                                {monthOrder.length > 0 && (
+                                    <div className="bg-white rounded-lg shadow">
+                                        <div className="p-4 border-b">
+                                            <h2 className="section-title font-bold">📅 Monthly Breakdown</h2>
+                                        </div>
+                                        <div className="p-4 overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b">
+                                                        <th className="text-left py-2 px-3 font-semibold text-gray-700">Month</th>
+                                                        <th className="text-right py-2 px-3 font-semibold text-gray-700">Games</th>
+                                                        <th className="text-right py-2 px-3 font-semibold text-gray-700">H</th>
+                                                        <th className="text-right py-2 px-3 font-semibold text-gray-700">HR</th>
+                                                        <th className="text-right py-2 px-3 font-semibold text-gray-700">R</th>
+                                                        <th className="text-right py-2 px-3 font-semibold text-gray-700">RBI</th>
+                                                        <th className="text-right py-2 px-3 font-semibold text-gray-700">K</th>
+                                                        <th className="text-right py-2 px-3 font-semibold text-gray-700">BB</th>
+                                                        <th className="text-right py-2 px-3 font-semibold text-gray-700">SB</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {monthOrder.map(m => {
+                                                        const s = monthlyStats[m];
+                                                        return (
+                                                            <tr key={m} className="border-b hover:bg-gray-50">
+                                                                <td className="py-2 px-3 font-medium">{m}</td>
+                                                                <td className="text-right py-2 px-3">{s.games}</td>
+                                                                <td className="text-right py-2 px-3">{s.H.toLocaleString()}</td>
+                                                                <td className="text-right py-2 px-3">{s.HR}</td>
+                                                                <td className="text-right py-2 px-3">{s.R.toLocaleString()}</td>
+                                                                <td className="text-right py-2 px-3">{s.RBI.toLocaleString()}</td>
+                                                                <td className="text-right py-2 px-3">{s.K.toLocaleString()}</td>
+                                                                <td className="text-right py-2 px-3">{s.BB.toLocaleString()}</td>
+                                                                <td className="text-right py-2 px-3">{s.SB}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        );
+                    })()}
+
                     {/* Year over year comparison */}
                     <div className="bg-white rounded-lg shadow">
                         <div className="p-4 border-b">
@@ -5744,7 +5958,7 @@ const Leaderboards = ({ data }) => {
     );
 };
 
-const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) => {
+const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTabChange }) => {
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [careerMilestoneSort, setCareerMilestoneSort] = useState('event'); // 'event' or 'date'
@@ -5846,9 +6060,8 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
                 {/* Category filters */}
                 <div className="flex flex-wrap gap-2 mt-4">
                     {[
-                        { id: 'all', label: 'All', count: totalCount + careerFirstsCount + allTimePassingsCount },
+                        { id: 'all', label: 'All', count: totalCount + careerFirstsCount },
                         { id: 'firsts', label: '⭐ Career Milestones', count: careerFirstsCount },
-                        { id: 'passings', label: '📈 All-Time List', count: allTimePassingsCount },
                         { id: 'batting', label: '🏏 Batting', count: battingCount },
                         { id: 'pitching', label: '⚾ Pitching', count: pitchingCount },
                     ].map(cat => (
@@ -6132,131 +6345,8 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
             )}
 
             {/* All-Time List Passings Section */}
-            {allTimePassings && allTimePassings.length > 0 && (activeCategory === 'all' || activeCategory === 'passings') && (
-                <div className="bg-white rounded-xl shadow overflow-hidden">
-                    <details open={true}>
-                        <summary className="cursor-pointer p-4 bg-gradient-to-r from-purple-600 to-violet-700 text-white hover:opacity-95 transition-opacity">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-2xl">📈</span>
-                                    <h3 className="text-lg font-bold">All-Time List Movements</h3>
-                                </div>
-                                <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-bold">
-                                    {allTimePassings.length} passing{allTimePassings.length !== 1 ? 's' : ''}
-                                </span>
-                            </div>
-                        </summary>
-                        <div className="p-4 bg-gradient-to-b from-purple-50 to-white">
-                            <p className="text-sm text-purple-700 mb-4">
-                                Players who moved up the all-time leaderboards at games you attended
-                            </p>
-                            <div className="space-y-3">
-                                {allTimePassings
-                                    .filter(p => !searchTerm ||
-                                        p.player_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                        p.stat_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                        (p.passed_players || []).some(pp => pp.name?.toLowerCase().includes(searchTerm.toLowerCase()))
-                                    )
-                                    .sort((a, b) => a.new_rank - b.new_rank)  // Sort by rank (most notable first)
-                                    .map((passing, idx) => {
-                                        const playerUrl = passing.player_id
-                                            ? `https://www.baseball-reference.com/players/${passing.player_id.charAt(0).toLowerCase()}/${passing.player_id}.shtml`
-                                            : null;
-                                        const gameUrl = passing.game_id
-                                            ? `https://www.baseball-reference.com/boxes/${passing.game_id.substring(0, 3)}/${passing.game_id}.shtml`
-                                            : null;
-
-                                        const passedPlayers = passing.passed_players || [];
-
-                                        // Format IP in baseball notation (X.1 = X and 1/3, X.2 = X and 2/3)
-                                        const formatIP = (val) => {
-                                            let whole = Math.floor(val);
-                                            const frac = val - whole;
-                                            // Convert decimal fraction to baseball thirds
-                                            let thirds;
-                                            if (frac < 0.17) thirds = 0;
-                                            else if (frac < 0.5) thirds = 1;
-                                            else if (frac < 0.84) thirds = 2;
-                                            else { thirds = 0; whole++; }  // Round up
-                                            return `${whole.toLocaleString()}.${thirds}`;
-                                        };
-
-                                        // Format stat value (use IP notation for innings)
-                                        const formatStatValue = (val, stat) => {
-                                            if (stat === 'IP') return formatIP(val);
-                                            return Number.isInteger(val) ? val.toLocaleString() : val.toFixed(1);
-                                        };
-
-                                        // Separate tied vs passed players using the 'tied' field
-                                        const tiedPlayers = passedPlayers.filter(p => p.tied);
-                                        const actuallyPassed = passedPlayers.filter(p => !p.tied);
-
-                                        // Build display string(s)
-                                        const formatPlayerList = (players) => players.map(p => {
-                                            const valueStr = formatStatValue(p.value, passing.stat);
-                                            return `${p.name} (${valueStr})`;
-                                        }).join(', ');
-
-                                        // Determine what to show
-                                        let passedText = '';
-                                        if (actuallyPassed.length > 0 && tiedPlayers.length > 0) {
-                                            // Mixed: show both
-                                            passedText = `passed ${formatPlayerList(actuallyPassed)}, tied ${formatPlayerList(tiedPlayers)}`;
-                                        } else if (tiedPlayers.length > 0) {
-                                            // All ties
-                                            passedText = `tied ${formatPlayerList(tiedPlayers)}`;
-                                        } else if (actuallyPassed.length > 0) {
-                                            // All passed
-                                            passedText = `passed ${formatPlayerList(actuallyPassed)}`;
-                                        } else {
-                                            passedText = 'moved up';
-                                        }
-
-                                        return (
-                                            <div key={`${passing.player_id}-${passing.stat}-${passing.game_id}`} className="bg-white border border-purple-200 rounded-lg p-4 hover:border-purple-400 hover:shadow transition-all">
-                                                <div className="flex items-start gap-4">
-                                                    <div className={`flex-shrink-0 w-12 h-12 ${passing.new_rank <= 10 ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : passing.new_rank <= 50 ? 'bg-gradient-to-br from-purple-500 to-violet-600' : 'bg-gradient-to-br from-purple-400 to-purple-500'} rounded-full flex items-center justify-center text-white font-bold text-lg`}>
-                                                        #{passing.new_rank}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            {playerUrl ? (
-                                                                <a href={playerUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-purple-700 hover:text-purple-900 hover:underline text-lg">
-                                                                    {passing.player_name}
-                                                                </a>
-                                                            ) : (
-                                                                <span className="font-bold text-gray-900 text-lg">{passing.player_name}</span>
-                                                            )}
-                                                            <span className="text-purple-600 font-medium">
-                                                                {passedText} in {passing.stat_name}
-                                                            </span>
-                                                        </div>
-                                                        <div className="mt-1 text-sm text-gray-600">
-                                                            <span className="font-semibold">{formatStatValue(passing.new_value, passing.stat)}</span>
-                                                            <span className="text-gray-500"> career {passing.stat_name.toLowerCase()}</span>
-                                                        </div>
-                                                        <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-                                                            <span>{passing.date_display || passing.date}</span>
-                                                            {passing.venue && <span>@ {passing.venue}</span>}
-                                                            {gameUrl && (
-                                                                <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700 font-medium">
-                                                                    View Game →
-                                                                </a>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                            </div>
-                        </div>
-                    </details>
-                </div>
-            )}
-
-            {/* Milestone groups - hide when only viewing career firsts or passings */}
-            {activeCategory !== 'firsts' && activeCategory !== 'passings' && (
+            {/* Milestone groups - hide when only viewing career firsts */}
+            {activeCategory !== 'firsts' && (
             <div className="space-y-4">
                 {filteredTypes.map(type => {
                     const items = groupedMilestones[type] || [];
@@ -6455,9 +6545,10 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings }) =>
 const CollegePlayersView = ({ data }) => {
     const ncaaRef = data.ncaaCrossRef || {};
     const allPlayers = [...(data.players || []), ...(data.pitchers || [])];
-    const collegePlayers = useMemo(() => {
+    const { seenPlayers, notSeenPlayers } = useMemo(() => {
         const matched = [];
         const seen = new Set();
+        // Players seen in both college and MLB games
         allPlayers.forEach(p => {
             const pid = p.playerId;
             if (pid && ncaaRef[pid] && !seen.has(pid)) {
@@ -6465,7 +6556,6 @@ const CollegePlayersView = ({ data }) => {
                 const ncaa = ncaaRef[pid];
                 const ncaaStats = ncaa.ncaa_stats || {};
                 const proStats = ncaa.pro_stats || {};
-                // Use NCAA stats if the player has NCAA games, otherwise show MiLB stats
                 const hasNCAA = (ncaaStats.G || 0) > 0;
                 const stats = hasNCAA ? ncaaStats : proStats;
                 const college = (ncaa.ncaa_teams || []).join(', ');
@@ -6484,44 +6574,98 @@ const CollegePlayersView = ({ data }) => {
                     HR: stats.HR || 0,
                     AVG: stats.AVG || '.000',
                     websiteUrl: ncaa.website_url || '',
+                    seenInMlb: true,
                 });
             }
         });
-        return matched.sort((a, b) => {
-            // NCAA players first, then by games
-            if (a.source !== b.source) return a.source === 'NCAA' ? -1 : 1;
-            return b.G - a.G;
+        // NCAA players who reached MLB but weren't at user's MLB games
+        const notSeen = [];
+        Object.entries(ncaaRef).forEach(([key, ncaa]) => {
+            if (seen.has(key)) return;
+            const levels = ncaa.levels || [];
+            if (!levels.includes('MLB') || !levels.includes('NCAA')) return;
+            if (ncaa.seen_in_mlb) return; // Already matched above
+            const mlbBrefId = ncaa.mlb_bref_id || '';
+            if (seen.has(mlbBrefId)) return;
+            seen.add(key);
+            if (mlbBrefId) seen.add(mlbBrefId);
+            const ncaaStats = ncaa.ncaa_stats || {};
+            const college = (ncaa.ncaa_teams || []).join(', ');
+            notSeen.push({
+                name: ncaa.name || key,
+                playerId: mlbBrefId,
+                college: college || 'Unknown',
+                levels: levels.join(', '),
+                source: 'NCAA',
+                G: ncaaStats.G || 0,
+                AB: ncaaStats.AB || 0,
+                H: ncaaStats.H || 0,
+                HR: ncaaStats.HR || 0,
+                AVG: ncaaStats.AVG || '.000',
+                websiteUrl: ncaa.website_url || '',
+                seenInMlb: false,
+            });
         });
+        return {
+            seenPlayers: matched.sort((a, b) => {
+                if (a.source !== b.source) return a.source === 'NCAA' ? -1 : 1;
+                return b.G - a.G;
+            }),
+            notSeenPlayers: notSeen.sort((a, b) => (a.name || '').localeCompare(b.name || '')),
+        };
     }, [allPlayers, ncaaRef]);
 
     if (Object.keys(ncaaRef).length === 0) {
         return <EmptyState icon="🎓" title="No College Data" message="Run the NCAA processor with --export-players to generate cross-reference data." />;
     }
-    if (collegePlayers.length === 0) {
+    if (seenPlayers.length === 0 && notSeenPlayers.length === 0) {
         return <EmptyState icon="🎓" title="No College Matches" message="No players in your games were found in the NCAA processor data." />;
     }
 
     return (
-        <DataTable
-            title={`🎓 College & Minor League Background (${collegePlayers.length} players)`}
-            data={collegePlayers}
-            defaultSortKey="G"
-            columns={[
-                { key: 'name', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
-                { key: 'mlbTeam', label: 'MLB Team' },
-                { key: 'college', label: 'College' },
-                { key: 'levels', label: 'Levels' },
-                { key: 'source', label: 'Stats From', render: (v) => (
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'NCAA' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>{v}</span>
-                )},
-                { key: 'G', label: 'G' },
-                { key: 'AB', label: 'AB' },
-                { key: 'H', label: 'H' },
-                { key: 'HR', label: 'HR' },
-                { key: 'AVG', label: 'AVG' },
-                { key: 'websiteUrl', label: '', render: (v) => v ? <a href={v} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800 small-text font-medium">View on NCAA site →</a> : null },
-            ]}
-        />
+        <div className="space-y-6">
+            {seenPlayers.length > 0 && (
+                <DataTable
+                    title={`🎓 Seen in College & MLB (${seenPlayers.length} players)`}
+                    data={seenPlayers}
+                    defaultSortKey="G"
+                    columns={[
+                        { key: 'name', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
+                        { key: 'mlbTeam', label: 'MLB Team' },
+                        { key: 'college', label: 'College' },
+                        { key: 'levels', label: 'Levels' },
+                        { key: 'source', label: 'Stats From', render: (v) => (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'NCAA' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>{v}</span>
+                        )},
+                        { key: 'G', label: 'G' },
+                        { key: 'AB', label: 'AB' },
+                        { key: 'H', label: 'H' },
+                        { key: 'HR', label: 'HR' },
+                        { key: 'AVG', label: 'AVG' },
+                        { key: 'websiteUrl', label: '', render: (v) => v ? <a href={v} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800 small-text font-medium">View on NCAA site →</a> : null },
+                    ]}
+                />
+            )}
+            {notSeenPlayers.length > 0 && (
+                <DataTable
+                    title={`🎓 Saw in College, Now in MLB (${notSeenPlayers.length} players)`}
+                    data={notSeenPlayers}
+                    defaultSortKey="name"
+                    defaultSortDirection="asc"
+                    columns={[
+                        { key: 'name', label: 'Player', render: (v, r) => r.playerId ? <PlayerLink playerId={r.playerId} name={v} /> : v },
+                        { key: 'college', label: 'College' },
+                        { key: 'levels', label: 'Levels' },
+                        { key: 'G', label: 'College G' },
+                        { key: 'AB', label: 'College AB' },
+                        { key: 'H', label: 'College H' },
+                        { key: 'HR', label: 'College HR' },
+                        { key: 'AVG', label: 'College AVG' },
+                        { key: 'websiteUrl', label: '', render: (v) => v ? <a href={v} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800 small-text font-medium">View on NCAA site →</a> : null },
+                    ]}
+                />
+            )}
+        </div>
     );
 };
 
@@ -6544,11 +6688,272 @@ const PlayersTab = ({ data }) => {
     );
 };
 
+const HistoryWitnessedView = ({ allTimePassings, careerFirsts, games }) => {
+    const [statFilter, setStatFilter] = useState('all');
+    const [rankFilter, setRankFilter] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [viewMode, setViewMode] = useState('timeline'); // 'timeline' or 'by-stat'
+
+    const gameMap = useMemo(() => {
+        const map = {};
+        (games || []).forEach(g => { if (g.gameId) map[g.gameId] = g; });
+        return map;
+    }, [games]);
+
+    // Get unique stats for filter
+    const availableStats = useMemo(() => {
+        const stats = new Set();
+        (allTimePassings || []).forEach(p => stats.add(p.stat_name));
+        return [...stats].sort();
+    }, [allTimePassings]);
+
+    // Filter passings
+    const filtered = useMemo(() => {
+        return (allTimePassings || []).filter(p => {
+            if (statFilter !== 'all' && p.stat_name !== statFilter) return false;
+            if (rankFilter === 'top10' && p.new_rank > 10) return false;
+            if (rankFilter === 'top25' && p.new_rank > 25) return false;
+            if (rankFilter === 'top50' && p.new_rank > 50) return false;
+            if (searchTerm) {
+                const s = searchTerm.toLowerCase();
+                if (!p.player_name?.toLowerCase().includes(s) &&
+                    !p.stat_name?.toLowerCase().includes(s) &&
+                    !(p.passed_players || []).some(pp => pp.name?.toLowerCase().includes(s))) return false;
+            }
+            return true;
+        });
+    }, [allTimePassings, statFilter, rankFilter, searchTerm]);
+
+    // Notable moments (lowest ranks achieved)
+    const notableMoments = useMemo(() => {
+        return [...(allTimePassings || [])].sort((a, b) => a.new_rank - b.new_rank).slice(0, 5);
+    }, [allTimePassings]);
+
+    // Stats summary
+    const summary = useMemo(() => {
+        const players = new Set();
+        const stats = new Set();
+        (allTimePassings || []).forEach(p => { players.add(p.player_name); stats.add(p.stat_name); });
+        const lowestRank = Math.min(...(allTimePassings || []).map(p => p.new_rank));
+        return { total: (allTimePassings || []).length, players: players.size, stats: stats.size, bestRank: lowestRank };
+    }, [allTimePassings]);
+
+    // Format helpers
+    const formatIP = (val) => {
+        let whole = Math.floor(val);
+        const frac = val - whole;
+        let thirds;
+        if (frac < 0.17) thirds = 0;
+        else if (frac < 0.5) thirds = 1;
+        else if (frac < 0.84) thirds = 2;
+        else { thirds = 0; whole++; }
+        return `${whole.toLocaleString()}.${thirds}`;
+    };
+    const formatStatValue = (val, stat) => {
+        if (stat === 'IP') return formatIP(val);
+        return Number.isInteger(val) ? val.toLocaleString() : val.toFixed(1);
+    };
+
+    // Group by stat for by-stat view
+    const byStat = useMemo(() => {
+        const groups = {};
+        filtered.forEach(p => {
+            if (!groups[p.stat_name]) groups[p.stat_name] = [];
+            groups[p.stat_name].push(p);
+        });
+        Object.values(groups).forEach(arr => arr.sort((a, b) => a.new_rank - b.new_rank));
+        return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+    }, [filtered]);
+
+    const sortedFiltered = useMemo(() => {
+        return [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    }, [filtered]);
+
+    if (!allTimePassings || allTimePassings.length === 0) {
+        return <EmptyState icon="📜" title="No History Data" message="No all-time list movements have been recorded yet." />;
+    }
+
+    const renderPassing = (passing, idx) => {
+        const playerUrl = passing.player_id
+            ? `https://www.baseball-reference.com/players/${passing.player_id.charAt(0).toLowerCase()}/${passing.player_id}.shtml`
+            : null;
+        const passedPlayers = passing.passed_players || [];
+        const tiedPlayers = passedPlayers.filter(p => p.tied);
+        const actuallyPassed = passedPlayers.filter(p => !p.tied);
+        const formatPlayerList = (players) => players.map(p => {
+            const valueStr = formatStatValue(p.value, passing.stat);
+            return `${p.name} (${valueStr})`;
+        }).join(', ');
+        let passedText = '';
+        if (actuallyPassed.length > 0 && tiedPlayers.length > 0) {
+            passedText = `passed ${formatPlayerList(actuallyPassed)}, tied ${formatPlayerList(tiedPlayers)}`;
+        } else if (tiedPlayers.length > 0) {
+            passedText = `tied ${formatPlayerList(tiedPlayers)}`;
+        } else if (actuallyPassed.length > 0) {
+            passedText = `passed ${formatPlayerList(actuallyPassed)}`;
+        } else {
+            passedText = 'moved up';
+        }
+
+        return (
+            <div key={`${passing.player_id}-${passing.stat}-${passing.game_id}-${idx}`} className="flex items-start gap-4 relative">
+                <div className="flex flex-col items-center flex-shrink-0">
+                    <div className={`w-14 h-14 ${passing.new_rank <= 10 ? 'bg-gradient-to-br from-yellow-400 to-amber-500 ring-2 ring-yellow-300' : passing.new_rank <= 25 ? 'bg-gradient-to-br from-purple-500 to-violet-600' : passing.new_rank <= 50 ? 'bg-gradient-to-br from-purple-400 to-purple-500' : 'bg-gradient-to-br from-gray-400 to-gray-500'} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md`}>
+                        #{passing.new_rank}
+                    </div>
+                </div>
+                <div className="flex-1 bg-white border border-purple-200 rounded-lg p-4 hover:border-purple-400 hover:shadow-md transition-all">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {playerUrl ? (
+                            <a href={playerUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-purple-700 hover:text-purple-900 hover:underline text-lg">
+                                {passing.player_name}
+                            </a>
+                        ) : (
+                            <span className="font-bold text-gray-900 text-lg">{passing.player_name}</span>
+                        )}
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">{passing.stat_name}</span>
+                    </div>
+                    <p className="text-purple-600 mt-1">{passedText}</p>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                        <span className="font-semibold text-purple-700">{formatStatValue(passing.new_value, passing.stat)} career {passing.stat_name.toLowerCase()}</span>
+                        <span>{passing.date_display || passing.date}</span>
+                        {passing.venue && <span>@ {passing.venue}</span>}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">📜 History Witnessed</h1>
+                        <p className="text-gray-500 mt-1">Players climbing the all-time leaderboards at games you attended</p>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="bg-purple-50 rounded-lg p-3 text-center">
+                            <div className="text-2xl font-bold text-purple-700">{summary.total}</div>
+                            <div className="text-xs text-purple-600">Passings</div>
+                        </div>
+                        <div className="bg-purple-50 rounded-lg p-3 text-center">
+                            <div className="text-2xl font-bold text-purple-700">{summary.players}</div>
+                            <div className="text-xs text-purple-600">Players</div>
+                        </div>
+                        <div className="bg-purple-50 rounded-lg p-3 text-center">
+                            <div className="text-2xl font-bold text-purple-700">{summary.stats}</div>
+                            <div className="text-xs text-purple-600">Stat Categories</div>
+                        </div>
+                        <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                            <div className="text-2xl font-bold text-yellow-700">#{summary.bestRank}</div>
+                            <div className="text-xs text-yellow-600">Highest Rank</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap gap-3 mt-4 items-center">
+                    <select value={statFilter} onChange={(e) => setStatFilter(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="all">All Stats</option>
+                        {availableStats.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <select value={rankFilter} onChange={(e) => setRankFilter(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="all">All Ranks</option>
+                        <option value="top10">Top 10</option>
+                        <option value="top25">Top 25</option>
+                        <option value="top50">Top 50</option>
+                    </select>
+                    <input type="text" placeholder="Search player..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1 min-w-[150px]" />
+                    <div className="flex rounded-lg overflow-hidden border border-gray-300">
+                        <button onClick={() => setViewMode('timeline')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'timeline' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>Timeline</button>
+                        <button onClick={() => setViewMode('by-stat')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'by-stat' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>By Stat</button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Notable Moments */}
+            {statFilter === 'all' && rankFilter === 'all' && !searchTerm && (
+                <div className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl shadow p-6 border border-yellow-200">
+                    <h2 className="text-lg font-bold text-yellow-800 mb-4">Most Notable Moments</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {notableMoments.map((p, i) => (
+                            <div key={i} className="bg-white rounded-lg p-3 border border-yellow-200 shadow-sm">
+                                <div className="flex items-center gap-2">
+                                    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-white text-sm font-bold ${p.new_rank <= 10 ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : 'bg-gradient-to-br from-purple-500 to-violet-600'}`}>#{p.new_rank}</span>
+                                    <div>
+                                        <div className="font-bold text-gray-900 text-sm">{p.player_name}</div>
+                                        <div className="text-xs text-gray-500">{p.stat_name} - {p.date_display || p.date}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Timeline View */}
+            {viewMode === 'timeline' && (
+                <div className="space-y-4">
+                    {sortedFiltered.map((p, i) => renderPassing(p, i))}
+                    {sortedFiltered.length === 0 && <EmptyState icon="🔍" title="No Results" message="No passings match your filters." />}
+                </div>
+            )}
+
+            {/* By-Stat View */}
+            {viewMode === 'by-stat' && (
+                <div className="space-y-6">
+                    {byStat.map(([stat, passings]) => (
+                        <div key={stat} className="bg-white rounded-xl shadow overflow-hidden">
+                            <div className="p-4 bg-gradient-to-r from-purple-600 to-violet-700 text-white flex items-center justify-between">
+                                <h3 className="font-bold text-lg">{stat}</h3>
+                                <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-bold">{passings.length} passing{passings.length !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="p-4 space-y-3">
+                                {passings.map((p, i) => renderPassing(p, i))}
+                            </div>
+                        </div>
+                    ))}
+                    {byStat.length === 0 && <EmptyState icon="🔍" title="No Results" message="No passings match your filters." />}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const Dashboard = ({ data, onTabChange }) => {
     // Get recent highlights for the dashboard
     const toSortDate = (d) => { const p = (d || '').split('/'); return p.length === 3 ? `${p[2]}${p[0]}${p[1]}` : d || ''; };
     const recentDebuts = useMemo(() => [...(data.debuts || [])].sort((a, b) => toSortDate(b.date).localeCompare(toSortDate(a.date))).slice(0, 5), [data.debuts]);
     const recentFinalGames = useMemo(() => [...(data.finalGames || [])].sort((a, b) => toSortDate(b.date).localeCompare(toSortDate(a.date))).slice(0, 5), [data.finalGames]);
+
+    // Notable career milestones (round number milestones like 100th, 200th, 500th HR)
+    const notableCareerMilestones = useMemo(() => {
+        return [...(data.careerFirsts || [])]
+            .filter(f => {
+                const match = f.milestone?.match(/#?(\\d+)/);
+                if (match) {
+                    const num = parseInt(match[1]);
+                    return num >= 100 && num % 100 === 0;
+                }
+                return false;
+            })
+            .sort((a, b) => {
+                const numA = parseInt((a.milestone?.match(/#?(\\d+)/) || [])[1] || 0);
+                const numB = parseInt((b.milestone?.match(/#?(\\d+)/) || [])[1] || 0);
+                return numB - numA;
+            })
+            .slice(0, 8);
+    }, [data.careerFirsts]);
+
+    // Top all-time passings for dashboard preview
+    const topPassings = useMemo(() => {
+        return [...(data.allTimePassings || [])].sort((a, b) => a.new_rank - b.new_rank).slice(0, 5);
+    }, [data.allTimePassings]);
 
     return (
         <div className="space-y-6">
@@ -6599,6 +7004,55 @@ const Dashboard = ({ data, onTabChange }) => {
                                             <span className="small-text text-gray-500 ml-2">{d.team}</span>
                                         </div>
                                         <span className="small-text text-gray-400">{d.date}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Notable Career Milestones & History */}
+            {(notableCareerMilestones.length > 0 || topPassings.length > 0) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {notableCareerMilestones.length > 0 && (
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="subsection-title font-bold text-gray-900">⭐ Notable Career Milestones</h3>
+                                <button onClick={() => onTabChange && onTabChange('milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
+                            </div>
+                            <div className="space-y-3">
+                                {notableCareerMilestones.map((m, i) => {
+                                    const num = (m.milestone?.match(/#?(\\d+)/) || [])[1] || '';
+                                    return (
+                                        <div key={`cm-${i}`} className="flex items-center gap-3 py-2 border-b last:border-0">
+                                            <span className="inline-flex items-center justify-center min-w-[48px] h-8 bg-gradient-to-r from-amber-400 to-yellow-500 text-white text-sm font-bold rounded-full px-2">#{num}</span>
+                                            <div className="flex-1">
+                                                <PlayerLink playerId={m.player_id} name={m.player_name} />
+                                                <span className="small-text text-gray-500 ml-1">{m.milestone?.replace(/#?\\d+\\w*\\s*/, '').trim()}</span>
+                                            </div>
+                                            <span className="small-text text-gray-400">{m.date_display || m.date}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                    {topPassings.length > 0 && (
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="subsection-title font-bold text-gray-900">📜 History Witnessed</h3>
+                                <button onClick={() => onTabChange && onTabChange('history')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all {data.allTimePassings?.length || 0} →</button>
+                            </div>
+                            <div className="space-y-3">
+                                {topPassings.map((p, i) => (
+                                    <div key={`hp-${i}`} className="flex items-center gap-3 py-2 border-b last:border-0">
+                                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-white text-sm font-bold ${p.new_rank <= 10 ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : 'bg-gradient-to-br from-purple-500 to-violet-600'}`}>#{p.new_rank}</span>
+                                        <div className="flex-1">
+                                            <PlayerLink playerId={p.player_id} name={p.player_name} />
+                                            <span className="small-text text-purple-600 ml-1">{p.stat_name}</span>
+                                        </div>
+                                        <span className="small-text text-gray-400">{p.date_display || p.date}</span>
                                     </div>
                                 ))}
                             </div>
@@ -8232,7 +8686,7 @@ class ErrorBoundary extends React.Component {
     }
 }
 
-const VALID_TABS = new Set(['dashboard','gamelog','calendar','progress','milestones','leaderboards','players','venues','matchups','special','companions','orioles']);
+const VALID_TABS = new Set(['dashboard','gamelog','calendar','progress','milestones','history','leaderboards','players','venues','matchups','special','companions','orioles']);
 
 const App = () => {
     const [tab, setTab] = useState(() => {
@@ -8417,6 +8871,7 @@ const App = () => {
         { id: 'calendar', label: 'Calendar', icon: '📅' },
         { id: 'progress', label: 'Progress', icon: '🏁' },
         { id: 'milestones', label: 'Milestones', icon: '🏆' },
+        { id: 'history', label: 'History', icon: '📜' },
         { id: 'leaderboards', label: 'Leaders', icon: '🏅' },
         { id: 'players', label: 'Players', icon: '👤' },
         { id: 'venues', label: 'Venues', icon: '🏟️' },
@@ -8495,7 +8950,8 @@ const App = () => {
                         <BadgesDisplay games={data.games || []} />
                     </div>
                 )}
-                {tab === 'milestones' && (data.milestones?.length ? <MilestonesView milestones={data.milestones} games={data.games || []} careerFirsts={data.careerFirsts || []} allTimePassings={data.allTimePassings || []} /> : <EmptyState icon="🏆" title="No Milestones" message="No milestones have been recorded yet." />)}
+                {tab === 'milestones' && (data.milestones?.length ? <MilestonesView milestones={data.milestones} games={data.games || []} careerFirsts={data.careerFirsts || []} allTimePassings={data.allTimePassings || []} onTabChange={setTab} /> : <EmptyState icon="🏆" title="No Milestones" message="No milestones have been recorded yet." />)}
+                {tab === 'history' && <HistoryWitnessedView allTimePassings={data.allTimePassings || []} careerFirsts={data.careerFirsts || []} games={data.games || []} />}
                 {tab === 'leaderboards' && (data.players?.length ? <Leaderboards data={data} /> : <EmptyState icon="🏅" title="No Player Data" message="No player statistics available." />)}
                 {tab === 'players' && (
                     <PlayersTab data={data} />
