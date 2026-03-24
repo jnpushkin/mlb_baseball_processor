@@ -484,7 +484,7 @@ GAME_TYPE_MAP = {
     'L': 'postseason',
     'W': 'postseason',
     'A': 'allstar',
-    'E': 'exhibition',
+    'E': 'spring',  # Group exhibition games with spring training
 }
 
 # Team code mapping (MLB team IDs to standard abbreviations)
@@ -618,7 +618,7 @@ def parse_basic_info(feed_data: dict, box_data: dict) -> dict:
         'home_score': str(home_score),
         'away_score_value': away_score,
         'home_score_value': home_score,
-        'doubleheader': game_info.get('doubleHeader', 'N'),
+        'doubleheader': '0' if game_info.get('doubleHeader', 'N') == 'N' else game_info.get('doubleHeader', '0'),
         'away_team_code': away_code,
         'home_team_code': home_code,
         'game_type': game_type,
@@ -642,7 +642,7 @@ def parse_batting(box_data: dict, side: str, bref_id_map: dict = None, game_year
         bref_id_map = {}
 
     result = []
-    lineup_slot = 0
+    starter_slot = 0
 
     for batter_id in batters:
         player_key = f'ID{batter_id}'
@@ -657,10 +657,14 @@ def parse_batting(box_data: dict, side: str, bref_id_map: dict = None, game_year
 
         mlb_id = person.get('id')
 
-        # Determine if starter and lineup position
-        is_starter = batter_id in batting_order
+        # Determine if starter using gameStatus (not battingOrder which is final order)
+        game_status = player.get('gameStatus', {})
+        is_starter = not game_status.get('isSubstitute', False) and starter_slot < 9
         if is_starter:
-            lineup_slot = batting_order.index(batter_id) + 1
+            starter_slot += 1
+            lineup_slot = starter_slot
+        else:
+            lineup_slot = None
 
         # Use BREF ID if available, otherwise try name-based lookup, then fall back to mlb_ prefix
         player_name = person.get('fullName', '')
@@ -786,15 +790,14 @@ def parse_linescore(feed_data: dict) -> dict:
     teams = linescore.get('teams', {})
 
     return {
-        'innings': len(innings),
         'away': {
-            'runs_by_inning': away_runs,
+            'innings': [str(r) for r in away_runs],
             'R': teams.get('away', {}).get('runs', 0),
             'H': teams.get('away', {}).get('hits', 0),
             'E': teams.get('away', {}).get('errors', 0),
         },
         'home': {
-            'runs_by_inning': home_runs,
+            'innings': [str(r) for r in home_runs],
             'R': teams.get('home', {}).get('runs', 0),
             'H': teams.get('home', {}).get('hits', 0),
             'E': teams.get('home', {}).get('errors', 0),
@@ -978,7 +981,7 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
 
     # Collect all MLB player IDs for batch lookup
     bref_id_map = {}
-    if map_player_ids and HAS_BASEBALL_ID:
+    if map_player_ids:
         all_mlb_ids = set()
         for side in ['away', 'home']:
             team_data = box_data.get('teams', {}).get(side, {})
@@ -991,7 +994,19 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
         if all_mlb_ids:
             if verbose:
                 print(f"  Mapping {len(all_mlb_ids)} player IDs to BREF...")
-            bref_id_map = batch_get_bref_ids(list(all_mlb_ids))
+            # Use Chadwick register + get_bref_id for each player (works without baseball_id)
+            for mlb_id in all_mlb_ids:
+                bref_id = get_bref_id(mlb_id)
+                if bref_id:
+                    bref_id_map[mlb_id] = bref_id
+            # Also try batch lookup via baseball_id if available
+            if HAS_BASEBALL_ID:
+                unmapped = [mid for mid in all_mlb_ids if mid not in bref_id_map or not bref_id_map[mid]]
+                if unmapped:
+                    extra = batch_get_bref_ids(unmapped)
+                    for mid, bid in extra.items():
+                        if bid:
+                            bref_id_map[mid] = bid
             mapped_count = sum(1 for v in bref_id_map.values() if v)
             if verbose:
                 print(f"  Mapped {mapped_count}/{len(all_mlb_ids)} players to BREF IDs")
@@ -1026,6 +1041,79 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
 
     game_id = generate_game_id(basic_info, game_pk)
 
+    # Build lineups from batting starters
+    lineups = {'away': [], 'home': []}
+    for side in ['away', 'home']:
+        for batter in batting[side]:
+            if batter.get('is_starter') and batter.get('lineup_slot'):
+                lineups[side].append({
+                    'slot': batter['lineup_slot'],
+                    'name': batter['name'],
+                    'player_id': batter['player_id'],
+                    'pos': batter['position'],
+                })
+        lineups[side].sort(key=lambda x: x['slot'])
+
+    # Add starting pitchers to lineups
+    for side in ['away', 'home']:
+        if pitching[side]:
+            sp = pitching[side][0]  # First pitcher is the starter
+            lineups[side].append({
+                'slot': 0,
+                'name': sp['name'],
+                'player_id': sp['player_id'],
+                'pos': 'P',
+            })
+
+    # Normalize substitution format to match BREF parser output
+    normalized_subs = []
+    for sub in substitutions:
+        desc = sub.get('description', '')
+        # Parse "Pitching Change: X replaces Y." or "Offensive Sub: X replaces Y."
+        player_in = ''
+        player_out = ''
+        replace_match = re.search(r'(?:Pitching Change:|Offensive Substitution:|Defensive Sub:)?\s*(.+?)\s+replaces\s+(.+?)\.?$', desc)
+        if replace_match:
+            player_in = replace_match.group(1).strip()
+            player_out = replace_match.group(2).strip()
+        elif 'pinch' in desc.lower():
+            ph_match = re.search(r'(.+?)\s+(?:pinch [hb])', desc)
+            if ph_match:
+                player_in = ph_match.group(1).strip()
+
+        normalized_subs.append({
+            'raw': desc,
+            'type': sub.get('type', 'substitution'),
+            'player_in': player_in,
+            'player_out': player_out,
+            'inning': sub.get('inning', 0),
+            'half': sub.get('half', ''),
+            'player_id': sub.get('player_id', ''),
+        })
+
+    # Parse pitcher decisions from live feed
+    decisions = feed_data.get('liveData', {}).get('decisions', {})
+    pitcher_decisions = {}
+    decision_mlb_ids = {}
+    if decisions:
+        for role, key in [('winner', 'winning_pitcher'), ('loser', 'losing_pitcher'), ('save', 'save_pitcher')]:
+            player = decisions.get(role, {})
+            if player:
+                mlb_id = player.get('id')
+                name = player.get('fullName', '')
+                bref_id = bref_id_map.get(mlb_id, '')
+                pitcher_decisions[key] = name
+                pitcher_decisions[f'{key}_id'] = bref_id or f'mlb_{mlb_id}'
+                decision_mlb_ids[role] = mlb_id
+
+    # Set win/loss/save flags on individual pitcher data
+    for side in ['away', 'home']:
+        for pitcher in pitching[side]:
+            mlb_id = pitcher.get('mlb_id')
+            pitcher['win'] = mlb_id == decision_mlb_ids.get('winner')
+            pitcher['loss'] = mlb_id == decision_mlb_ids.get('loser')
+            pitcher['save'] = mlb_id == decision_mlb_ids.get('save')
+
     game_data = {
         'basic_info': basic_info,
         'batting': batting,
@@ -1035,10 +1123,10 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
         'mlb_game_pk': game_pk,
         'source': 'mlb',
         # Parsed fields
-        'lineups': {'away': [], 'home': []},
-        'substitutions': substitutions,
+        'lineups': lineups,
+        'substitutions': normalized_subs,
         'play_by_play': play_by_play,
-        'pitcher_decisions': {},
+        'pitcher_decisions': pitcher_decisions,
         'special_events': {},
         'milestone_stats': {},
         'umpires': {},

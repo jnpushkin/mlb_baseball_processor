@@ -737,8 +737,19 @@ class DataSerializer:
                         if ab == 0 and pa == 0:
                             continue
                         
-                        # Get extra stats for this player by ID
+                        # Get extra stats for this player by ID (from play-by-play),
+                        # falling back to batting data (MLB API stores 2B/3B/HR directly)
                         player_extra = extra_stats.get(player_id, {})
+                        if not player_extra.get('HR') and not player_extra.get('2B') and not player_extra.get('3B'):
+                            player_extra = {
+                                'HR': int(player.get('HR', 0)),
+                                '2B': int(player.get('2B', 0)),
+                                '3B': int(player.get('3B', 0)),
+                                'SB': player_extra.get('SB', int(player.get('SB', 0))),
+                                'CS': player_extra.get('CS', int(player.get('CS', 0))),
+                                'HBP': int(player.get('HBP', 0)),
+                                'GIDP': int(player.get('GDP', 0)),
+                            }
 
                         # Parse SB/CS from Details column (e.g., "2·SB", "SB,CS", "2B,SB")
                         details_sb = 0
@@ -773,6 +784,7 @@ class DataSerializer:
                             'team': team,
                             'opponent': opponent,
                             'gameId': game_id,
+                            'gameType': basic_info.get('game_type', 'regular'),
                             'ab': ab,
                             'pa': pa,
                             'h': int(player.get('H', 0)),
@@ -823,15 +835,17 @@ class DataSerializer:
                 }
             
             # Count extra base hits from play-by-play
-            if play.get('double'): 
+            # BREF format uses boolean flags; MLB API uses event_type strings
+            event_type = play.get('event_type', '')
+            if play.get('double') or event_type == 'double':
                 player_stats[player_id]['2B'] += 1
-            if play.get('triple'): 
+            if play.get('triple') or event_type == 'triple':
                 player_stats[player_id]['3B'] += 1
-            if play.get('home_run'): 
+            if play.get('home_run') or event_type == 'home_run':
                 player_stats[player_id]['HR'] += 1
-            if play.get('hit_by_pitch'): 
+            if play.get('hit_by_pitch') or event_type == 'hit_by_pitch':
                 player_stats[player_id]['HBP'] += 1
-            if play.get('double_play'): 
+            if play.get('double_play') or event_type == 'grounded_into_double_play':
                 player_stats[player_id]['GIDP'] += 1
             
             # Check description for SB/CS (they're not always in the main flags)
@@ -902,6 +916,7 @@ class DataSerializer:
                             'team': team,
                             'opponent': opponent,
                             'gameId': game_id,
+                            'gameType': basic_info.get('game_type', 'regular'),
                             'outs': outs,
                             'h': int(pitcher.get('H', 0)),
                             'r': int(pitcher.get('R', 0)),
@@ -1171,8 +1186,15 @@ class DataSerializer:
         # Play-by-play - use raw_plays to get ALL events including steals
         raw_plays = raw_game.get('raw_plays', [])
         if raw_plays:
-            details['playByPlay'] = [
-                {
+            pbp_list = []
+            for play in raw_plays[:300]:
+                event_type = play.get('event_type', '')
+                desc_lower = play.get('description', '').lower()
+                # Score: BREF uses 'score' string, MLB API has away_score/home_score
+                score = play.get('score', '')
+                if not score and (play.get('away_score') is not None or play.get('home_score') is not None):
+                    score = f"{play.get('away_score', 0)}-{play.get('home_score', 0)}"
+                pbp_list.append({
                     'inning': play.get('inning', 0),
                     'half': play.get('half', ''),
                     'batter': play.get('batter', ''),
@@ -1180,18 +1202,17 @@ class DataSerializer:
                     'pitcher': play.get('pitcher', ''),
                     'pitcherId': play.get('pitcher_id', ''),
                     'description': play.get('description', ''),
-                    'outs': play.get('outs'),
-                    'score': play.get('score', ''),
+                    'outs': play.get('outs') if play.get('outs') is not None else play.get('outs_before'),
+                    'score': score,
                     'pitchCount': play.get('pitch_count', 0),
                     'battingTeam': play.get('batting_team', ''),
-                    'isHomeRun': play.get('home_run', False),
-                    'isStrikeout': play.get('strikeout', False),
-                    'isWalk': play.get('walk', False),
-                    'isStolenBase': 'steals' in play.get('description', '').lower() or 'stolen base' in play.get('description', '').lower(),
-                    'isCaughtStealing': 'caught stealing' in play.get('description', '').lower()
-                }
-                for play in raw_plays[:300]  # Increased limit for raw plays
-            ]
+                    'isHomeRun': play.get('home_run', False) or event_type == 'home_run',
+                    'isStrikeout': play.get('strikeout', False) or event_type == 'strikeout',
+                    'isWalk': play.get('walk', False) or event_type == 'walk',
+                    'isStolenBase': 'steals' in desc_lower or 'stolen base' in desc_lower,
+                    'isCaughtStealing': 'caught stealing' in desc_lower
+                })
+            details['playByPlay'] = pbp_list
 
         return details
     

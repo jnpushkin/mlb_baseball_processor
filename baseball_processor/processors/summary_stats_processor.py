@@ -2170,13 +2170,32 @@ class SummaryStatsProcessor(BaseProcessor):
                     first_seen_matchups[matchup] = (date_obj, date_str)
                 matchup_counts[matchup] += 1
 
-        team_list = sorted({standardize_team_code(name) for name in normalized_teams})
+        # Standard MLB team codes (30 current teams)
+        mlb_team_codes = {
+            'LAA', 'BAL', 'BOS', 'CWS', 'CLE', 'DET', 'HOU', 'KC',
+            'MIN', 'NYY', 'OAK', 'SEA', 'TB', 'TEX', 'TOR',
+            'ARI', 'ATL', 'CHC', 'CIN', 'COL', 'MIA', 'LAD', 'MIL',
+            'WSH', 'NYM', 'PHI', 'PIT', 'SD', 'SF', 'STL',
+            'ATH',  # Athletics alternate code
+        }
+        all_codes = {standardize_team_code(name) for name in normalized_teams}
+        # Also unify ATH -> OAK
+        all_codes = {unify_team_code(c) for c in all_codes}
+        team_list = sorted(all_codes & mlb_team_codes)
 
         # Precompute a mapping from standardized code -> one representative full name
         code_to_name = {}
         for full_name in normalized_teams:
-            code = standardize_team_code(full_name)
+            code = unify_team_code(standardize_team_code(full_name))
             code_to_name.setdefault(code, full_name)
+
+        # Rebuild matchup_counts with unified codes
+        unified_matchup_counts = defaultdict(int)
+        for (name_a, name_b), count in matchup_counts.items():
+            code_a = unify_team_code(standardize_team_code(name_a))
+            code_b = unify_team_code(standardize_team_code(name_b))
+            key = tuple(sorted((code_a, code_b)))
+            unified_matchup_counts[key] += count
 
         matchup_data = []
         for row_code in team_list:
@@ -2185,13 +2204,8 @@ class SummaryStatsProcessor(BaseProcessor):
                 if row_code == col_code:
                     row[col_code] = "X"
                 else:
-                    a_full = code_to_name.get(row_code)
-                    b_full = code_to_name.get(col_code)
-                    if a_full and b_full:
-                        key = tuple(sorted((a_full, b_full)))
-                        row[col_code] = matchup_counts.get(key, "")
-                    else:
-                        row[col_code] = ""
+                    key = tuple(sorted((row_code, col_code)))
+                    row[col_code] = unified_matchup_counts.get(key, "")
             matchup_data.append(row)
 
         df_matchups = pd.DataFrame(matchup_data, index=team_list)

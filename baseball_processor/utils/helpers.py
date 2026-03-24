@@ -110,6 +110,7 @@ def normalize_name(name):
 _TEAM_CODE_ALIASES = {
     # Only include non-standard codes that should always be converted
     "Tampa Bay Devil Rays": "TB",  # This is a name, not a code
+    "ATH": "OAK",  # Athletics (renamed/relocated) -> Oakland Athletics
 }
 
 _TEAM_NAME_TO_CODE = {

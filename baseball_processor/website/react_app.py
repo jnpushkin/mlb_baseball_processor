@@ -172,8 +172,11 @@ const exportToCSV = (data, columns, filename) => {
 
 const PlayerLink = ({ playerId, name }) => {
     if (!playerId || playerId === 'UNKNOWN') return <span>{name}</span>;
-    const firstLetter = playerId.charAt(0).toLowerCase();
-    const url = `https://www.baseball-reference.com/players/${firstLetter}/${playerId}.shtml`;
+    // Register-format IDs (minor league) have 3 digits in positions 5-8 (e.g., "nunez-001gus", "mendoz000vic")
+    const isRegisterFormat = playerId.length >= 10 && /\d{3}/.test(playerId.substring(5, 9));
+    const url = isRegisterFormat
+        ? `https://www.baseball-reference.com/register/player.fcgi?id=${playerId}`
+        : `https://www.baseball-reference.com/players/${playerId.charAt(0).toLowerCase()}/${playerId}.shtml`;
     return <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{name}</a>;
 };
 
@@ -643,9 +646,9 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
             <td className="px-2 py-2 text-center font-semibold">{player.h}</td>
             <td className="px-2 py-2 text-center">{player.r}</td>
             <td className="px-2 py-2 text-center">{player.rbi}</td>
-            <td className="px-2 py-2 text-center font-bold text-blue-600">{player.hr > 0 ? player.hr : '-'}</td>
-            <td className="px-2 py-2 text-center">{player.doubles > 0 ? player.doubles : '-'}</td>
-            <td className="px-2 py-2 text-center">{player.triples > 0 ? player.triples : '-'}</td>
+            <td className={`px-2 py-2 text-center ${player.hr > 0 ? 'font-bold text-blue-600' : ''}`}>{player.hr || 0}</td>
+            <td className="px-2 py-2 text-center">{player.doubles || 0}</td>
+            <td className="px-2 py-2 text-center">{player.triples || 0}</td>
             <td className="px-2 py-2 text-center">{player.bb}</td>
             <td className="px-2 py-2 text-center">{player.so}</td>
         </tr>
@@ -1039,9 +1042,9 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
     
     return (
         <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-2xl max-w-6xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-lg shadow-2xl max-w-6xl max-w-[95vw] w-full max-h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
-                <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white flex-shrink-0">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="section-title font-bold">{game.awayTeam} @ {game.homeTeam}</h3>
                         <button onClick={onClose} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
@@ -1076,16 +1079,16 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                 </div>
                 
                 {/* Game Context Section */}
-                <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50 overflow-y-auto max-h-[40vh]">
+                <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50 overflow-y-auto max-h-[35vh] flex-shrink-0">
                     {/* Linescore */}
                     {game.linescore && (
                         <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
                             <h5 className="small-text font-bold mb-3 text-gray-700">📊 Line Score</h5>
                             <div className="overflow-x-auto">
-                                <table className="w-full text-center small-text">
+                                <table className="text-center small-text">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-3 py-2 text-left">Team</th>
+                                            <th className="px-3 py-2 text-left min-w-[60px]">Team</th>
                                             {Array.from({ length: Math.max(game.linescore.away?.innings?.length || 9, game.linescore.home?.innings?.length || 9, 9) }, (_, i) => (
                                                 <th key={`inning-${i}`} className="px-2 py-2 w-8">{i + 1}</th>
                                             ))}
@@ -1256,7 +1259,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                 </div>
                 
                 {/* Tab Navigation */}
-                <div className="border-b bg-gray-50">
+                <div className="border-b bg-gray-50 flex-shrink-0">
                     <div className="flex gap-1 px-6">
                         {['boxscore', 'lineups', 'substitutions', 'playbyplay'].map(tab => (
                             <button
@@ -1278,7 +1281,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                 </div>
                 
                 {/* Tab Content - Scrollable */}
-                <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 500px)' }}>
+                <div className="overflow-y-auto flex-1 min-h-0">
                     {activeTab === 'boxscore' && <BoxScoreTab />}
                     {activeTab === 'lineups' && <LineupsTab />}
                     {activeTab === 'substitutions' && <SubstitutionsTab />}
@@ -1310,21 +1313,23 @@ const PlayerTimeline = ({ playerId, playerName, playerGames }) => {
     const timelineData = useMemo(() => {
         if (gamesForPlayer.length === 0) return [];
 
-        // Group by year
-        const byYear = {};
+        // Group by year and game type (separate spring training)
+        const byYearType = {};
         gamesForPlayer.forEach(game => {
             const year = game.dateSort.substring(0, 4);
-            if (!byYear[year]) {
-                byYear[year] = [];
+            const isSpring = game.gameType === 'spring' || game.gameType === 'exhibition';
+            const key = isSpring ? `${year}_spring` : year;
+            if (!byYearType[key]) {
+                byYearType[key] = { year, isSpring, games: [] };
             }
-            byYear[year].push(game);
+            byYearType[key].games.push(game);
         });
 
-        // Aggregate stats per year
-        const yearlyStats = Object.entries(byYear).map(([year, games]) => {
+        // Aggregate stats per year/type
+        const yearlyStats = Object.values(byYearType).map(({ year, isSpring, games }) => {
             const aggregated = aggregateHitterStats(games)[0] || {};
-            return { year, ...aggregated };
-        }).sort((a, b) => a.year - b.year);
+            return { year, isSpring, ...aggregated };
+        }).sort((a, b) => a.year !== b.year ? a.year - b.year : (a.isSpring ? -1 : 0) - (b.isSpring ? -1 : 0));
 
         return yearlyStats;
     }, [gamesForPlayer]);
@@ -1443,19 +1448,26 @@ const PlayerTimeline = ({ playerId, playerName, playerGames }) => {
             {activeView === 'timeline' && (
                 <div>
             
-            {/* Career summary stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 p-4 bg-blue-50 rounded-lg">
-                {(() => {
-                    const totals = timelineData.reduce((acc, season) => ({
-                        games: acc.games + (season.games || 0),
-                        pa: acc.pa + (season.pa || 0),
-                        hr: acc.hr + (season.hr || 0),
-                        rbi: acc.rbi + (season.rbi || 0),
-                        h: acc.h + (season.h || 0)
-                    }), { games: 0, pa: 0, hr: 0, rbi: 0, h: 0 });
-                    
-                    return (
-                        <>
+            {/* Career summary stats (regular season only) */}
+            {(() => {
+                const regSeasons = timelineData.filter(s => !s.isSpring);
+                const springSeasons = timelineData.filter(s => s.isSpring);
+                const totals = regSeasons.reduce((acc, season) => ({
+                    games: acc.games + (season.games || 0),
+                    pa: acc.pa + (season.pa || 0),
+                    hr: acc.hr + (season.hr || 0),
+                    rbi: acc.rbi + (season.rbi || 0),
+                    h: acc.h + (season.h || 0)
+                }), { games: 0, pa: 0, hr: 0, rbi: 0, h: 0 });
+                const springTotals = springSeasons.reduce((acc, season) => ({
+                    games: acc.games + (season.games || 0),
+                    pa: acc.pa + (season.pa || 0),
+                    h: acc.h + (season.h || 0)
+                }), { games: 0, pa: 0, h: 0 });
+
+                return (
+                    <>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 p-4 bg-blue-50 rounded-lg">
                             <div className="text-center">
                                 <div className="text-2xl font-bold text-blue-600">{totals.games}</div>
                                 <div className="small-text text-gray-600">Games</div>
@@ -1476,20 +1488,26 @@ const PlayerTimeline = ({ playerId, playerName, playerGames }) => {
                                 <div className="text-2xl font-bold text-blue-600">{totals.rbi}</div>
                                 <div className="small-text text-gray-600">RBI</div>
                             </div>
-                        </>
-                    );
-                })()}
-            </div>
+                        </div>
+                        {springTotals.games > 0 && (
+                            <div className="mb-6 px-4 py-2 bg-green-50 rounded-lg text-sm text-green-700">
+                                🌴 Spring Training: {springTotals.games} games, {springTotals.pa} PA, {springTotals.h} H
+                            </div>
+                        )}
+                    </>
+                );
+            })()}
             
             {/* Year-by-year timeline */}
             <div className="space-y-4">
                 {timelineData.map((season) => (
-                    <div key={`season-${season.year}`} className="relative pl-8 pb-4 border-l-2 border-blue-200 last:border-l-0">
-                        <div className="absolute left-0 top-0 -ml-2.5 w-5 h-5 bg-blue-600 rounded-full border-2 border-white"></div>
-                        <div className="bg-gray-50 rounded-lg p-4 hover:bg-blue-50 transition-colors">
+                    <div key={`season-${season.year}${season.isSpring ? '-spring' : ''}`} className="relative pl-8 pb-4 border-l-2 border-blue-200 last:border-l-0">
+                        <div className={`absolute left-0 top-0 -ml-2.5 w-5 h-5 ${season.isSpring ? 'bg-green-500' : 'bg-blue-600'} rounded-full border-2 border-white`}></div>
+                        <div className={`${season.isSpring ? 'bg-green-50 hover:bg-green-100' : 'bg-gray-50 hover:bg-blue-50'} rounded-lg p-4 transition-colors`}>
                             <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <span className="text-2xl font-bold text-blue-600">{season.year}</span>
+                                    <span className={`text-2xl font-bold ${season.isSpring ? 'text-green-600' : 'text-blue-600'}`}>{season.year}</span>
+                                    {season.isSpring && <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">Spring Training</span>}
                                     <span className="ml-3 body-text text-gray-600">{season.team || 'Various Teams'}</span>
                                 </div>
                                 <span className="body-text text-gray-600 font-semibold">{season.games} games</span>
@@ -1577,21 +1595,23 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames }) => {
     const timelineData = useMemo(() => {
         if (gamesForPitcher.length === 0) return [];
 
-        // Group by year
-        const byYear = {};
+        // Group by year and game type (separate spring training)
+        const byYearType = {};
         gamesForPitcher.forEach(game => {
             const year = game.dateSort.substring(0, 4);
-            if (!byYear[year]) {
-                byYear[year] = [];
+            const isSpring = game.gameType === 'spring' || game.gameType === 'exhibition';
+            const key = isSpring ? `${year}_spring` : year;
+            if (!byYearType[key]) {
+                byYearType[key] = { year, isSpring, games: [] };
             }
-            byYear[year].push(game);
+            byYearType[key].games.push(game);
         });
 
-        // Aggregate stats per year
-        const yearlyStats = Object.entries(byYear).map(([year, games]) => {
+        // Aggregate stats per year/type
+        const yearlyStats = Object.values(byYearType).map(({ year, isSpring, games }) => {
             const aggregated = aggregatePitcherStats(games)[0] || {};
-            return { year, ...aggregated };
-        }).sort((a, b) => a.year - b.year);
+            return { year, isSpring, ...aggregated };
+        }).sort((a, b) => a.year !== b.year ? a.year - b.year : (a.isSpring ? -1 : 0) - (b.isSpring ? -1 : 0));
 
         return yearlyStats;
     }, [gamesForPitcher]);
@@ -1754,12 +1774,13 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames }) => {
             {/* Year-by-year timeline */}
             <div className="space-y-4">
                 {timelineData.map((season) => (
-                    <div key={`season-${season.year}`} className="relative pl-8 pb-4 border-l-2 border-purple-200 last:border-l-0">
-                        <div className="absolute left-0 top-0 -ml-2.5 w-5 h-5 bg-purple-600 rounded-full border-2 border-white"></div>
-                        <div className="bg-gray-50 rounded-lg p-4 hover:bg-purple-50 transition-colors">
+                    <div key={`season-${season.year}${season.isSpring ? '-spring' : ''}`} className="relative pl-8 pb-4 border-l-2 border-purple-200 last:border-l-0">
+                        <div className={`absolute left-0 top-0 -ml-2.5 w-5 h-5 ${season.isSpring ? 'bg-green-500' : 'bg-purple-600'} rounded-full border-2 border-white`}></div>
+                        <div className={`${season.isSpring ? 'bg-green-50 hover:bg-green-100' : 'bg-gray-50 hover:bg-purple-50'} rounded-lg p-4 transition-colors`}>
                             <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <span className="text-2xl font-bold text-purple-600">{season.year}</span>
+                                    <span className={`text-2xl font-bold ${season.isSpring ? 'text-green-600' : 'text-purple-600'}`}>{season.year}</span>
+                                    {season.isSpring && <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">Spring Training</span>}
                                     <span className="ml-3 body-text text-gray-600">{season.team || 'Various Teams'}</span>
                                 </div>
                                 <span className="body-text text-gray-600 font-semibold">{season.games} games</span>
@@ -2358,12 +2379,20 @@ const MatchupMatrix = ({ matchupData, games }) => {
     const uniqueMatchupsSeen = seenMatchups.size;
     const completionPercent = Math.round((uniqueMatchupsSeen / totalPossibleMatchups) * 100);
 
+    // Normalize team codes for matching (e.g., ATH -> OAK)
+    const normalizeCode = (code) => {
+        const aliases = { 'ATH': 'OAK', 'FLA': 'MIA' };
+        return aliases[code] || code;
+    };
+
     const handleCellClick = (team, opponent, count) => {
         if (count === 'X' || count === 0) return;
-        const matchupGames = games.filter(game =>
-            (game.homeTeam === team && game.awayTeam === opponent) ||
-            (game.homeTeam === opponent && game.awayTeam === team)
-        ).sort((a, b) => new Date(b.date) - new Date(a.date));
+        const matchupGames = games.filter(game => {
+            const home = normalizeCode(game.homeTeam);
+            const away = normalizeCode(game.awayTeam);
+            return (home === team && away === opponent) ||
+                   (home === opponent && away === team);
+        }).sort((a, b) => new Date(b.date) - new Date(a.date));
         setSelectedMatchup({ team, opponent, games: matchupGames, count });
         setShowModal(true);
     };
