@@ -106,6 +106,101 @@ def deploy_to_surge(html_path: str, domain: str | None = None) -> bool:
             return False
 
 
+def _scrape_career_firsts_for_game(cache_path):
+    """Scrape/update career milestones for all players in a newly parsed game."""
+    from .scrapers.career_firsts_scraper import (
+        get_players_from_game_file, scrape_career_firsts_for_players
+    )
+    info("  🔍 Scraping career milestones for players in this game...")
+    player_ids, player_names = get_players_from_game_file(cache_path)
+    if not player_ids:
+        return
+    # Filter out register-format IDs (minor leaguers without BREF pages)
+    valid_ids = {pid for pid in player_ids if not (len(pid) >= 10 and any(c.isdigit() for c in pid[5:9]))}
+    if not valid_ids:
+        return
+    info(f"     Refreshing career data for {len(valid_ids)} players...")
+    cache = scrape_career_firsts_for_players(
+        valid_ids,
+        refresh=True,  # Always refresh to pick up new milestones
+        delay=3.1,
+        verbose=False,
+        player_names=player_names
+    )
+    if cache:
+        info(f"  ✅ Updated career milestones ({len(cache)} players in cache)")
+
+
+def _enrich_with_api_data(game_data):
+    """Enrich a BREF-parsed game with MLB API data (pitch speeds, jersey numbers)."""
+    import time
+    from .parsers.mlb_api_parser import parse_pitch_data, parse_umpires, TEAM_ID_TO_CODE
+    from .utils.http import create_retry_session, get_with_retry
+    from .scrapers.pitch_data_scraper import CODE_TO_MLB_ID, find_game_pk, remap_pitch_data_keys
+
+    bi = game_data.get('basic_info', {})
+    date = bi.get('date_yyyymmdd', '')
+    home_code = bi.get('home_team_code', '')
+    away_code = bi.get('away_team_code', '')
+    if not date or home_code not in CODE_TO_MLB_ID or away_code not in CODE_TO_MLB_ID:
+        return
+
+    session = create_retry_session()
+    fd = f"{date[:4]}-{date[4:6]}-{date[6:8]}"
+
+    # Get schedule to find gamePk
+    resp = get_with_retry(session, f"https://statsapi.mlb.com/api/v1/schedule?date={fd}&sportId=1", timeout=15)
+    if resp.status_code != 200:
+        return
+    dates = resp.json().get('dates', [])
+    schedule_games = dates[0].get('games', []) if dates else []
+    dh = game_data.get('doubleheader', '0')
+    game_pk = find_game_pk(schedule_games, home_code, away_code, dh)
+    if not game_pk:
+        return
+
+    # Fetch live feed for pitch data
+    feed_resp = get_with_retry(session, f"https://statsapi.mlb.com/api/v1.1/game/{game_pk}/feed/live", timeout=30)
+    if feed_resp.status_code == 200:
+        feed_data = feed_resp.json()
+        pitch_data = parse_pitch_data(feed_data, {})
+        if pitch_data:
+            game_data['pitch_data'] = remap_pitch_data_keys(pitch_data, game_data)
+            info(f"     📊 Pitch data: {len(game_data['pitch_data'])} pitchers")
+
+    # Fetch boxscore for jersey numbers
+    box_resp = get_with_retry(session, f"https://statsapi.mlb.com/api/v1/game/{game_pk}/boxscore", timeout=15)
+    if box_resp.status_code == 200:
+        box = box_resp.json()
+        jersey_map = {}
+        for side_key in ['away', 'home']:
+            team = box.get('teams', {}).get(side_key, {})
+            for pid_str, player in team.get('players', {}).items():
+                name = player.get('person', {}).get('fullName', '')
+                jersey = player.get('jerseyNumber', '')
+                if name and jersey:
+                    jersey_map[name.lower()] = jersey
+
+        updated = 0
+        for side in ['away', 'home']:
+            for p in game_data.get('batting', {}).get(side, []):
+                j = jersey_map.get(p.get('name', '').lower(), '')
+                if j:
+                    p['jersey_number'] = j
+                    updated += 1
+            for p in game_data.get('pitching', {}).get(side, []):
+                j = jersey_map.get(p.get('name', '').lower(), '')
+                if j:
+                    p['jersey_number'] = j
+                    updated += 1
+        if updated:
+            info(f"     🔢 Jersey numbers: {updated} players")
+
+        # Also grab umpires from API if BREF didn't have them
+        if not game_data.get('umpires') or not any(game_data.get('umpires', {}).values()):
+            game_data['umpires'] = parse_umpires(box)
+
+
 def process_html_file(file_path, index=None, total=None):
     """Process a single Baseball-Reference HTML file, with filename-based caching."""
     try:
@@ -133,11 +228,24 @@ def process_html_file(file_path, index=None, total=None):
                 info("  ✅ Using cached data")
                 with open(cache_path, 'r', encoding='utf-8') as f:
                     cached_data = json.load(f)
-                    
+
                     # Optionally show what game this is
                     game_id = cached_data.get("game_id", "Unknown")
                     info(f"     Game ID: {game_id}")
-                    
+
+                    # Enrich with API data if missing (only for newly cached games without pitch data)
+                    # Skip if already enriched or if game is too old for pitch tracking
+                    if not cached_data.get('pitch_data') and not cached_data.get('_api_enrichment_attempted'):
+                        date_str = cached_data.get('basic_info', {}).get('date_yyyymmdd', '')
+                        if date_str and date_str >= '20080101':
+                            try:
+                                _enrich_with_api_data(cached_data)
+                                cached_data['_api_enrichment_attempted'] = True
+                                with open(cache_path, 'w', encoding='utf-8') as fw:
+                                    json.dump(cached_data, fw, indent=2)
+                            except Exception:
+                                cached_data['_api_enrichment_attempted'] = True
+
                     return cached_data
             else:
                 info("  🔄 Cache outdated, re-parsing...")
@@ -152,13 +260,28 @@ def process_html_file(file_path, index=None, total=None):
         game_id = game_data.get("game_id", "UNKNOWN")
 
         info(f"  📊 Parsed game: {game_id}")
-        
+
+        # Enrich with MLB API data (pitch speeds, jersey numbers) if not already present
+        if not game_data.get('pitch_data'):
+            try:
+                _enrich_with_api_data(game_data)
+            except Exception as e:
+                debug(f"  ⚠️ API enrichment skipped: {e}")
+
         # Save to cache atomically (write to temp, then rename)
         temp_cache = cache_path.with_suffix('.tmp')
         with open(temp_cache, 'w', encoding='utf-8') as f:
             json.dump(game_data, f, indent=2)
         temp_cache.replace(cache_path)
         info("  💾 Saved to cache")
+
+        # Scrape career milestones for all players in this game (regular season only)
+        game_type = game_data.get('basic_info', {}).get('game_type', 'regular')
+        if game_type in ('regular', 'postseason'):
+            try:
+                _scrape_career_firsts_for_game(cache_path)
+            except Exception as e:
+                debug(f"  ⚠️ Career firsts scraping skipped: {e}")
 
         return game_data
 
@@ -546,6 +669,14 @@ def main():
                 source = cached_game.get('source') or cached_game.get('basic_info', {}).get('source')
                 game_type = cached_game.get('basic_info', {}).get('game_type')
                 if source == 'mlb' or game_type == 'spring':
+                    # Run milestone engine on API games (BREF games run it during parsing)
+                    ms = cached_game.get('milestone_stats')
+                    if not ms or (isinstance(ms, dict) and not any(ms.values())):
+                        try:
+                            from baseball_processor.engines.milestone_engine import MilestoneEngine
+                            MilestoneEngine(cached_game).process()
+                        except Exception:
+                            pass
                     games_data.append(cached_game)
                     loaded_game_ids.add(game_id)
                     if game_type == 'spring':

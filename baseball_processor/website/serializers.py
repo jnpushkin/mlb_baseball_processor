@@ -982,6 +982,7 @@ class DataSerializer:
                     "teams": str(row.get("Team(s)", "")),
                     "games": int(row.get("Games", 0)),
                     "positions": str(row.get("Position(s)", "")),
+                    "gameIds": str(row.get("GameIDs", "")),
                 })
             except (KeyError, TypeError, ValueError) as e:
                 print(f"   Warning: Could not serialize player without stats: {e}")

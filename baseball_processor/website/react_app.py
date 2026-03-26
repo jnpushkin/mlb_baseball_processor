@@ -191,14 +191,30 @@ const exportToCSV = (data, columns, filename) => {
     window.URL.revokeObjectURL(url);
 };
 
-const PlayerLink = ({ playerId, name }) => {
+const PlayerLink = ({ playerId, name, external }) => {
     if (!playerId || playerId === 'UNKNOWN') return <span>{name}</span>;
-    // Register-format IDs (minor league) have 3 digits in positions 5-8 (e.g., "nunez-001gus", "mendoz000vic")
     const isRegisterFormat = playerId.length >= 10 && /\d{3}/.test(playerId.substring(5, 9));
-    const url = isRegisterFormat
+    const brefUrl = isRegisterFormat
         ? `https://www.baseball-reference.com/register/player.fcgi?id=${playerId}`
         : `https://www.baseball-reference.com/players/${playerId.charAt(0).toLowerCase()}/${playerId}.shtml`;
-    return <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{name}</a>;
+
+    if (external) {
+        return <a href={brefUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{name}</a>;
+    }
+
+    // Default: navigate to Players tab and open timeline
+    const handleClick = (e) => {
+        e.preventDefault();
+        window._pendingPlayerSelect = { id: playerId, name };
+        if (window.__navigateTab) window.__navigateTab('players');
+    };
+
+    return (
+        <span className="inline-flex items-center gap-1">
+            <a href="#players" onClick={handleClick} className="text-blue-600 hover:underline">{name}</a>
+            <a href={brefUrl} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-600 text-[10px]" title="View on Baseball Reference">↗</a>
+        </span>
+    );
 };
 
 const GameLink = ({ gameId, mlbGamePk, source }) => {
@@ -1419,9 +1435,13 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames }) => {
     const [sortKey, setSortKey] = useState('dateSort');
     const [sortDir, setSortDir] = useState('desc');
 
-    // Get all games for this pitcher
+    // Get all games for this pitcher with derived fields
     const gamesForPitcher = useMemo(() => {
-        return pitcherGames.filter(g => g.playerId === playerId).sort((a, b) => b.dateSort.localeCompare(a.dateSort));
+        return pitcherGames.filter(g => g.playerId === playerId).map(g => ({
+            ...g,
+            ip: `${Math.floor(g.outs / 3)}.${g.outs % 3}`,
+            decision: g.wins ? 'W' : g.losses ? 'L' : g.saves ? 'S' : '',
+        })).sort((a, b) => b.dateSort.localeCompare(a.dateSort));
     }, [playerId, pitcherGames]);
 
     const timelineData = useMemo(() => {
@@ -3053,7 +3073,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
             label: 'Name',
             render: (v, r) => (
                 <div className="flex items-center gap-2">
-                    <PlayerLink playerId={r.playerId} name={v} />
+                    <PlayerLink playerId={r.playerId} name={v} external />
                     <button
                         onClick={() => setSelectedPlayer({ id: r.playerId, name: v })}
                         className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-semibold whitespace-nowrap"
@@ -3213,7 +3233,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
             label: 'Name',
             render: (v, r) => (
                 <div className="flex items-center gap-2">
-                    <PlayerLink playerId={r.playerId} name={v} />
+                    <PlayerLink playerId={r.playerId} name={v} external />
                     <button
                         onClick={() => setSelectedPitcher({ id: r.playerId, name: v })}
                         className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-semibold whitespace-nowrap"
@@ -3605,6 +3625,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [careerMilestoneSort, setCareerMilestoneSort] = useState('event'); // 'event' or 'date'
+    const [viewMode, setViewMode] = useState('date'); // 'date' or 'category'
 
     // Build game lookup for additional context
     const gameMap = useMemo(() => {
@@ -3690,6 +3711,10 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                         <p className="text-gray-500 mt-1">Special performances you've witnessed</p>
                     </div>
                     <div className="flex items-center gap-4">
+                        <div className="flex rounded-lg overflow-hidden border">
+                            <button onClick={() => setViewMode('date')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'date' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>📅 By Date</button>
+                            <button onClick={() => setViewMode('category')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'category' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>📂 By Category</button>
+                        </div>
                         <input
                             type="text"
                             placeholder="Search player, team..."
@@ -3988,8 +4013,55 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
             )}
 
             {/* All-Time List Passings Section */}
-            {/* Milestone groups - hide when only viewing career firsts */}
-            {activeCategory !== 'firsts' && (
+            {/* Date view - flat chronological list */}
+            {viewMode === 'date' && activeCategory !== 'firsts' && (() => {
+                const allFiltered = (milestones || []).filter(m => {
+                    if (activeCategory === 'batting' && categoryConfig[m.type]?.category !== 'batting') return false;
+                    if (activeCategory === 'pitching' && categoryConfig[m.type]?.category !== 'pitching') return false;
+                    if (searchTerm) {
+                        const q = searchTerm.toLowerCase();
+                        return (m.player || '').toLowerCase().includes(q) || (m.type || '').toLowerCase().includes(q) || (m.detail || '').toLowerCase().includes(q);
+                    }
+                    return true;
+                }).sort((a, b) => {
+                    const da = a.gameId ? a.gameId.substring(3, 11) : '';
+                    const db = b.gameId ? b.gameId.substring(3, 11) : '';
+                    return db.localeCompare(da);
+                });
+
+                return (
+                    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                        <div className="p-4 border-b bg-gray-50">
+                            <span className="font-bold body-text">{allFiltered.length} milestones</span>
+                        </div>
+                        <div className="divide-y" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                            {allFiltered.map((m, i) => {
+                                const config = categoryConfig[m.type] || {};
+                                const game = gameMap[m.gameId];
+                                return (
+                                    <div key={`${m.gameId}-${m.type}-${m.player}-${i}`} className="p-3 hover:bg-gray-50 flex items-start gap-3">
+                                        <span className="text-lg">{config.icon || '🏆'}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-semibold text-sm">{m.player}</span>
+                                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium bg-${config.color || 'gray'}-100 text-${config.color || 'gray'}-700`}>{m.type}</span>
+                                            </div>
+                                            {m.detail && <div className="text-xs text-gray-600 mt-0.5 truncate">{m.detail}</div>}
+                                        </div>
+                                        <div className="text-right flex-shrink-0">
+                                            <div className="text-xs text-gray-500">{game?.date || ''}</div>
+                                            <div className="text-[10px] text-gray-400">{game?.awayTeam || ''} @ {game?.homeTeam || ''}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Milestone groups - category view */}
+            {viewMode === 'category' && activeCategory !== 'firsts' && (
             <div className="space-y-4">
                 {filteredTypes.map(type => {
                     const items = groupedMilestones[type] || [];
@@ -4325,13 +4397,77 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
     );
 };
 
+const NoStatsPlayers = ({ data }) => {
+    const [selectedPlayer, setSelectedPlayer] = useState(null);
+
+    // Players who appeared in regular season games but had no batting/pitching stats
+    const allNoStats = useMemo(() => {
+        const gameMap = {};
+        (data.games || []).forEach(g => { if (g.gameId) gameMap[g.gameId] = g; });
+
+        // Filter to only players who appeared in at least one regular season game
+        return (data.playersWithoutStats || []).map(p => {
+            const gameIds = (p.gameIds || '').split(',').map(id => id.trim()).filter(Boolean);
+            const gameList = gameIds.map(id => gameMap[id]).filter(Boolean);
+            const regGames = gameList.filter(g => (g.gameType || 'regular') === 'regular');
+            return { ...p, gameList, regGameCount: regGames.length };
+        }).filter(p => p.regGameCount > 0);
+    }, [data]);
+
+    return (
+        <div className="space-y-4">
+            <DataTable
+                title={`👻 Players Without Regular Season Stats (${allNoStats.length})`}
+                data={allNoStats}
+                defaultSortKey="games"
+                onRowClick={(row) => setSelectedPlayer(selectedPlayer?.playerId === row.playerId ? null : row)}
+                columns={[
+                    { key: 'name', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
+                    { key: 'teams', label: 'Team(s)' },
+                    { key: 'games', label: 'Games' },
+                    { key: 'positions', label: 'Position(s)' },
+                ]}
+            />
+            {selectedPlayer && selectedPlayer.gameList && selectedPlayer.gameList.length > 0 && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPlayer(null)}>
+                    <div className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-4 border-b bg-gray-700 text-white rounded-t-lg flex items-center justify-between">
+                            <h3 className="font-bold">{selectedPlayer.name} — {selectedPlayer.gameList.length} game{selectedPlayer.gameList.length > 1 ? 's' : ''}</h3>
+                            <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-gray-200 text-xl leading-none">&times;</button>
+                        </div>
+                        <div className="p-3 space-y-2">
+                            {selectedPlayer.gameList.map((g, i) => (
+                                <div key={i} className="bg-gray-50 rounded p-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-medium text-sm">{g.awayTeam} @ {g.homeTeam}</span>
+                                        <span className="text-xs text-gray-500">{g.date}</span>
+                                    </div>
+                                    <div className="text-xs text-gray-400 mt-1">{g.score} • {g.venue || ''}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const PlayersTab = ({ data }) => {
     const hasCollegeData = Object.keys(data.ncaaCrossRef || {}).length > 0;
     const [view, setView] = useState('hitters');
 
+    // Auto-detect pending player and switch to correct view
+    useEffect(() => {
+        if (window._pendingPlayerSelect) {
+            const pid = window._pendingPlayerSelect.id;
+            const isPitcher = (data.pitchers || []).some(p => p.playerId === pid) && !(data.players || []).some(p => p.playerId === pid);
+            setView(isPitcher ? 'pitchers' : 'hitters');
+        }
+    });
+
     const handleViewPlayer = (playerId, name) => {
         setView('hitters');
-        // Store in a ref-like way so DynamicPlayerTable can pick it up
         window._pendingPlayerSelect = { id: playerId, name };
     };
 
@@ -4347,19 +4483,7 @@ const PlayersTab = ({ data }) => {
             </div>
             {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
             {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
-            {view === 'nostats' && (
-                <DataTable
-                    title="👻 Players Without Stats"
-                    data={data.playersWithoutStats || []}
-                    defaultSortKey="games"
-                    columns={[
-                        { key: 'name', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
-                        { key: 'teams', label: 'Team(s)' },
-                        { key: 'games', label: 'Games' },
-                        { key: 'positions', label: 'Position(s)' },
-                    ]}
-                />
-            )}
+            {view === 'nostats' && <NoStatsPlayers data={data} />}
             {view === 'college' && <CollegePlayersView data={data} onViewPlayer={handleViewPlayer} />}
         </div>
     );
