@@ -417,6 +417,9 @@ class DataSerializer:
             "allTimePassingsByGame": passings_by_game,
             "gameTypeCounts": game_type_counts,
             "ncaaCrossRef": ncaa_cross_ref,
+            "umpireLog": self._serialize_umpire_log(raw_games),
+            "jerseyLog": self._serialize_jersey_log(raw_games),
+            "playerBios": self._load_player_bios(),
             "generatedAt": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
         }
 
@@ -929,6 +932,13 @@ class DataSerializer:
                             'saves': 1 if pitcher.get('save') else 0,
                             'gameStarts': 1 if pitcher.get('player_id') == game.get('pitching', {}).get(side, [{}])[0].get('player_id') else 0,
                         })
+                        # Add pitch data if available
+                        pitch_info = game.get('pitch_data', {}).get(player_id, {})
+                        if pitch_info:
+                            pitcher_games[-1]['maxSpeed'] = pitch_info.get('maxSpeed')
+                            pitcher_games[-1]['avgSpeed'] = pitch_info.get('avgSpeed')
+                            pitcher_games[-1]['avgSpinRate'] = pitch_info.get('avgSpinRate')
+                            pitcher_games[-1]['totalPitches'] = pitch_info.get('totalPitches', 0)
             except Exception as e:
                 print(f"   ⚠️ Error serializing pitcher game: {e}")
                 continue
@@ -1071,6 +1081,16 @@ class DataSerializer:
             details['venueCity'] = basic_info.get('venue_city')
         if basic_info.get('venue_state'):
             details['venueState'] = basic_info.get('venue_state')
+        if basic_info.get('venue_latitude') and basic_info.get('venue_longitude'):
+            details['venueCoords'] = {
+                'lat': basic_info['venue_latitude'],
+                'lon': basic_info['venue_longitude']
+            }
+
+        # No-hitter / perfect game flags
+        flags = raw_game.get('flags', {})
+        if flags.get('no_hitter') or flags.get('perfect_game'):
+            details['flags'] = flags
 
         # Weather info
         if basic_info.get('weather'):
@@ -1152,7 +1172,8 @@ class DataSerializer:
                         'slot': p.get('slot', 0),
                         'name': p.get('name', ''),
                         'playerId': p.get('player_id', ''),
-                        'position': p.get('pos', '')
+                        'position': p.get('pos', ''),
+                        'jerseyNumber': p.get('jersey_number', '')
                     }
                     for p in lineups.get('away', [])
                 ],
@@ -1161,7 +1182,8 @@ class DataSerializer:
                         'slot': p.get('slot', 0),
                         'name': p.get('name', ''),
                         'playerId': p.get('player_id', ''),
-                        'position': p.get('pos', '')
+                        'position': p.get('pos', ''),
+                        'jerseyNumber': p.get('jersey_number', '')
                     }
                     for p in lineups.get('home', [])
                 ]
@@ -1213,6 +1235,23 @@ class DataSerializer:
                     'isCaughtStealing': 'caught stealing' in desc_lower
                 })
             details['playByPlay'] = pbp_list
+
+        # Pitch data (per-pitcher summaries from MLB API)
+        pitch_data = raw_game.get('pitch_data', {})
+        if pitch_data:
+            details['pitchData'] = {
+                pid: {
+                    'name': pdata.get('name', ''),
+                    'totalPitches': pdata.get('totalPitches', 0),
+                    'avgSpeed': pdata.get('avgSpeed'),
+                    'maxSpeed': pdata.get('maxSpeed'),
+                    'avgSpinRate': pdata.get('avgSpinRate'),
+                    'pitchTypes': pdata.get('pitchTypes', {}),
+                    'pitchTypeNames': pdata.get('pitchTypeNames', {}),
+                }
+                for pid, pdata in pitch_data.items()
+                if pdata.get('totalPitches', 0) > 0
+            }
 
         return details
     
@@ -1725,3 +1764,92 @@ class DataSerializer:
             "companions": result,
             "gameCompanions": game_companions
         }
+
+    def _load_player_bios(self):
+        """Load cached player biographical data."""
+        from pathlib import Path
+        bio_path = Path(__file__).parent.parent.parent / 'cache' / 'player_bios.json'
+        if bio_path.exists():
+            try:
+                with open(bio_path, 'r') as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError):
+                pass
+        return {}
+
+    def _serialize_umpire_log(self, raw_games):
+        """Build umpire tracking data: how many times each umpire has been seen."""
+        umpire_stats = {}  # name -> {games, positions, firstSeen, lastSeen, gameIds}
+
+        for game in raw_games:
+            umpires = game.get('umpires', {})
+            if not umpires:
+                continue
+            game_id = game.get('game_id', '')
+            bi = game.get('basic_info', {})
+            date = bi.get('date_yyyymmdd', '')
+
+            for pos, name in umpires.items():
+                if not name:
+                    continue
+                if name not in umpire_stats:
+                    umpire_stats[name] = {
+                        'name': name,
+                        'games': 0,
+                        'positions': {},
+                        'firstSeen': date,
+                        'lastSeen': date,
+                    }
+                umpire_stats[name]['games'] += 1
+                umpire_stats[name]['positions'][pos] = umpire_stats[name]['positions'].get(pos, 0) + 1
+                if date and date < umpire_stats[name]['firstSeen']:
+                    umpire_stats[name]['firstSeen'] = date
+                if date and date > umpire_stats[name]['lastSeen']:
+                    umpire_stats[name]['lastSeen'] = date
+
+        # Format dates
+        for u in umpire_stats.values():
+            for field in ['firstSeen', 'lastSeen']:
+                d = u[field]
+                if d and len(d) == 8:
+                    u[field] = f"{d[4:6]}/{d[6:8]}/{d[0:4]}"
+
+        return sorted(umpire_stats.values(), key=lambda x: x['games'], reverse=True)
+
+    def _serialize_jersey_log(self, raw_games):
+        """Build jersey number collection: track every number 00-99 seen."""
+        # number -> [{name, team, gameId, date}]
+        jersey_data = {}
+
+        for game in raw_games:
+            game_id = game.get('game_id', '')
+            bi = game.get('basic_info', {})
+            date = bi.get('date_yyyymmdd', '')
+            formatted_date = ''
+            if date and len(date) == 8:
+                formatted_date = f"{date[4:6]}/{date[6:8]}/{date[0:4]}"
+
+            for side in ['away', 'home']:
+                team = bi.get(f'{side}_team_code', '')
+                for section in ['batting', 'pitching']:
+                    for player in game.get(section, {}).get(side, []):
+                        jersey = player.get('jersey_number', '')
+                        if not jersey:
+                            continue
+                        name = player.get('name', '')
+                        player_id = player.get('player_id', '')
+
+                        if jersey not in jersey_data:
+                            jersey_data[jersey] = []
+
+                        # Only add first sighting per player per number
+                        if not any(e['playerId'] == player_id for e in jersey_data[jersey]):
+                            jersey_data[jersey].append({
+                                'name': name,
+                                'playerId': player_id,
+                                'team': team,
+                                'gameId': game_id,
+                                'date': formatted_date,
+                            })
+
+        return jersey_data

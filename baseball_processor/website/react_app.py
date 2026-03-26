@@ -62,7 +62,7 @@ const aggregateHitterStats = (playerGames) => {
 
 const aggregatePitcherStats = (pitcherGames) => {
     const grouped = {};
-    
+
     pitcherGames.forEach(game => {
         const key = game.playerId;
         if (!grouped[key]) {
@@ -71,10 +71,12 @@ const aggregatePitcherStats = (pitcherGames) => {
                 name: game.name,
                 teams: new Set(),
                 games: 0, gameStarts: 0, wins: 0, losses: 0, saves: 0,
-                outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0, hr: 0
+                outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0, hr: 0,
+                _maxSpeed: 0, _speedSum: 0, _speedCount: 0,
+                _spinSum: 0, _spinCount: 0, _totalPitches: 0
             };
         }
-        
+
         grouped[key].teams.add(game.team);
         grouped[key].games += 1;
         grouped[key].gameStarts += (game.gameStarts || 0);
@@ -88,18 +90,37 @@ const aggregatePitcherStats = (pitcherGames) => {
         grouped[key].bb += (game.bb || 0);
         grouped[key].so += (game.so || 0);
         grouped[key].hr += (game.hr || 0);
+        // Pitch data aggregation
+        if (game.maxSpeed) {
+            grouped[key]._maxSpeed = Math.max(grouped[key]._maxSpeed, game.maxSpeed);
+        }
+        if (game.avgSpeed) {
+            const pitches = game.totalPitches || 1;
+            grouped[key]._speedSum += game.avgSpeed * pitches;
+            grouped[key]._speedCount += pitches;
+        }
+        if (game.avgSpinRate) {
+            const pitches = game.totalPitches || 1;
+            grouped[key]._spinSum += game.avgSpinRate * pitches;
+            grouped[key]._spinCount += pitches;
+        }
+        grouped[key]._totalPitches += (game.totalPitches || 0);
     });
-    
+
     return Object.values(grouped).map(p => {
         const innings = p.outs / 3;
         const ip = `${Math.floor(innings)}.${p.outs % 3}`;
         const era = innings > 0 ? ((p.er * 9) / innings).toFixed(2) : 'N/A';
         const whip = innings > 0 ? ((p.h + p.bb) / innings).toFixed(3) : 'N/A';
-        
+        const maxSpeed = p._maxSpeed > 0 ? p._maxSpeed : null;
+        const avgSpeed = p._speedCount > 0 ? Math.round(p._speedSum / p._speedCount * 10) / 10 : null;
+        const avgSpinRate = p._spinCount > 0 ? Math.round(p._spinSum / p._spinCount) : null;
+
         return {
             ...p,
             team: Array.from(p.teams).join(', '),
-            ip, era, whip
+            ip, era, whip, maxSpeed, avgSpeed, avgSpinRate,
+            totalPitches: p._totalPitches
         };
     });
 };
@@ -615,19 +636,23 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
             r: acc.r + p.r,
             rbi: acc.rbi + p.rbi,
             hr: acc.hr + p.hr,
+            doubles: acc.doubles + (p.doubles || 0),
+            triples: acc.triples + (p.triples || 0),
             bb: acc.bb + p.bb,
             so: acc.so + p.so
-        }), { ab: 0, h: 0, r: 0, rbi: 0, hr: 0, bb: 0, so: 0 });
-        
+        }), { ab: 0, h: 0, r: 0, rbi: 0, hr: 0, doubles: 0, triples: 0, bb: 0, so: 0 });
+
         const awayHittingTotals = awayHitters.reduce((acc, p) => ({
             ab: acc.ab + p.ab,
             h: acc.h + p.h,
             r: acc.r + p.r,
             rbi: acc.rbi + p.rbi,
             hr: acc.hr + p.hr,
+            doubles: acc.doubles + (p.doubles || 0),
+            triples: acc.triples + (p.triples || 0),
             bb: acc.bb + p.bb,
             so: acc.so + p.so
-        }), { ab: 0, h: 0, r: 0, rbi: 0, hr: 0, bb: 0, so: 0 });
+        }), { ab: 0, h: 0, r: 0, rbi: 0, hr: 0, doubles: 0, triples: 0, bb: 0, so: 0 });
         
         return { 
             homeHitters, awayHitters, homePitchers, awayPitchers,
@@ -642,15 +667,15 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
             <td className="px-3 py-2">
                 <PlayerLink playerId={player.playerId} name={player.name} />
             </td>
-            <td className="px-2 py-2 text-center">{player.ab}</td>
-            <td className="px-2 py-2 text-center font-semibold">{player.h}</td>
-            <td className="px-2 py-2 text-center">{player.r}</td>
-            <td className="px-2 py-2 text-center">{player.rbi}</td>
+            <td className="px-2 py-2 text-center">{player.ab || 0}</td>
+            <td className="px-2 py-2 text-center font-semibold">{player.h || 0}</td>
+            <td className="px-2 py-2 text-center">{player.r || 0}</td>
+            <td className="px-2 py-2 text-center">{player.rbi || 0}</td>
             <td className={`px-2 py-2 text-center ${player.hr > 0 ? 'font-bold text-blue-600' : ''}`}>{player.hr || 0}</td>
             <td className="px-2 py-2 text-center">{player.doubles || 0}</td>
             <td className="px-2 py-2 text-center">{player.triples || 0}</td>
-            <td className="px-2 py-2 text-center">{player.bb}</td>
-            <td className="px-2 py-2 text-center">{player.so}</td>
+            <td className="px-2 py-2 text-center">{player.bb || 0}</td>
+            <td className="px-2 py-2 text-center">{player.so || 0}</td>
         </tr>
     );
     
@@ -675,12 +700,12 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                     </div>
                 </td>
                 <td className="px-2 py-2 text-center font-semibold">{ip}</td>
-                <td className="px-2 py-2 text-center">{pitcher.h}</td>
-                <td className="px-2 py-2 text-center">{pitcher.r}</td>
-                <td className="px-2 py-2 text-center">{pitcher.er}</td>
-                <td className="px-2 py-2 text-center">{pitcher.bb}</td>
-                <td className="px-2 py-2 text-center font-semibold">{pitcher.so}</td>
-                <td className="px-2 py-2 text-center">{pitcher.hr > 0 ? pitcher.hr : '-'}</td>
+                <td className="px-2 py-2 text-center">{pitcher.h || 0}</td>
+                <td className="px-2 py-2 text-center">{pitcher.r || 0}</td>
+                <td className="px-2 py-2 text-center">{pitcher.er || 0}</td>
+                <td className="px-2 py-2 text-center">{pitcher.bb || 0}</td>
+                <td className="px-2 py-2 text-center font-semibold">{pitcher.so || 0}</td>
+                <td className="px-2 py-2 text-center">{pitcher.hr || 0}</td>
             </tr>
         );
     };
@@ -689,11 +714,11 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
     const BoxScoreTab = () => (
         <>
             {/* Away Team Hitters */}
-            <div className="p-6 border-b bg-gray-50">
+            <div className="p-6 border-b">
                 <h4 className="subsection-title font-bold mb-3">{game.awayTeam} Batting</h4>
                 <div className="overflow-x-auto">
                     <table className="w-full small-text">
-                        <thead className="bg-white border-b-2">
+                        <thead className="bg-gray-50 border-b-2">
                             <tr>
                                 <th className="px-3 py-2 text-left">Batter</th>
                                 <th className="px-2 py-2">AB</th>
@@ -716,8 +741,8 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                                 <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.r}</td>
                                 <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.rbi}</td>
                                 <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.hr}</td>
-                                <td className="px-2 py-2 text-center">-</td>
-                                <td className="px-2 py-2 text-center">-</td>
+                                <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.doubles}</td>
+                                <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.triples}</td>
                                 <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.bb}</td>
                                 <td className="px-2 py-2 text-center">{gameData.awayHittingTotals.so}</td>
                             </tr>
@@ -754,8 +779,8 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                                 <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.r}</td>
                                 <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.rbi}</td>
                                 <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.hr}</td>
-                                <td className="px-2 py-2 text-center">-</td>
-                                <td className="px-2 py-2 text-center">-</td>
+                                <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.doubles}</td>
+                                <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.triples}</td>
                                 <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.bb}</td>
                                 <td className="px-2 py-2 text-center">{gameData.homeHittingTotals.so}</td>
                             </tr>
@@ -816,9 +841,55 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                     </div>
                 </div>
             </div>
+
+            {/* Pitch Data */}
+            {game.pitchData && Object.keys(game.pitchData).length > 0 && (
+                <div className="p-6 border-t">
+                    <h4 className="subsection-title font-bold mb-3">Pitch Data</h4>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {Object.entries(game.pitchData).map(([pid, pd]) => (
+                            <div key={pid} className="bg-gray-50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-semibold body-text">{pd.name}</span>
+                                    <span className="small-text text-gray-500">{pd.totalPitches} pitches</span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3 small-text mb-3">
+                                    {pd.maxSpeed && (
+                                        <div className="bg-white p-2 rounded text-center">
+                                            <div className="text-gray-500">Max Velo</div>
+                                            <div className="font-bold text-red-600">{pd.maxSpeed} mph</div>
+                                        </div>
+                                    )}
+                                    {pd.avgSpeed && (
+                                        <div className="bg-white p-2 rounded text-center">
+                                            <div className="text-gray-500">Avg Velo</div>
+                                            <div className="font-bold text-gray-900">{pd.avgSpeed} mph</div>
+                                        </div>
+                                    )}
+                                    {pd.avgSpinRate && (
+                                        <div className="bg-white p-2 rounded text-center">
+                                            <div className="text-gray-500">Avg Spin</div>
+                                            <div className="font-bold text-purple-600">{pd.avgSpinRate} rpm</div>
+                                        </div>
+                                    )}
+                                </div>
+                                {pd.pitchTypes && Object.keys(pd.pitchTypes).length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {Object.entries(pd.pitchTypes).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
+                                            <span key={type} className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                                {pd.pitchTypeNames?.[type] || type}: {count}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </>
     );
-    
+
     const LineupsTab = () => {
         if (!game.lineups) {
             return (
@@ -845,7 +916,10 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                                 <tr key={player.playerId} className="hover:bg-blue-50">
                                     <td className="px-3 py-2 text-center font-bold text-blue-600">{player.slot}</td>
                                     <td className="px-3 py-2">
-                                        <PlayerLink playerId={player.playerId} name={player.name} />
+                                        <div className="flex items-center gap-2">
+                                            <PlayerLink playerId={player.playerId} name={player.name} />
+                                            {player.jerseyNumber && <span className="text-xs text-gray-400">#{player.jerseyNumber}</span>}
+                                        </div>
                                     </td>
                                     <td className="px-3 py-2 text-center">
                                         <span className="px-2 py-1 bg-gray-100 rounded font-semibold">
@@ -1042,11 +1116,15 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
     
     return (
         <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-2xl max-w-6xl max-w-[95vw] w-full max-h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-lg shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden" style={{ maxWidth: 'min(72rem, 95vw)' }} onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
-                <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white flex-shrink-0">
+                <div className={`p-6 border-b ${game.gameType === 'spring' ? 'bg-gradient-to-r from-green-600 to-green-700' : 'bg-gradient-to-r from-blue-600 to-blue-700'} text-white flex-shrink-0`}>
                     <div className="flex items-center justify-between mb-2">
-                        <h3 className="section-title font-bold">{game.awayTeam} @ {game.homeTeam}</h3>
+                        <div className="flex items-center gap-3">
+                            <h3 className="section-title font-bold">{game.awayTeam} @ {game.homeTeam}</h3>
+                            {game.gameType === 'spring' && <span className="px-2 py-0.5 bg-white/20 text-white text-xs font-semibold rounded">Spring Training</span>}
+                            {game.gameType === 'postseason' && <span className="px-2 py-0.5 bg-yellow-400/30 text-white text-xs font-semibold rounded">Postseason</span>}
+                        </div>
                         <button onClick={onClose} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
                     </div>
                     <div className="flex items-center gap-4 body-text text-blue-100">
@@ -1062,10 +1140,9 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                         {game.gameLength && <> • ⏱️ {game.gameLength}</>}
                     </div>
                     {/* Weather and Temperature */}
-                    {(game.weather || game.temperature) && (
+                    {game.weather && (
                         <div className="body-text text-blue-100 mt-1">
-                            {game.weather && <span>🌤️ {game.weather}</span>}
-                            {game.temperature && <span> • 🌡️ {game.temperature}°F</span>}
+                            <span>🌤️ {game.weather}</span>
                         </div>
                     )}
                     {/* Pitcher Decisions */}
@@ -1078,23 +1155,25 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                     )}
                 </div>
                 
+                {/* Scrollable body */}
+                <div className="overflow-y-auto flex-1 min-h-0">
                 {/* Game Context Section */}
-                <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50 overflow-y-auto max-h-[35vh] flex-shrink-0">
+                <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
                     {/* Linescore */}
                     {game.linescore && (
                         <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
                             <h5 className="small-text font-bold mb-3 text-gray-700">📊 Line Score</h5>
                             <div className="overflow-x-auto">
-                                <table className="text-center small-text">
+                                <table className="w-full text-center small-text" style={{ tableLayout: 'fixed' }}>
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-3 py-2 text-left min-w-[60px]">Team</th>
+                                            <th className="py-2 text-left" style={{ width: '15%' }}>Team</th>
                                             {Array.from({ length: Math.max(game.linescore.away?.innings?.length || 9, game.linescore.home?.innings?.length || 9, 9) }, (_, i) => (
-                                                <th key={`inning-${i}`} className="px-2 py-2 w-8">{i + 1}</th>
+                                                <th key={`inning-${i}`} className="py-2">{i + 1}</th>
                                             ))}
-                                            <th className="px-3 py-2 font-bold border-l-2">R</th>
-                                            <th className="px-3 py-2 font-bold">H</th>
-                                            <th className="px-3 py-2 font-bold">E</th>
+                                            <th className="py-2 font-bold border-l-2">R</th>
+                                            <th className="py-2 font-bold">H</th>
+                                            <th className="py-2 font-bold">E</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1259,7 +1338,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                 </div>
                 
                 {/* Tab Navigation */}
-                <div className="border-b bg-gray-50 flex-shrink-0">
+                <div className="border-b bg-gray-50 sticky top-0 z-10">
                     <div className="flex gap-1 px-6">
                         {['boxscore', 'lineups', 'substitutions', 'playbyplay'].map(tab => (
                             <button
@@ -1280,16 +1359,17 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                     </div>
                 </div>
                 
-                {/* Tab Content - Scrollable */}
-                <div className="overflow-y-auto flex-1 min-h-0">
+                {/* Tab Content */}
+                <div>
                     {activeTab === 'boxscore' && <BoxScoreTab />}
                     {activeTab === 'lineups' && <LineupsTab />}
                     {activeTab === 'substitutions' && <SubstitutionsTab />}
                     {activeTab === 'playbyplay' && <PlayByPlayTab />}
                 </div>
-                
+                </div>{/* End scrollable body */}
+
                 {/* Footer */}
-                <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
+                <div className="p-4 border-t bg-gray-50 flex justify-between items-center flex-shrink-0">
                     <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
                     <button onClick={onClose} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 body-text font-medium">
                         Close
@@ -4138,10 +4218,10 @@ const SmartInsights = ({ data }) => {
                                 <div>
                                     <h3 className="subsection-title font-bold mb-3">🔥 Highest Scoring</h3>
                                     <div className="space-y-2">
-                                        {bestGames.highestScoring.map((game) => (
+                                        {bestGames.highestScoring.map((game, gi) => (
                                             <div key={game.gameId || `${game.date}-${game.awayTeam}-${game.homeTeam}`} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="body-text font-bold text-gray-500">{idx + 1}.</span>
+                                                    <span className="body-text font-bold text-gray-500">{gi + 1}.</span>
                                                     <span className="body-text">{game.awayTeam} @ {game.homeTeam}</span>
                                                     <span className="font-mono body-text bg-orange-100 px-2 py-1 rounded font-bold">{game.score}</span>
                                                 </div>
@@ -4154,10 +4234,10 @@ const SmartInsights = ({ data }) => {
                                 <div>
                                     <h3 className="subsection-title font-bold mb-3">😰 Nail-Biters (1-Run)</h3>
                                     <div className="space-y-2">
-                                        {bestGames.closestGames.slice(0, 5).map((game) => (
+                                        {bestGames.closestGames.slice(0, 5).map((game, gi) => (
                                             <div key={game.gameId || `${game.date}-${game.awayTeam}-${game.homeTeam}`} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="body-text font-bold text-gray-500">{idx + 1}.</span>
+                                                    <span className="body-text font-bold text-gray-500">{gi + 1}.</span>
                                                     <span className="body-text">{game.awayTeam} @ {game.homeTeam}</span>
                                                     <span className="font-mono body-text bg-blue-100 px-2 py-1 rounded font-bold">{game.score}</span>
                                                 </div>
@@ -4200,11 +4280,11 @@ const SmartInsights = ({ data }) => {
                         </div>
                         <div className="p-4">
                             <div className="space-y-3">
-                                {topRivalries.map((rivalry) => (
+                                {topRivalries.map((rivalry, ri) => (
                                     <div key={rivalry.name} className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-4">
-                                                <span className="text-2xl font-bold text-blue-600">{idx + 1}</span>
+                                                <span className="text-2xl font-bold text-blue-600">{ri + 1}</span>
                                                 <div>
                                                     <div className="body-text font-bold">{rivalry.name}</div>
                                                     <div className="small-text text-gray-600 mt-1">
@@ -4606,38 +4686,46 @@ const SmartInsights = ({ data }) => {
                         };
 
                         (data.summary || []).forEach(row => {
-                            const record = row.record.toLowerCase();
+                            const r = row.record.toLowerCase();
 
-                            if (record.includes('extra inning') || record.includes('doubleheader') ||
-                                record.includes('game length') || record.includes('attendance') ||
-                                record.includes('longest') || record.includes('shortest')) {
+                            if (r.includes('extra inning') || r.includes('doubleheader') ||
+                                r.includes('game length') || r.includes('attendance') ||
+                                r.includes('longest') || r.includes('shortest') ||
+                                r.includes('1-run game') || r.includes('1-0 game') ||
+                                r.includes('temperature') || r.includes('coldest') || r.includes('hottest') ||
+                                r.includes('wind') || r.includes('precipitation') ||
+                                r.includes('start time') || r.includes('day game') || r.includes('weekend') ||
+                                r.includes('biggest victory') || r.includes('comeback') ||
+                                r.includes('matchup')) {
                                 categories['Game Format'].push(row);
                             }
-                            else if (record.includes('hr') || record.includes('home run') ||
-                                     record.includes('grand slam') || record.includes('multi-hr')) {
+                            else if (r.includes('hr') || r.includes('home run') ||
+                                     r.includes('grand slam') || r.includes('multi-hr') ||
+                                     r.includes('inside-the-park') || r.includes('back-to-back')) {
                                 categories['Home Runs'].push(row);
                             }
-                            else if (record.includes('hit') && !record.includes('pitcher') && !record.includes('shutout') ||
-                                     record.includes('batting') || record.includes('cycle') || record.includes('double') ||
-                                     record.includes('triple') || record.includes('single')) {
+                            else if ((r.includes('hit') && !r.includes('pitcher') && !r.includes('shutout')) ||
+                                     r.includes('batting') || r.includes('cycle') ||
+                                     r.includes('average leader') || r.includes('obp leader') || r.includes('ops leader') ||
+                                     r.includes('unique player') || r.includes('risp') || r.includes('bases loaded') ||
+                                     r.includes('wpa') || r.includes('clutch') || r.includes('rbi')) {
                                 categories['Hitting'].push(row);
                             }
-                            else if (record.includes('pitch') || record.includes('strikeout') ||
-                                     record.includes(' k ') || record.includes('shutout') ||
-                                     record.includes('complete game') || record.includes('quality start') ||
-                                     record.includes('earned run') || record.includes('no-hit') ||
-                                     record.includes('walks allowed') || record.includes('era')) {
+                            else if (r.includes('pitch') || r.includes('strikeout') || r.includes('combined strikeout') ||
+                                     r.includes(' k ') || r.includes('shutout') ||
+                                     r.includes('complete game') || r.includes('quality start') ||
+                                     r.includes('earned run') || r.includes('no-hit') ||
+                                     r.includes('walk') || r.includes('era leader') ||
+                                     r.includes('unique pitcher') || r.includes('win') || r.includes('loss') || r.includes('save')) {
                                 categories['Pitching'].push(row);
                             }
-                            else if (record.includes('run') && (record.includes('score') || record.includes('inning')) ||
-                                     record.includes('rbi') || record.includes('runs in')) {
+                            else if (r.includes('run') || r.includes('10+ run')) {
                                 categories['Runs Scored'].push(row);
                             }
-                            else if (record.includes('runs allowed') || record.includes('fewest hit') ||
-                                     record.includes('error') || record.includes('defense')) {
+                            else if (r.includes('fewest') || r.includes('error') || r.includes('defense')) {
                                 categories['Defense'].push(row);
                             }
-                            else if (record.includes('steal') || record.includes(' sb') || record.includes('caught')) {
+                            else if (r.includes('steal') || r.includes(' sb') || r.includes('caught') || r.includes('baserun')) {
                                 categories['Baserunning'].push(row);
                             }
                             else {
@@ -5303,6 +5391,14 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
     const [sortDir, setSortDir] = useState('desc');
     const [activeFilter, setActiveFilter] = useState('all');
     const [gameTypeFilter, setGameTypeFilter] = useState('regular');
+
+    // Check for pending player selection (from College tab)
+    useEffect(() => {
+        if (window._pendingPlayerSelect) {
+            setSelectedPlayer(window._pendingPlayerSelect);
+            window._pendingPlayerSelect = null;
+        }
+    });
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [useFiltered, setUseFiltered] = useState(false);
@@ -5326,57 +5422,18 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
         return prefixMap[gameType] + (keyMap[baseKey] || baseKey.charAt(0).toUpperCase() + baseKey.slice(1));
     };
 
-    const displayData = useMemo(() => {
-        if (!useFiltered || (!startDate && !endDate)) return allPlayers;
-        const filteredGames = playerGames.filter(game => {
-            if (startDate && game.dateSort < startDate) return false;
-            if (endDate && game.dateSort > endDate) return false;
-            return true;
-        });
-        return aggregateHitterStats(filteredGames);
-    }, [allPlayers, playerGames, startDate, endDate, useFiltered]);
-
-    // Transform data based on game type filter
+    // Filter playerGames by game type and date, then aggregate
     const gameTypeData = useMemo(() => {
-        if (gameTypeFilter === 'all') return displayData;
-        return displayData.map(player => {
-            const g = player[getStatKey('games', gameTypeFilter)] || 0;
-            if (g === 0) return null; // Filter out players with no games in this type
-            const ab = player[getStatKey('ab', gameTypeFilter)] || 0;
-            const pa = player[getStatKey('pa', gameTypeFilter)] || 0;
-            const h = player[getStatKey('h', gameTypeFilter)] || 0;
-            const bb = player[getStatKey('bb', gameTypeFilter)] || 0;
-            const doubles = player[getStatKey('doubles', gameTypeFilter)] || 0;
-            const triples = player[getStatKey('triples', gameTypeFilter)] || 0;
-            const hr = player[getStatKey('hr', gameTypeFilter)] || 0;
-            const singles = h - doubles - triples - hr;
-            const tb = singles + 2*doubles + 3*triples + 4*hr;
-            const obp = pa > 0 ? ((h + bb) / pa).toFixed(3) : '.000';
-            const slg = ab > 0 ? (tb / ab).toFixed(3) : '.000';
-            const ops = (parseFloat(obp) + parseFloat(slg)).toFixed(3);
-            const gtTeam = player[getStatKey('team', gameTypeFilter)] || player.team;
-            return {
-                ...player,
-                games: g,
-                ab: ab,
-                pa: pa,
-                h: h,
-                avg: player[getStatKey('avg', gameTypeFilter)] || '.000',
-                r: player[getStatKey('r', gameTypeFilter)] || 0,
-                rbi: player[getStatKey('rbi', gameTypeFilter)] || 0,
-                hr: hr,
-                doubles: doubles,
-                triples: triples,
-                sb: player[getStatKey('sb', gameTypeFilter)] || 0,
-                bb: bb,
-                so: player[getStatKey('so', gameTypeFilter)] || 0,
-                obp: obp,
-                slg: slg,
-                ops: ops,
-                team: gtTeam,
-            };
-        }).filter(p => p !== null);
-    }, [displayData, gameTypeFilter]);
+        let games = playerGames;
+        if (gameTypeFilter !== 'all') {
+            games = games.filter(g => (g.gameType || 'regular') === gameTypeFilter);
+        }
+        if (useFiltered) {
+            if (startDate) games = games.filter(g => g.dateSort >= startDate);
+            if (endDate) games = games.filter(g => g.dateSort <= endDate);
+        }
+        return aggregateHitterStats(games);
+    }, [playerGames, gameTypeFilter, startDate, endDate, useFiltered]);
 
     const filtered = useMemo(() => {
         let result = gameTypeData;
@@ -5525,47 +5582,18 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
         return prefixMap[gameType] + (keyMap[baseKey] || baseKey.charAt(0).toUpperCase() + baseKey.slice(1));
     };
 
-    const displayData = useMemo(() => {
-        if (!useFiltered || (!startDate && !endDate)) return allPitchers;
-        const filteredGames = pitcherGames.filter(game => {
-            if (startDate && game.dateSort < startDate) return false;
-            if (endDate && game.dateSort > endDate) return false;
-            return true;
-        });
-        return aggregatePitcherStats(filteredGames);
-    }, [allPitchers, pitcherGames, startDate, endDate, useFiltered]);
-
-    // Transform data based on game type filter
+    // Filter pitcherGames by game type and date, then aggregate
     const gameTypeData = useMemo(() => {
-        if (gameTypeFilter === 'all') return displayData;
-        return displayData.map(pitcher => {
-            const g = pitcher[getStatKey('games', gameTypeFilter)] || 0;
-            if (g === 0) return null; // Filter out pitchers with no games in this type
-            const ip = pitcher[getStatKey('ip', gameTypeFilter)] || '0.0';
-            const h = pitcher[getStatKey('h', gameTypeFilter)] || 0;
-            const bb = pitcher[getStatKey('bb', gameTypeFilter)] || 0;
-            // Calculate WHIP for filtered stats
-            const ipNum = parseFloat(ip);
-            const whip = ipNum > 0 ? ((h + bb) / ipNum).toFixed(3) : 'N/A';
-            const gtTeam = pitcher[getStatKey('team', gameTypeFilter)] || pitcher.team;
-            return {
-                ...pitcher,
-                games: g,
-                gameStarts: pitcher[getStatKey('gameStarts', gameTypeFilter)] || 0,
-                wins: pitcher[getStatKey('wins', gameTypeFilter)] || 0,
-                losses: pitcher[getStatKey('losses', gameTypeFilter)] || 0,
-                saves: pitcher[getStatKey('saves', gameTypeFilter)] || 0,
-                ip: ip,
-                era: pitcher[getStatKey('era', gameTypeFilter)] || 'N/A',
-                whip: whip,
-                h: h,
-                er: pitcher[getStatKey('er', gameTypeFilter)] || 0,
-                bb: bb,
-                so: pitcher[getStatKey('so', gameTypeFilter)] || 0,
-                team: gtTeam,
-            };
-        }).filter(p => p !== null);
-    }, [displayData, gameTypeFilter]);
+        let games = pitcherGames;
+        if (gameTypeFilter !== 'all') {
+            games = games.filter(g => (g.gameType || 'regular') === gameTypeFilter);
+        }
+        if (useFiltered) {
+            if (startDate) games = games.filter(g => g.dateSort >= startDate);
+            if (endDate) games = games.filter(g => g.dateSort <= endDate);
+        }
+        return aggregatePitcherStats(games);
+    }, [pitcherGames, gameTypeFilter, startDate, endDate, useFiltered]);
 
     const filtered = useMemo(() => {
         let result = gameTypeData;
@@ -5617,6 +5645,9 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
         { key: 'wins', label: 'W' }, { key: 'losses', label: 'L' }, { key: 'saves', label: 'SV' },
         { key: 'ip', label: 'IP' }, { key: 'era', label: 'ERA' }, { key: 'whip', label: 'WHIP' },
         { key: 'so', label: 'SO' }, { key: 'bb', label: 'BB' },
+        { key: 'maxSpeed', label: 'Max Velo', render: (v) => v ? `${v}` : '-' },
+        { key: 'avgSpeed', label: 'Avg Velo', render: (v) => v ? `${v}` : '-' },
+        { key: 'avgSpinRate', label: 'Avg Spin', render: (v) => v ? `${v}` : '-' },
     ];
 
     const gameTypeLabels = { all: 'All Games', spring: 'Spring Training', regular: 'Regular Season', postseason: 'Postseason' };
@@ -5685,7 +5716,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
     );
 };
 
-const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions = null, enableDateFilter = false, enableExport = true, paginate = true }) => {
+const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions = null, enableDateFilter = false, enableExport = true, paginate = true, onRowClick = null }) => {
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState(defaultSortKey || columns[0]?.key);
     const [sortDir, setSortDir] = useState('desc');
@@ -5811,7 +5842,7 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                     </thead>
                     <tbody className="divide-y">
                         {displayData.map((row, idx) => (
-                            <tr key={row.gameId || row.id || `item-${idx}`} className="hover:bg-blue-50">
+                            <tr key={row.gameId || row.id || `item-${idx}`} className={`hover:bg-blue-50 ${onRowClick ? 'cursor-pointer' : ''}`} onClick={() => onRowClick && onRowClick(row)}>
                                 {columns.map(col => <td key={col.key} className="px-4 py-3 body-text">{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
                             </tr>
                         ))}
@@ -6571,7 +6602,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
     );
 };
 
-const CollegePlayersView = ({ data }) => {
+const CollegePlayersView = ({ data, onViewPlayer }) => {
     const ncaaRef = data.ncaaCrossRef || {};
     const allPlayers = [...(data.players || []), ...(data.pitchers || [])];
     const { seenPlayers, notSeenPlayers } = useMemo(() => {
@@ -6665,7 +6696,16 @@ const CollegePlayersView = ({ data }) => {
                     data={seenPlayers}
                     defaultSortKey="G"
                     columns={[
-                        { key: 'name', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
+                        { key: 'name', label: 'Player', render: (v, r) => (
+                            <div className="flex items-center gap-2">
+                                {onViewPlayer && r.playerId ? (
+                                    <button onClick={() => onViewPlayer(r.playerId, v)} className="text-blue-600 hover:underline text-left">{v}</button>
+                                ) : (
+                                    <PlayerLink playerId={r.playerId} name={v} />
+                                )}
+                                <a href={`https://www.baseball-reference.com/players/${(r.playerId || '').charAt(0).toLowerCase()}/${r.playerId}.shtml`} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-600 text-xs" title="View on Baseball Reference">↗</a>
+                            </div>
+                        )},
                         { key: 'mlbTeam', label: 'MLB Team' },
                         { key: 'college', label: 'College' },
                         { key: 'levels', label: 'Levels' },
@@ -6705,18 +6745,39 @@ const CollegePlayersView = ({ data }) => {
 const PlayersTab = ({ data }) => {
     const hasCollegeData = Object.keys(data.ncaaCrossRef || {}).length > 0;
     const [view, setView] = useState('hitters');
+
+    const handleViewPlayer = (playerId, name) => {
+        setView('hitters');
+        // Store in a ref-like way so DynamicPlayerTable can pick it up
+        window._pendingPlayerSelect = { id: playerId, name };
+    };
+
     return (
         <div className="space-y-4">
             <div className="bg-white rounded-lg shadow p-4">
                 <div className="flex gap-4">
                     <button onClick={() => setView('hitters')} className={`px-6 py-2 rounded body-text font-medium ${view === 'hitters' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>👤 Hitters</button>
                     <button onClick={() => setView('pitchers')} className={`px-6 py-2 rounded body-text font-medium ${view === 'pitchers' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>⚾ Pitchers</button>
+                    {(data.playersWithoutStats || []).length > 0 && <button onClick={() => setView('nostats')} className={`px-6 py-2 rounded body-text font-medium ${view === 'nostats' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>👻 No Stats</button>}
                     {hasCollegeData && <button onClick={() => setView('college')} className={`px-6 py-2 rounded body-text font-medium ${view === 'college' ? 'bg-green-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🎓 College</button>}
                 </div>
             </div>
             {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
             {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
-            {view === 'college' && <CollegePlayersView data={data} />}
+            {view === 'nostats' && (
+                <DataTable
+                    title="👻 Players Without Stats"
+                    data={data.playersWithoutStats || []}
+                    defaultSortKey="games"
+                    columns={[
+                        { key: 'name', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
+                        { key: 'teams', label: 'Team(s)' },
+                        { key: 'games', label: 'Games' },
+                        { key: 'positions', label: 'Position(s)' },
+                    ]}
+                />
+            )}
+            {view === 'college' && <CollegePlayersView data={data} onViewPlayer={handleViewPlayer} />}
         </div>
     );
 };
@@ -7133,7 +7194,7 @@ const BadgeCell = ({ badges, badgeColors }) => {
             ))}
             {badges.length > 3 && (
                 <button
-                    onClick={() => setExpanded(!expanded)}
+                    onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
                     className="px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-600 hover:bg-gray-300 cursor-pointer"
                 >
                     {expanded ? '−' : `+${badges.length - 3}`}
@@ -7212,8 +7273,14 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
                 venueTotals[venue]['3B'] += (pg.triples || 0);
             }
         });
+        let gameMaxVelo = 0;
+        let gameMaxVeloPitcher = '';
         (pitByGame[gid] || []).forEach(pg => {
             pitK += (pg.so || 0);
+            if (pg.maxSpeed && pg.maxSpeed > gameMaxVelo) {
+                gameMaxVelo = pg.maxSpeed;
+                gameMaxVeloPitcher = pg.name;
+            }
         });
 
         const labels = { H: 'Hits', R: 'Runs', HR: 'HRs', RBI: 'RBI', SO: 'K', BB: 'Walks', SB: 'Steals', '2B': 'Doubles', '3B': 'Triples' };
@@ -7238,6 +7305,15 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
                 });
             }
         });
+
+        // Pitch velocity milestones
+        if (gameMaxVelo >= 100) {
+            badges[gid].push({
+                type: 'pitch-velo',
+                text: `${gameMaxVelo} mph - ${gameMaxVeloPitcher}`,
+                title: `${gameMaxVeloPitcher} hit ${gameMaxVelo} mph`
+            });
+        }
 
         // Venue-specific milestones
         if (venue) {
@@ -7312,7 +7388,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         'holiday': 'bg-red-100 text-red-700',
         'career-first': 'bg-amber-100 text-amber-800 font-bold',
         'cumulative-stat': 'bg-teal-100 text-teal-800 font-bold',
-        'venue-stat': 'bg-purple-100 text-purple-800 font-bold'
+        'venue-stat': 'bg-purple-100 text-purple-800 font-bold',
+        'pitch-velo': 'bg-red-100 text-red-700 font-bold'
     };
 
     const badgeTypeLabels = {
@@ -7326,7 +7403,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         'holiday': 'Holiday',
         'career-first': 'Career First',
         'cumulative-stat': 'Cumulative Stat',
-        'venue-stat': 'Venue Stat'
+        'venue-stat': 'Venue Stat',
+        'pitch-velo': '100+ mph'
     };
 
     // Precompute all badges per game for filtering
@@ -7443,13 +7521,20 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                 data={badgeFilteredGames}
                 defaultSortKey="date"
                 enableDateFilter={true}
+                onRowClick={(row) => setSelectedGame(row)}
                 filterOptions={[
                     { key: 'gameType', label: 'Game Type', displayFn: (v) => v === 'spring' ? 'Spring Training' : v === 'postseason' ? 'Postseason' : v === 'regular' ? 'Regular Season' : v },
                     { key: 'homeTeam', label: 'Home Team' },
                     { key: 'venue', label: 'Venue' }
                 ]}
                 columns={[
-                    { key: 'date', label: 'Date' },
+                    { key: 'date', label: 'Date', render: (v, row) => (
+                        <div className="flex items-center gap-1.5">
+                            <span>{v}</span>
+                            {row.gameType === 'spring' && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">ST</span>}
+                            {row.gameType === 'postseason' && <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-semibold rounded">PS</span>}
+                        </div>
+                    )},
                     { key: 'awayTeam', label: 'Away' },
                     { key: 'homeTeam', label: 'Home' },
                     { key: 'score', label: 'Score' },
@@ -8719,7 +8804,803 @@ class ErrorBoundary extends React.Component {
     }
 }
 
-const VALID_TABS = new Set(['dashboard','gamelog','calendar','progress','milestones','history','leaderboards','players','venues','matchups','special','companions','orioles']);
+const UmpireTracker = ({ umpireLog }) => {
+    const [search, setSearch] = useState('');
+
+    const filtered = useMemo(() => {
+        if (!search) return umpireLog;
+        const q = search.toLowerCase();
+        return umpireLog.filter(u => u.name.toLowerCase().includes(q));
+    }, [umpireLog, search]);
+
+    const totalUmpires = umpireLog.length;
+    const multipleGames = umpireLog.filter(u => u.games > 1).length;
+
+    return (
+        <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h2 className="section-title font-bold">Umpire Tracker</h2>
+                        <p className="body-text text-gray-500 mt-1">{totalUmpires} unique umpires seen, {multipleGames} seen multiple times</p>
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search umpires..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="px-4 py-2 body-text border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                    />
+                </div>
+                <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                    <table className="w-full">
+                        <thead className="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase">Umpire</th>
+                                <th className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase">Games</th>
+                                <th className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase">Positions</th>
+                                <th className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase">First Seen</th>
+                                <th className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase">Last Seen</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {filtered.map(u => (
+                                <tr key={u.name} className="hover:bg-blue-50">
+                                    <td className="px-4 py-3 body-text font-semibold">{u.name}</td>
+                                    <td className="px-4 py-3 body-text font-bold text-blue-600">{u.games}</td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex gap-1">
+                                            {Object.entries(u.positions || {}).sort((a, b) => b[1] - a[1]).map(([pos, count]) => (
+                                                <span key={pos} className="px-1.5 py-0.5 bg-gray-100 rounded text-xs font-medium">
+                                                    {pos}: {count}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3 body-text text-gray-600">{u.firstSeen}</td>
+                                    <td className="px-4 py-3 body-text text-gray-600">{u.lastSeen}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const JerseyCollection = ({ jerseyLog }) => {
+    const [selectedNumber, setSelectedNumber] = useState(null);
+    const [includeSpring, setIncludeSpring] = useState(false);
+
+    // Build grid of numbers 00-99, filtering spring training if needed
+    const numbers = useMemo(() => {
+        const grid = [];
+        const filterFn = (players) => includeSpring ? players : players.filter(p => {
+            // Game IDs starting with 'M' are MLB API (spring training) games
+            return !p.gameId?.startsWith('M');
+        });
+        grid.push({ num: '00', players: filterFn(jerseyLog['00'] || []) });
+        for (let i = 0; i <= 99; i++) {
+            const key = String(i);
+            grid.push({ num: key, players: filterFn(jerseyLog[key] || []) });
+        }
+        return grid;
+    }, [jerseyLog, includeSpring]);
+
+    const collected = numbers.filter(n => n.players.length > 0).length;
+    const total = numbers.length;
+
+    return (
+        <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow p-6">
+                <div className="mb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <h2 className="section-title font-bold">Jersey Number Collection</h2>
+                            <p className="body-text text-gray-500 mt-1">
+                                {collected} of {total} numbers collected ({Math.round(collected / total * 100)}%)
+                            </p>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={includeSpring} onChange={(e) => setIncludeSpring(e.target.checked)} className="rounded" />
+                            <span className="body-text text-gray-600">Include Spring Training</span>
+                        </label>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 mt-2">
+                        <div className="bg-blue-600 h-3 rounded-full transition-all" style={{ width: `${(collected / total * 100)}%` }}></div>
+                    </div>
+                </div>
+
+                <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(10, 1fr)' }}>
+                    {numbers.map(({ num, players }) => {
+                        const hasPlayers = players.length > 0;
+                        return (
+                            <button
+                                key={num}
+                                onClick={() => hasPlayers && setSelectedNumber(selectedNumber === num ? null : num)}
+                                className={`aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
+                                    hasPlayers
+                                        ? selectedNumber === num
+                                            ? 'bg-blue-600 text-white ring-2 ring-blue-400'
+                                            : 'bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer'
+                                        : 'bg-gray-100 text-gray-400'
+                                }`}
+                                title={hasPlayers ? `#${num}: ${players.length} player${players.length > 1 ? 's' : ''}` : `#${num}: not seen yet`}
+                            >
+                                {num}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {selectedNumber && (() => {
+                    const entry = numbers.find(n => n.num === selectedNumber);
+                    const players = entry ? entry.players : [];
+                    if (players.length === 0) return null;
+                    // Sort by date (convert MM/DD/YYYY to sortable)
+                    const sorted = [...players].sort((a, b) => {
+                        const da = (a.date || '').split('/');
+                        const db = (b.date || '').split('/');
+                        const sa = da.length === 3 ? `${da[2]}${da[0].padStart(2,'0')}${da[1].padStart(2,'0')}` : '';
+                        const sb = db.length === 3 ? `${db[2]}${db[0].padStart(2,'0')}${db[1].padStart(2,'0')}` : '';
+                        return sa.localeCompare(sb);
+                    });
+                    return (
+                    <div className="mt-4 bg-blue-50 rounded-lg p-4">
+                        <h3 className="subsection-title font-bold mb-3">#{selectedNumber} — {sorted.length} player{sorted.length > 1 ? 's' : ''}</h3>
+                        <div className="space-y-2">
+                            {sorted.map((p, i) => (
+                                <div key={`${p.playerId}-${i}`} className="flex items-center justify-between bg-white rounded p-2">
+                                    <div className="flex items-center gap-2">
+                                        <PlayerLink playerId={p.playerId} name={p.name} />
+                                        <span className="text-xs text-gray-500">{p.team}</span>
+                                    </div>
+                                    <span className="text-xs text-gray-400">{p.date}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    );
+                })()}
+            </div>
+        </div>
+    );
+};
+
+// State abbreviation -> full name mapping for GeoJSON matching
+const STATE_ABBR_TO_NAME = {
+    'AL':'Alabama','AK':'Alaska','AZ':'Arizona','AR':'Arkansas','CA':'California','CO':'Colorado',
+    'CT':'Connecticut','DE':'Delaware','FL':'Florida','GA':'Georgia','HI':'Hawaii','ID':'Idaho',
+    'IL':'Illinois','IN':'Indiana','IA':'Iowa','KS':'Kansas','KY':'Kentucky','LA':'Louisiana',
+    'ME':'Maine','MD':'Maryland','MA':'Massachusetts','MI':'Michigan','MN':'Minnesota','MS':'Mississippi',
+    'MO':'Missouri','MT':'Montana','NE':'Nebraska','NV':'Nevada','NH':'New Hampshire','NJ':'New Jersey',
+    'NM':'New Mexico','NY':'New York','NC':'North Carolina','ND':'North Dakota','OH':'Ohio','OK':'Oklahoma',
+    'OR':'Oregon','PA':'Pennsylvania','RI':'Rhode Island','SC':'South Carolina','SD':'South Dakota',
+    'TN':'Tennessee','TX':'Texas','UT':'Utah','VT':'Vermont','VA':'Virginia','WA':'Washington',
+    'WV':'West Virginia','WI':'Wisconsin','WY':'Wyoming','DC':'District of Columbia'
+};
+const STATE_NAME_TO_ABBR = Object.fromEntries(Object.entries(STATE_ABBR_TO_NAME).map(([k,v]) => [v, k]));
+
+// MLB API country name -> GeoJSON country name mapping
+const COUNTRY_NAME_MAP = {
+    'USA': 'United States of America', 'Dominican Republic': 'Dominican Republic',
+    'Venezuela': 'Venezuela', 'Cuba': 'Cuba', 'Mexico': 'Mexico', 'Canada': 'Canada',
+    'Japan': 'Japan', 'South Korea': 'South Korea', 'Colombia': 'Colombia',
+    'Panama': 'Panama', 'Nicaragua': 'Nicaragua', 'Taiwan': 'Taiwan',
+    'Australia': 'Australia', 'Brazil': 'Brazil', 'Germany': 'Germany',
+    'Honduras': 'Honduras', 'Netherlands': 'Netherlands', 'Italy': 'Italy',
+    'Jamaica': 'Jamaica', 'Peru': 'Peru', 'Saudi Arabia': 'Saudi Arabia',
+};
+
+const GEOJSON_URLS = {
+    states: 'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json',
+    countries: 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json'
+};
+
+const ChoroplethMap = ({ geoData, dataByPlace, nameMapper, center, zoom, onSelect, selectedPlace }) => {
+    const mapRef = useRef(null);
+    const mapInstanceRef = useRef(null);
+    const layerRef = useRef(null);
+
+    const getColor = (count) => {
+        if (!count) return '#e5e7eb';
+        if (count >= 100) return '#1e40af';
+        if (count >= 50) return '#2563eb';
+        if (count >= 20) return '#3b82f6';
+        if (count >= 10) return '#60a5fa';
+        if (count >= 5) return '#93c5fd';
+        return '#bfdbfe';
+    };
+
+    useEffect(() => {
+        if (!mapRef.current || !geoData || typeof L === 'undefined') return;
+
+        if (!mapInstanceRef.current) {
+            mapInstanceRef.current = L.map(mapRef.current, { scrollWheelZoom: true }).setView(center, zoom);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(mapInstanceRef.current);
+        }
+
+        if (layerRef.current) {
+            mapInstanceRef.current.removeLayer(layerRef.current);
+        }
+
+        layerRef.current = L.geoJSON(geoData, {
+            style: (feature) => {
+                const name = feature.properties.name;
+                const key = nameMapper ? nameMapper(name) : name;
+                const count = (dataByPlace[key] || []).length;
+                const isSelected = key === selectedPlace || name === selectedPlace;
+                return {
+                    fillColor: getColor(count),
+                    weight: isSelected ? 3 : 1,
+                    opacity: 1,
+                    color: isSelected ? '#1e3a8a' : '#6b7280',
+                    fillOpacity: count > 0 ? 0.8 : 0.3
+                };
+            },
+            onEachFeature: (feature, layer) => {
+                const name = feature.properties.name;
+                const key = nameMapper ? nameMapper(name) : name;
+                const players = dataByPlace[key] || [];
+                layer.bindTooltip(`<b>${key || name}</b>: ${players.length} player${players.length !== 1 ? 's' : ''}`, { sticky: true });
+                layer.on('click', () => {
+                    if (players.length > 0) onSelect(key || name);
+                });
+            }
+        }).addTo(mapInstanceRef.current);
+    }, [geoData, dataByPlace, selectedPlace]);
+
+    useEffect(() => {
+        if (mapInstanceRef.current) {
+            setTimeout(() => mapInstanceRef.current.invalidateSize(), 100);
+        }
+    });
+
+    return <div ref={mapRef} style={{ height: '500px', borderRadius: '8px' }} className="border"></div>;
+};
+
+const PlayerOrigins = ({ playerBios, allPlayers }) => {
+    const [viewMode, setViewMode] = useState('statesMap');
+    const [selectedPlace, setSelectedPlace] = useState(null);
+    const [statesGeo, setStatesGeo] = useState(null);
+    const [countriesGeo, setCountriesGeo] = useState(null);
+
+    // Fetch GeoJSON
+    useEffect(() => {
+        fetch(GEOJSON_URLS.states).then(r => r.json()).then(setStatesGeo).catch(() => {});
+        fetch(GEOJSON_URLS.countries).then(r => r.json()).then(setCountriesGeo).catch(() => {});
+    }, []);
+
+    const data = useMemo(() => {
+        const playerList = allPlayers.map(p => {
+            const bio = playerBios[p.playerId] || {};
+            return { ...p, ...bio };
+        }).filter(p => p.birthCountry);
+
+        const byCountry = {};
+        playerList.forEach(p => {
+            const c = p.birthCountry || 'Unknown';
+            if (!byCountry[c]) byCountry[c] = [];
+            byCountry[c].push(p);
+        });
+
+        const byState = {};
+        playerList.filter(p => p.birthCountry === 'USA' && p.birthState).forEach(p => {
+            const s = p.birthState;
+            if (!byState[s]) byState[s] = [];
+            byState[s].push(p);
+        });
+
+        // Also key by full state name for GeoJSON matching
+        const byStateName = {};
+        Object.entries(byState).forEach(([abbr, players]) => {
+            const fullName = STATE_ABBR_TO_NAME[abbr];
+            if (fullName) byStateName[fullName] = players;
+            byStateName[abbr] = players;
+        });
+
+        return { byCountry, byState, byStateName, total: playerList.length };
+    }, [playerBios, allPlayers]);
+
+    // Map name from GeoJSON country -> MLB API country
+    const countryGeoToMlb = (geoName) => {
+        // Reverse lookup
+        for (const [mlb, geo] of Object.entries(COUNTRY_NAME_MAP)) {
+            if (geo === geoName) return mlb;
+        }
+        return geoName;
+    };
+
+    const stateGeoToAbbr = (geoName) => STATE_NAME_TO_ABBR[geoName] || geoName;
+
+    const selectedPlayers = useMemo(() => {
+        if (!selectedPlace) return [];
+        // Try direct match in byCountry, byState, byStateName
+        return data.byCountry[selectedPlace] || data.byState[selectedPlace] || data.byStateName[selectedPlace] || [];
+    }, [selectedPlace, data]);
+
+    return (
+        <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <div>
+                    <h2 className="section-title font-bold">Player Origins</h2>
+                    <p className="body-text text-gray-500 mt-1">{data.total} players from {Object.keys(data.byCountry).length} countries, {Object.keys(data.byState).length} US states</p>
+                </div>
+                <div className="flex rounded-lg overflow-hidden border">
+                    <button onClick={() => { setViewMode('statesMap'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'statesMap' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>US States</button>
+                    <button onClick={() => { setViewMode('countriesMap'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'countriesMap' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>World</button>
+                    <button onClick={() => { setViewMode('list'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>List</button>
+                </div>
+            </div>
+
+            {viewMode === 'statesMap' && statesGeo && (
+                <ChoroplethMap
+                    geoData={statesGeo}
+                    dataByPlace={data.byStateName}
+                    nameMapper={(name) => name}
+                    center={[39.8, -98.6]}
+                    zoom={4}
+                    onSelect={(name) => setSelectedPlace(STATE_NAME_TO_ABBR[name] || name)}
+                    selectedPlace={selectedPlace ? (STATE_ABBR_TO_NAME[selectedPlace] || selectedPlace) : null}
+                />
+            )}
+
+            {viewMode === 'countriesMap' && countriesGeo && (
+                <ChoroplethMap
+                    key="countries"
+                    geoData={countriesGeo}
+                    dataByPlace={Object.fromEntries(
+                        Object.entries(data.byCountry).map(([mlb, players]) => [COUNTRY_NAME_MAP[mlb] || mlb, players])
+                    )}
+                    nameMapper={(name) => name}
+                    center={[20, -40]}
+                    zoom={2}
+                    onSelect={(geoName) => { const mlb = countryGeoToMlb(geoName); setSelectedPlace(prev => prev === mlb ? null : mlb); }}
+                    selectedPlace={selectedPlace ? (COUNTRY_NAME_MAP[selectedPlace] || selectedPlace) : null}
+                />
+            )}
+
+            {selectedPlace && selectedPlayers.length > 0 && viewMode !== 'list' && (
+                <div className="mt-4 bg-blue-50 rounded-lg p-4">
+                    <h3 className="subsection-title font-bold mb-2">{selectedPlace} — {selectedPlayers.length} players</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {selectedPlayers.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(p => (
+                            <span key={p.playerId} className="px-2 py-1 bg-white rounded text-sm">
+                                <PlayerLink playerId={p.playerId} name={p.name} />
+                                {p.birthCity && <span className="text-gray-400 text-xs ml-1">({p.birthCity})</span>}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {viewMode === 'list' && (
+                <div className="space-y-2">
+                    {Object.entries(data.byCountry).sort((a, b) => b[1].length - a[1].length).map(([place, players]) => (
+                        <details key={place} className="bg-gray-50 rounded-lg">
+                            <summary className="px-4 py-3 cursor-pointer hover:bg-gray-100 flex items-center justify-between">
+                                <span className="font-semibold body-text">{place}</span>
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold">{players.length}</span>
+                            </summary>
+                            <div className="px-4 pb-3 flex flex-wrap gap-2">
+                                {players.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(p => (
+                                    <span key={p.playerId} className="px-2 py-1 bg-white rounded text-sm">
+                                        <PlayerLink playerId={p.playerId} name={p.name} />
+                                        {p.birthCity && <span className="text-gray-400 text-xs ml-1">({p.birthCity})</span>}
+                                    </span>
+                                ))}
+                            </div>
+                        </details>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const PlayerBirthdays = ({ playerBios, allPlayers }) => {
+    const [selectedDay, setSelectedDay] = useState(null);
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+    const data = useMemo(() => {
+        const byDay = {};  // "MM-DD" -> [players]
+        const today = new Date();
+        const todayKey = String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+
+        allPlayers.forEach(p => {
+            const bio = playerBios[p.playerId] || {};
+            if (!bio.birthDate) return;
+            const parts = bio.birthDate.split('-');
+            if (parts.length < 3) return;
+            const key = parts[1] + '-' + parts[2];
+            if (!byDay[key]) byDay[key] = [];
+            byDay[key].push({ ...p, birthDate: bio.birthDate });
+        });
+
+        const totalDays = 366;
+        const collected = Object.keys(byDay).length;
+        return { byDay, todayKey, collected, totalDays };
+    }, [playerBios, allPlayers]);
+
+    return (
+        <div className="bg-white rounded-lg shadow p-6">
+            <div className="mb-4">
+                <h2 className="section-title font-bold">Birthday Calendar</h2>
+                <p className="body-text text-gray-500 mt-1">
+                    {data.collected} of {data.totalDays} days collected ({Math.round(data.collected / data.totalDays * 100)}%)
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-3 mt-2">
+                    <div className="bg-purple-600 h-3 rounded-full transition-all" style={{ width: `${(data.collected / data.totalDays * 100)}%` }}></div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {monthNames.map((month, mi) => {
+                    const monthNum = String(mi + 1).padStart(2, '0');
+                    const days = daysInMonth[mi];
+                    // Get day of week for first day of month (use 2024 as a leap year reference)
+                    const firstDow = new Date(2024, mi, 1).getDay();
+                    const collected = Array.from({ length: days }, (_, di) => {
+                        const key = `${monthNum}-${String(di + 1).padStart(2, '0')}`;
+                        return (data.byDay[key] || []).length > 0 ? 1 : 0;
+                    }).reduce((a, b) => a + b, 0);
+
+                    return (
+                        <div key={month} className="bg-gray-50 rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="text-sm font-bold text-gray-700">{month}</div>
+                                <div className="text-xs text-gray-500">{collected}/{days}</div>
+                            </div>
+                            <div className="grid grid-cols-7 gap-0.5 text-center">
+                                {['S','M','T','W','T','F','S'].map((d, i) => (
+                                    <div key={`hdr-${i}`} className="text-[10px] font-medium text-gray-400 py-0.5">{d}</div>
+                                ))}
+                                {Array.from({ length: firstDow }, (_, i) => (
+                                    <div key={`pad-${i}`}></div>
+                                ))}
+                                {Array.from({ length: days }, (_, di) => {
+                                    const dayNum = String(di + 1).padStart(2, '0');
+                                    const key = `${monthNum}-${dayNum}`;
+                                    const players = data.byDay[key] || [];
+                                    const isToday = key === data.todayKey;
+                                    const isSelected = selectedDay === key;
+                                    const hasPlayers = players.length > 0;
+                                    const count = players.length;
+                                    return (
+                                        <button
+                                            key={key}
+                                            onClick={() => hasPlayers && setSelectedDay(isSelected ? null : key)}
+                                            className={`aspect-square flex items-center justify-center rounded text-xs font-medium transition-all ${
+                                                isToday ? 'ring-2 ring-yellow-400 ' : ''
+                                            }${
+                                                isSelected ? 'bg-purple-600 text-white' :
+                                                count >= 10 ? 'bg-purple-500 text-white cursor-pointer' :
+                                                count >= 5 ? 'bg-purple-300 text-purple-900 cursor-pointer' :
+                                                hasPlayers ? 'bg-purple-100 text-purple-800 hover:bg-purple-200 cursor-pointer' :
+                                                'text-gray-400'
+                                            }`}
+                                            title={hasPlayers ? `${month} ${di+1}: ${count} player${count > 1 ? 's' : ''}` : `${month} ${di+1}`}
+                                        >
+                                            {di + 1}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {selectedDay && data.byDay[selectedDay] && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedDay(null)}>
+                    <div className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-4 border-b bg-purple-600 text-white rounded-t-lg flex items-center justify-between">
+                            <h3 className="font-bold">
+                                {monthNames[parseInt(selectedDay.split('-')[0]) - 1]} {parseInt(selectedDay.split('-')[1])} — {data.byDay[selectedDay].length} player{data.byDay[selectedDay].length > 1 ? 's' : ''}
+                            </h3>
+                            <button onClick={() => setSelectedDay(null)} className="text-white hover:text-gray-200 text-xl leading-none">&times;</button>
+                        </div>
+                        <div className="p-4 space-y-2">
+                            {data.byDay[selectedDay]
+                                .filter((p, i, arr) => arr.findIndex(x => x.playerId === p.playerId) === i)
+                                .sort((a, b) => (a.birthDate || '').localeCompare(b.birthDate || ''))
+                                .map((p, i) => (
+                                <div key={`${p.playerId}-${i}`} className="flex items-center justify-between bg-gray-50 rounded p-2">
+                                    <PlayerLink playerId={p.playerId} name={p.name} />
+                                    <span className="text-xs text-gray-400">{p.birthDate}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const DebutPerformance = ({ r }) => {
+    if (r.ip && r.ip !== '' && r.ip !== '0.0') return <span className="font-mono small-text">{r.ip} IP, {r.h_p} H, {r.er} ER, {r.bb_p} BB, {r.so_p} SO{r.decision ? ` (${r.decision})` : ''}</span>;
+    if (r.ab > 0) {
+        const parts = r.h > 0 ? [`${r.h}-${r.ab}`] : [`0-${r.ab}`];
+        if (r.hr > 0) parts.push(`${r.hr} HR`);
+        if (r.rbi > 0) parts.push(`${r.rbi} RBI`);
+        if (r.r > 0) parts.push(`${r.r} R`);
+        if (r.bb > 0) parts.push(`${r.bb} BB`);
+        if (r.so > 0) parts.push(`${r.so} SO`);
+        return <span className="font-mono small-text">{parts.join(', ')}</span>;
+    }
+    return <span className="text-gray-500 italic small-text">Defensive replacement</span>;
+};
+
+const PersonalRecords = ({ data }) => {
+    // Render the categorized summary stats directly (extracted from SmartInsights 'records' view)
+    const gameMap = useMemo(() => {
+        const map = {};
+        (data.games || []).forEach(game => { if (game.gameId) map[game.gameId] = game; });
+        return map;
+    }, [data.games]);
+
+    const categoryConfig = {
+        'Game Format': { icon: '🎮', gradient: 'from-emerald-500 to-green-600' },
+        'Hitting': { icon: '🏏', gradient: 'from-orange-500 to-amber-600' },
+        'Pitching': { icon: '⚾', gradient: 'from-blue-500 to-indigo-600' },
+        'Home Runs': { icon: '💣', gradient: 'from-red-500 to-pink-600' },
+        'Runs Scored': { icon: '🏃', gradient: 'from-purple-500 to-violet-600' },
+        'Defense': { icon: '🧤', gradient: 'from-teal-500 to-cyan-600' },
+        'Baserunning': { icon: '👟', gradient: 'from-lime-500 to-green-600' },
+        'Other': { icon: '📌', gradient: 'from-gray-500 to-gray-600' }
+    };
+
+    const categories = useMemo(() => {
+        const cats = { 'Game Format': [], 'Hitting': [], 'Pitching': [], 'Home Runs': [], 'Runs Scored': [], 'Defense': [], 'Baserunning': [], 'Other': [] };
+        (data.summary || []).forEach(row => {
+            const r = row.record.toLowerCase();
+            if (r.includes('extra inning') || r.includes('doubleheader') || r.includes('game length') || r.includes('attendance') || r.includes('longest') || r.includes('shortest') || r.includes('1-run game') || r.includes('1-0 game') || r.includes('temperature') || r.includes('coldest') || r.includes('hottest') || r.includes('wind') || r.includes('precipitation') || r.includes('start time') || r.includes('day game') || r.includes('weekend') || r.includes('biggest victory') || r.includes('comeback') || r.includes('matchup')) cats['Game Format'].push(row);
+            else if (r.includes('hr') || r.includes('home run') || r.includes('grand slam') || r.includes('multi-hr') || r.includes('inside-the-park') || r.includes('back-to-back')) cats['Home Runs'].push(row);
+            else if ((r.includes('hit') && !r.includes('pitcher') && !r.includes('shutout')) || r.includes('batting') || r.includes('cycle') || r.includes('average leader') || r.includes('obp leader') || r.includes('ops leader') || r.includes('unique player') || r.includes('risp') || r.includes('bases loaded') || r.includes('wpa') || r.includes('clutch') || r.includes('rbi')) cats['Hitting'].push(row);
+            else if (r.includes('pitch') || r.includes('strikeout') || r.includes('combined strikeout') || r.includes(' k ') || r.includes('shutout') || r.includes('complete game') || r.includes('quality start') || r.includes('earned run') || r.includes('no-hit') || r.includes('walk') || r.includes('era leader') || r.includes('unique pitcher') || r.includes('win') || r.includes('loss') || r.includes('save')) cats['Pitching'].push(row);
+            else if (r.includes('run') || r.includes('10+ run')) cats['Runs Scored'].push(row);
+            else if (r.includes('fewest') || r.includes('error') || r.includes('defense')) cats['Defense'].push(row);
+            else if (r.includes('steal') || r.includes(' sb') || r.includes('caught') || r.includes('baserun')) cats['Baserunning'].push(row);
+            else cats['Other'].push(row);
+        });
+        return cats;
+    }, [data.summary]);
+
+    return (
+        <div className="space-y-4">
+            {Object.entries(categories).map(([name, records]) => {
+                if (records.length === 0) return null;
+                const config = categoryConfig[name];
+                return (
+                    <div key={name} className="bg-white rounded-xl shadow overflow-hidden">
+                        <details open>
+                            <summary className={`cursor-pointer p-4 bg-gradient-to-r ${config.gradient} text-white hover:opacity-95`}>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xl">{config.icon}</span>
+                                        <span className="font-bold body-text">{name}</span>
+                                    </div>
+                                    <span className="bg-white/20 px-2 py-0.5 rounded text-sm">{records.length}</span>
+                                </div>
+                            </summary>
+                            <div className="divide-y">
+                                {records.map((record, i) => (
+                                    <div key={i} className="p-3 hover:bg-gray-50">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="font-semibold body-text text-gray-800">{record.record}</div>
+                                            <div className="font-bold text-blue-600 whitespace-nowrap">{record.value}</div>
+                                        </div>
+                                        {record.detail && <div className="small-text text-gray-600 mt-1">{record.detail}</div>}
+                                        {record.score && <div className="small-text text-gray-500 mt-0.5">{record.score}</div>}
+                                    </div>
+                                ))}
+                            </div>
+                        </details>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+const SpecialTab = ({ data }) => {
+    const [view, setView] = useState('records');
+    return (
+        <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex flex-wrap gap-3">
+                    <button onClick={() => setView('records')} className={`px-5 py-2 rounded body-text font-medium ${view === 'records' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>📋 Records</button>
+                    <button onClick={() => setView('debuts')} className={`px-5 py-2 rounded body-text font-medium ${view === 'debuts' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🌟 Debuts</button>
+                    <button onClick={() => setView('finals')} className={`px-5 py-2 rounded body-text font-medium ${view === 'finals' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>👋 Final Games</button>
+                    <button onClick={() => setView('splash')} className={`px-5 py-2 rounded body-text font-medium ${view === 'splash' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>💦 Signature HRs</button>
+                </div>
+            </div>
+            {view === 'records' && <PersonalRecords data={data} />}
+            {view === 'debuts' && (
+                <DataTable title="🌟 MLB Debuts" data={data.debuts || []} defaultSortKey="date" enableDateFilter={true} columns={[
+                    { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
+                    { key: 'team', label: 'Team' }, { key: 'opponent', label: 'vs' }, { key: 'position', label: 'Pos' },
+                    { key: 'stats', label: 'Debut Performance', render: (v, r) => <DebutPerformance r={r} /> },
+                    { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
+                ]} />
+            )}
+            {view === 'finals' && (
+                <DataTable title="👋 Final MLB Games" data={data.finalGames || []} defaultSortKey="date" enableDateFilter={true} columns={[
+                    { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
+                    { key: 'team', label: 'Team' }, { key: 'position', label: 'Pos' },
+                    { key: 'stats', label: 'Final Performance', render: (v, r) => <DebutPerformance r={r} /> },
+                    { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
+                ]} />
+            )}
+            {view === 'splash' && (
+                <DataTable title="💦 Signature HRs" data={data.signatureHRs || []} defaultSortKey="date" enableDateFilter={true} columns={[
+                    { key: 'date', label: 'Date' }, { key: 'player', label: 'Player' }, { key: 'team', label: 'Team' },
+                    { key: 'opponent', label: 'Opponent' }, { key: 'pitcher', label: 'Pitcher' }, { key: 'signatureNumber', label: 'Type' },
+                    { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
+                ]} />
+            )}
+        </div>
+    );
+};
+
+const ScorigamiChart = ({ games }) => {
+    const [selectedCell, setSelectedCell] = useState(null);
+
+    const data = useMemo(() => {
+        const scoreCounts = {};
+        const scoreGames = {};
+        let maxWinner = 0;
+        let maxLoser = 0;
+
+        (games || []).forEach(game => {
+            const score = game.score || '';
+            const nums = score.match(/\\d+/g);
+            if (!nums || nums.length < 2) return;
+            const a = parseInt(nums[0]);
+            const b = parseInt(nums[1]);
+            if (isNaN(a) || isNaN(b) || a === b) return;
+            const winner = Math.max(a, b);
+            const loser = Math.min(a, b);
+            const key = `${loser}-${winner}`;
+            scoreCounts[key] = (scoreCounts[key] || 0) + 1;
+            if (!scoreGames[key]) scoreGames[key] = [];
+            // Determine which team won
+            const awayScore = a, homeScore = b;
+            const winnerTeam = homeScore > awayScore ? game.homeTeam : game.awayTeam;
+            const loserTeam = homeScore > awayScore ? game.awayTeam : game.homeTeam;
+            scoreGames[key].push({ ...game, winnerTeam, loserTeam, winnerScore: winner, loserScore: loser });
+            maxWinner = Math.max(maxWinner, winner);
+            maxLoser = Math.max(maxLoser, loser);
+        });
+
+        // Trim to actual data range
+        const displayMaxWinner = maxWinner;
+        const displayMaxLoser = maxLoser;
+        const unique = Object.keys(scoreCounts).length;
+        return { scoreCounts, scoreGames, displayMaxWinner, displayMaxLoser, unique };
+    }, [games]);
+
+    return (
+        <div className="bg-white rounded-lg shadow p-6">
+            <div className="mb-4">
+                <h2 className="section-title font-bold">Personal Scorigami</h2>
+                <p className="body-text text-gray-500 mt-1">{data.unique} unique final scores witnessed</p>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+                    <thead>
+                        <tr>
+                            <th className="p-0 text-xs text-gray-500 text-center" style={{width:'30px'}}></th>
+                            {Array.from({ length: data.displayMaxWinner + 1 }, (_, i) => (
+                                <th key={i} className="p-0 text-xs text-gray-500 text-center">{i}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {Array.from({ length: data.displayMaxLoser + 1 }, (_, loser) => (
+                            <tr key={loser}>
+                                <td className="p-0 text-xs text-gray-500 text-center font-medium" style={{width:'30px'}}>{loser}</td>
+                                {Array.from({ length: data.displayMaxWinner + 1 }, (_, winner) => {
+                                    if (winner <= loser) {
+                                        return <td key={winner} className="p-px"><div className="w-full aspect-square bg-gray-200 rounded-sm"></div></td>;
+                                    }
+                                    const key = `${loser}-${winner}`;
+                                    const count = data.scoreCounts[key] || 0;
+                                    const isSelected = selectedCell === key;
+                                    return (
+                                        <td key={winner} className="p-px">
+                                            <button
+                                                onClick={() => count > 0 && setSelectedCell(isSelected ? null : key)}
+                                                className={`w-full aspect-square rounded-sm text-[10px] font-bold flex items-center justify-center transition-all ${
+                                                    isSelected ? 'ring-2 ring-blue-500 bg-blue-600 text-white' :
+                                                    count >= 5 ? 'bg-green-600 text-white' :
+                                                    count >= 3 ? 'bg-green-400 text-white' :
+                                                    count >= 2 ? 'bg-green-300 text-green-900' :
+                                                    count === 1 ? 'bg-green-100 text-green-800' :
+                                                    'bg-white border border-gray-200'
+                                                } ${count > 0 ? 'cursor-pointer hover:ring-1 hover:ring-blue-300' : ''}`}
+                                                title={count > 0 ? `${loser}-${winner}: ${count} game${count > 1 ? 's' : ''}` : `${loser}-${winner}: never seen`}
+                                            >
+                                                {count || ''}
+                                            </button>
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                    <span>Losing score ↓</span>
+                    <span>Winning score →</span>
+                    <div className="flex items-center gap-1 ml-4">
+                        <div className="w-3 h-3 bg-white border border-gray-200 rounded-sm"></div> <span>0</span>
+                        <div className="w-3 h-3 bg-green-100 rounded-sm ml-1"></div> <span>1</span>
+                        <div className="w-3 h-3 bg-green-300 rounded-sm ml-1"></div> <span>2</span>
+                        <div className="w-3 h-3 bg-green-400 rounded-sm ml-1"></div> <span>3-4</span>
+                        <div className="w-3 h-3 bg-green-600 rounded-sm ml-1"></div> <span>5+</span>
+                    </div>
+                </div>
+            </div>
+
+            {selectedCell && data.scoreGames[selectedCell] && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedCell(null)}>
+                    <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-4 border-b bg-green-600 text-white rounded-t-lg flex items-center justify-between">
+                            <h3 className="font-bold">Final Score: {selectedCell.replace('-', ' - ')} ({data.scoreGames[selectedCell].length} game{data.scoreGames[selectedCell].length > 1 ? 's' : ''})</h3>
+                            <button onClick={() => setSelectedCell(null)} className="text-white hover:text-gray-200 text-xl leading-none">&times;</button>
+                        </div>
+                        <div className="p-3 space-y-2">
+                            {data.scoreGames[selectedCell].map((g, i) => (
+                                <div key={i} className="bg-gray-50 rounded p-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-green-700">{g.winnerTeam} {g.winnerScore}</span>
+                                            <span className="text-gray-400">def.</span>
+                                            <span className="text-gray-600">{g.loserTeam} {g.loserScore}</span>
+                                        </div>
+                                        <span className="text-xs text-gray-500">{g.date}</span>
+                                    </div>
+                                    <div className="text-xs text-gray-400 mt-1">{g.awayTeam} @ {g.homeTeam} • {g.venue || ''}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games }) => {
+    const [view, setView] = useState('jerseys');
+    const allPlayers = useMemo(() => [...(players || []), ...(pitchers || [])], [players, pitchers]);
+    return (
+        <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex flex-wrap gap-3">
+                    <button onClick={() => setView('jerseys')} className={`px-5 py-2 rounded body-text font-medium ${view === 'jerseys' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>#️⃣ Jersey Numbers</button>
+                    <button onClick={() => setView('origins')} className={`px-5 py-2 rounded body-text font-medium ${view === 'origins' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🌍 Origins</button>
+                    <button onClick={() => setView('birthdays')} className={`px-5 py-2 rounded body-text font-medium ${view === 'birthdays' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🎂 Birthdays</button>
+                    <button onClick={() => setView('scorigami')} className={`px-5 py-2 rounded body-text font-medium ${view === 'scorigami' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🎯 Scorigami</button>
+                    <button onClick={() => setView('umpires')} className={`px-5 py-2 rounded body-text font-medium ${view === 'umpires' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🧑‍⚖️ Umpires</button>
+                </div>
+            </div>
+            {view === 'jerseys' && <JerseyCollection jerseyLog={jerseyLog} />}
+            {view === 'origins' && <PlayerOrigins playerBios={playerBios} allPlayers={allPlayers} />}
+            {view === 'birthdays' && <PlayerBirthdays playerBios={playerBios} allPlayers={allPlayers} />}
+            {view === 'scorigami' && <ScorigamiChart games={games} />}
+            {view === 'umpires' && <UmpireTracker umpireLog={umpireLog} />}
+        </div>
+    );
+};
+
+const VALID_TABS = new Set(['dashboard','gamelog','calendar','progress','milestones','history','leaderboards','players','venues','matchups','special','companions','trivia','orioles']);
 
 const App = () => {
     const [tab, setTab] = useState(() => {
@@ -8911,6 +9792,7 @@ const App = () => {
         { id: 'matchups', label: 'Matchups', icon: '🎯' },
         { id: 'special', label: 'Special', icon: '🌟' },
         { id: 'companions', label: 'With', icon: '👥' },
+        { id: 'trivia', label: 'Frivolities', icon: '🔢' },
         { id: 'orioles', label: 'Orioles', icon: '🧡' },
     ];
     
@@ -9007,52 +9889,9 @@ const App = () => {
                     </div>
                 ) : <EmptyState icon="🏟️" title="No Venue Data" message="No stadium or team records available." />)}
                 {tab === 'matchups' && (data.matchupMatrix ? <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} /> : <EmptyState icon="🎯" title="No Matchup Data" message="No matchup data available." />)}
-                {tab === 'special' && (
-                    <div className="space-y-6">
-                        <DataTable title="🌟 MLB Debuts" data={data.debuts || []} defaultSortKey="date" enableDateFilter={true} columns={[
-                            { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
-                            { key: 'team', label: 'Team' }, { key: 'opponent', label: 'vs' }, { key: 'position', label: 'Pos' },
-                            { key: 'stats', label: 'Debut Performance', render: (v, r) => {
-                                if (r.ip && r.ip !== '' && r.ip !== '0.0') return <span className="font-mono small-text">{r.ip} IP, {r.h_p} H, {r.er} ER, {r.bb_p} BB, {r.so_p} SO{r.decision ? ` (${r.decision})` : ''}</span>;
-                                if (r.ab > 0) {
-                                    const parts = r.h > 0 ? [`${r.h}-${r.ab}`] : [`0-${r.ab}`];
-                                    if (r.hr > 0) parts.push(`${r.hr} HR`);
-                                    if (r.rbi > 0) parts.push(`${r.rbi} RBI`);
-                                    if (r.r > 0) parts.push(`${r.r} R`);
-                                    if (r.bb > 0) parts.push(`${r.bb} BB`);
-                                    if (r.so > 0) parts.push(`${r.so} SO`);
-                                    return <span className="font-mono small-text">{parts.join(', ')}</span>;
-                                }
-                                return <span className="text-gray-500 italic small-text">Defensive replacement</span>;
-                            }},
-                            { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
-                        ]} />
-                        <DataTable title="👋 Final MLB Games" data={data.finalGames || []} defaultSortKey="date" enableDateFilter={true} columns={[
-                            { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
-                            { key: 'team', label: 'Team' }, { key: 'position', label: 'Pos' },
-                            { key: 'stats', label: 'Final Performance', render: (v, r) => {
-                                if (r.ip && r.ip !== '' && r.ip !== '0.0') return <span className="font-mono small-text">{r.ip} IP, {r.h_p} H, {r.er} ER, {r.bb_p} BB, {r.so_p} SO{r.decision ? ` (${r.decision})` : ''}</span>;
-                                if (r.ab > 0) {
-                                    const parts = r.h > 0 ? [`${r.h}-${r.ab}`] : [`0-${r.ab}`];
-                                    if (r.hr > 0) parts.push(`${r.hr} HR`);
-                                    if (r.rbi > 0) parts.push(`${r.rbi} RBI`);
-                                    if (r.r > 0) parts.push(`${r.r} R`);
-                                    if (r.bb > 0) parts.push(`${r.bb} BB`);
-                                    if (r.so > 0) parts.push(`${r.so} SO`);
-                                    return <span className="font-mono small-text">{parts.join(', ')}</span>;
-                                }
-                                return <span className="text-gray-500 italic small-text">Defensive replacement</span>;
-                            }},
-                            { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
-                        ]} />
-                        <DataTable title="💦 Signature HRs" data={data.signatureHRs || []} defaultSortKey="date" enableDateFilter={true} columns={[
-                            { key: 'date', label: 'Date' }, { key: 'player', label: 'Player' }, { key: 'team', label: 'Team' },
-                            { key: 'opponent', label: 'Opponent' }, { key: 'pitcher', label: 'Pitcher' }, { key: 'signatureNumber', label: 'Type' },
-                            { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
-                        ]} />
-                    </div>
-                )}
+                {tab === 'special' && <SpecialTab data={data} />}
                 {tab === 'companions' && <CompanionsView companionData={data.companionData} />}
+                {tab === 'trivia' && <TriviaTab umpireLog={data.umpireLog || []} jerseyLog={data.jerseyLog || {}} playerBios={data.playerBios || {}} players={data.players || []} pitchers={data.pitchers || []} games={data.games || []} />}
                 {tab === 'orioles' && <OriolesDashboard orioles={data.orioles || []} games={data.games || []} />}
             </main>
             <footer className={`border-t mt-12 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>

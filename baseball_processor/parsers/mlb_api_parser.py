@@ -596,9 +596,16 @@ def parse_basic_info(feed_data: dict, box_data: dict) -> dict:
             if wind:
                 weather_str += f", Wind: {wind}"
 
-    # Attendance
+    # Attendance and duration
     game_info_data = game_data.get('gameInfo', {})
     attendance = game_info_data.get('attendance')
+    duration_minutes = game_info_data.get('gameDurationMinutes')
+    duration_str = ''
+    if duration_minutes:
+        duration_str = f"{duration_minutes // 60}:{duration_minutes % 60:02d}"
+
+    # Venue coordinates
+    coords = venue_location.get('defaultCoordinates', {})
 
     return {
         'away_team': away_team.get('name', ''),
@@ -611,7 +618,9 @@ def parse_basic_info(feed_data: dict, box_data: dict) -> dict:
         'venue': venue_name,
         'venue_city': venue_city,
         'venue_state': venue_state,
-        'duration': '',  # Not always available
+        'venue_latitude': coords.get('latitude'),
+        'venue_longitude': coords.get('longitude'),
+        'duration': duration_str,
         'weather': weather_str,
         'temperature_f': int(weather.get('temp', 0)) if weather.get('temp') else None,
         'away_score': str(away_score),
@@ -678,6 +687,7 @@ def parse_batting(box_data: dict, side: str, bref_id_map: dict = None, game_year
             'player_id': player_id,
             'mlb_id': mlb_id,
             'bref_id': bref_id,  # Store BREF ID separately too
+            'jersey_number': player.get('jerseyNumber', ''),
             'position': position.get('abbreviation', ''),
             'AB': stats.get('atBats', 0),
             'R': stats.get('runs', 0),
@@ -749,6 +759,7 @@ def parse_pitching(box_data: dict, side: str, bref_id_map: dict = None, game_yea
             'player_id': player_id,
             'mlb_id': mlb_id,
             'bref_id': bref_id,
+            'jersey_number': player.get('jerseyNumber', ''),
             'IP': stats.get('inningsPitched', '0'),
             'H': stats.get('hits', 0),
             'R': stats.get('runs', 0),
@@ -771,6 +782,90 @@ def parse_pitching(box_data: dict, side: str, bref_id_map: dict = None, game_yea
         }
 
         result.append(pitcher_data)
+
+    return result
+
+
+def parse_umpires(box_data: dict) -> dict:
+    """Parse umpire assignments from boxscore officials."""
+    type_map = {
+        'Home Plate': 'HP', 'First Base': '1B', 'Second Base': '2B',
+        'Third Base': '3B', 'Left Field': 'LF', 'Right Field': 'RF',
+    }
+    umpires = {}
+    for official in box_data.get('officials', []):
+        pos = type_map.get(official.get('officialType', ''))
+        if pos:
+            umpires[pos] = official.get('official', {}).get('fullName', '')
+    return umpires
+
+
+def parse_pitch_data(feed_data: dict, bref_id_map: dict = None) -> dict:
+    """Extract per-pitcher pitch data from play-by-play events."""
+    if bref_id_map is None:
+        bref_id_map = {}
+
+    pitcher_pitches = {}  # keyed by mlb_id
+    all_plays = feed_data.get('liveData', {}).get('plays', {}).get('allPlays', [])
+
+    for play in all_plays:
+        matchup = play.get('matchup', {})
+        pitcher_mlb_id = matchup.get('pitcher', {}).get('id')
+        pitcher_name = matchup.get('pitcher', {}).get('fullName', '')
+        batter_name = matchup.get('batter', {}).get('fullName', '')
+        inning = play.get('about', {}).get('inning', 0)
+
+        if not pitcher_mlb_id:
+            continue
+
+        if pitcher_mlb_id not in pitcher_pitches:
+            pitcher_pitches[pitcher_mlb_id] = {
+                'name': pitcher_name,
+                'player_id': bref_id_map.get(pitcher_mlb_id, f'mlb_{pitcher_mlb_id}'),
+                'pitches': [],
+            }
+
+        for event in play.get('playEvents', []):
+            if not event.get('isPitch'):
+                continue
+            details = event.get('details', {})
+            pitch_data = event.get('pitchData', {})
+            pitch_type = details.get('type', {})
+            breaks = pitch_data.get('breaks', {})
+
+            pitcher_pitches[pitcher_mlb_id]['pitches'].append({
+                'inning': inning,
+                'batter': batter_name,
+                'speed': pitch_data.get('startSpeed'),
+                'type': pitch_type.get('code', '') if isinstance(pitch_type, dict) else '',
+                'typeName': pitch_type.get('description', '') if isinstance(pitch_type, dict) else '',
+                'spinRate': breaks.get('spinRate'),
+                'call': details.get('description', ''),
+            })
+
+    # Build summaries
+    result = {}
+    for mlb_id, pdata in pitcher_pitches.items():
+        pitches = pdata['pitches']
+        speeds = [p['speed'] for p in pitches if p.get('speed')]
+        spins = [p['spinRate'] for p in pitches if p.get('spinRate')]
+        type_counts = {}
+        type_names = {}
+        for p in pitches:
+            if p.get('type'):
+                type_counts[p['type']] = type_counts.get(p['type'], 0) + 1
+                type_names[p['type']] = p.get('typeName', p['type'])
+
+        result[pdata['player_id']] = {
+            'name': pdata['name'],
+            'player_id': pdata['player_id'],
+            'totalPitches': len(pitches),
+            'avgSpeed': round(sum(speeds) / len(speeds), 1) if speeds else None,
+            'maxSpeed': round(max(speeds), 1) if speeds else None,
+            'avgSpinRate': round(sum(spins) / len(spins)) if spins else None,
+            'pitchTypes': type_counts,
+            'pitchTypeNames': type_names,
+        }
 
     return result
 
@@ -1031,6 +1126,15 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
     }
 
     linescore = parse_linescore(feed_data)
+    umpires = parse_umpires(box_data)
+    pitch_data = parse_pitch_data(feed_data, bref_id_map)
+
+    # No-hitter / perfect game flags
+    flags = feed_data.get('gameData', {}).get('flags', {})
+    game_flags = {
+        'no_hitter': flags.get('noHitter', False) or flags.get('homeTeamNoHitter', False) or flags.get('awayTeamNoHitter', False),
+        'perfect_game': flags.get('perfectGame', False) or flags.get('homeTeamPerfectGame', False) or flags.get('awayTeamPerfectGame', False),
+    }
 
     # Parse play-by-play and substitutions
     substitutions = parse_substitutions(feed_data, bref_id_map)
@@ -1051,6 +1155,7 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
                     'name': batter['name'],
                     'player_id': batter['player_id'],
                     'pos': batter['position'],
+                    'jersey_number': batter.get('jersey_number', ''),
                 })
         lineups[side].sort(key=lambda x: x['slot'])
 
@@ -1063,6 +1168,7 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
                 'name': sp['name'],
                 'player_id': sp['player_id'],
                 'pos': 'P',
+                'jersey_number': sp.get('jersey_number', ''),
             })
 
     # Normalize substitution format to match BREF parser output
@@ -1129,9 +1235,11 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
         'pitcher_decisions': pitcher_decisions,
         'special_events': {},
         'milestone_stats': {},
-        'umpires': {},
+        'umpires': umpires,
+        'flags': game_flags,
+        'pitch_data': pitch_data,
         'doubleheader': basic_info.get('doubleheader', 'N'),
-        'raw_plays': play_by_play,  # Use play_by_play as raw_plays too
+        'raw_plays': play_by_play,
         'footer_summary': {},
     }
 
