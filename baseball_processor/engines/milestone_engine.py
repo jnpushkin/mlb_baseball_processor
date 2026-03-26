@@ -6,22 +6,19 @@ from ..excel.generators import ExcelGeneratorUtils
 from ..utils.log import debug
 
 class MilestoneEngine:
-    # All milestone keys for programmatic access (41 types)
+    # All milestone keys for programmatic access
     MILESTONE_KEYS = [
-        # Batting milestones (18)
+        # Batting milestones
         'three_hr_games', 'multi_hr_games', 'cycles', 'five_hit_games',
-        'four_hit_games', 'three_hit_games', 'six_rbi_games', 'five_rbi_games',
-        'four_rbi_games', 'multi_double_games', 'multi_triple_games',
-        'multi_steal_games', 'four_walk_games', 'perfect_batting_games',
-        'three_run_games', 'four_run_games', 'hit_for_extra_bases',
-        'three_total_bases_games',
-        # Pitching milestones (23)
+        'four_hit_games', 'six_rbi_games', 'five_rbi_games',
+        'four_rbi_games', 'multi_triple_games',
+        'multi_steal_games',
+        # Pitching milestones
         'complete_games', 'shutouts', 'no_hitters', 'perfect_games',
         'quality_starts', 'fifteen_k_games', 'twelve_k_games', 'ten_k_games',
-        'eight_k_games', 'maddux_games', 'seven_inning_shutouts', 'low_hit_cg',
-        'one_hitters', 'two_hitters', 'cgso_no_walks', 'high_k_low_bb',
-        'save_games', 'win_games', 'immaculate_inning_pitchers',
-        'efficient_starts', 'dominant_starts', 'no_walk_starts', 'scoreless_relief',
+        'maddux_games', 'seven_inning_shutouts', 'low_hit_cg',
+        'one_hitters', 'two_hitters', 'cgso_no_walks',
+        'immaculate_inning_pitchers', 'dominant_starts',
     ]
 
     def __init__(self, game_data):

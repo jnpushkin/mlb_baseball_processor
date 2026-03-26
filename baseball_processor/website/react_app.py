@@ -3711,10 +3711,12 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                         <p className="text-gray-500 mt-1">Special performances you've witnessed</p>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="flex rounded-lg overflow-hidden border">
-                            <button onClick={() => setViewMode('date')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'date' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>📅 By Date</button>
-                            <button onClick={() => setViewMode('category')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'category' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>📂 By Category</button>
-                        </div>
+                        {activeCategory !== 'firsts' && (
+                            <div className="flex rounded-lg overflow-hidden border">
+                                <button onClick={() => setViewMode('date')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'date' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>📅 By Date</button>
+                                <button onClick={() => setViewMode('category')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'category' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>📂 By Category</button>
+                            </div>
+                        )}
                         <input
                             type="text"
                             placeholder="Search player, team..."
@@ -4024,8 +4026,16 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                     }
                     return true;
                 }).sort((a, b) => {
-                    const da = a.gameId ? a.gameId.substring(3, 11) : '';
-                    const db = b.gameId ? b.gameId.substring(3, 11) : '';
+                    // Sort by game date from gameMap, falling back to gameId parsing
+                    const gameA = gameMap[a.gameId];
+                    const gameB = gameMap[b.gameId];
+                    const parseDate = (d) => {
+                        if (!d) return '';
+                        if (d.includes('/')) { const [m, dd, y] = d.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; }
+                        return d;
+                    };
+                    const da = gameA ? parseDate(gameA.date) : '';
+                    const db = gameB ? parseDate(gameB.date) : '';
                     return db.localeCompare(da);
                 });
 
