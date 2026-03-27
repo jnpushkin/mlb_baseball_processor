@@ -397,7 +397,7 @@ const StatCard = ({ title, value, subtitle, color = 'blue', onClick }) => {
 };
 
 
-const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, badges, onClose }) => {
+const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, badges, onClose, onPrev, onNext }) => {
     const [activeTab, setActiveTab] = useState('boxscore');
     
     const gameData = useMemo(() => {
@@ -1217,9 +1217,13 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                 </div>{/* End scrollable body */}
 
                 {/* Footer */}
-                <div className="p-4 border-t bg-gray-50 flex justify-between items-center flex-shrink-0">
+                <div className="p-3 border-t bg-gray-50 flex justify-between items-center flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                        {onPrev && <button onClick={onPrev} className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium" title="Previous game">← Prev</button>}
+                        {onNext && <button onClick={onNext} className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium" title="Next game">Next →</button>}
+                    </div>
                     <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
-                    <button onClick={onClose} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 body-text font-medium">
+                    <button onClick={onClose} className="px-5 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium">
                         Close
                     </button>
                 </div>
@@ -1380,41 +1384,55 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
             {(() => {
                 const regSeasons = timelineData.filter(s => !s.isSpring);
                 const springSeasons = timelineData.filter(s => s.isSpring);
-                const totals = regSeasons.reduce((acc, season) => ({
-                    games: acc.games + (season.games || 0),
-                    pa: acc.pa + (season.pa || 0),
-                    hr: acc.hr + (season.hr || 0),
-                    rbi: acc.rbi + (season.rbi || 0),
-                    h: acc.h + (season.h || 0)
-                }), { games: 0, pa: 0, hr: 0, rbi: 0, h: 0 });
-                const springTotals = springSeasons.reduce((acc, season) => ({
-                    games: acc.games + (season.games || 0),
-                    pa: acc.pa + (season.pa || 0),
-                    h: acc.h + (season.h || 0)
+                const t = regSeasons.reduce((acc, s) => ({
+                    games: acc.games + (s.games || 0), ab: acc.ab + (s.ab || 0), pa: acc.pa + (s.pa || 0),
+                    h: acc.h + (s.h || 0), r: acc.r + (s.r || 0), rbi: acc.rbi + (s.rbi || 0),
+                    hr: acc.hr + (s.hr || 0), doubles: acc.doubles + (s.doubles || 0), triples: acc.triples + (s.triples || 0),
+                    sb: acc.sb + (s.sb || 0), bb: acc.bb + (s.bb || 0), so: acc.so + (s.so || 0), hbp: acc.hbp + (s.hbp || 0),
+                }), { games:0, ab:0, pa:0, h:0, r:0, rbi:0, hr:0, doubles:0, triples:0, sb:0, bb:0, so:0, hbp:0 });
+                const avg = t.ab > 0 ? (t.h / t.ab).toFixed(3) : '.000';
+                const obp = t.pa > 0 ? ((t.h + t.bb + t.hbp) / t.pa).toFixed(3) : '.000';
+                const singles = t.h - t.doubles - t.triples - t.hr;
+                const tb = singles + t.doubles * 2 + t.triples * 3 + t.hr * 4;
+                const slg = t.ab > 0 ? (tb / t.ab).toFixed(3) : '.000';
+                const ops = (parseFloat(obp) + parseFloat(slg)).toFixed(3);
+                const springTotals = springSeasons.reduce((acc, s) => ({
+                    games: acc.games + (s.games || 0), pa: acc.pa + (s.pa || 0), h: acc.h + (s.h || 0)
                 }), { games: 0, pa: 0, h: 0 });
 
                 return (
                     <>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 p-4 bg-blue-50 rounded-lg">
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-blue-600">{totals.games}</div>
-                                <div className="small-text text-gray-600">Games</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-blue-600">{totals.pa}</div>
-                                <div className="small-text text-gray-600">PA</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-blue-600">{totals.h}</div>
-                                <div className="small-text text-gray-600">Hits</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-blue-600">{totals.hr}</div>
-                                <div className="small-text text-gray-600">HR</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-blue-600">{totals.rbi}</div>
-                                <div className="small-text text-gray-600">RBI</div>
+                        <div className="mb-4 bg-blue-50 rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-blue-200">
+                                            {['G','AB','PA','H','R','RBI','HR','2B','3B','SB','BB','SO','AVG','OBP','SLG','OPS'].map(col => (
+                                                <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-blue-600">{col}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td className="px-2 py-2 text-center font-bold">{t.games}</td>
+                                            <td className="px-2 py-2 text-center">{t.ab}</td>
+                                            <td className="px-2 py-2 text-center">{t.pa}</td>
+                                            <td className="px-2 py-2 text-center font-semibold">{t.h}</td>
+                                            <td className="px-2 py-2 text-center">{t.r}</td>
+                                            <td className="px-2 py-2 text-center">{t.rbi}</td>
+                                            <td className="px-2 py-2 text-center font-bold text-blue-700">{t.hr}</td>
+                                            <td className="px-2 py-2 text-center">{t.doubles}</td>
+                                            <td className="px-2 py-2 text-center">{t.triples}</td>
+                                            <td className="px-2 py-2 text-center">{t.sb}</td>
+                                            <td className="px-2 py-2 text-center">{t.bb}</td>
+                                            <td className="px-2 py-2 text-center">{t.so}</td>
+                                            <td className="px-2 py-2 text-center font-bold">{avg}</td>
+                                            <td className="px-2 py-2 text-center font-bold text-blue-600">{obp}</td>
+                                            <td className="px-2 py-2 text-center font-bold">{slg}</td>
+                                            <td className="px-2 py-2 text-center font-bold text-purple-600">{ops}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                         {springTotals.games > 0 && (
@@ -1663,45 +1681,52 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) =>
             {activeView === 'timeline' && (
                 <div>
             {/* Career summary stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 p-4 bg-purple-50 rounded-lg">
-                {(() => {
-                    const totals = timelineData.reduce((acc, season) => ({
-                        games: acc.games + (season.games || 0),
-                        wins: acc.wins + (season.wins || 0),
-                        losses: acc.losses + (season.losses || 0),
-                        saves: acc.saves + (season.saves || 0),
-                        outs: acc.outs + (season.outs || 0),
-                        so: acc.so + (season.so || 0)
-                    }), { games: 0, wins: 0, losses: 0, saves: 0, outs: 0, so: 0 });
-                    
-                    const ip = `${Math.floor(totals.outs / 3)}.${totals.outs % 3}`;
-                    
-                    return (
-                        <>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-purple-600">{totals.games}</div>
-                                <div className="small-text text-gray-600">Games</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-purple-600">{ip}</div>
-                                <div className="small-text text-gray-600">IP</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-purple-600">{totals.wins}-{totals.losses}</div>
-                                <div className="small-text text-gray-600">W-L</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-purple-600">{totals.saves}</div>
-                                <div className="small-text text-gray-600">Saves</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-purple-600">{totals.so}</div>
-                                <div className="small-text text-gray-600">SO</div>
-                            </div>
-                        </>
-                    );
-                })()}
-            </div>
+            {(() => {
+                const regSeasons = timelineData.filter(s => !s.isSpring);
+                const t = regSeasons.reduce((acc, s) => ({
+                    games: acc.games + (s.games || 0), gameStarts: acc.gameStarts + (s.gameStarts || 0),
+                    wins: acc.wins + (s.wins || 0), losses: acc.losses + (s.losses || 0), saves: acc.saves + (s.saves || 0),
+                    outs: acc.outs + (s.outs || 0), h: acc.h + (s.h || 0), r: acc.r + (s.r || 0),
+                    er: acc.er + (s.er || 0), bb: acc.bb + (s.bb || 0), so: acc.so + (s.so || 0), hr: acc.hr + (s.hr || 0),
+                }), { games:0, gameStarts:0, wins:0, losses:0, saves:0, outs:0, h:0, r:0, er:0, bb:0, so:0, hr:0 });
+                const innings = t.outs / 3;
+                const ip = `${Math.floor(innings)}.${t.outs % 3}`;
+                const era = innings > 0 ? ((t.er * 9) / innings).toFixed(2) : '-';
+                const whip = innings > 0 ? ((t.h + t.bb) / innings).toFixed(3) : '-';
+                return (
+                    <div className="mb-4 bg-purple-50 rounded-lg overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-purple-200">
+                                        {['G','GS','W','L','SV','IP','H','R','ER','BB','SO','HR','ERA','WHIP'].map(col => (
+                                            <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-purple-600">{col}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td className="px-2 py-2 text-center font-bold">{t.games}</td>
+                                        <td className="px-2 py-2 text-center">{t.gameStarts}</td>
+                                        <td className="px-2 py-2 text-center font-bold text-green-600">{t.wins}</td>
+                                        <td className="px-2 py-2 text-center text-red-600">{t.losses}</td>
+                                        <td className="px-2 py-2 text-center">{t.saves}</td>
+                                        <td className="px-2 py-2 text-center font-semibold">{ip}</td>
+                                        <td className="px-2 py-2 text-center">{t.h}</td>
+                                        <td className="px-2 py-2 text-center">{t.r}</td>
+                                        <td className="px-2 py-2 text-center">{t.er}</td>
+                                        <td className="px-2 py-2 text-center">{t.bb}</td>
+                                        <td className="px-2 py-2 text-center font-semibold">{t.so}</td>
+                                        <td className="px-2 py-2 text-center">{t.hr}</td>
+                                        <td className="px-2 py-2 text-center font-bold text-purple-700">{era}</td>
+                                        <td className="px-2 py-2 text-center font-bold">{whip}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            })()}
             
             {/* Year-by-year timeline */}
             <div className="space-y-4">
@@ -3221,7 +3246,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
                 <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPlayer(null)}>
                     <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
-                            <h3 className="section-title font-bold">Career Timeline</h3>
+                            <h3 className="section-title font-bold">{selectedPlayer.name}</h3>
                             <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
                         </div>
                         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
@@ -3388,7 +3413,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
                 <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPitcher(null)}>
                     <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
-                            <h3 className="section-title font-bold">Career Timeline</h3>
+                            <h3 className="section-title font-bold">{selectedPitcher.name}</h3>
                             <button onClick={() => setSelectedPitcher(null)} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
                         </div>
                         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
@@ -3535,7 +3560,7 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                     </thead>
                     <tbody className="divide-y">
                         {displayData.map((row, idx) => (
-                            <tr key={row.gameId || row.id || `item-${idx}`} className={`hover:bg-blue-50 ${onRowClick ? 'cursor-pointer' : ''}`} onClick={() => onRowClick && onRowClick(row)}>
+                            <tr key={row.gameId || row.id || `item-${idx}`} className={`hover:bg-blue-50 ${idx % 2 === 1 ? 'bg-gray-50/50' : ''} ${onRowClick ? 'cursor-pointer' : ''}`} onClick={() => onRowClick && onRowClick(row)}>
                                 {columns.map(col => <td key={col.key} className="px-4 py-3 body-text">{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
                             </tr>
                         ))}
@@ -3549,8 +3574,11 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
 
 const Leaderboards = ({ data }) => {
     const [category, setCategory] = useState('batting');
-    const [minAB, setMinAB] = useState(50);
-    const [minIP, setMinIP] = useState(30);
+    // Auto-calculate reasonable minimums: ~2 AB per game attended, ~0.5 IP per game
+    const autoMinAB = useMemo(() => Math.max(10, Math.round((data.games?.length || 50) * 0.4)), [data.games]);
+    const autoMinIP = useMemo(() => Math.max(5, Math.round((data.games?.length || 50) * 0.2)), [data.games]);
+    const [minAB, setMinAB] = useState(autoMinAB);
+    const [minIP, setMinIP] = useState(autoMinIP);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [useFiltered, setUseFiltered] = useState(false);
@@ -5164,12 +5192,10 @@ const Dashboard = ({ data, onTabChange }) => {
 
 // Expandable badge cell component
 const BadgeCell = ({ badges, badgeColors }) => {
-    const [expanded, setExpanded] = useState(false);
     if (!badges || badges.length === 0) return null;
-    const displayBadges = expanded ? badges : badges.slice(0, 3);
     return (
-        <div className="flex flex-wrap gap-1 max-w-xs">
-            {displayBadges.map((badge, i) => (
+        <div className="group relative flex flex-wrap gap-1 max-w-xs">
+            {badges.slice(0, 3).map((badge, i) => (
                 <span
                     key={`${badge.type}-${badge.text}-${i}`}
                     className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-gray-100 text-gray-700'}`}
@@ -5179,12 +5205,20 @@ const BadgeCell = ({ badges, badgeColors }) => {
                 </span>
             ))}
             {badges.length > 3 && (
-                <button
-                    onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-                    className="px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-600 hover:bg-gray-300 cursor-pointer"
-                >
-                    {expanded ? '−' : `+${badges.length - 3}`}
-                </button>
+                <span className="px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-600">
+                    +{badges.length - 3}
+                </span>
+            )}
+            {badges.length > 3 && (
+                <div className="hidden group-hover:block absolute top-full left-0 mt-1 z-20 bg-white rounded-lg shadow-lg border p-2 max-w-sm" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex flex-wrap gap-1">
+                        {badges.map((badge, i) => (
+                            <span key={`full-${badge.type}-${badge.text}-${i}`} className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-gray-100 text-gray-700'}`} title={badge.title}>
+                                {badge.text}
+                            </span>
+                        ))}
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -5563,17 +5597,25 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                 ]}
             />
             
-            {selectedGame && (
-                <GameDetailsModal
-                    game={selectedGame}
-                    playerGames={playerGames}
-                    pitcherGames={pitcherGames}
-                    careerFirsts={careerFirstsByGame?.[selectedGame.gameId] || []}
-                    allTimePassings={(allTimePassingsByGame || {})[selectedGame.gameId] || []}
-                    badges={allBadgesByGame?.[selectedGame.gameId] || []}
-                    onClose={() => setSelectedGame(null)}
-                />
-            )}
+            {selectedGame && (() => {
+                const sortedGames = [...(games || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                const idx = sortedGames.findIndex(g => g.gameId === selectedGame.gameId);
+                const prevGame = idx > 0 ? sortedGames[idx - 1] : null;
+                const nextGame = idx < sortedGames.length - 1 ? sortedGames[idx + 1] : null;
+                return (
+                    <GameDetailsModal
+                        game={selectedGame}
+                        playerGames={playerGames}
+                        pitcherGames={pitcherGames}
+                        careerFirsts={careerFirstsByGame?.[selectedGame.gameId] || []}
+                        allTimePassings={(allTimePassingsByGame || {})[selectedGame.gameId] || []}
+                        badges={allBadgesByGame?.[selectedGame.gameId] || []}
+                        onClose={() => setSelectedGame(null)}
+                        onPrev={prevGame ? () => setSelectedGame(prevGame) : null}
+                        onNext={nextGame ? () => setSelectedGame(nextGame) : null}
+                    />
+                );
+            })()}
         </>
     );
 };
@@ -7736,10 +7778,14 @@ const App = () => {
         const { subtab: s } = parseHash(window.location.hash.slice(1));
         return s;
     });
+    const subtabMemory = useRef({}); // Remember last subtab per tab
 
     const setTab = (newTab) => {
+        // Save current subtab for current tab
+        if (subtab) subtabMemory.current[tab] = subtab;
         setTabRaw(newTab);
-        setSubtab(null); // Reset subtab when switching main tabs
+        // Restore remembered subtab for the new tab (or null)
+        setSubtab(subtabMemory.current[newTab] || null);
     };
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem('baseballDarkMode');
@@ -7837,20 +7883,20 @@ const App = () => {
         const results = [];
         const limit = 8;
 
-        // Search players
+        // Search players (with stats context)
         const seenPlayers = new Set();
-        (data.playerGames || []).forEach(pg => {
+        (data.players || []).forEach(p => {
             if (results.length >= limit) return;
-            if (pg.name && pg.name.toLowerCase().includes(q) && !seenPlayers.has(pg.playerId)) {
-                seenPlayers.add(pg.playerId);
-                results.push({ type: 'player', label: pg.name, sub: pg.team || '', tab: 'players', id: pg.playerId });
+            if (p.name && p.name.toLowerCase().includes(q) && !seenPlayers.has(p.playerId)) {
+                seenPlayers.add(p.playerId);
+                results.push({ type: 'player', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.avg || ''} AVG, ${p.hr || 0} HR`, tab: 'players', id: p.playerId });
             }
         });
-        (data.pitcherGames || []).forEach(pg => {
+        (data.pitchers || []).forEach(p => {
             if (results.length >= limit) return;
-            if (pg.name && pg.name.toLowerCase().includes(q) && !seenPlayers.has(pg.playerId)) {
-                seenPlayers.add(pg.playerId);
-                results.push({ type: 'pitcher', label: pg.name, sub: pg.team || '', tab: 'pitchers', id: pg.playerId });
+            if (p.name && p.name.toLowerCase().includes(q) && !seenPlayers.has(p.playerId)) {
+                seenPlayers.add(p.playerId);
+                results.push({ type: 'pitcher', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.era || ''} ERA, ${p.so || 0} K`, tab: 'players', id: p.playerId });
             }
         });
 
