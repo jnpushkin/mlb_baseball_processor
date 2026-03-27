@@ -7341,15 +7341,13 @@ const PersonalRecords = ({ data }) => {
 const SpecialTab = ({ data }) => {
     const [view, setView] = useState('records');
     return (
-        <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex flex-wrap gap-3">
-                    <button onClick={() => setView('records')} className={`px-5 py-2 rounded body-text font-medium ${view === 'records' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>📋 Records</button>
-                    <button onClick={() => setView('debuts')} className={`px-5 py-2 rounded body-text font-medium ${view === 'debuts' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🌟 Debuts</button>
-                    <button onClick={() => setView('finals')} className={`px-5 py-2 rounded body-text font-medium ${view === 'finals' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>👋 Final Games</button>
-                    <button onClick={() => setView('splash')} className={`px-5 py-2 rounded body-text font-medium ${view === 'splash' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>💦 Signature HRs</button>
-                </div>
-            </div>
+        <div>
+            <SubNav tabs={[
+                { id: 'records', label: 'Records' },
+                { id: 'debuts', label: 'Debuts' },
+                { id: 'finals', label: 'Final Games' },
+                { id: 'splash', label: 'Signature HRs' },
+            ]} active={view} onChange={setView} />
             {view === 'records' && <PersonalRecords data={data} />}
             {view === 'debuts' && (
                 <DataTable title="🌟 MLB Debuts" data={data.debuts || []} defaultSortKey="date" enableDateFilter={true} columns={[
@@ -7511,16 +7509,14 @@ const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games 
     const [view, setView] = useState('jerseys');
     const allPlayers = useMemo(() => [...(players || []), ...(pitchers || [])], [players, pitchers]);
     return (
-        <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex flex-wrap gap-3">
-                    <button onClick={() => setView('jerseys')} className={`px-5 py-2 rounded body-text font-medium ${view === 'jerseys' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>#️⃣ Jersey Numbers</button>
-                    <button onClick={() => setView('origins')} className={`px-5 py-2 rounded body-text font-medium ${view === 'origins' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🌍 Origins</button>
-                    <button onClick={() => setView('birthdays')} className={`px-5 py-2 rounded body-text font-medium ${view === 'birthdays' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🎂 Birthdays</button>
-                    <button onClick={() => setView('scorigami')} className={`px-5 py-2 rounded body-text font-medium ${view === 'scorigami' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🎯 Scorigami</button>
-                    <button onClick={() => setView('umpires')} className={`px-5 py-2 rounded body-text font-medium ${view === 'umpires' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🧑‍⚖️ Umpires</button>
-                </div>
-            </div>
+        <div>
+            <SubNav tabs={[
+                { id: 'jerseys', label: 'Jersey Numbers' },
+                { id: 'origins', label: 'Origins' },
+                { id: 'birthdays', label: 'Birthdays' },
+                { id: 'scorigami', label: 'Scorigami' },
+                { id: 'umpires', label: 'Umpires' },
+            ]} active={view} onChange={setView} />
             {view === 'jerseys' && <JerseyCollection jerseyLog={jerseyLog} />}
             {view === 'origins' && <PlayerOrigins playerBios={playerBios} allPlayers={allPlayers} />}
             {view === 'birthdays' && <PlayerBirthdays playerBios={playerBios} allPlayers={allPlayers} />}
@@ -7529,6 +7525,23 @@ const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games 
         </div>
     );
 };
+
+// Reusable subtab navigation
+const SubNav = ({ tabs, active, onChange }) => (
+    <div className="bg-white rounded-lg shadow mb-4">
+        <div className="flex flex-wrap gap-1 p-2">
+            {tabs.map(t => (
+                <button key={t.id} onClick={() => onChange(t.id)} className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    active === t.id
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}>
+                    {t.label}
+                </button>
+            ))}
+        </div>
+    </div>
+);
 
 // === MERGED TAB WRAPPERS ===
 
@@ -7550,17 +7563,17 @@ const PlayersTabV2 = ({ data }) => {
         window._pendingPlayerSelect = { id: playerId, name };
     };
 
+    const subtabs = [
+        { id: 'hitters', label: 'Hitters' },
+        { id: 'pitchers', label: 'Pitchers' },
+        ...((data.playersWithoutStats || []).length > 0 ? [{ id: 'nostats', label: 'No Stats' }] : []),
+        ...(hasCollegeData ? [{ id: 'college', label: 'College' }] : []),
+        { id: 'leaders', label: 'Leaderboards' },
+    ];
+
     return (
-        <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex flex-wrap gap-3">
-                    <button onClick={() => setView('hitters')} className={`px-5 py-2 rounded body-text font-medium ${view === 'hitters' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Hitters</button>
-                    <button onClick={() => setView('pitchers')} className={`px-5 py-2 rounded body-text font-medium ${view === 'pitchers' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Pitchers</button>
-                    {(data.playersWithoutStats || []).length > 0 && <button onClick={() => setView('nostats')} className={`px-5 py-2 rounded body-text font-medium ${view === 'nostats' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>No Stats</button>}
-                    {hasCollegeData && <button onClick={() => setView('college')} className={`px-5 py-2 rounded body-text font-medium ${view === 'college' ? 'bg-green-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>College</button>}
-                    <button onClick={() => setView('leaders')} className={`px-5 py-2 rounded body-text font-medium ${view === 'leaders' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Leaderboards</button>
-                </div>
-            </div>
+        <div>
+            <SubNav tabs={subtabs} active={view} onChange={setView} />
             {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
             {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
             {view === 'nostats' && <NoStatsPlayers data={data} />}
@@ -7574,13 +7587,11 @@ const PlayersTabV2 = ({ data }) => {
 const MilestonesTabV2 = ({ data, onTabChange }) => {
     const [view, setView] = useState('milestones');
     return (
-        <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex flex-wrap gap-3">
-                    <button onClick={() => setView('milestones')} className={`px-5 py-2 rounded body-text font-medium ${view === 'milestones' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Game Milestones</button>
-                    <button onClick={() => setView('history')} className={`px-5 py-2 rounded body-text font-medium ${view === 'history' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>All-Time Passings</button>
-                </div>
-            </div>
+        <div>
+            <SubNav tabs={[
+                { id: 'milestones', label: 'Game Milestones' },
+                { id: 'history', label: 'All-Time Passings' },
+            ]} active={view} onChange={setView} />
             {view === 'milestones' && (data.milestones?.length ? <MilestonesView milestones={data.milestones} games={data.games || []} careerFirsts={data.careerFirsts || []} allTimePassings={data.allTimePassings || []} onTabChange={onTabChange} /> : <EmptyState icon="🏆" title="No Milestones" message="No milestones have been recorded yet." />)}
             {view === 'history' && <HistoryWitnessedView allTimePassings={data.allTimePassings || []} careerFirsts={data.careerFirsts || []} games={data.games || []} />}
         </div>
@@ -7591,13 +7602,11 @@ const MilestonesTabV2 = ({ data, onTabChange }) => {
 const VenuesTab = ({ data }) => {
     const [view, setView] = useState('map');
     return (
-        <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex flex-wrap gap-3">
-                    <button onClick={() => setView('map')} className={`px-5 py-2 rounded body-text font-medium ${view === 'map' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Map & Tables</button>
-                    <button onClick={() => setView('calendar')} className={`px-5 py-2 rounded body-text font-medium ${view === 'calendar' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Calendar</button>
-                </div>
-            </div>
+        <div>
+            <SubNav tabs={[
+                { id: 'map', label: 'Map & Tables' },
+                { id: 'calendar', label: 'Calendar' },
+            ]} active={view} onChange={setView} />
             {view === 'map' && ((data.stadiums?.length || data.teams?.length) ? (
                 <div className="space-y-6">
                     <StadiumMap stadiums={data.stadiums || []} games={data.games || []} orioles={data.orioles || []} />
@@ -7624,14 +7633,12 @@ const VenuesTab = ({ data }) => {
 const ProgressTab = ({ data }) => {
     const [view, setView] = useState('checklist');
     return (
-        <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex flex-wrap gap-3">
-                    <button onClick={() => setView('checklist')} className={`px-5 py-2 rounded body-text font-medium ${view === 'checklist' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Division Checklist</button>
-                    <button onClick={() => setView('badges')} className={`px-5 py-2 rounded body-text font-medium ${view === 'badges' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Badges</button>
-                    <button onClick={() => setView('matchups')} className={`px-5 py-2 rounded body-text font-medium ${view === 'matchups' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Matchups</button>
-                </div>
-            </div>
+        <div>
+            <SubNav tabs={[
+                { id: 'checklist', label: 'Division Checklist' },
+                { id: 'badges', label: 'Badges' },
+                { id: 'matchups', label: 'Matchups' },
+            ]} active={view} onChange={setView} />
             {view === 'checklist' && <DivisionChecklist divisionChecklist={data.divisionChecklist} games={data.games || []} />}
             {view === 'badges' && <BadgesDisplay games={data.games || []} />}
             {view === 'matchups' && (data.matchupMatrix ? <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} /> : <EmptyState icon="🎯" title="No Matchup Data" message="No matchup data available." />)}
@@ -7839,12 +7846,12 @@ const App = () => {
     ];
     
     return (
-        <div className={`min-h-screen transition-colors duration-200 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
-            <header className={`shadow-2xl ${darkMode ? 'bg-gradient-to-r from-gray-800 via-blue-950 to-gray-800' : 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700'} text-white`}>
-                <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+        <div className={`min-h-screen transition-colors duration-200 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+            <header className={`${darkMode ? 'bg-gray-800 border-b border-gray-700' : 'bg-white border-b border-gray-200'}`}>
+                <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                     <div>
-                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">⚾ Baseball Statistics Portal</h1>
-                        <p className={`text-xs sm:text-sm mt-1 sm:mt-2 ${darkMode ? 'text-gray-300' : 'text-blue-100'}`}>{data.games?.length || 0} games • {data.playerGames?.length || 0} player-games</p>
+                        <h1 className={`text-lg sm:text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Baseball Statistics Portal</h1>
+                        <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{data.games?.length || 0} games attended • {(data.players?.length || 0) + (data.pitchers?.length || 0)} players seen</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <div ref={searchRef} role="search" className="relative flex-1 sm:flex-none">
@@ -7855,7 +7862,7 @@ const App = () => {
                                 value={searchQuery}
                                 onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
                                 onFocus={() => setSearchOpen(true)}
-                                className={`w-full sm:w-48 md:w-64 px-3 py-2 rounded-lg text-sm transition-colors ${darkMode ? 'bg-gray-700 text-white placeholder-gray-400 focus:bg-gray-600' : 'bg-white/20 text-white placeholder-white/70 focus:bg-white/30'} outline-none`}
+                                className={`w-full sm:w-48 md:w-64 px-3 py-2 rounded-lg text-sm transition-colors border ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'} outline-none`}
                             />
                             {searchOpen && searchResults.length > 0 && (
                                 <div className={`absolute top-full right-0 mt-1 w-80 rounded-lg shadow-xl border z-[60] max-h-96 overflow-y-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -7874,7 +7881,7 @@ const App = () => {
                         </div>
                         <button
                             onClick={() => setDarkMode(!darkMode)}
-                            className={`px-4 py-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white/20 hover:bg-white/30'}`}
+                            className={`px-3 py-2 rounded-lg transition-colors border ${darkMode ? 'bg-gray-700 border-gray-600 hover:bg-gray-600 text-white' : 'bg-gray-50 border-gray-300 hover:bg-gray-100 text-gray-700'}`}
                             title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
                         >
                             {darkMode ? '☀️' : '🌙'}
@@ -7882,16 +7889,16 @@ const App = () => {
                     </div>
                 </div>
             </header>
-            <nav className={`shadow-md sticky top-0 z-50 border-b-2 overflow-x-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-100'}`}>
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="flex space-x-1" role="tablist" aria-label="Main navigation">
+            <nav className={`shadow-md sticky top-0 z-50 border-b-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-100'}`}>
+                <div className="max-w-7xl mx-auto px-2 sm:px-4 relative">
+                    <div className="flex overflow-x-auto scrollbar-hide" role="tablist" aria-label="Main navigation" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
                         {tabs.map(t => (
-                            <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={`px-2 sm:px-4 py-2 sm:py-3 font-medium text-xs sm:text-sm whitespace-nowrap transition-all ${
+                            <button key={t.id} role="tab" aria-selected={tab === t.id} aria-current={tab === t.id ? 'page' : undefined} onClick={() => setTab(t.id)} className={`px-3 sm:px-5 py-2.5 sm:py-3 font-medium text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
                                 tab === t.id
-                                    ? (darkMode ? 'bg-gray-700 text-blue-400 border-b-4 border-blue-400' : 'bg-blue-50 text-blue-600 border-b-4 border-blue-600')
-                                    : (darkMode ? 'text-gray-300 hover:bg-gray-700 border-b-4 border-transparent' : 'text-gray-600 hover:bg-gray-50 border-b-4 border-transparent')
+                                    ? (darkMode ? 'text-blue-400 border-b-[3px] border-blue-400' : 'text-blue-600 border-b-[3px] border-blue-600 font-semibold')
+                                    : (darkMode ? 'text-gray-400 hover:text-gray-200 border-b-[3px] border-transparent' : 'text-gray-500 hover:text-gray-900 border-b-[3px] border-transparent')
                             }`}>
-                                <span className="mr-1">{t.icon}</span>{t.label}
+                                {t.label}
                             </button>
                         ))}
                     </div>
@@ -7909,11 +7916,11 @@ const App = () => {
                 {tab === 'companions' && <CompanionsView companionData={data.companionData} />}
                 {tab === 'orioles' && <OriolesDashboard orioles={data.orioles || []} games={data.games || []} />}
             </main>
-            <footer className={`border-t mt-12 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-                    <p className={`body-text font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Baseball Statistics Portal</p>
-                    <p className={`small-text ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Enhanced insights with interactive filtering</p>
-                    {data.generatedAt && <p className={`small-text mt-1 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`}>Last updated: {data.generatedAt}</p>}
+            <footer className={`border-t mt-8 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <div className="max-w-7xl mx-auto px-4 py-6 text-center">
+                    <p className={`small-text ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                        Baseball Statistics Portal{data.generatedAt ? ` • Updated ${data.generatedAt}` : ''}
+                    </p>
                 </div>
             </footer>
             {showScrollTop && (
