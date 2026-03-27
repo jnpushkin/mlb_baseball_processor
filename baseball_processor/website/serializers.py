@@ -803,6 +803,12 @@ class DataSerializer:
                             'hbp': player_extra.get('HBP', 0),
                             'gidp': player_extra.get('GIDP', 0),
                         })
+                        # Add hit data (exit velo) if available
+                        hit_info = game.get('hit_data', {}).get(player_id, {})
+                        if hit_info:
+                            player_games[-1]['maxExitVelo'] = hit_info.get('maxExitVelo')
+                            player_games[-1]['avgExitVelo'] = hit_info.get('avgExitVelo')
+                            player_games[-1]['maxDistance'] = hit_info.get('maxDistance')
             except Exception as e:
                 print(f"   ⚠️ Error serializing player game: {e}")
                 continue
@@ -1254,8 +1260,24 @@ class DataSerializer:
                 if pdata.get('totalPitches', 0) > 0
             }
 
+        # Hit data (per-batter exit velo summaries from MLB API)
+        hit_data = raw_game.get('hit_data', {})
+        if hit_data:
+            details['hitData'] = {
+                pid: {
+                    'name': hdata.get('name', ''),
+                    'battedBalls': hdata.get('battedBalls', 0),
+                    'maxExitVelo': hdata.get('maxExitVelo'),
+                    'avgExitVelo': hdata.get('avgExitVelo'),
+                    'maxDistance': hdata.get('maxDistance'),
+                    'trajectories': hdata.get('trajectories', {}),
+                }
+                for pid, hdata in hit_data.items()
+                if hdata.get('battedBalls', 0) > 0
+            }
+
         return details
-    
+
     def _format_game_length(self, game_length):
         """Format game length from Excel time format to readable string.
         

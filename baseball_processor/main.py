@@ -134,7 +134,7 @@ def _scrape_career_firsts_for_game(cache_path):
 def _enrich_with_api_data(game_data):
     """Enrich a BREF-parsed game with MLB API data (pitch speeds, jersey numbers)."""
     import time
-    from .parsers.mlb_api_parser import parse_pitch_data, parse_umpires, TEAM_ID_TO_CODE
+    from .parsers.mlb_api_parser import parse_pitch_data, parse_hit_data, parse_umpires, TEAM_ID_TO_CODE
     from .utils.http import create_retry_session, get_with_retry
     from .scrapers.pitch_data_scraper import CODE_TO_MLB_ID, find_game_pk, remap_pitch_data_keys
 
@@ -167,6 +167,25 @@ def _enrich_with_api_data(game_data):
         if pitch_data:
             game_data['pitch_data'] = remap_pitch_data_keys(pitch_data, game_data)
             info(f"     📊 Pitch data: {len(game_data['pitch_data'])} pitchers")
+        hit_data = parse_hit_data(feed_data, {})
+        if hit_data:
+            # Remap keys by name matching (same as pitch data)
+            from .scrapers.pitch_data_scraper import _normalize_name
+            name_to_bref = {}
+            for side in ('away', 'home'):
+                for p in game_data.get('batting', {}).get(side, []):
+                    name = _normalize_name(p.get('name', ''))
+                    pid = p.get('player_id', '')
+                    if name and pid and not pid.startswith('mlb_'):
+                        name_to_bref[name] = pid
+            remapped_hits = {}
+            for key, hdata in hit_data.items():
+                norm_name = _normalize_name(hdata.get('name', ''))
+                new_key = name_to_bref.get(norm_name, key)
+                hdata['player_id'] = new_key
+                remapped_hits[new_key] = hdata
+            game_data['hit_data'] = remapped_hits
+            info(f"     🏏 Hit data: {len(remapped_hits)} batters")
 
     # Fetch boxscore for jersey numbers
     box_resp = get_with_retry(session, f"https://statsapi.mlb.com/api/v1/game/{game_pk}/boxscore", timeout=15)

@@ -870,6 +870,67 @@ def parse_pitch_data(feed_data: dict, bref_id_map: dict = None) -> dict:
     return result
 
 
+def parse_hit_data(feed_data: dict, bref_id_map: dict = None) -> dict:
+    """Extract per-batter hit data (exit velo, launch angle, distance) from play-by-play."""
+    if bref_id_map is None:
+        bref_id_map = {}
+
+    batter_hits = {}  # keyed by mlb_id
+    all_plays = feed_data.get('liveData', {}).get('plays', {}).get('allPlays', [])
+
+    for play in all_plays:
+        matchup = play.get('matchup', {})
+        batter_mlb_id = matchup.get('batter', {}).get('id')
+        batter_name = matchup.get('batter', {}).get('fullName', '')
+
+        if not batter_mlb_id:
+            continue
+
+        for event in play.get('playEvents', []):
+            hit_data = event.get('hitData', {})
+            if not hit_data or not hit_data.get('launchSpeed'):
+                continue
+
+            if batter_mlb_id not in batter_hits:
+                batter_hits[batter_mlb_id] = {
+                    'name': batter_name,
+                    'player_id': bref_id_map.get(batter_mlb_id, f'mlb_{batter_mlb_id}'),
+                    'batted_balls': [],
+                }
+
+            batter_hits[batter_mlb_id]['batted_balls'].append({
+                'speed': hit_data.get('launchSpeed'),
+                'angle': hit_data.get('launchAngle'),
+                'distance': hit_data.get('totalDistance'),
+                'trajectory': hit_data.get('trajectory', ''),
+                'hardness': hit_data.get('hardness', ''),
+            })
+
+    # Build summaries
+    result = {}
+    for mlb_id, bdata in batter_hits.items():
+        balls = bdata['batted_balls']
+        speeds = [b['speed'] for b in balls if b.get('speed')]
+        distances = [b['distance'] for b in balls if b.get('distance')]
+        trajectories = {}
+        for b in balls:
+            t = b.get('trajectory', '')
+            if t:
+                trajectories[t] = trajectories.get(t, 0) + 1
+
+        result[bdata['player_id']] = {
+            'name': bdata['name'],
+            'player_id': bdata['player_id'],
+            'battedBalls': len(balls),
+            'maxExitVelo': round(max(speeds), 1) if speeds else None,
+            'avgExitVelo': round(sum(speeds) / len(speeds), 1) if speeds else None,
+            'maxDistance': round(max(distances)) if distances else None,
+            'trajectories': trajectories,
+        }
+
+    return result
+
+
 def parse_linescore(feed_data: dict) -> dict:
     """Parse inning-by-inning linescore."""
     linescore = feed_data.get('liveData', {}).get('linescore', {})
@@ -1128,6 +1189,7 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
     linescore = parse_linescore(feed_data)
     umpires = parse_umpires(box_data)
     pitch_data = parse_pitch_data(feed_data, bref_id_map)
+    hit_data = parse_hit_data(feed_data, bref_id_map)
 
     # No-hitter / perfect game flags
     flags = feed_data.get('gameData', {}).get('flags', {})
@@ -1238,6 +1300,7 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
         'umpires': umpires,
         'flags': game_flags,
         'pitch_data': pitch_data,
+        'hit_data': hit_data,
         'doubleheader': basic_info.get('doubleheader', 'N'),
         'raw_plays': play_by_play,
         'footer_summary': {},

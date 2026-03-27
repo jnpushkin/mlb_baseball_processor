@@ -21,10 +21,11 @@ const aggregateHitterStats = (playerGames) => {
                 teams: new Set(),
                 games: 0,
                 ab: 0, pa: 0, h: 0, r: 0, rbi: 0, hr: 0,
-                doubles: 0, triples: 0, sb: 0, cs: 0, bb: 0, so: 0, hbp: 0, gidp: 0
+                doubles: 0, triples: 0, sb: 0, cs: 0, bb: 0, so: 0, hbp: 0, gidp: 0,
+                _maxEV: 0, _evSum: 0, _evCount: 0, _maxDist: 0
             };
         }
-        
+
         grouped[key].teams.add(game.team);
         grouped[key].games += 1;
         grouped[key].ab += game.ab;
@@ -41,8 +42,20 @@ const aggregateHitterStats = (playerGames) => {
         grouped[key].so += (game.so || 0);
         grouped[key].hbp += (game.hbp || 0);
         grouped[key].gidp += (game.gidp || 0);
+        // Exit velo aggregation
+        if (game.maxExitVelo) {
+            grouped[key]._maxEV = Math.max(grouped[key]._maxEV, game.maxExitVelo);
+        }
+        if (game.avgExitVelo) {
+            const balls = game.battedBalls || 1;
+            grouped[key]._evSum += game.avgExitVelo * balls;
+            grouped[key]._evCount += balls;
+        }
+        if (game.maxDistance) {
+            grouped[key]._maxDist = Math.max(grouped[key]._maxDist, game.maxDistance);
+        }
     });
-    
+
     return Object.values(grouped).map(p => {
         const singles = p.h - p.doubles - p.triples - p.hr;
         const tb = singles + (p.doubles * 2) + (p.triples * 3) + (p.hr * 4);
@@ -51,11 +64,14 @@ const aggregateHitterStats = (playerGames) => {
         const obp = p.pa > 0 ? ((p.h + p.bb + p.hbp) / p.pa).toFixed(3) : '0.000';
         const slg = p.ab > 0 ? (tb / p.ab).toFixed(3) : '0.000';
         const ops = (parseFloat(obp) + parseFloat(slg)).toFixed(3);
-        
+        const maxExitVelo = p._maxEV > 0 ? p._maxEV : null;
+        const avgExitVelo = p._evCount > 0 ? Math.round(p._evSum / p._evCount * 10) / 10 : null;
+        const maxDistance = p._maxDist > 0 ? p._maxDist : null;
+
         return {
             ...p,
             team: Array.from(p.teams).join(', '),
-            tb, xbh, avg, obp, slg, ops
+            tb, xbh, avg, obp, slg, ops, maxExitVelo, avgExitVelo, maxDistance
         };
     });
 };
@@ -1148,7 +1164,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
     );
 };
 
-const PlayerTimeline = ({ playerId, playerName, playerGames }) => {
+const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
     const [activeView, setActiveView] = useState('timeline');
     const [sortKey, setSortKey] = useState('dateSort');
     const [sortDir, setSortDir] = useState('desc');
@@ -1267,7 +1283,7 @@ const PlayerTimeline = ({ playerId, playerName, playerGames }) => {
                                     const isMultiHit = game.h >= 2;
                                     const isHR = game.hr > 0;
                                     return (
-                                        <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 ${isHR ? 'bg-orange-50' : isMultiHit ? 'bg-green-50' : ''}`}>
+                                        <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 cursor-pointer ${isHR ? 'bg-orange-50' : isMultiHit ? 'bg-green-50' : ''}`} onClick={() => onGameClick && onGameClick(game.gameId)}>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{game.date}</td>
                                             <td className="px-3 py-2">{game.team}</td>
                                             <td className="px-3 py-2">{game.opponent}</td>
@@ -1430,7 +1446,7 @@ const PlayerTimeline = ({ playerId, playerName, playerGames }) => {
     );
 };
 
-const PitcherTimeline = ({ playerId, playerName, pitcherGames }) => {
+const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) => {
     const [activeView, setActiveView] = useState('timeline');
     const [sortKey, setSortKey] = useState('dateSort');
     const [sortDir, setSortDir] = useState('desc');
@@ -1553,7 +1569,7 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames }) => {
                                     const isQS = parseFloat(game.ip) >= 6 && game.er <= 3;
                                     const isHighSO = game.so >= 8;
                                     return (
-                                        <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 ${isWin ? 'bg-green-50' : ''} ${isQS ? 'bg-blue-50' : ''}`}>
+                                        <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 cursor-pointer ${isWin ? 'bg-green-50' : ''} ${isQS ? 'bg-blue-50' : ''}`} onClick={() => onGameClick && onGameClick(game.gameId)}>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{game.date}</td>
                                             <td className="px-3 py-2">{game.team}</td>
                                             <td className="px-3 py-2">{game.opponent}</td>
@@ -3088,6 +3104,8 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
         { key: 'h', label: 'H' }, { key: 'avg', label: 'AVG' }, { key: 'r', label: 'R' }, { key: 'rbi', label: 'RBI' },
         { key: 'hr', label: 'HR' }, { key: 'doubles', label: '2B' }, { key: 'triples', label: '3B' }, { key: 'sb', label: 'SB' },
         { key: 'bb', label: 'BB' }, { key: 'so', label: 'SO' }, { key: 'obp', label: 'OBP' }, { key: 'slg', label: 'SLG' }, { key: 'ops', label: 'OPS' },
+        { key: 'maxExitVelo', label: 'Max EV', render: (v) => v ? `${v}` : '-' },
+        { key: 'avgExitVelo', label: 'Avg EV', render: (v) => v ? `${v}` : '-' },
     ];
 
     const gameTypeLabels = { all: 'All Games', spring: 'Spring Training', regular: 'Regular Season', postseason: 'Postseason' };
@@ -3143,10 +3161,14 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
                             <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
                         </div>
                         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
-                            <PlayerTimeline 
+                            <PlayerTimeline
                                 playerId={selectedPlayer.id}
                                 playerName={selectedPlayer.name}
                                 playerGames={playerGames}
+                                onGameClick={(gameId) => {
+                                    window._pendingGameId = gameId;
+                                    if (window.__navigateTab) window.__navigateTab('gamelog');
+                                }}
                             />
                         </div>
                     </div>
@@ -3306,10 +3328,14 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
                             <button onClick={() => setSelectedPitcher(null)} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
                         </div>
                         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
-                            <PitcherTimeline 
+                            <PitcherTimeline
                                 playerId={selectedPitcher.id}
                                 playerName={selectedPitcher.name}
                                 pitcherGames={pitcherGames}
+                                onGameClick={(gameId) => {
+                                    window._pendingGameId = gameId;
+                                    if (window.__navigateTab) window.__navigateTab('gamelog');
+                                }}
                             />
                         </div>
                     </div>
@@ -4463,41 +4489,7 @@ const NoStatsPlayers = ({ data }) => {
     );
 };
 
-const PlayersTab = ({ data }) => {
-    const hasCollegeData = Object.keys(data.ncaaCrossRef || {}).length > 0;
-    const [view, setView] = useState('hitters');
-
-    // Auto-detect pending player and switch to correct view
-    useEffect(() => {
-        if (window._pendingPlayerSelect) {
-            const pid = window._pendingPlayerSelect.id;
-            const isPitcher = (data.pitchers || []).some(p => p.playerId === pid) && !(data.players || []).some(p => p.playerId === pid);
-            setView(isPitcher ? 'pitchers' : 'hitters');
-        }
-    });
-
-    const handleViewPlayer = (playerId, name) => {
-        setView('hitters');
-        window._pendingPlayerSelect = { id: playerId, name };
-    };
-
-    return (
-        <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex gap-4">
-                    <button onClick={() => setView('hitters')} className={`px-6 py-2 rounded body-text font-medium ${view === 'hitters' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>👤 Hitters</button>
-                    <button onClick={() => setView('pitchers')} className={`px-6 py-2 rounded body-text font-medium ${view === 'pitchers' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>⚾ Pitchers</button>
-                    {(data.playersWithoutStats || []).length > 0 && <button onClick={() => setView('nostats')} className={`px-6 py-2 rounded body-text font-medium ${view === 'nostats' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>👻 No Stats</button>}
-                    {hasCollegeData && <button onClick={() => setView('college')} className={`px-6 py-2 rounded body-text font-medium ${view === 'college' ? 'bg-green-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>🎓 College</button>}
-                </div>
-            </div>
-            {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
-            {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
-            {view === 'nostats' && <NoStatsPlayers data={data} />}
-            {view === 'college' && <CollegePlayersView data={data} onViewPlayer={handleViewPlayer} />}
-        </div>
-    );
-};
+// PlayersTab removed - replaced by PlayersTabV2 in merged tab wrappers
 
 const HistoryWitnessedView = ({ allTimePassings, careerFirsts, games }) => {
     const [statFilter, setStatFilter] = useState('all');
@@ -5066,7 +5058,7 @@ const Dashboard = ({ data, onTabChange }) => {
                         <div className="bg-white rounded-lg shadow p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="subsection-title font-bold text-gray-900">📜 History Witnessed</h3>
-                                <button onClick={() => onTabChange && onTabChange('history')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all {data.allTimePassings?.length || 0} →</button>
+                                <button onClick={() => onTabChange && onTabChange('milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all {data.allTimePassings?.length || 0} →</button>
                             </div>
                             <div className="space-y-3">
                                 {topPassings.map((p, i) => (
@@ -5274,6 +5266,16 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
     const [selectedGame, setSelectedGame] = useState(null);
     const [badgeTypeFilter, setBadgeTypeFilter] = useState('all');
     const [badgeTextFilter, setBadgeTextFilter] = useState('');
+
+    // Check for pending game selection (from player timeline click)
+    useEffect(() => {
+        if (window._pendingGameId) {
+            const gameId = window._pendingGameId;
+            window._pendingGameId = null;
+            const game = (games || []).find(g => g.gameId === gameId);
+            if (game) setSelectedGame(game);
+        }
+    });
 
     // Compute total stats witnessed across all games (excluding spring training)
     const totalStats = useMemo(() => {
@@ -7528,13 +7530,128 @@ const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games 
     );
 };
 
-const VALID_TABS = new Set(['dashboard','gamelog','calendar','progress','milestones','history','leaderboards','players','venues','matchups','special','companions','trivia','orioles']);
+// === MERGED TAB WRAPPERS ===
+
+// Players tab: absorbs Leaderboards
+const PlayersTabV2 = ({ data }) => {
+    const hasCollegeData = Object.keys(data.ncaaCrossRef || {}).length > 0;
+    const [view, setView] = useState('hitters');
+
+    useEffect(() => {
+        if (window._pendingPlayerSelect) {
+            const pid = window._pendingPlayerSelect.id;
+            const isPitcher = (data.pitchers || []).some(p => p.playerId === pid) && !(data.players || []).some(p => p.playerId === pid);
+            setView(isPitcher ? 'pitchers' : 'hitters');
+        }
+    });
+
+    const handleViewPlayer = (playerId, name) => {
+        setView('hitters');
+        window._pendingPlayerSelect = { id: playerId, name };
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex flex-wrap gap-3">
+                    <button onClick={() => setView('hitters')} className={`px-5 py-2 rounded body-text font-medium ${view === 'hitters' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Hitters</button>
+                    <button onClick={() => setView('pitchers')} className={`px-5 py-2 rounded body-text font-medium ${view === 'pitchers' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Pitchers</button>
+                    {(data.playersWithoutStats || []).length > 0 && <button onClick={() => setView('nostats')} className={`px-5 py-2 rounded body-text font-medium ${view === 'nostats' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>No Stats</button>}
+                    {hasCollegeData && <button onClick={() => setView('college')} className={`px-5 py-2 rounded body-text font-medium ${view === 'college' ? 'bg-green-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>College</button>}
+                    <button onClick={() => setView('leaders')} className={`px-5 py-2 rounded body-text font-medium ${view === 'leaders' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Leaderboards</button>
+                </div>
+            </div>
+            {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
+            {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
+            {view === 'nostats' && <NoStatsPlayers data={data} />}
+            {view === 'college' && <CollegePlayersView data={data} onViewPlayer={handleViewPlayer} />}
+            {view === 'leaders' && (data.players?.length ? <Leaderboards data={data} /> : <EmptyState icon="🏅" title="No Player Data" message="No player statistics available." />)}
+        </div>
+    );
+};
+
+// Milestones tab: absorbs History
+const MilestonesTabV2 = ({ data, onTabChange }) => {
+    const [view, setView] = useState('milestones');
+    return (
+        <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex flex-wrap gap-3">
+                    <button onClick={() => setView('milestones')} className={`px-5 py-2 rounded body-text font-medium ${view === 'milestones' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Game Milestones</button>
+                    <button onClick={() => setView('history')} className={`px-5 py-2 rounded body-text font-medium ${view === 'history' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>All-Time Passings</button>
+                </div>
+            </div>
+            {view === 'milestones' && (data.milestones?.length ? <MilestonesView milestones={data.milestones} games={data.games || []} careerFirsts={data.careerFirsts || []} allTimePassings={data.allTimePassings || []} onTabChange={onTabChange} /> : <EmptyState icon="🏆" title="No Milestones" message="No milestones have been recorded yet." />)}
+            {view === 'history' && <HistoryWitnessedView allTimePassings={data.allTimePassings || []} careerFirsts={data.careerFirsts || []} games={data.games || []} />}
+        </div>
+    );
+};
+
+// Venues tab: absorbs Calendar
+const VenuesTab = ({ data }) => {
+    const [view, setView] = useState('map');
+    return (
+        <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex flex-wrap gap-3">
+                    <button onClick={() => setView('map')} className={`px-5 py-2 rounded body-text font-medium ${view === 'map' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Map & Tables</button>
+                    <button onClick={() => setView('calendar')} className={`px-5 py-2 rounded body-text font-medium ${view === 'calendar' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Calendar</button>
+                </div>
+            </div>
+            {view === 'map' && ((data.stadiums?.length || data.teams?.length) ? (
+                <div className="space-y-6">
+                    <StadiumMap stadiums={data.stadiums || []} games={data.games || []} orioles={data.orioles || []} />
+                    <DataTable title="Teams" data={data.teams || []} defaultSortKey="games" columns={[
+                        { key: 'team', label: 'Team' }, { key: 'games', label: 'G' }, { key: 'record', label: 'Record' },
+                        { key: 'runs', label: 'R' }, { key: 'runsAllowed', label: 'RA' }, { key: 'diff', label: 'Diff' },
+                        { key: 'homeRecord', label: 'Home' }, { key: 'awayRecord', label: 'Away' },
+                        { key: 'oneRunGames', label: '1-Run' }, { key: 'blowouts', label: 'Blowouts' }
+                    ]} />
+                    <DataTable title="Stadiums" data={data.stadiums || []} defaultSortKey="games" columns={[
+                        { key: 'stadium', label: 'Stadium' }, { key: 'games', label: 'G' }, { key: 'firstVisit', label: 'First' },
+                        { key: 'lastVisit', label: 'Last' }, { key: 'span', label: 'Span' }, { key: 'avgAttendance', label: 'Avg Att.' },
+                        { key: 'homeRunsSeen', label: 'HRs' }, { key: 'hitsSeen', label: 'Hits' }, { key: 'strikeoutsSeen', label: 'SOs' },
+                        { key: 'teamsSeen', label: 'Teams' }, { key: 'homeTeamRecord', label: 'Home Record' }
+                    ]} />
+                </div>
+            ) : <EmptyState icon="🏟️" title="No Venue Data" message="No stadium or team records available." />)}
+            {view === 'calendar' && (data.games?.length ? <Calendar games={data.games} /> : <EmptyState icon="📅" title="No Games" message="No games to display on the calendar." />)}
+        </div>
+    );
+};
+
+// Progress tab: absorbs Matchups
+const ProgressTab = ({ data }) => {
+    const [view, setView] = useState('checklist');
+    return (
+        <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex flex-wrap gap-3">
+                    <button onClick={() => setView('checklist')} className={`px-5 py-2 rounded body-text font-medium ${view === 'checklist' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Division Checklist</button>
+                    <button onClick={() => setView('badges')} className={`px-5 py-2 rounded body-text font-medium ${view === 'badges' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Badges</button>
+                    <button onClick={() => setView('matchups')} className={`px-5 py-2 rounded body-text font-medium ${view === 'matchups' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Matchups</button>
+                </div>
+            </div>
+            {view === 'checklist' && <DivisionChecklist divisionChecklist={data.divisionChecklist} games={data.games || []} />}
+            {view === 'badges' && <BadgesDisplay games={data.games || []} />}
+            {view === 'matchups' && (data.matchupMatrix ? <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} /> : <EmptyState icon="🎯" title="No Matchup Data" message="No matchup data available." />)}
+        </div>
+    );
+};
+
+const VALID_TABS = new Set(['dashboard','gamelog','players','milestones','venues','progress','special','trivia','companions','orioles']);
+// Legacy tab redirects (old tab IDs -> new locations)
+const TAB_REDIRECTS = { 'calendar': 'venues', 'history': 'milestones', 'leaderboards': 'players', 'matchups': 'progress' };
 
 const App = () => {
     const [tab, setTab] = useState(() => {
         const hash = window.location.hash.slice(1);
         if (hash && VALID_TABS.has(hash)) return hash;
-        return localStorage.getItem('baseballActiveTab') || 'dashboard';
+        if (hash && TAB_REDIRECTS[hash]) return TAB_REDIRECTS[hash];
+        const saved = localStorage.getItem('baseballActiveTab');
+        if (saved && VALID_TABS.has(saved)) return saved;
+        if (saved && TAB_REDIRECTS[saved]) return TAB_REDIRECTS[saved];
+        return 'dashboard';
     });
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem('baseballDarkMode');
@@ -7570,6 +7687,7 @@ const App = () => {
         const onHashChange = () => {
             const hash = window.location.hash.slice(1);
             if (hash && VALID_TABS.has(hash)) setTab(hash);
+            else if (hash && TAB_REDIRECTS[hash]) setTab(TAB_REDIRECTS[hash]);
         };
         window.addEventListener('hashchange', onHashChange);
         return () => window.removeEventListener('hashchange', onHashChange);
@@ -7582,7 +7700,7 @@ const App = () => {
 
     // Global tab navigation for cross-linking from child components
     useEffect(() => {
-        window.__navigateTab = (tabId) => { if (VALID_TABS.has(tabId)) setTab(tabId); };
+        window.__navigateTab = (tabId) => { if (VALID_TABS.has(tabId)) setTab(tabId); else if (TAB_REDIRECTS[tabId]) setTab(TAB_REDIRECTS[tabId]); };
         return () => { window.__navigateTab = null; };
     }, []);
 
@@ -7708,20 +7826,16 @@ const App = () => {
     }
 
     const tabs = [
-        { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-        { id: 'gamelog', label: 'Games', icon: '📋' },
-        { id: 'calendar', label: 'Calendar', icon: '📅' },
-        { id: 'progress', label: 'Progress', icon: '🏁' },
-        { id: 'milestones', label: 'Milestones', icon: '🏆' },
-        { id: 'history', label: 'History', icon: '📜' },
-        { id: 'leaderboards', label: 'Leaders', icon: '🏅' },
-        { id: 'players', label: 'Players', icon: '👤' },
-        { id: 'venues', label: 'Venues', icon: '🏟️' },
-        { id: 'matchups', label: 'Matchups', icon: '🎯' },
-        { id: 'special', label: 'Special', icon: '🌟' },
-        { id: 'companions', label: 'With', icon: '👥' },
-        { id: 'trivia', label: 'Frivolities', icon: '🔢' },
-        { id: 'orioles', label: 'Orioles', icon: '🧡' },
+        { id: 'dashboard', label: 'Dashboard' },
+        { id: 'gamelog', label: 'Games' },
+        { id: 'players', label: 'Players' },
+        { id: 'milestones', label: 'Milestones' },
+        { id: 'venues', label: 'Venues' },
+        { id: 'progress', label: 'Progress' },
+        { id: 'special', label: 'Special' },
+        { id: 'trivia', label: 'Frivolities' },
+        { id: 'companions', label: 'With' },
+        { id: 'orioles', label: 'Orioles' },
     ];
     
     return (
@@ -7786,40 +7900,13 @@ const App = () => {
             <main role="tabpanel" className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
                 {tab === 'dashboard' && <Dashboard data={data} onTabChange={setTab} />}
                 {tab === 'gamelog' && (data.games?.length ? <GameLogWithDetails games={data.games} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} /> : <EmptyState icon="📋" title="No Games" message="Add game HTML files to the Current Season Games folder and run the processor." />)}
-                {tab === 'calendar' && (data.games?.length ? <Calendar games={data.games} /> : <EmptyState icon="📅" title="No Games" message="No games to display on the calendar." />)}
-                {tab === 'progress' && (
-                    <div className="space-y-6">
-                        <DivisionChecklist divisionChecklist={data.divisionChecklist} games={data.games || []} />
-                        <BadgesDisplay games={data.games || []} />
-                    </div>
-                )}
-                {tab === 'milestones' && (data.milestones?.length ? <MilestonesView milestones={data.milestones} games={data.games || []} careerFirsts={data.careerFirsts || []} allTimePassings={data.allTimePassings || []} onTabChange={setTab} /> : <EmptyState icon="🏆" title="No Milestones" message="No milestones have been recorded yet." />)}
-                {tab === 'history' && <HistoryWitnessedView allTimePassings={data.allTimePassings || []} careerFirsts={data.careerFirsts || []} games={data.games || []} />}
-                {tab === 'leaderboards' && (data.players?.length ? <Leaderboards data={data} /> : <EmptyState icon="🏅" title="No Player Data" message="No player statistics available." />)}
-                {tab === 'players' && (
-                    <PlayersTab data={data} />
-                )}
-                {tab === 'venues' && ((data.stadiums?.length || data.teams?.length) ? (
-                    <div className="space-y-6">
-                        <StadiumMap stadiums={data.stadiums || []} games={data.games || []} orioles={data.orioles || []} />
-                        <DataTable title="🏟️ Teams" data={data.teams || []} defaultSortKey="games" columns={[
-                            { key: 'team', label: 'Team' }, { key: 'games', label: 'G' }, { key: 'record', label: 'Record' },
-                            { key: 'runs', label: 'R' }, { key: 'runsAllowed', label: 'RA' }, { key: 'diff', label: 'Diff' },
-                            { key: 'homeRecord', label: 'Home' }, { key: 'awayRecord', label: 'Away' },
-                            { key: 'oneRunGames', label: '1-Run' }, { key: 'blowouts', label: 'Blowouts' }
-                        ]} />
-                        <DataTable title="🏟️ Stadiums" data={data.stadiums || []} defaultSortKey="games" columns={[
-                            { key: 'stadium', label: 'Stadium' }, { key: 'games', label: 'G' }, { key: 'firstVisit', label: 'First' },
-                            { key: 'lastVisit', label: 'Last' }, { key: 'span', label: 'Span' }, { key: 'avgAttendance', label: 'Avg Att.' },
-                            { key: 'homeRunsSeen', label: 'HRs' }, { key: 'hitsSeen', label: 'Hits' }, { key: 'strikeoutsSeen', label: 'SOs' },
-                            { key: 'teamsSeen', label: 'Teams' }, { key: 'homeTeamRecord', label: 'Home Record' }
-                        ]} />
-                    </div>
-                ) : <EmptyState icon="🏟️" title="No Venue Data" message="No stadium or team records available." />)}
-                {tab === 'matchups' && (data.matchupMatrix ? <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} /> : <EmptyState icon="🎯" title="No Matchup Data" message="No matchup data available." />)}
+                {tab === 'players' && <PlayersTabV2 data={data} />}
+                {tab === 'milestones' && <MilestonesTabV2 data={data} onTabChange={setTab} />}
+                {tab === 'venues' && <VenuesTab data={data} />}
+                {tab === 'progress' && <ProgressTab data={data} />}
                 {tab === 'special' && <SpecialTab data={data} />}
-                {tab === 'companions' && <CompanionsView companionData={data.companionData} />}
                 {tab === 'trivia' && <TriviaTab umpireLog={data.umpireLog || []} jerseyLog={data.jerseyLog || {}} playerBios={data.playerBios || {}} players={data.players || []} pitchers={data.pitchers || []} games={data.games || []} />}
+                {tab === 'companions' && <CompanionsView companionData={data.companionData} />}
                 {tab === 'orioles' && <OriolesDashboard orioles={data.orioles || []} games={data.games || []} />}
             </main>
             <footer className={`border-t mt-12 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>

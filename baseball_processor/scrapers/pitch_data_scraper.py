@@ -16,7 +16,7 @@ import json
 import time
 from pathlib import Path
 
-from ..parsers.mlb_api_parser import TEAM_ID_TO_CODE, parse_pitch_data
+from ..parsers.mlb_api_parser import TEAM_ID_TO_CODE, parse_pitch_data, parse_hit_data
 from ..utils.http import create_retry_session, get_with_retry
 
 # Reverse mapping: BREF team code -> MLB API team ID
@@ -50,6 +50,28 @@ def _normalize_name(name):
     """Normalize name for matching: strip accents, lowercase."""
     import unicodedata
     return unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').decode('utf-8').strip().lower()
+
+
+def _remap_hit_data_keys(hit_data, game):
+    """Replace mlb_* keys with BREF IDs by matching batter names."""
+    name_to_bref = {}
+    for side in ('away', 'home'):
+        for p in game.get('batting', {}).get(side, []):
+            name = _normalize_name(p.get('name', ''))
+            pid = p.get('player_id', '')
+            if name and pid and not pid.startswith('mlb_'):
+                name_to_bref[name] = pid
+
+    remapped = {}
+    for key, hdata in hit_data.items():
+        norm_name = _normalize_name(hdata.get('name', ''))
+        if key.startswith('mlb_') and norm_name in name_to_bref:
+            new_key = name_to_bref[norm_name]
+            hdata['player_id'] = new_key
+            remapped[new_key] = hdata
+        else:
+            remapped[key] = hdata
+    return remapped
 
 
 def remap_pitch_data_keys(pitch_data, game):
@@ -186,6 +208,12 @@ def main():
 
                 # Extract pitch data (pass empty bref_id_map, remap after)
                 pitch_data = parse_pitch_data(feed_data, {})
+
+                # Extract hit data too
+                hit_data = parse_hit_data(feed_data, {})
+                if hit_data:
+                    hit_data = _remap_hit_data_keys(hit_data, game)
+                    game['hit_data'] = hit_data
 
                 if pitch_data:
                     # Remap mlb_* keys to BREF IDs
