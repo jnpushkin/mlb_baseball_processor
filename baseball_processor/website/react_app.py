@@ -3742,7 +3742,7 @@ const Leaderboards = ({ data }) => {
 const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTabChange }) => {
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [careerMilestoneSort, setCareerMilestoneSort] = useState('event'); // 'event' or 'date'
+    const [careerMilestoneSort, setCareerMilestoneSort] = useState('date'); // 'event' or 'date'
     const [viewMode, setViewMode] = useState('date'); // 'date' or 'category'
 
     // Build game lookup for additional context
@@ -3962,7 +3962,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
 
                                 // DATE VIEW
                                 if (careerMilestoneSort === 'date') {
-                                    const sortedByDate = [...filtered].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+                                    const sortedByDate = [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
                                     return (
                                         <div className="space-y-2">
                                             {sortedByDate.map((m, mIdx) => {
@@ -5598,7 +5598,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
             />
             
             {selectedGame && (() => {
-                const sortedGames = [...(games || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                const toSort = (d) => { if (!d) return ''; if (d.includes('/')) { const [m,dd,y] = d.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; } return d; };
+                const sortedGames = [...(games || [])].sort((a, b) => toSort(b.date).localeCompare(toSort(a.date)));
                 const idx = sortedGames.findIndex(g => g.gameId === selectedGame.gameId);
                 const prevGame = idx > 0 ? sortedGames[idx - 1] : null;
                 const nextGame = idx < sortedGames.length - 1 ? sortedGames[idx + 1] : null;
