@@ -1198,6 +1198,32 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
         'perfect_game': flags.get('perfectGame', False) or flags.get('homeTeamPerfectGame', False) or flags.get('awayTeamPerfectGame', False),
     }
 
+    # ABS challenges
+    abs_raw = feed_data.get('gameData', {}).get('absChallenges', {})
+    abs_challenges = None
+    if abs_raw.get('hasChallenges'):
+        abs_challenges = {
+            'away': abs_raw.get('away', {}),
+            'home': abs_raw.get('home', {}),
+        }
+        # Parse individual review details from play-by-play
+        reviews = []
+        all_plays = feed_data.get('liveData', {}).get('plays', {}).get('allPlays', [])
+        for play in all_plays:
+            matchup = play.get('matchup', {})
+            for ev in play.get('playEvents', []):
+                r = ev.get('reviewDetails')
+                if r:
+                    reviews.append({
+                        'overturned': r.get('isOverturned', False),
+                        'batter': matchup.get('batter', {}).get('fullName', ''),
+                        'pitcher': matchup.get('pitcher', {}).get('fullName', ''),
+                        'challengePlayer': r.get('player', {}).get('fullName', ''),
+                        'inning': play.get('about', {}).get('inning', 0),
+                        'half': play.get('about', {}).get('halfInning', ''),
+                    })
+        abs_challenges['reviews'] = reviews
+
     # Parse play-by-play and substitutions
     substitutions = parse_substitutions(feed_data, bref_id_map)
     play_by_play = parse_play_by_play(feed_data, bref_id_map)
@@ -1299,6 +1325,7 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
         'milestone_stats': {},
         'umpires': umpires,
         'flags': game_flags,
+        'abs_challenges': abs_challenges,
         'pitch_data': pitch_data,
         'hit_data': hit_data,
         'doubleheader': basic_info.get('doubleheader', 'N'),

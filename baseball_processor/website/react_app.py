@@ -1152,8 +1152,45 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                     {activeTab === 'playbyplay' && <PlayByPlayTab />}
                     {activeTab === 'context' && (
                         <div className="p-6 space-y-6">
-                            {(careerFirsts?.length || 0) === 0 && (allTimePassings?.length || 0) === 0 && (badges?.length || 0) === 0 && (
+                            {(careerFirsts?.length || 0) === 0 && (allTimePassings?.length || 0) === 0 && (badges?.length || 0) === 0 && !game.absChallenges && (
                                 <div className="text-center py-8 text-gray-500 body-text">No special context for this game</div>
+                            )}
+
+                            {game.absChallenges && (game.absChallenges.reviews?.length > 0 || (game.absChallenges.away?.usedSuccessful + game.absChallenges.away?.usedFailed + game.absChallenges.home?.usedSuccessful + game.absChallenges.home?.usedFailed) > 0) && (
+                                <div>
+                                    <h4 className="subsection-title font-bold mb-3">⚖️ ABS Challenges</h4>
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                                            <div className="font-semibold mb-1">{game.awayTeam}</div>
+                                            <div className="flex gap-3">
+                                                <span className="text-green-600">✓ {game.absChallenges.away?.usedSuccessful || 0}</span>
+                                                <span className="text-red-600">✗ {game.absChallenges.away?.usedFailed || 0}</span>
+                                                <span className="text-gray-500">{game.absChallenges.away?.remaining || 0} left</span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                                            <div className="font-semibold mb-1">{game.homeTeam}</div>
+                                            <div className="flex gap-3">
+                                                <span className="text-green-600">✓ {game.absChallenges.home?.usedSuccessful || 0}</span>
+                                                <span className="text-red-600">✗ {game.absChallenges.home?.usedFailed || 0}</span>
+                                                <span className="text-gray-500">{game.absChallenges.home?.remaining || 0} left</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {game.absChallenges.reviews?.length > 0 && (
+                                        <div className="space-y-1.5">
+                                            {game.absChallenges.reviews.map((r, i) => (
+                                                <div key={`abs-${i}`} className={`text-sm p-2 rounded ${r.overturned ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                                                    <span className={`font-semibold ${r.overturned ? 'text-green-700' : 'text-red-700'}`}>
+                                                        {r.overturned ? 'Overturned' : 'Upheld'}
+                                                    </span>
+                                                    {' — '}{r.batter || r.challengePlayer} vs {r.pitcher}
+                                                    <span className="text-gray-500 ml-2">({r.half === 'top' ? 'Top' : 'Bot'} {r.inning})</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             )}
 
                             {badges && badges.length > 0 && (

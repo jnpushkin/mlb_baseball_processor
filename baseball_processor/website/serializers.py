@@ -1276,6 +1276,11 @@ class DataSerializer:
                 if hdata.get('battedBalls', 0) > 0
             }
 
+        # ABS challenges
+        abs_data = raw_game.get('abs_challenges')
+        if abs_data:
+            details['absChallenges'] = abs_data
+
         return details
 
     def _format_game_length(self, game_length):

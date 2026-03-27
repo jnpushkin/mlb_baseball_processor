@@ -215,6 +215,24 @@ def main():
                     hit_data = _remap_hit_data_keys(hit_data, game)
                     game['hit_data'] = hit_data
 
+                # ABS challenges
+                abs_raw = feed_data.get('gameData', {}).get('absChallenges', {})
+                if abs_raw.get('hasChallenges'):
+                    abs_challenges = {'away': abs_raw.get('away', {}), 'home': abs_raw.get('home', {}), 'reviews': []}
+                    for play in feed_data.get('liveData', {}).get('plays', {}).get('allPlays', []):
+                        matchup = play.get('matchup', {})
+                        for ev in play.get('playEvents', []):
+                            r = ev.get('reviewDetails')
+                            if r:
+                                abs_challenges['reviews'].append({
+                                    'overturned': r.get('isOverturned', False),
+                                    'batter': matchup.get('batter', {}).get('fullName', ''),
+                                    'pitcher': matchup.get('pitcher', {}).get('fullName', ''),
+                                    'inning': play.get('about', {}).get('inning', 0),
+                                    'half': play.get('about', {}).get('halfInning', ''),
+                                })
+                    game['abs_challenges'] = abs_challenges
+
                 if pitch_data:
                     # Remap mlb_* keys to BREF IDs
                     pitch_data = remap_pitch_data_keys(pitch_data, game)

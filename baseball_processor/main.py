@@ -187,6 +187,27 @@ def _enrich_with_api_data(game_data):
             game_data['hit_data'] = remapped_hits
             info(f"     🏏 Hit data: {len(remapped_hits)} batters")
 
+        # ABS challenges
+        abs_raw = feed_data.get('gameData', {}).get('absChallenges', {})
+        if abs_raw.get('hasChallenges'):
+            abs_challenges = {'away': abs_raw.get('away', {}), 'home': abs_raw.get('home', {}), 'reviews': []}
+            for play in feed_data.get('liveData', {}).get('plays', {}).get('allPlays', []):
+                matchup = play.get('matchup', {})
+                for ev in play.get('playEvents', []):
+                    r = ev.get('reviewDetails')
+                    if r:
+                        abs_challenges['reviews'].append({
+                            'overturned': r.get('isOverturned', False),
+                            'batter': matchup.get('batter', {}).get('fullName', ''),
+                            'pitcher': matchup.get('pitcher', {}).get('fullName', ''),
+                            'inning': play.get('about', {}).get('inning', 0),
+                            'half': play.get('about', {}).get('halfInning', ''),
+                        })
+            game_data['abs_challenges'] = abs_challenges
+            total_challenges = sum(v.get('usedSuccessful', 0) + v.get('usedFailed', 0) for v in [abs_challenges.get('away', {}), abs_challenges.get('home', {})])
+            if total_challenges > 0:
+                info(f"     ⚖️ ABS challenges: {total_challenges}")
+
     # Fetch boxscore for jersey numbers
     box_resp = get_with_retry(session, f"https://statsapi.mlb.com/api/v1/game/{game_pk}/boxscore", timeout=15)
     if box_resp.status_code == 200:
