@@ -191,15 +191,25 @@ def _enrich_with_api_data(game_data):
         abs_raw = feed_data.get('gameData', {}).get('absChallenges', {})
         if abs_raw.get('hasChallenges'):
             abs_challenges = {'away': abs_raw.get('away', {}), 'home': abs_raw.get('home', {}), 'reviews': []}
+            away_id = feed_data.get('gameData', {}).get('teams', {}).get('away', {}).get('id')
             for play in feed_data.get('liveData', {}).get('plays', {}).get('allPlays', []):
                 matchup = play.get('matchup', {})
                 for ev in play.get('playEvents', []):
                     r = ev.get('reviewDetails')
                     if r:
+                        details = ev.get('details', {})
+                        call = details.get('call', {})
+                        pitch_type = details.get('type', {})
+                        count = ev.get('count', {})
                         abs_challenges['reviews'].append({
                             'overturned': r.get('isOverturned', False),
                             'batter': matchup.get('batter', {}).get('fullName', ''),
                             'pitcher': matchup.get('pitcher', {}).get('fullName', ''),
+                            'challengePlayer': r.get('player', {}).get('fullName', ''),
+                            'challengeTeam': 'away' if r.get('challengeTeamId') == away_id else 'home',
+                            'originalCall': call.get('description', ''),
+                            'pitchType': pitch_type.get('description', '') if isinstance(pitch_type, dict) else '',
+                            'count': f"{count.get('balls', 0)}-{count.get('strikes', 0)}",
                             'inning': play.get('about', {}).get('inning', 0),
                             'half': play.get('about', {}).get('halfInning', ''),
                         })
@@ -692,6 +702,16 @@ def main():
 
     # Also load MLB API cached games (spring training, etc.) that don't have HTML files
     loaded_game_ids = {g.get('game_id') for g in games_data if g.get('game_id')}
+    # Build date+teams index for deduplication (catches BREF vs API ID mismatches)
+    loaded_game_keys = set()
+    for g in games_data:
+        bi = g.get('basic_info', {})
+        date = bi.get('date_yyyymmdd', '')
+        home = bi.get('home_team_code', '')
+        away = bi.get('away_team_code', '')
+        if date and home:
+            loaded_game_keys.add(f"{date}_{away}_{home}")
+
     skip_patterns = ['career_firsts', 'career_gamelogs']
     spring_count = 0
     for cache_file in CACHE_DIR.glob("*.json"):
@@ -704,10 +724,13 @@ def main():
             if not isinstance(cached_game, dict) or 'basic_info' not in cached_game:
                 continue
             game_id = cached_game.get('game_id')
-            if game_id and game_id not in loaded_game_ids:
+            # Deduplicate by game ID and by date+teams
+            bi = cached_game.get('basic_info', {})
+            game_key = f"{bi.get('date_yyyymmdd', '')}_{bi.get('away_team_code', '')}_{bi.get('home_team_code', '')}"
+            if game_id and game_id not in loaded_game_ids and game_key not in loaded_game_keys:
                 # Only load MLB API spring training games (not regular BREF games)
-                source = cached_game.get('source') or cached_game.get('basic_info', {}).get('source')
-                game_type = cached_game.get('basic_info', {}).get('game_type')
+                source = cached_game.get('source') or bi.get('source')
+                game_type = bi.get('game_type')
                 if source == 'mlb' or game_type == 'spring':
                     # Run milestone engine on API games (BREF games run it during parsing)
                     ms = cached_game.get('milestone_stats')

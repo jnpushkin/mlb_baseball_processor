@@ -1178,14 +1178,22 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                         </div>
                                     </div>
                                     {game.absChallenges.reviews?.length > 0 && (
-                                        <div className="space-y-1.5">
+                                        <div className="space-y-2">
                                             {game.absChallenges.reviews.map((r, i) => (
-                                                <div key={`abs-${i}`} className={`text-sm p-2 rounded ${r.overturned ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                                                    <span className={`font-semibold ${r.overturned ? 'text-green-700' : 'text-red-700'}`}>
-                                                        {r.overturned ? 'Overturned' : 'Upheld'}
-                                                    </span>
-                                                    {' — '}{r.batter || r.challengePlayer} vs {r.pitcher}
-                                                    <span className="text-gray-500 ml-2">({r.half === 'top' ? 'Top' : 'Bot'} {r.inning})</span>
+                                                <div key={`abs-${i}`} className={`text-sm p-3 rounded-lg ${r.overturned ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className={`font-bold ${r.overturned ? 'text-green-700' : 'text-red-700'}`}>
+                                                            {r.overturned ? '✓ Overturned' : '✗ Upheld'}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500">{r.half === 'top' ? 'Top' : 'Bot'} {r.inning} • {r.count} count</span>
+                                                    </div>
+                                                    <div className="mt-1">
+                                                        <span className="font-medium">{r.challengePlayer || (r.challengeTeam === 'away' ? game.awayTeam : game.homeTeam)}</span>
+                                                        {' challenged '}
+                                                        <span className="font-medium">{r.originalCall || 'call'}</span>
+                                                        {r.pitchType && <span className="text-gray-500"> ({r.pitchType})</span>}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-0.5">{r.batter} batting vs {r.pitcher}</div>
                                                 </div>
                                             ))}
                                         </div>

@@ -219,15 +219,25 @@ def main():
                 abs_raw = feed_data.get('gameData', {}).get('absChallenges', {})
                 if abs_raw.get('hasChallenges'):
                     abs_challenges = {'away': abs_raw.get('away', {}), 'home': abs_raw.get('home', {}), 'reviews': []}
+                    away_id = feed_data.get('gameData', {}).get('teams', {}).get('away', {}).get('id')
                     for play in feed_data.get('liveData', {}).get('plays', {}).get('allPlays', []):
                         matchup = play.get('matchup', {})
                         for ev in play.get('playEvents', []):
                             r = ev.get('reviewDetails')
                             if r:
+                                details = ev.get('details', {})
+                                call = details.get('call', {})
+                                pitch_type = details.get('type', {})
+                                count = ev.get('count', {})
                                 abs_challenges['reviews'].append({
                                     'overturned': r.get('isOverturned', False),
                                     'batter': matchup.get('batter', {}).get('fullName', ''),
                                     'pitcher': matchup.get('pitcher', {}).get('fullName', ''),
+                                    'challengePlayer': r.get('player', {}).get('fullName', ''),
+                                    'challengeTeam': 'away' if r.get('challengeTeamId') == away_id else 'home',
+                                    'originalCall': call.get('description', ''),
+                                    'pitchType': pitch_type.get('description', '') if isinstance(pitch_type, dict) else '',
+                                    'count': f"{count.get('balls', 0)}-{count.get('strikes', 0)}",
                                     'inning': play.get('about', {}).get('inning', 0),
                                     'half': play.get('about', {}).get('halfInning', ''),
                                 })
