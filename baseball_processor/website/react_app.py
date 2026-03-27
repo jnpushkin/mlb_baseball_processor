@@ -7404,8 +7404,8 @@ const PersonalRecords = ({ data }) => {
     );
 };
 
-const SpecialTab = ({ data }) => {
-    const [view, setView] = useState('records');
+const SpecialTab = ({ data, initialSubtab, onSubtabChange }) => {
+    const [view, setView] = useState(initialSubtab || 'records');
     return (
         <div>
             <SubNav tabs={[
@@ -7413,7 +7413,7 @@ const SpecialTab = ({ data }) => {
                 { id: 'debuts', label: 'Debuts' },
                 { id: 'finals', label: 'Final Games' },
                 { id: 'splash', label: 'Signature HRs' },
-            ]} active={view} onChange={setView} />
+            ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'records' && <PersonalRecords data={data} />}
             {view === 'debuts' && (
                 <DataTable title="🌟 MLB Debuts" data={data.debuts || []} defaultSortKey="date" enableDateFilter={true} columns={[
@@ -7571,8 +7571,8 @@ const ScorigamiChart = ({ games }) => {
     );
 };
 
-const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games }) => {
-    const [view, setView] = useState('jerseys');
+const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games, initialSubtab, onSubtabChange }) => {
+    const [view, setView] = useState(initialSubtab || 'jerseys');
     const allPlayers = useMemo(() => [...(players || []), ...(pitchers || [])], [players, pitchers]);
     return (
         <div>
@@ -7582,7 +7582,7 @@ const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games 
                 { id: 'birthdays', label: 'Birthdays' },
                 { id: 'scorigami', label: 'Scorigami' },
                 { id: 'umpires', label: 'Umpires' },
-            ]} active={view} onChange={setView} />
+            ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'jerseys' && <JerseyCollection jerseyLog={jerseyLog} />}
             {view === 'origins' && <PlayerOrigins playerBios={playerBios} allPlayers={allPlayers} />}
             {view === 'birthdays' && <PlayerBirthdays playerBios={playerBios} allPlayers={allPlayers} />}
@@ -7593,11 +7593,11 @@ const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games 
 };
 
 // Reusable subtab navigation
-const SubNav = ({ tabs, active, onChange }) => (
+const SubNav = ({ tabs, active, onChange, onSubtabChange }) => (
     <div className="bg-white rounded-lg shadow mb-4">
         <div className="flex flex-wrap gap-1 p-2">
             {tabs.map(t => (
-                <button key={t.id} onClick={() => onChange(t.id)} className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                <button key={t.id} onClick={() => { onChange(t.id); if (onSubtabChange) onSubtabChange(t.id); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                     active === t.id
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -7612,9 +7612,9 @@ const SubNav = ({ tabs, active, onChange }) => (
 // === MERGED TAB WRAPPERS ===
 
 // Players tab: absorbs Leaderboards
-const PlayersTabV2 = ({ data }) => {
+const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
     const hasCollegeData = Object.keys(data.ncaaCrossRef || {}).length > 0;
-    const [view, setView] = useState('hitters');
+    const [view, setView] = useState(initialSubtab || 'hitters');
 
     useEffect(() => {
         if (window._pendingPlayerSelect) {
@@ -7639,7 +7639,7 @@ const PlayersTabV2 = ({ data }) => {
 
     return (
         <div>
-            <SubNav tabs={subtabs} active={view} onChange={setView} />
+            <SubNav tabs={subtabs} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
             {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
             {view === 'nostats' && <NoStatsPlayers data={data} />}
@@ -7650,14 +7650,14 @@ const PlayersTabV2 = ({ data }) => {
 };
 
 // Milestones tab: absorbs History
-const MilestonesTabV2 = ({ data, onTabChange }) => {
-    const [view, setView] = useState('milestones');
+const MilestonesTabV2 = ({ data, onTabChange, initialSubtab, onSubtabChange }) => {
+    const [view, setView] = useState(initialSubtab || 'milestones');
     return (
         <div>
             <SubNav tabs={[
                 { id: 'milestones', label: 'Game Milestones' },
                 { id: 'history', label: 'All-Time Passings' },
-            ]} active={view} onChange={setView} />
+            ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'milestones' && (data.milestones?.length ? <MilestonesView milestones={data.milestones} games={data.games || []} careerFirsts={data.careerFirsts || []} allTimePassings={data.allTimePassings || []} onTabChange={onTabChange} /> : <EmptyState icon="🏆" title="No Milestones" message="No milestones have been recorded yet." />)}
             {view === 'history' && <HistoryWitnessedView allTimePassings={data.allTimePassings || []} careerFirsts={data.careerFirsts || []} games={data.games || []} />}
         </div>
@@ -7665,14 +7665,14 @@ const MilestonesTabV2 = ({ data, onTabChange }) => {
 };
 
 // Venues tab: absorbs Calendar
-const VenuesTab = ({ data }) => {
-    const [view, setView] = useState('map');
+const VenuesTab = ({ data, initialSubtab, onSubtabChange }) => {
+    const [view, setView] = useState(initialSubtab || 'map');
     return (
         <div>
             <SubNav tabs={[
                 { id: 'map', label: 'Map & Tables' },
                 { id: 'calendar', label: 'Calendar' },
-            ]} active={view} onChange={setView} />
+            ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'map' && ((data.stadiums?.length || data.teams?.length) ? (
                 <div className="space-y-6">
                     <StadiumMap stadiums={data.stadiums || []} games={data.games || []} orioles={data.orioles || []} />
@@ -7696,15 +7696,15 @@ const VenuesTab = ({ data }) => {
 };
 
 // Progress tab: absorbs Matchups
-const ProgressTab = ({ data }) => {
-    const [view, setView] = useState('checklist');
+const ProgressTab = ({ data, initialSubtab, onSubtabChange }) => {
+    const [view, setView] = useState(initialSubtab || 'checklist');
     return (
         <div>
             <SubNav tabs={[
                 { id: 'checklist', label: 'Division Checklist' },
                 { id: 'badges', label: 'Badges' },
                 { id: 'matchups', label: 'Matchups' },
-            ]} active={view} onChange={setView} />
+            ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'checklist' && <DivisionChecklist divisionChecklist={data.divisionChecklist} games={data.games || []} />}
             {view === 'badges' && <BadgesDisplay games={data.games || []} />}
             {view === 'matchups' && (data.matchupMatrix ? <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} /> : <EmptyState icon="🎯" title="No Matchup Data" message="No matchup data available." />)}
@@ -7717,15 +7717,30 @@ const VALID_TABS = new Set(['dashboard','gamelog','players','milestones','venues
 const TAB_REDIRECTS = { 'calendar': 'venues', 'history': 'milestones', 'leaderboards': 'players', 'matchups': 'progress' };
 
 const App = () => {
-    const [tab, setTab] = useState(() => {
-        const hash = window.location.hash.slice(1);
-        if (hash && VALID_TABS.has(hash)) return hash;
-        if (hash && TAB_REDIRECTS[hash]) return TAB_REDIRECTS[hash];
+    const parseHash = (hash) => {
+        const parts = (hash || '').split('/');
+        let tabId = parts[0];
+        if (TAB_REDIRECTS[tabId]) tabId = TAB_REDIRECTS[tabId];
+        return { tab: VALID_TABS.has(tabId) ? tabId : null, subtab: parts[1] || null };
+    };
+
+    const [tab, setTabRaw] = useState(() => {
+        const { tab: t } = parseHash(window.location.hash.slice(1));
+        if (t) return t;
         const saved = localStorage.getItem('baseballActiveTab');
         if (saved && VALID_TABS.has(saved)) return saved;
         if (saved && TAB_REDIRECTS[saved]) return TAB_REDIRECTS[saved];
         return 'dashboard';
     });
+    const [subtab, setSubtab] = useState(() => {
+        const { subtab: s } = parseHash(window.location.hash.slice(1));
+        return s;
+    });
+
+    const setTab = (newTab) => {
+        setTabRaw(newTab);
+        setSubtab(null); // Reset subtab when switching main tabs
+    };
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem('baseballDarkMode');
         if (saved !== null) return saved === 'true';
@@ -7750,17 +7765,17 @@ const App = () => {
 
     useEffect(() => {
         localStorage.setItem('baseballActiveTab', tab);
-        if (window.location.hash.slice(1) !== tab) {
-            history.replaceState(null, '', '#' + tab);
+        const hashTarget = subtab ? `${tab}/${subtab}` : tab;
+        if (window.location.hash.slice(1) !== hashTarget) {
+            history.replaceState(null, '', '#' + hashTarget);
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [tab]);
+    }, [tab, subtab]);
 
     useEffect(() => {
         const onHashChange = () => {
-            const hash = window.location.hash.slice(1);
-            if (hash && VALID_TABS.has(hash)) setTab(hash);
-            else if (hash && TAB_REDIRECTS[hash]) setTab(TAB_REDIRECTS[hash]);
+            const { tab: t, subtab: s } = parseHash(window.location.hash.slice(1));
+            if (t) { setTabRaw(t); setSubtab(s); }
         };
         window.addEventListener('hashchange', onHashChange);
         return () => window.removeEventListener('hashchange', onHashChange);
@@ -7773,7 +7788,11 @@ const App = () => {
 
     // Global tab navigation for cross-linking from child components
     useEffect(() => {
-        window.__navigateTab = (tabId) => { if (VALID_TABS.has(tabId)) setTab(tabId); else if (TAB_REDIRECTS[tabId]) setTab(TAB_REDIRECTS[tabId]); };
+        window.__navigateTab = (tabId, subId) => {
+            let resolved = tabId;
+            if (TAB_REDIRECTS[tabId]) resolved = TAB_REDIRECTS[tabId];
+            if (VALID_TABS.has(resolved)) { setTabRaw(resolved); setSubtab(subId || null); }
+        };
         return () => { window.__navigateTab = null; };
     }, []);
 
@@ -7973,12 +7992,12 @@ const App = () => {
             <main role="tabpanel" className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
                 {tab === 'dashboard' && <Dashboard data={data} onTabChange={setTab} />}
                 {tab === 'gamelog' && (data.games?.length ? <GameLogWithDetails games={data.games} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} allTimePassingsByGame={data.allTimePassingsByGame || {}} /> : <EmptyState icon="📋" title="No Games" message="Add game HTML files to the Current Season Games folder and run the processor." />)}
-                {tab === 'players' && <PlayersTabV2 data={data} />}
-                {tab === 'milestones' && <MilestonesTabV2 data={data} onTabChange={setTab} />}
-                {tab === 'venues' && <VenuesTab data={data} />}
-                {tab === 'progress' && <ProgressTab data={data} />}
-                {tab === 'special' && <SpecialTab data={data} />}
-                {tab === 'trivia' && <TriviaTab umpireLog={data.umpireLog || []} jerseyLog={data.jerseyLog || {}} playerBios={data.playerBios || {}} players={data.players || []} pitchers={data.pitchers || []} games={data.games || []} />}
+                {tab === 'players' && <PlayersTabV2 data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
+                {tab === 'milestones' && <MilestonesTabV2 data={data} onTabChange={setTab} initialSubtab={subtab} onSubtabChange={setSubtab} />}
+                {tab === 'venues' && <VenuesTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
+                {tab === 'progress' && <ProgressTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
+                {tab === 'special' && <SpecialTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
+                {tab === 'trivia' && <TriviaTab umpireLog={data.umpireLog || []} jerseyLog={data.jerseyLog || {}} playerBios={data.playerBios || {}} players={data.players || []} pitchers={data.pitchers || []} games={data.games || []} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'companions' && <CompanionsView companionData={data.companionData} />}
                 {tab === 'orioles' && <OriolesDashboard orioles={data.orioles || []} games={data.games || []} />}
             </main>
