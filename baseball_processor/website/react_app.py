@@ -397,7 +397,7 @@ const StatCard = ({ title, value, subtitle, color = 'blue', onClick }) => {
 };
 
 
-const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, badges, onClose, onPrev, onNext }) => {
+const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, badges, onClose, onPrev, onNext, gameIndex, totalGames }) => {
     const [activeTab, setActiveTab] = useState('boxscore');
     
     const gameData = useMemo(() => {
@@ -1220,6 +1220,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                 <div className="p-3 border-t bg-gray-50 flex justify-between items-center flex-shrink-0">
                     <div className="flex items-center gap-2">
                         {onPrev && <button onClick={onPrev} className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium" title="Previous game">← Prev</button>}
+                        {gameIndex != null && totalGames && <span className="text-xs text-gray-500">Game {gameIndex} of {totalGames}</span>}
                         {onNext && <button onClick={onNext} className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium" title="Next game">Next →</button>}
                     </div>
                     <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
@@ -1444,83 +1445,43 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
                 );
             })()}
             
-            {/* Year-by-year timeline */}
-            <div className="space-y-4">
-                {timelineData.map((season) => (
-                    <div key={`season-${season.year}${season.isSpring ? '-spring' : ''}`} className="relative pl-8 pb-4 border-l-2 border-blue-200 last:border-l-0">
-                        <div className={`absolute left-0 top-0 -ml-2.5 w-5 h-5 ${season.isSpring ? 'bg-green-500' : 'bg-blue-600'} rounded-full border-2 border-white`}></div>
-                        <div className={`${season.isSpring ? 'bg-green-50 hover:bg-green-100' : 'bg-gray-50 hover:bg-blue-50'} rounded-lg p-4 transition-colors`}>
-                            <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <span className={`text-2xl font-bold ${season.isSpring ? 'text-green-600' : 'text-blue-600'}`}>{season.year}</span>
-                                    {season.isSpring && <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">Spring Training</span>}
-                                    <span className="ml-3 body-text text-gray-600">{season.team || 'Various Teams'}</span>
-                                </div>
-                                <span className="body-text text-gray-600 font-semibold">{season.games} games</span>
-                            </div>
-                            
-                            {/* Stats grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 small-text">
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">PA</div>
-                                    <div className="font-bold text-gray-900">{season.pa}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">AVG</div>
-                                    <div className="font-bold text-gray-900">{season.avg}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">HR</div>
-                                    <div className="font-bold text-orange-600">{season.hr}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">RBI</div>
-                                    <div className="font-bold text-gray-900">{season.rbi}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">H</div>
-                                    <div className="font-bold text-gray-900">{season.h}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">R</div>
-                                    <div className="font-bold text-gray-900">{season.r}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">OBP</div>
-                                    <div className="font-bold text-blue-600">{season.obp}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">OPS</div>
-                                    <div className="font-bold text-purple-600">{season.ops}</div>
-                                </div>
-                            </div>
-                            
-                            {/* Notable achievements */}
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {season.hr >= 5 && (
-                                    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-semibold">
-                                        💥 {season.hr} HR
-                                    </span>
-                                )}
-                                {parseFloat(season.avg) >= 0.300 && (
-                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
-                                        🎯 .300+ AVG
-                                    </span>
-                                )}
-                                {parseFloat(season.ops) >= 0.800 && (
-                                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">
-                                        ⭐ .800+ OPS
-                                    </span>
-                                )}
-                                {season.sb >= 5 && (
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
-                                        🏃 {season.sb} SB
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
+            {/* Year-by-year table */}
+            <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b">
+                        <tr>
+                            {['Year','Team','G','AB','PA','H','R','RBI','HR','2B','3B','SB','BB','SO','AVG','OBP','SLG','OPS'].map(col => (
+                                <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-gray-500">{col}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                        {timelineData.map((s) => (
+                            <tr key={`${s.year}${s.isSpring ? '-st' : ''}`} className={s.isSpring ? 'bg-green-50' : 'hover:bg-blue-50'}>
+                                <td className="px-2 py-2 text-center font-bold text-blue-600 whitespace-nowrap">
+                                    {s.year}{s.isSpring ? <span className="ml-1 text-[10px] text-green-600 font-normal">ST</span> : ''}
+                                </td>
+                                <td className="px-2 py-2 text-center text-xs">{s.team || '-'}</td>
+                                <td className="px-2 py-2 text-center font-semibold">{s.games}</td>
+                                <td className="px-2 py-2 text-center">{s.ab}</td>
+                                <td className="px-2 py-2 text-center">{s.pa}</td>
+                                <td className="px-2 py-2 text-center font-semibold">{s.h}</td>
+                                <td className="px-2 py-2 text-center">{s.r}</td>
+                                <td className="px-2 py-2 text-center">{s.rbi}</td>
+                                <td className={`px-2 py-2 text-center ${s.hr > 0 ? 'font-bold text-blue-700' : ''}`}>{s.hr}</td>
+                                <td className="px-2 py-2 text-center">{s.doubles || 0}</td>
+                                <td className="px-2 py-2 text-center">{s.triples || 0}</td>
+                                <td className="px-2 py-2 text-center">{s.sb || 0}</td>
+                                <td className="px-2 py-2 text-center">{s.bb}</td>
+                                <td className="px-2 py-2 text-center">{s.so}</td>
+                                <td className="px-2 py-2 text-center font-bold">{s.avg}</td>
+                                <td className="px-2 py-2 text-center font-bold text-blue-600">{s.obp}</td>
+                                <td className="px-2 py-2 text-center font-bold">{s.slg}</td>
+                                <td className="px-2 py-2 text-center font-bold text-purple-600">{s.ops}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
                 </div>
             )}
@@ -1728,88 +1689,41 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) =>
                 );
             })()}
             
-            {/* Year-by-year timeline */}
-            <div className="space-y-4">
-                {timelineData.map((season) => (
-                    <div key={`season-${season.year}${season.isSpring ? '-spring' : ''}`} className="relative pl-8 pb-4 border-l-2 border-purple-200 last:border-l-0">
-                        <div className={`absolute left-0 top-0 -ml-2.5 w-5 h-5 ${season.isSpring ? 'bg-green-500' : 'bg-purple-600'} rounded-full border-2 border-white`}></div>
-                        <div className={`${season.isSpring ? 'bg-green-50 hover:bg-green-100' : 'bg-gray-50 hover:bg-purple-50'} rounded-lg p-4 transition-colors`}>
-                            <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <span className={`text-2xl font-bold ${season.isSpring ? 'text-green-600' : 'text-purple-600'}`}>{season.year}</span>
-                                    {season.isSpring && <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">Spring Training</span>}
-                                    <span className="ml-3 body-text text-gray-600">{season.team || 'Various Teams'}</span>
-                                </div>
-                                <span className="body-text text-gray-600 font-semibold">{season.games} games</span>
-                            </div>
-                            
-                            {/* Stats grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 small-text">
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">GS</div>
-                                    <div className="font-bold text-gray-900">{season.gameStarts || 0}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">IP</div>
-                                    <div className="font-bold text-gray-900">{season.ip}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">W-L</div>
-                                    <div className="font-bold text-gray-900">{season.wins}-{season.losses}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">ERA</div>
-                                    <div className="font-bold text-blue-600">{season.era}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">WHIP</div>
-                                    <div className="font-bold text-purple-600">{season.whip}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">SO</div>
-                                    <div className="font-bold text-orange-600">{season.so}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">H</div>
-                                    <div className="font-bold text-gray-900">{season.h}</div>
-                                </div>
-                                <div className="bg-white p-2 rounded">
-                                    <div className="text-gray-500">SV</div>
-                                    <div className="font-bold text-green-600">{season.saves || 0}</div>
-                                </div>
-                            </div>
-                            
-                            {/* Notable achievements */}
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {season.wins >= 3 && (
-                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
-                                        🏆 {season.wins} Wins
-                                    </span>
-                                )}
-                                {season.saves >= 3 && (
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
-                                        💾 {season.saves} Saves
-                                    </span>
-                                )}
-                                {season.so >= 20 && (
-                                    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-semibold">
-                                        🔥 {season.so} SO
-                                    </span>
-                                )}
-                                {season.era !== 'N/A' && parseFloat(season.era) <= 3.00 && (
-                                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">
-                                        ⭐ {season.era} ERA
-                                    </span>
-                                )}
-                                {season.whip !== 'N/A' && parseFloat(season.whip) <= 1.20 && (
-                                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-semibold">
-                                        🎯 {season.whip} WHIP
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
+            {/* Year-by-year table */}
+            <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b">
+                        <tr>
+                            {['Year','Team','G','GS','W','L','SV','IP','H','R','ER','BB','SO','HR','ERA','WHIP'].map(col => (
+                                <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-gray-500">{col}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                        {timelineData.map((s) => (
+                            <tr key={`${s.year}${s.isSpring ? '-st' : ''}`} className={s.isSpring ? 'bg-green-50' : 'hover:bg-purple-50'}>
+                                <td className="px-2 py-2 text-center font-bold text-purple-600 whitespace-nowrap">
+                                    {s.year}{s.isSpring ? <span className="ml-1 text-[10px] text-green-600 font-normal">ST</span> : ''}
+                                </td>
+                                <td className="px-2 py-2 text-center text-xs">{s.team || '-'}</td>
+                                <td className="px-2 py-2 text-center font-semibold">{s.games}</td>
+                                <td className="px-2 py-2 text-center">{s.gameStarts || 0}</td>
+                                <td className="px-2 py-2 text-center font-bold text-green-600">{s.wins}</td>
+                                <td className="px-2 py-2 text-center text-red-600">{s.losses}</td>
+                                <td className="px-2 py-2 text-center">{s.saves || 0}</td>
+                                <td className="px-2 py-2 text-center font-semibold">{s.ip}</td>
+                                <td className="px-2 py-2 text-center">{s.h}</td>
+                                <td className="px-2 py-2 text-center">{s.r}</td>
+                                <td className="px-2 py-2 text-center">{s.er}</td>
+                                <td className="px-2 py-2 text-center">{s.bb}</td>
+                                <td className="px-2 py-2 text-center font-semibold">{s.so}</td>
+                                <td className="px-2 py-2 text-center">{s.hr || 0}</td>
+                                <td className="px-2 py-2 text-center font-bold text-purple-700">{s.era}</td>
+                                <td className="px-2 py-2 text-center font-bold">{s.whip}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
                 </div>
             )}
@@ -5375,29 +5289,6 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         }
     });
 
-    // Compute total stats witnessed across all games (excluding spring training)
-    const totalStats = useMemo(() => {
-        const springGameIds = new Set((games || []).filter(g => g.gameType === 'spring').map(g => g.gameId));
-        const stats = { H: 0, R: 0, HR: 0, RBI: 0, SO: 0, BB: 0, SB: 0, '2B': 0, '3B': 0 };
-        let pitK = 0;
-        (playerGames || []).forEach(pg => {
-            if (springGameIds.has(pg.gameId)) return;
-            stats.H += (pg.h || 0);
-            stats.R += (pg.r || 0);
-            stats.HR += (pg.hr || 0);
-            stats.RBI += (pg.rbi || 0);
-            stats.SO += (pg.so || 0);
-            stats.BB += (pg.bb || 0);
-            stats.SB += (pg.sb || 0);
-            stats['2B'] += (pg.doubles || 0);
-            stats['3B'] += (pg.triples || 0);
-        });
-        (pitcherGames || []).forEach(pg => {
-            if (springGameIds.has(pg.gameId)) return;
-            pitK += (pg.so || 0);
-        });
-        return { ...stats, pitK, gameCount: (games || []).length - springGameIds.size };
-    }, [games, playerGames, pitcherGames]);
 
     // Compute milestones for badge display
     const milestoneData = useMemo(() => computeGameMilestones(games), [games]);
@@ -5486,6 +5377,32 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
     }, [games, badgeTypeFilter, badgeTextFilter, allBadgesByGame]);
 
     const hasBadgeFilter = badgeTypeFilter !== 'all' || badgeTextFilter;
+
+    // Compute total stats witnessed — responds to badge filter
+    const totalStats = useMemo(() => {
+        const springGameIds = new Set((games || []).filter(g => g.gameType === 'spring').map(g => g.gameId));
+        const filteredGameIds = hasBadgeFilter ? new Set(badgeFilteredGames.map(g => g.gameId)) : null;
+        const stats = { H: 0, R: 0, HR: 0, RBI: 0, SO: 0, BB: 0, SB: 0, '2B': 0, '3B': 0 };
+        let pitK = 0;
+        let gameCount = 0;
+        const countedGames = new Set();
+        (playerGames || []).forEach(pg => {
+            if (springGameIds.has(pg.gameId)) return;
+            if (filteredGameIds && !filteredGameIds.has(pg.gameId)) return;
+            stats.H += (pg.h || 0); stats.R += (pg.r || 0); stats.HR += (pg.hr || 0);
+            stats.RBI += (pg.rbi || 0); stats.SO += (pg.so || 0); stats.BB += (pg.bb || 0);
+            stats.SB += (pg.sb || 0); stats['2B'] += (pg.doubles || 0); stats['3B'] += (pg.triples || 0);
+            countedGames.add(pg.gameId);
+        });
+        (pitcherGames || []).forEach(pg => {
+            if (springGameIds.has(pg.gameId)) return;
+            if (filteredGameIds && !filteredGameIds.has(pg.gameId)) return;
+            pitK += (pg.so || 0);
+            countedGames.add(pg.gameId);
+        });
+        return { ...stats, pitK, gameCount: countedGames.size };
+    }, [games, playerGames, pitcherGames, badgeFilteredGames, hasBadgeFilter]);
+
 
     return (
         <>
@@ -5614,6 +5531,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                         onClose={() => setSelectedGame(null)}
                         onPrev={prevGame ? () => setSelectedGame(prevGame) : null}
                         onNext={nextGame ? () => setSelectedGame(nextGame) : null}
+                        gameIndex={idx >= 0 ? idx + 1 : null}
+                        totalGames={sortedGames.length}
                     />
                 );
             })()}
@@ -7092,6 +7011,12 @@ const ChoroplethMap = ({ geoData, dataByPlace, nameMapper, center, zoom, onSelec
                 });
             }
         }).addTo(mapInstanceRef.current);
+
+        // Auto-fit map to show regions with data
+        try {
+            const bounds = layerRef.current.getBounds();
+            if (bounds.isValid()) mapInstanceRef.current.fitBounds(bounds, { padding: [20, 20], maxZoom: 5 });
+        } catch(e) {}
     }, [geoData, dataByPlace, selectedPlace]);
 
     useEffect(() => {
@@ -7290,9 +7215,12 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
 
                     return (
                         <div key={month} className="bg-gray-50 rounded-lg p-3">
-                            <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center justify-between mb-1">
                                 <div className="text-sm font-bold text-gray-700">{month}</div>
                                 <div className="text-xs text-gray-500">{collected}/{days}</div>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+                                <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${(collected / days * 100)}%` }}></div>
                             </div>
                             <div className="grid grid-cols-7 gap-0.5 text-center">
                                 {['S','M','T','W','T','F','S'].map((d, i) => (
