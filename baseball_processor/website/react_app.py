@@ -397,7 +397,7 @@ const StatCard = ({ title, value, subtitle, color = 'blue', onClick }) => {
 };
 
 
-const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClose }) => {
+const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, badges, onClose }) => {
     const [activeTab, setActiveTab] = useState('boxscore');
     
     const gameData = useMemo(() => {
@@ -1124,20 +1124,21 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                 {/* Tab Navigation */}
                 <div className="border-b bg-gray-50 sticky top-0 z-10">
                     <div className="flex gap-1 px-6">
-                        {['boxscore', 'lineups', 'substitutions', 'playbyplay'].map(tab => (
+                        {['boxscore', 'lineups', 'substitutions', 'playbyplay', 'context'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`px-6 py-3 body-text font-semibold transition-all ${
-                                    activeTab === tab 
-                                        ? 'bg-white text-blue-600 border-b-4 border-blue-600' 
+                                className={`px-4 sm:px-6 py-3 body-text font-semibold transition-all whitespace-nowrap ${
+                                    activeTab === tab
+                                        ? 'bg-white text-blue-600 border-b-4 border-blue-600'
                                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                                 }`}
                             >
-                                {tab === 'boxscore' ? '📊 Box Score' :
-                                 tab === 'lineups' ? '📋 Lineups' :
-                                 tab === 'substitutions' ? '🔄 Substitutions' :
-                                 '⚡ Play-by-Play'}
+                                {tab === 'boxscore' ? 'Box Score' :
+                                 tab === 'lineups' ? 'Lineups' :
+                                 tab === 'substitutions' ? 'Substitutions' :
+                                 tab === 'playbyplay' ? 'Play-by-Play' :
+                                 `Context${(careerFirsts?.length || 0) + (allTimePassings?.length || 0) + (badges?.length || 0) > 0 ? ' ✦' : ''}`}
                             </button>
                         ))}
                     </div>
@@ -1149,6 +1150,69 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, onClo
                     {activeTab === 'lineups' && <LineupsTab />}
                     {activeTab === 'substitutions' && <SubstitutionsTab />}
                     {activeTab === 'playbyplay' && <PlayByPlayTab />}
+                    {activeTab === 'context' && (
+                        <div className="p-6 space-y-6">
+                            {(careerFirsts?.length || 0) === 0 && (allTimePassings?.length || 0) === 0 && (badges?.length || 0) === 0 && (
+                                <div className="text-center py-8 text-gray-500 body-text">No special context for this game</div>
+                            )}
+
+                            {badges && badges.length > 0 && (
+                                <div>
+                                    <h4 className="subsection-title font-bold mb-3">🏅 Badges Earned</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {badges.map((b, i) => (
+                                            <span key={`badge-${i}`} className="px-3 py-1.5 bg-blue-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200" title={b.title}>
+                                                {b.text}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {careerFirsts && careerFirsts.length > 0 && (
+                                <div>
+                                    <h4 className="subsection-title font-bold mb-3">⭐ Career Milestones</h4>
+                                    <div className="space-y-2">
+                                        {careerFirsts.map((first, i) => (
+                                            <div key={`first-${i}`} className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                                <span className="text-xl">⭐</span>
+                                                <div>
+                                                    <div className="font-semibold body-text">
+                                                        <PlayerLink playerId={first.player_id} name={first.player_name} /> — {first.milestone}
+                                                    </div>
+                                                    {first.opponent && <div className="small-text text-gray-600">vs {first.opponent}</div>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {allTimePassings && allTimePassings.length > 0 && (
+                                <div>
+                                    <h4 className="subsection-title font-bold mb-3">📜 All-Time List Passings</h4>
+                                    <div className="space-y-2">
+                                        {allTimePassings.map((passing, i) => (
+                                            <div key={`passing-${i}`} className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                                                <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-white text-sm font-bold flex-shrink-0 ${passing.new_rank <= 10 ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : 'bg-gradient-to-br from-purple-500 to-violet-600'}`}>
+                                                    #{passing.new_rank}
+                                                </span>
+                                                <div>
+                                                    <div className="font-semibold body-text">
+                                                        <PlayerLink playerId={passing.player_id} name={passing.player_name} /> — #{passing.new_rank} all-time in {passing.stat_name}
+                                                    </div>
+                                                    <div className="small-text text-gray-600">
+                                                        {passing.new_value} career {passing.stat_name.toLowerCase()}
+                                                        {passing.passed_names && ` • Passed ${passing.passed_names}`}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
                 </div>{/* End scrollable body */}
 
@@ -5262,7 +5326,7 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
     return badges;
 };
 
-const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGame }) => {
+const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGame, allTimePassingsByGame }) => {
     const [selectedGame, setSelectedGame] = useState(null);
     const [badgeTypeFilter, setBadgeTypeFilter] = useState('all');
     const [badgeTextFilter, setBadgeTextFilter] = useState('');
@@ -5505,6 +5569,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                     playerGames={playerGames}
                     pitcherGames={pitcherGames}
                     careerFirsts={careerFirstsByGame?.[selectedGame.gameId] || []}
+                    allTimePassings={(allTimePassingsByGame || {})[selectedGame.gameId] || []}
+                    badges={allBadgesByGame?.[selectedGame.gameId] || []}
                     onClose={() => setSelectedGame(null)}
                 />
             )}
@@ -7906,7 +7972,7 @@ const App = () => {
             </nav>
             <main role="tabpanel" className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
                 {tab === 'dashboard' && <Dashboard data={data} onTabChange={setTab} />}
-                {tab === 'gamelog' && (data.games?.length ? <GameLogWithDetails games={data.games} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} /> : <EmptyState icon="📋" title="No Games" message="Add game HTML files to the Current Season Games folder and run the processor." />)}
+                {tab === 'gamelog' && (data.games?.length ? <GameLogWithDetails games={data.games} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} allTimePassingsByGame={data.allTimePassingsByGame || {}} /> : <EmptyState icon="📋" title="No Games" message="Add game HTML files to the Current Season Games folder and run the processor." />)}
                 {tab === 'players' && <PlayersTabV2 data={data} />}
                 {tab === 'milestones' && <MilestonesTabV2 data={data} onTabChange={setTab} />}
                 {tab === 'venues' && <VenuesTab data={data} />}
