@@ -308,7 +308,7 @@ def find_all_time_passings(witnessed_firsts: list, career_firsts_cache: dict, ra
     # First sort by date ascending so we process earliest occurrences first
     all_passings.sort(key=lambda x: (x.get('date', ''), x.get('new_rank', 999)))
 
-    seen_passings = set()  # (player_id, stat, passed_player_id) tuples
+    seen_passings = set()  # (player_id, stat, passed_player_id, tied_or_passed) tuples
     seen_games = set()  # (player_id, stat, game_id) to avoid duplicate game entries
     unique_passings = []
 
@@ -317,10 +317,11 @@ def find_all_time_passings(witnessed_firsts: list, career_firsts_cache: dict, ra
         if game_key in seen_games:
             continue
 
-        # Filter passed_players to only include players not yet passed
+        # Filter passed_players: allow both "tied" and "passed" events for the same player
         filtered_passed = []
         for passed in p.get('passed_players', []):
-            passing_key = (p.get('player_id', ''), p.get('stat', ''), passed.get('player_id', ''))
+            is_tied = passed.get('value', 0) == p.get('new_value', 0)
+            passing_key = (p.get('player_id', ''), p.get('stat', ''), passed.get('player_id', ''), 'tied' if is_tied else 'passed')
             if passing_key not in seen_passings:
                 seen_passings.add(passing_key)
                 filtered_passed.append(passed)
