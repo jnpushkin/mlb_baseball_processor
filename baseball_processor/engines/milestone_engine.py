@@ -25,7 +25,14 @@ class MilestoneEngine:
         self.game_data = game_data
         ms = self.game_data.setdefault('milestone_stats', {})
 
-        for key in self.MILESTONE_KEYS:
+        # Initialize all keys (including removed ones that detection code still references)
+        ALL_DETECTION_KEYS = self.MILESTONE_KEYS + [
+            'three_hit_games', 'eight_k_games', 'four_walk_games', 'perfect_batting_games',
+            'three_run_games', 'four_run_games', 'hit_for_extra_bases', 'three_total_bases_games',
+            'multi_double_games', 'save_games', 'win_games', 'efficient_starts',
+            'no_walk_starts', 'scoreless_relief', 'high_k_low_bb',
+        ]
+        for key in ALL_DETECTION_KEYS:
             ms.setdefault(key, [])
 
     def _normalize_name_for_comparison(self, name):
