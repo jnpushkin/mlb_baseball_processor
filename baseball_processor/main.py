@@ -106,6 +106,96 @@ def deploy_to_surge(html_path: str, domain: str | None = None) -> bool:
             return False
 
 
+def _refresh_all_time_leaders_if_stale(max_age_days=7):
+    """Refresh all-time leaders from BREF if data is older than max_age_days."""
+    import subprocess
+    leaders_dir = REFERENCES_DIR / "all_time_leaders"
+    if not leaders_dir.exists():
+        return
+
+    # Check the newest file's modification time
+    newest_mtime = 0
+    for f in leaders_dir.glob("*.json"):
+        mtime = os.path.getmtime(f)
+        if mtime > newest_mtime:
+            newest_mtime = mtime
+
+    if newest_mtime == 0:
+        return
+
+    age_days = (datetime.now().timestamp() - newest_mtime) / 86400
+    if age_days <= max_age_days:
+        return
+
+    info(f"🔄 Updating all-time leaders (last updated {age_days:.0f} days ago)...")
+    try:
+        result = subprocess.run(
+            ['python3', '-m', 'baseball_processor.scrapers.all_time_leaders_scraper', '--delay', '3.1'],
+            capture_output=True, text=True, timeout=600
+        )
+        if result.returncode == 0:
+            info("  ✅ All-time leaders updated")
+        else:
+            warn(f"  ⚠️ All-time leaders update failed: {result.stderr[:200]}")
+    except subprocess.TimeoutExpired:
+        warn("  ⚠️ All-time leaders update timed out")
+    except Exception as e:
+        warn(f"  ⚠️ All-time leaders update error: {e}")
+
+
+def _update_gamelogs_for_game(cache_path):
+    """Update gamelogs cache for all-time leaders who appeared in this game."""
+    try:
+        from .scrapers.career_firsts_scraper import (
+            get_players_from_game_file, load_all_time_leaders,
+            find_career_firsts, create_scraper, load_gamelogs_cache, save_gamelogs_cache
+        )
+        player_ids, _ = get_players_from_game_file(cache_path)
+        if not player_ids:
+            return
+
+        # Check which players are on all-time lists
+        all_time_players = load_all_time_leaders()
+        leaders_in_game = player_ids & set(all_time_players.keys())
+        if not leaders_in_game:
+            return
+
+        # Only refresh players whose gamelogs are stale
+        gc = load_gamelogs_cache()
+        stale = set()
+        for pid in leaders_in_game:
+            existing = gc.get(pid, {}).get('gamelogs', {})
+            if not existing:
+                stale.add(pid)
+                continue
+            # Check if latest gamelog is more than 30 days old
+            latest = max(existing.keys()) if existing else ''
+            if latest and len(latest) >= 11:
+                latest_date = latest[3:11]
+                import json
+                with open(cache_path) as f:
+                    game = json.load(f)
+                game_date = game.get('basic_info', {}).get('date_yyyymmdd', '')
+                if game_date > latest_date:
+                    stale.add(pid)
+
+        if not stale:
+            return
+
+        info(f"     Updating gamelogs for {len(stale)} all-time leaders...")
+        scraper = create_scraper()
+        for pid in stale:
+            try:
+                firsts = find_career_firsts(pid, scraper, verbose=False, store_gamelogs=True)
+                if firsts.get('gamelogs'):
+                    gc[pid] = {'name': all_time_players[pid].get('name', pid), 'gamelogs': firsts['gamelogs']}
+            except Exception:
+                pass
+        save_gamelogs_cache(gc)
+    except Exception as e:
+        pass  # Don't fail the pipeline for gamelog updates
+
+
 def _scrape_career_firsts_for_game(cache_path):
     """Scrape/update career milestones for all players in a newly parsed game."""
     from .scrapers.career_firsts_scraper import (
@@ -332,6 +422,10 @@ def process_html_file(file_path, index=None, total=None):
                 _scrape_career_firsts_for_game(cache_path)
             except Exception as e:
                 debug(f"  ⚠️ Career firsts scraping skipped: {e}")
+            try:
+                _update_gamelogs_for_game(cache_path)
+            except Exception as e:
+                debug(f"  ⚠️ Gamelogs update skipped: {e}")
 
         return game_data
 
@@ -595,10 +689,14 @@ def main():
 
     info("⚾️ Starting Baseball Game Processor...")
     info(f"📂 Input: {args.input_path}")
-    
+
+    # Refresh all-time leaders if stale (>7 days old)
+    if not args.website_only:
+        _refresh_all_time_leaders_if_stale()
+
     # Create a fresh umpire tracker for this run
     umpire_tracker = UmpireTracker()
-    
+
     if not args.website_only:
         info(f"📊 Output Excel: {args.output_excel}")
         args.output_excel = os.path.expanduser(args.output_excel)
