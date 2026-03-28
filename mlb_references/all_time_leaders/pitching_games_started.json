@@ -1,0 +1,1214 @@
+{
+  "stat": "GS",
+  "stat_name": "Games Started",
+  "type": "pitching",
+  "last_updated": "2026-03-28",
+  "leaders": [
+    {
+      "rank": 1,
+      "player_id": "youngcy01",
+      "name": "Cy Young",
+      "value": 815
+    },
+    {
+      "rank": 2,
+      "player_id": "ryanno01",
+      "name": "Nolan Ryan",
+      "value": 773
+    },
+    {
+      "rank": 3,
+      "player_id": "suttodo01",
+      "name": "Don Sutton",
+      "value": 756
+    },
+    {
+      "rank": 4,
+      "player_id": "maddugr01",
+      "name": "Greg Maddux",
+      "value": 740
+    },
+    {
+      "rank": 5,
+      "player_id": "niekrph01",
+      "name": "Phil Niekro",
+      "value": 716
+    },
+    {
+      "rank": 6,
+      "player_id": "carltst01",
+      "name": "Steve Carlton",
+      "value": 709
+    },
+    {
+      "rank": 7,
+      "player_id": "clemero02",
+      "name": "Roger Clemens",
+      "value": 707
+    },
+    {
+      "rank": 8,
+      "player_id": "johnto01",
+      "name": "Tommy John",
+      "value": 700
+    },
+    {
+      "rank": 9,
+      "player_id": "perryga01",
+      "name": "Gaylord Perry",
+      "value": 690
+    },
+    {
+      "rank": 10,
+      "player_id": "galvipu01",
+      "name": "Pud Galvin",
+      "value": 688
+    },
+    {
+      "rank": 11,
+      "player_id": "blylebe01",
+      "name": "Bert Blyleven",
+      "value": 685
+    },
+    {
+      "rank": 12,
+      "player_id": "glavito02",
+      "name": "Tom Glavine",
+      "value": 682
+    },
+    {
+      "rank": 13,
+      "player_id": "johnswa01",
+      "name": "Walter Johnson",
+      "value": 666
+    },
+    {
+      "rank": 14,
+      "player_id": "spahnwa01",
+      "name": "Warren Spahn",
+      "value": 665
+    },
+    {
+      "rank": 15,
+      "player_id": "seaveto01",
+      "name": "Tom Seaver",
+      "value": 647
+    },
+    {
+      "rank": 16,
+      "player_id": "moyerja01",
+      "name": "Jamie Moyer",
+      "value": 638
+    },
+    {
+      "rank": 17,
+      "player_id": "kaatji01",
+      "name": "Jim Kaat",
+      "value": 625
+    },
+    {
+      "rank": 18,
+      "player_id": "tananfr01",
+      "name": "Frank Tanana",
+      "value": 616
+    },
+    {
+      "rank": 19,
+      "player_id": "wynnea01",
+      "name": "Early Wynn",
+      "value": 611
+    },
+    {
+      "rank": 20,
+      "player_id": "roberro01",
+      "name": "Robin Roberts",
+      "value": 609
+    },
+    {
+      "rank": 21,
+      "player_id": "johnsra05",
+      "name": "Randy Johnson",
+      "value": 603
+    },
+    {
+      "rank": 22,
+      "player_id": "alexape01",
+      "name": "Grover Alexander",
+      "value": 600
+    },
+    {
+      "rank": 23,
+      "player_id": "jenkife01",
+      "name": "Fergie Jenkins",
+      "value": 594
+    },
+    {
+      "rank": 23,
+      "player_id": "keefeti01",
+      "name": "Tim Keefe",
+      "value": 594
+    },
+    {
+      "rank": 25,
+      "player_id": "mathebo01",
+      "name": "Bobby Mathews",
+      "value": 568
+    },
+    {
+      "rank": 26,
+      "player_id": "martide01",
+      "name": "Dennis Martínez",
+      "value": 562
+    },
+    {
+      "rank": 26,
+      "player_id": "nichoki01",
+      "name": "Kid Nichols",
+      "value": 562
+    },
+    {
+      "rank": 28,
+      "player_id": "sabatc.01",
+      "name": "CC Sabathia",
+      "value": 560
+    },
+    {
+      "rank": 29,
+      "player_id": "verlaju01",
+      "name": "Justin Verlander",
+      "value": 555
+    },
+    {
+      "rank": 30,
+      "player_id": "rixeyep01",
+      "name": "Eppa Rixey",
+      "value": 554
+    },
+    {
+      "rank": 31,
+      "player_id": "colonba01",
+      "name": "Bartolo Colón",
+      "value": 552
+    },
+    {
+      "rank": 31,
+      "player_id": "mathech01",
+      "name": "Christy Mathewson",
+      "value": 552
+    },
+    {
+      "rank": 33,
+      "player_id": "welchmi01",
+      "name": "Mickey Welch",
+      "value": 549
+    },
+    {
+      "rank": 34,
+      "player_id": "reussje01",
+      "name": "Jerry Reuss",
+      "value": 547
+    },
+    {
+      "rank": 35,
+      "player_id": "greinza01",
+      "name": "Zack Greinke",
+      "value": 541
+    },
+    {
+      "rank": 36,
+      "player_id": "ruffire01",
+      "name": "Red Ruffing",
+      "value": 538
+    },
+    {
+      "rank": 37,
+      "player_id": "mussimi01",
+      "name": "Mike Mussina",
+      "value": 536
+    },
+    {
+      "rank": 38,
+      "player_id": "planked01",
+      "name": "Eddie Plank",
+      "value": 529
+    },
+    {
+      "rank": 38,
+      "player_id": "reuscri01",
+      "name": "Rick Reuschel",
+      "value": 529
+    },
+    {
+      "rank": 40,
+      "player_id": "koosmje01",
+      "name": "Jerry Koosman",
+      "value": 527
+    },
+    {
+      "rank": 40,
+      "player_id": "morrija02",
+      "name": "Jack Morris",
+      "value": 527
+    },
+    {
+      "rank": 42,
+      "player_id": "palmeji01",
+      "name": "Jim Palmer",
+      "value": 521
+    },
+    {
+      "rank": 42,
+      "player_id": "pettian01",
+      "name": "Andy Pettitte",
+      "value": 521
+    },
+    {
+      "rank": 44,
+      "player_id": "bunniji01",
+      "name": "Jim Bunning",
+      "value": 519
+    },
+    {
+      "rank": 45,
+      "player_id": "clarkjo01",
+      "name": "John Clarkson",
+      "value": 518
+    },
+    {
+      "rank": 46,
+      "player_id": "powelja01",
+      "name": "Jack Powell",
+      "value": 516
+    },
+    {
+      "rank": 47,
+      "player_id": "weyhigu01",
+      "name": "Gus Weyhing",
+      "value": 505
+    },
+    {
+      "rank": 48,
+      "player_id": "mullato01",
+      "name": "Tony Mullane",
+      "value": 504
+    },
+    {
+      "rank": 49,
+      "player_id": "radboch01",
+      "name": "Old Hoss Radbourn",
+      "value": 502
+    },
+    {
+      "rank": 50,
+      "player_id": "niekrjo01",
+      "name": "Joe Niekro",
+      "value": 500
+    },
+    {
+      "rank": 51,
+      "player_id": "frienbo01",
+      "name": "Bob Friend",
+      "value": 497
+    },
+    {
+      "rank": 51,
+      "player_id": "grimebu01",
+      "name": "Burleigh Grimes",
+      "value": 497
+    },
+    {
+      "rank": 53,
+      "player_id": "lolicmi01",
+      "name": "Mickey Lolich",
+      "value": 496
+    },
+    {
+      "rank": 54,
+      "player_id": "buehrma01",
+      "name": "Mark Buehrle",
+      "value": 493
+    },
+    {
+      "rank": 55,
+      "player_id": "wellsda01",
+      "name": "David Wells",
+      "value": 489
+    },
+    {
+      "rank": 56,
+      "player_id": "osteecl01",
+      "name": "Claude Osteen",
+      "value": 488
+    },
+    {
+      "rank": 57,
+      "player_id": "jonessa01",
+      "name": "Sad Sam Jones",
+      "value": 487
+    },
+    {
+      "rank": 58,
+      "player_id": "mccorji01",
+      "name": "Jim McCormick",
+      "value": 485
+    },
+    {
+      "rank": 59,
+      "player_id": "fellebo01",
+      "name": "Bob Feller",
+      "value": 484
+    },
+    {
+      "rank": 59,
+      "player_id": "lyonste01",
+      "name": "Ted Lyons",
+      "value": 484
+    },
+    {
+      "rank": 59,
+      "player_id": "tiantlu01",
+      "name": "Luis Tiant",
+      "value": 484
+    },
+    {
+      "rank": 62,
+      "player_id": "faberre01",
+      "name": "Red Faber",
+      "value": 483
+    },
+    {
+      "rank": 62,
+      "player_id": "newsobo01",
+      "name": "Bobo Newsom",
+      "value": 483
+    },
+    {
+      "rank": 64,
+      "player_id": "gibsobo01",
+      "name": "Bob Gibson",
+      "value": 482
+    },
+    {
+      "rank": 65,
+      "player_id": "smoltjo01",
+      "name": "John Smoltz",
+      "value": 481
+    },
+    {
+      "rank": 66,
+      "player_id": "hudsoti01",
+      "name": "Tim Hudson",
+      "value": 479
+    },
+    {
+      "rank": 67,
+      "player_id": "brownke01",
+      "name": "Kevin Brown",
+      "value": 476
+    },
+    {
+      "rank": 67,
+      "player_id": "hunteca01",
+      "name": "Catfish Hunter",
+      "value": 476
+    },
+    {
+      "rank": 69,
+      "player_id": "hernali01",
+      "name": "Liván Hernández",
+      "value": 474
+    },
+    {
+      "rank": 69,
+      "player_id": "rogerke01",
+      "name": "Kenny Rogers",
+      "value": 474
+    },
+    {
+      "rank": 69,
+      "player_id": "scherma01",
+      "name": "Max Scherzer",
+      "value": 474
+    },
+    {
+      "rank": 72,
+      "player_id": "bluevi01",
+      "name": "Vida Blue",
+      "value": 473
+    },
+    {
+      "rank": 72,
+      "player_id": "whiteea01",
+      "name": "Earl Whitehill",
+      "value": 473
+    },
+    {
+      "rank": 74,
+      "player_id": "willivi01",
+      "name": "Vic Willis",
+      "value": 471
+    },
+    {
+      "rank": 75,
+      "player_id": "finlech01",
+      "name": "Chuck Finley",
+      "value": 467
+    },
+    {
+      "rank": 76,
+      "player_id": "hershor01",
+      "name": "Orel Hershiser",
+      "value": 466
+    },
+    {
+      "rank": 77,
+      "player_id": "drysddo01",
+      "name": "Don Drysdale",
+      "value": 465
+    },
+    {
+      "rank": 77,
+      "player_id": "pappami01",
+      "name": "Milt Pappas",
+      "value": 465
+    },
+    {
+      "rank": 79,
+      "player_id": "alexado01",
+      "name": "Doyle Alexander",
+      "value": 464
+    },
+    {
+      "rank": 80,
+      "player_id": "wakefti01",
+      "name": "Tim Wakefield",
+      "value": 463
+    },
+    {
+      "rank": 81,
+      "player_id": "simmocu01",
+      "name": "Curt Simmons",
+      "value": 462
+    },
+    {
+      "rank": 81,
+      "player_id": "welchbo01",
+      "name": "Bob Welch",
+      "value": 462
+    },
+    {
+      "rank": 83,
+      "player_id": "torremi01",
+      "name": "Mike Torrez",
+      "value": 458
+    },
+    {
+      "rank": 84,
+      "player_id": "grovele01",
+      "name": "Lefty Grove",
+      "value": 457
+    },
+    {
+      "rank": 84,
+      "player_id": "maricju01",
+      "name": "Juan Marichal",
+      "value": 457
+    },
+    {
+      "rank": 86,
+      "player_id": "wiseri01",
+      "name": "Rick Wise",
+      "value": 455
+    },
+    {
+      "rank": 87,
+      "player_id": "kershcl01",
+      "name": "Clayton Kershaw",
+      "value": 451
+    },
+    {
+      "rank": 87,
+      "player_id": "lestejo01",
+      "name": "Jon Lester",
+      "value": 451
+    },
+    {
+      "rank": 89,
+      "player_id": "perryji01",
+      "name": "Jim Perry",
+      "value": 447
+    },
+    {
+      "rank": 90,
+      "player_id": "lackejo01",
+      "name": "John Lackey",
+      "value": 446
+    },
+    {
+      "rank": 91,
+      "player_id": "derripa01",
+      "name": "Paul Derringer",
+      "value": 445
+    },
+    {
+      "rank": 92,
+      "player_id": "millwke01",
+      "name": "Kevin Millwood",
+      "value": 443
+    },
+    {
+      "rank": 92,
+      "player_id": "quinnja01",
+      "name": "Jack Quinn",
+      "value": 443
+    },
+    {
+      "rank": 92,
+      "player_id": "vazquja01",
+      "name": "Javier Vázquez",
+      "value": 443
+    },
+    {
+      "rank": 95,
+      "player_id": "houghch01",
+      "name": "Charlie Hough",
+      "value": 440
+    },
+    {
+      "rank": 95,
+      "player_id": "mooremi01",
+      "name": "Mike Moore",
+      "value": 440
+    },
+    {
+      "rank": 97,
+      "player_id": "fordwh01",
+      "name": "Whitey Ford",
+      "value": 438
+    },
+    {
+      "rank": 98,
+      "player_id": "schilcu01",
+      "name": "Curt Schilling",
+      "value": 436
+    },
+    {
+      "rank": 99,
+      "player_id": "hardeme01",
+      "name": "Mel Harder",
+      "value": 433
+    },
+    {
+      "rank": 99,
+      "player_id": "hubbeca01",
+      "name": "Carl Hubbell",
+      "value": 433
+    },
+    {
+      "rank": 99,
+      "player_id": "piercbi02",
+      "name": "Billy Pierce",
+      "value": 433
+    },
+    {
+      "rank": 102,
+      "player_id": "burnea.01",
+      "name": "A.J. Burnett",
+      "value": 430
+    },
+    {
+      "rank": 103,
+      "player_id": "jacksla01",
+      "name": "Larry Jackson",
+      "value": 429
+    },
+    {
+      "rank": 104,
+      "player_id": "langsma01",
+      "name": "Mark Langston",
+      "value": 428
+    },
+    {
+      "rank": 104,
+      "player_id": "mullige01",
+      "name": "George Mullin",
+      "value": 428
+    },
+    {
+      "rank": 106,
+      "player_id": "rusieam01",
+      "name": "Amos Rusie",
+      "value": 427
+    },
+    {
+      "rank": 107,
+      "player_id": "hoytwa01",
+      "name": "Waite Hoyt",
+      "value": 425
+    },
+    {
+      "rank": 108,
+      "player_id": "fitzsfr01",
+      "name": "Freddie Fitzsimmons",
+      "value": 424
+    },
+    {
+      "rank": 108,
+      "player_id": "valenfe01",
+      "name": "Fernando Valenzuela",
+      "value": 424
+    },
+    {
+      "rank": 110,
+      "player_id": "burkejo03",
+      "name": "John Burkett",
+      "value": 423
+    },
+    {
+      "rank": 111,
+      "player_id": "forscbo01",
+      "name": "Bob Forsch",
+      "value": 422
+    },
+    {
+      "rank": 111,
+      "player_id": "hamelco01",
+      "name": "Cole Hamels",
+      "value": 422
+    },
+    {
+      "rank": 113,
+      "player_id": "zitoba01",
+      "name": "Barry Zito",
+      "value": 421
+    },
+    {
+      "rank": 114,
+      "player_id": "violafr01",
+      "name": "Frank Viola",
+      "value": 420
+    },
+    {
+      "rank": 115,
+      "player_id": "coneda01",
+      "name": "David Cone",
+      "value": 419
+    },
+    {
+      "rank": 115,
+      "player_id": "pennohe01",
+      "name": "Herb Pennock",
+      "value": 419
+    },
+    {
+      "rank": 117,
+      "player_id": "hernafe02",
+      "name": "Félix Hernández",
+      "value": 418
+    },
+    {
+      "rank": 117,
+      "player_id": "lohseky01",
+      "name": "Kyle Lohse",
+      "value": 418
+    },
+    {
+      "rank": 119,
+      "player_id": "suppaje01",
+      "name": "Jeff Suppan",
+      "value": 417
+    },
+    {
+      "rank": 119,
+      "player_id": "trachst01",
+      "name": "Steve Trachsel",
+      "value": 417
+    },
+    {
+      "rank": 121,
+      "player_id": "kneppbo01",
+      "name": "Bob Knepper",
+      "value": 413
+    },
+    {
+      "rank": 122,
+      "player_id": "stiebda01",
+      "name": "Dave Stieb",
+      "value": 412
+    },
+    {
+      "rank": 123,
+      "player_id": "morgami01",
+      "name": "Mike Morgan",
+      "value": 411
+    },
+    {
+      "rank": 123,
+      "player_id": "wainwad01",
+      "name": "Adam Wainwright",
+      "value": 411
+    },
+    {
+      "rank": 125,
+      "player_id": "candito01",
+      "name": "Tom Candiotti",
+      "value": 410
+    },
+    {
+      "rank": 125,
+      "player_id": "goodedw01",
+      "name": "Dwight Gooden",
+      "value": 410
+    },
+    {
+      "rank": 125,
+      "player_id": "holtzke01",
+      "name": "Ken Holtzman",
+      "value": 410
+    },
+    {
+      "rank": 128,
+      "player_id": "martipe02",
+      "name": "Pedro Martínez",
+      "value": 409
+    },
+    {
+      "rank": 128,
+      "player_id": "mortoch02",
+      "name": "Charlie Morton",
+      "value": 409
+    },
+    {
+      "rank": 130,
+      "player_id": "bondto01",
+      "name": "Tommy Bond",
+      "value": 408
+    },
+    {
+      "rank": 130,
+      "player_id": "marquru01",
+      "name": "Rube Marquard",
+      "value": 408
+    },
+    {
+      "rank": 130,
+      "player_id": "zachato01",
+      "name": "Tom Zachary",
+      "value": 408
+    },
+    {
+      "rank": 133,
+      "player_id": "sandesc01",
+      "name": "Scott Sanderson",
+      "value": 407
+    },
+    {
+      "rank": 134,
+      "player_id": "coopewi01",
+      "name": "Wilbur Cooper",
+      "value": 406
+    },
+    {
+      "rank": 134,
+      "player_id": "meadole01",
+      "name": "Lee Meadows",
+      "value": 406
+    },
+    {
+      "rank": 134,
+      "player_id": "terryad01",
+      "name": "Adonis Terry",
+      "value": 406
+    },
+    {
+      "rank": 137,
+      "player_id": "shielja02",
+      "name": "James Shields",
+      "value": 405
+    },
+    {
+      "rank": 138,
+      "player_id": "flanami01",
+      "name": "Mike Flanagan",
+      "value": 404
+    },
+    {
+      "rank": 138,
+      "player_id": "pascuca02",
+      "name": "Camilo Pascual",
+      "value": 404
+    },
+    {
+      "rank": 140,
+      "player_id": "appieke01",
+      "name": "Kevin Appier",
+      "value": 402
+    },
+    {
+      "rank": 140,
+      "player_id": "whitewi01",
+      "name": "Will White",
+      "value": 402
+    },
+    {
+      "rank": 142,
+      "player_id": "waltebu01",
+      "name": "Bucky Walters",
+      "value": 398
+    },
+    {
+      "rank": 143,
+      "player_id": "wittbo01",
+      "name": "Bobby Witt",
+      "value": 397
+    },
+    {
+      "rank": 144,
+      "player_id": "buffich01",
+      "name": "Charlie Buffinton",
+      "value": 396
+    },
+    {
+      "rank": 144,
+      "player_id": "mcnalda01",
+      "name": "Dave McNally",
+      "value": 396
+    },
+    {
+      "rank": 144,
+      "player_id": "whitnji01",
+      "name": "Jim Whitney",
+      "value": 396
+    },
+    {
+      "rank": 147,
+      "player_id": "orthal01",
+      "name": "Al Orth",
+      "value": 394
+    },
+    {
+      "rank": 148,
+      "player_id": "rogerst01",
+      "name": "Steve Rogers",
+      "value": 393
+    },
+    {
+      "rank": 149,
+      "player_id": "splitpa01",
+      "name": "Paul Splittorff",
+      "value": 392
+    },
+    {
+      "rank": 149,
+      "player_id": "sutclri01",
+      "name": "Rick Sutcliffe",
+      "value": 392
+    },
+    {
+      "rank": 151,
+      "player_id": "gullibi01",
+      "name": "Bill Gullickson",
+      "value": 390
+    },
+    {
+      "rank": 151,
+      "player_id": "hallaro01",
+      "name": "Roy Halladay",
+      "value": 390
+    },
+    {
+      "rank": 153,
+      "player_id": "keyji01",
+      "name": "Jimmy Key",
+      "value": 389
+    },
+    {
+      "rank": 154,
+      "player_id": "daussho01",
+      "name": "Hooks Dauss",
+      "value": 388
+    },
+    {
+      "rank": 154,
+      "player_id": "frasech01",
+      "name": "Chick Fraser",
+      "value": 388
+    },
+    {
+      "rank": 156,
+      "player_id": "benesan01",
+      "name": "Andy Benes",
+      "value": 387
+    },
+    {
+      "rank": 156,
+      "player_id": "drabedo01",
+      "name": "Doug Drabek",
+      "value": 387
+    },
+    {
+      "rank": 156,
+      "player_id": "haineje01",
+      "name": "Jesse Haines",
+      "value": 387
+    },
+    {
+      "rank": 159,
+      "player_id": "santaer01",
+      "name": "Ervin Santana",
+      "value": 386
+    },
+    {
+      "rank": 160,
+      "player_id": "covelst01",
+      "name": "Stan Coveleski",
+      "value": 385
+    },
+    {
+      "rank": 161,
+      "player_id": "arroybr01",
+      "name": "Bronson Arroyo",
+      "value": 383
+    },
+    {
+      "rank": 161,
+      "player_id": "frencla01",
+      "name": "Larry French",
+      "value": 383
+    },
+    {
+      "rank": 163,
+      "player_id": "leiteal01",
+      "name": "Al Leiter",
+      "value": 382
+    },
+    {
+      "rank": 164,
+      "player_id": "clancji01",
+      "name": "Jim Clancy",
+      "value": 381
+    },
+    {
+      "rank": 164,
+      "player_id": "haranaa01",
+      "name": "Aaron Harang",
+      "value": 381
+    },
+    {
+      "rank": 164,
+      "player_id": "mcginjo01",
+      "name": "Joe McGinnity",
+      "value": 381
+    },
+    {
+      "rank": 167,
+      "player_id": "harenda01",
+      "name": "Dan Haren",
+      "value": 380
+    },
+    {
+      "rank": 167,
+      "player_id": "rhoderi01",
+      "name": "Rick Rhoden",
+      "value": 380
+    },
+    {
+      "rank": 169,
+      "player_id": "cuellmi01",
+      "name": "Mike Cuellar",
+      "value": 379
+    },
+    {
+      "rank": 169,
+      "player_id": "leebi02",
+      "name": "Bill Lee",
+      "value": 379
+    },
+    {
+      "rank": 169,
+      "player_id": "wolfra02",
+      "name": "Randy Wolf",
+      "value": 379
+    },
+    {
+      "rank": 172,
+      "player_id": "hootobu01",
+      "name": "Burt Hooton",
+      "value": 377
+    },
+    {
+      "rank": 172,
+      "player_id": "lowede01",
+      "name": "Derek Lowe",
+      "value": 377
+    },
+    {
+      "rank": 172,
+      "player_id": "peavyja01",
+      "name": "Jake Peavy",
+      "value": 377
+    },
+    {
+      "rank": 172,
+      "player_id": "radkebr01",
+      "name": "Brad Radke",
+      "value": 377
+    },
+    {
+      "rank": 176,
+      "player_id": "leonadu02",
+      "name": "Dutch Leonard",
+      "value": 375
+    },
+    {
+      "rank": 177,
+      "player_id": "newhoha01",
+      "name": "Hal Newhouser",
+      "value": 374
+    },
+    {
+      "rank": 178,
+      "player_id": "belchti01",
+      "name": "Tim Belcher",
+      "value": 373
+    },
+    {
+      "rank": 178,
+      "player_id": "burdele01",
+      "name": "Lew Burdette",
+      "value": 373
+    },
+    {
+      "rank": 180,
+      "player_id": "griffcl01",
+      "name": "Clark Griffith",
+      "value": 372
+    },
+    {
+      "rank": 181,
+      "player_id": "amesre01",
+      "name": "Red Ames",
+      "value": 371
+    },
+    {
+      "rank": 181,
+      "player_id": "darwida01",
+      "name": "Danny Darwin",
+      "value": 371
+    },
+    {
+      "rank": 181,
+      "player_id": "saberbr01",
+      "name": "Bret Saberhagen",
+      "value": 371
+    },
+    {
+      "rank": 184,
+      "player_id": "bushjo01",
+      "name": "Bullet Joe Bush",
+      "value": 370
+    },
+    {
+      "rank": 184,
+      "player_id": "kingsi01",
+      "name": "Silver King",
+      "value": 370
+    },
+    {
+      "rank": 186,
+      "player_id": "buhlbo01",
+      "name": "Bob Buhl",
+      "value": 369
+    },
+    {
+      "rank": 186,
+      "player_id": "doakbi01",
+      "name": "Bill Doak",
+      "value": 369
+    },
+    {
+      "rank": 188,
+      "player_id": "grosske01",
+      "name": "Kevin Gross",
+      "value": 368
+    },
+    {
+      "rank": 188,
+      "player_id": "lonboji01",
+      "name": "Jim Lonborg",
+      "value": 368
+    },
+    {
+      "rank": 188,
+      "player_id": "uhlege01",
+      "name": "George Uhle",
+      "value": 368
+    },
+    {
+      "rank": 191,
+      "player_id": "luquedo01",
+      "name": "Dolf Luque",
+      "value": 367
+    },
+    {
+      "rank": 192,
+      "player_id": "cuetojo01",
+      "name": "Johnny Cueto",
+      "value": 365
+    },
+    {
+      "rank": 192,
+      "player_id": "renkost01",
+      "name": "Steve Renko",
+      "value": 365
+    },
+    {
+      "rank": 194,
+      "player_id": "darliro01",
+      "name": "Ron Darling",
+      "value": 364
+    },
+    {
+      "rank": 194,
+      "player_id": "ericksc01",
+      "name": "Scott Erickson",
+      "value": 364
+    },
+    {
+      "rank": 194,
+      "player_id": "lawve01",
+      "name": "Vern Law",
+      "value": 364
+    },
+    {
+      "rank": 197,
+      "player_id": "bannifl01",
+      "name": "Floyd Bannister",
+      "value": 363
+    },
+    {
+      "rank": 197,
+      "player_id": "whitedo01",
+      "name": "Doc White",
+      "value": 363
+    },
+    {
+      "rank": 199,
+      "player_id": "bridgto01",
+      "name": "Tommy Bridges",
+      "value": 362
+    },
+    {
+      "rank": 200,
+      "player_id": "cicoted01",
+      "name": "Eddie Cicotte",
+      "value": 361
+    },
+    {
+      "rank": 200,
+      "player_id": "eckerde01",
+      "name": "Dennis Eckersley",
+      "value": 361
+    }
+  ]
+}
