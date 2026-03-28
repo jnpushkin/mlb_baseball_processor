@@ -539,32 +539,35 @@ def find_passings_reverse_lookup(
                         continue
 
                     # Find who was passed or tied SPECIFICALLY at this game
+                    # A player at value v is:
+                    #   - "tied" if career_after == v and career_before < v
+                    #   - "passed" if career_after > v and career_before <= v
                     passed_leaders = []
                     for v in threshold_values:
-                        if career_before < v <= career_after:
-                            # Standard detection: crossed or reached a threshold value
-                            for l in value_to_leaders.get(v, []):
-                                if l['player_id'] != player_id:
-                                    # Mark as tied if player reached exactly this value, passed if exceeded
-                                    is_tied = (career_after == v)
-                                    passed_leaders.append({
-                                        'player_id': l['player_id'],
-                                        'name': l['name'],
-                                        'value': l['value'],
-                                        'previous_rank': l['rank'],
-                                        'tied': is_tied,
-                                    })
-                        elif career_before == v and career_after > v:
-                            # Surpass detection: was tied at this value, now moved ahead
-                            for l in value_to_leaders.get(v, []):
-                                if l['player_id'] != player_id:
-                                    passed_leaders.append({
-                                        'player_id': l['player_id'],
-                                        'name': l['name'],
-                                        'value': l['value'],
-                                        'previous_rank': l['rank'],
-                                        'tied': False,
-                                    })
+                        if v > career_after or v < career_before:
+                            continue  # Not relevant to this game
+                        for l in value_to_leaders.get(v, []):
+                            if l['player_id'] == player_id:
+                                continue
+                            if career_before < v and career_after >= v:
+                                # Crossed this threshold (either tied or passed)
+                                is_tied = (career_after == v)
+                                passed_leaders.append({
+                                    'player_id': l['player_id'],
+                                    'name': l['name'],
+                                    'value': l['value'],
+                                    'previous_rank': l['rank'],
+                                    'tied': is_tied,
+                                })
+                            elif career_before == v and career_after > v:
+                                # Was tied, now surpassed
+                                passed_leaders.append({
+                                    'player_id': l['player_id'],
+                                    'name': l['name'],
+                                    'value': l['value'],
+                                    'previous_rank': l['rank'],
+                                    'tied': False,
+                                })
 
                     if passed_leaders and career_after >= min_leaderboard_value:
                         basic_info = game.get('basic_info', {})
@@ -582,6 +585,15 @@ def find_passings_reverse_lookup(
                         # Note: rank is approximate based on current leaderboard
                         ahead_count = sum(1 for l in leaders if l['value'] > career_after and l['player_id'] != player_id)
                         approx_rank = ahead_count + 1
+
+                        # Deduplicate passed_leaders (same player can appear multiple times from different threshold checks)
+                        seen_pids = set()
+                        deduped = []
+                        for pl in passed_leaders:
+                            if pl['player_id'] not in seen_pids:
+                                seen_pids.add(pl['player_id'])
+                                deduped.append(pl)
+                        passed_leaders = deduped
 
                         all_passings.append({
                             'player_id': player_id,
@@ -886,9 +898,9 @@ def find_passings_reverse_lookup(
     # Sort by date ASCENDING first (so we process earliest occurrences first)
     all_passings.sort(key=lambda x: (x.get('date', ''), x.get('new_rank', 999)))
 
-    # Deduplicate: A player can only pass another player ONCE per stat
-    # Track (player_id, stat, passed_player_id) and keep only the first occurrence
-    seen_passings = set()  # (player_id, stat, passed_player_id) tuples
+    # Deduplicate: A player can tie AND pass the same player (separate events)
+    # Track (player_id, stat, passed_player_id, tied_or_passed)
+    seen_passings = set()
     seen_games = set()  # (player_id, stat, game_id) to avoid duplicate game entries
     unique_passings = []
 
@@ -900,7 +912,8 @@ def find_passings_reverse_lookup(
         # Filter passed_players to only include players not yet passed
         filtered_passed = []
         for passed in p.get('passed_players', []):
-            passing_key = (p['player_id'], p['stat'], passed['player_id'])
+            is_tied = passed.get('tied', passed.get('value', 0) == p.get('new_value', 0))
+            passing_key = (p['player_id'], p['stat'], passed['player_id'], 'tied' if is_tied else 'passed')
             if passing_key not in seen_passings:
                 seen_passings.add(passing_key)
                 filtered_passed.append(passed)
