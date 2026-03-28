@@ -454,15 +454,25 @@ class DataSerializer:
             for row in summary_rows
         ]
     
+    # Milestone types to exclude from website (trivial/removed)
+    EXCLUDED_MILESTONE_TYPES = {
+        '3+ Hit Games', '8+ K Games', '4+ Walk Games', 'Perfect Batting Games',
+        '3+ Run Games', '4+ Run Games', '2+ XBH Games', '8+ Total Bases',
+        'Multi-2B Games', 'Saves', 'Wins', 'Efficient Starts',
+        'No-Walk Starts', 'Scoreless Relief', 'High K Low BB',
+    }
+
     def _serialize_milestones(self, milestones_dict):
         """Convert all milestone DataFrames to combined JSON list."""
         all_milestones = []
-        
+
         if not milestones_dict:
             return all_milestones
-        
+
         for milestone_type, df in milestones_dict.items():
             if df is None or df.empty:
+                continue
+            if milestone_type in self.EXCLUDED_MILESTONE_TYPES:
                 continue
             
             df_sorted = df.copy()
