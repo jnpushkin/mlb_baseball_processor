@@ -7349,7 +7349,9 @@ const DebutPerformance = ({ r }) => {
 };
 
 const PersonalRecords = ({ data }) => {
-    // Render the categorized summary stats directly (extracted from SmartInsights 'records' view)
+    const [search, setSearch] = useState('');
+    const [expandedRecord, setExpandedRecord] = useState(null);
+
     const gameMap = useMemo(() => {
         const map = {};
         (data.games || []).forEach(game => { if (game.gameId) map[game.gameId] = game; });
@@ -7357,14 +7359,14 @@ const PersonalRecords = ({ data }) => {
     }, [data.games]);
 
     const categoryConfig = {
-        'Game Format': { icon: '🎮', gradient: 'from-emerald-500 to-green-600' },
-        'Hitting': { icon: '🏏', gradient: 'from-orange-500 to-amber-600' },
-        'Pitching': { icon: '⚾', gradient: 'from-blue-500 to-indigo-600' },
-        'Home Runs': { icon: '💣', gradient: 'from-red-500 to-pink-600' },
-        'Runs Scored': { icon: '🏃', gradient: 'from-purple-500 to-violet-600' },
-        'Defense': { icon: '🧤', gradient: 'from-teal-500 to-cyan-600' },
-        'Baserunning': { icon: '👟', gradient: 'from-lime-500 to-green-600' },
-        'Other': { icon: '📌', gradient: 'from-gray-500 to-gray-600' }
+        'Game Format': { icon: '🎮', color: 'emerald' },
+        'Hitting': { icon: '🏏', color: 'orange' },
+        'Pitching': { icon: '⚾', color: 'blue' },
+        'Home Runs': { icon: '💣', color: 'red' },
+        'Runs Scored': { icon: '🏃', color: 'purple' },
+        'Defense': { icon: '🧤', color: 'teal' },
+        'Baserunning': { icon: '👟', color: 'lime' },
+        'Other': { icon: '📌', color: 'gray' }
     };
 
     const categories = useMemo(() => {
@@ -7383,36 +7385,77 @@ const PersonalRecords = ({ data }) => {
         return cats;
     }, [data.summary]);
 
+    const q = search.toLowerCase();
+
     return (
         <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow p-4">
+                <input type="text" placeholder="Search records..." value={search} onChange={(e) => setSearch(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:outline-none" />
+            </div>
             {Object.entries(categories).map(([name, records]) => {
-                if (records.length === 0) return null;
+                const filtered = q ? records.filter(r => r.record.toLowerCase().includes(q) || (r.detail || '').toLowerCase().includes(q)) : records;
+                if (filtered.length === 0) return null;
                 const config = categoryConfig[name];
                 return (
-                    <div key={name} className="bg-white rounded-xl shadow overflow-hidden">
-                        <details open>
-                            <summary className={`cursor-pointer p-4 bg-gradient-to-r ${config.gradient} text-white hover:opacity-95`}>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xl">{config.icon}</span>
-                                        <span className="font-bold body-text">{name}</span>
-                                    </div>
-                                    <span className="bg-white/20 px-2 py-0.5 rounded text-sm">{records.length}</span>
-                                </div>
-                            </summary>
-                            <div className="divide-y">
-                                {records.map((record, i) => (
-                                    <div key={i} className="p-3 hover:bg-gray-50">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="font-semibold body-text text-gray-800">{record.record}</div>
-                                            <div className="font-bold text-blue-600 whitespace-nowrap">{record.value}</div>
-                                        </div>
-                                        {record.detail && <div className="small-text text-gray-600 mt-1">{record.detail}</div>}
-                                        {record.score && <div className="small-text text-gray-500 mt-0.5">{record.score}</div>}
-                                    </div>
-                                ))}
+                    <div key={name} className="bg-white rounded-lg shadow overflow-hidden">
+                        <div className={`px-4 py-3 border-l-4 border-${config.color}-500 flex items-center justify-between`}>
+                            <div className="flex items-center gap-2">
+                                <span>{config.icon}</span>
+                                <span className="font-bold text-sm text-gray-800">{name}</span>
                             </div>
-                        </details>
+                            <span className="text-xs text-gray-500">{filtered.length} records</span>
+                        </div>
+                        <div className="divide-y">
+                            {filtered.map((record, i) => {
+                                const key = `${name}-${i}`;
+                                const isExpanded = expandedRecord === key;
+                                const gameIds = (record.gameIds || '').split(',').map(id => id.trim()).filter(Boolean);
+                                const games = gameIds.map(id => gameMap[id]).filter(Boolean);
+                                // Parse detail into parts (semicolon-separated)
+                                const detailParts = (record.detail || '').split(';').map(d => d.trim()).filter(Boolean);
+                                const scoreParts = (record.score || '').split(';').map(s => s.trim()).filter(Boolean);
+
+                                return (
+                                    <div key={i} className={`hover:bg-gray-50 transition-colors ${isExpanded ? 'bg-blue-50/50' : ''}`}>
+                                        <div className="px-4 py-3 cursor-pointer" onClick={() => setExpandedRecord(isExpanded ? null : key)}>
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="font-medium text-sm text-gray-900">{record.record}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 flex-shrink-0">
+                                                    <span className="font-bold text-blue-600 text-lg">{record.value}</span>
+                                                    {(detailParts.length > 0 || games.length > 0) && (
+                                                        <span className="text-gray-400 text-xs">{isExpanded ? '▲' : '▼'}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {isExpanded && (detailParts.length > 0 || games.length > 0) && (
+                                            <div className="px-4 pb-3 space-y-1.5">
+                                                {detailParts.map((detail, di) => (
+                                                    <div key={di} className="flex items-center justify-between text-sm bg-white rounded p-2 border">
+                                                        <span className="text-gray-700">{detail}</span>
+                                                        {scoreParts[di] && <span className="text-xs text-gray-500 ml-2 whitespace-nowrap">{scoreParts[di]}</span>}
+                                                    </div>
+                                                ))}
+                                                {games.length > 0 && detailParts.length === 0 && (
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {games.slice(0, 10).map((g, gi) => (
+                                                            <button key={gi} onClick={(e) => { e.stopPropagation(); window._pendingGameId = g.gameId; if (window.__navigateTab) window.__navigateTab('gamelog'); }}
+                                                                className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
+                                                                {g.date} {g.awayTeam}@{g.homeTeam}
+                                                            </button>
+                                                        ))}
+                                                        {games.length > 10 && <span className="text-xs text-gray-400">+{games.length - 10} more</span>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 );
             })}
