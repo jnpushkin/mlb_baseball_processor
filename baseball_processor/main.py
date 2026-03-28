@@ -144,12 +144,19 @@ def _refresh_all_time_leaders_if_stale(max_age_days=7):
 
 
 def _update_gamelogs_for_game(cache_path):
-    """Update gamelogs cache for all-time leaders who appeared in this game."""
+    """Update gamelogs cache for all-time leaders who appeared in this game.
+
+    Only scrapes the current year's gamelog and appends to existing data,
+    rather than re-scraping entire careers.
+    """
     try:
         from .scrapers.career_firsts_scraper import (
             get_players_from_game_file, load_all_time_leaders,
-            find_career_firsts, create_scraper, load_gamelogs_cache, save_gamelogs_cache
+            scrape_batting_game_log, scrape_pitching_game_log,
+            create_scraper, load_gamelogs_cache, save_gamelogs_cache
         )
+        import time as _time
+
         player_ids, _ = get_players_from_game_file(cache_path)
         if not player_ids:
             return
@@ -160,39 +167,97 @@ def _update_gamelogs_for_game(cache_path):
         if not leaders_in_game:
             return
 
-        # Only refresh players whose gamelogs are stale
+        # Get game year
+        with open(cache_path) as f:
+            game = json.load(f)
+        game_date = game.get('basic_info', {}).get('date_yyyymmdd', '')
+        if not game_date:
+            return
+        game_year = int(game_date[:4])
+
+        # Only refresh players whose gamelogs don't include this game
         gc = load_gamelogs_cache()
         stale = set()
         for pid in leaders_in_game:
             existing = gc.get(pid, {}).get('gamelogs', {})
-            if not existing:
+            game_id = game.get('game_id', '')
+            if game_id not in existing:
                 stale.add(pid)
-                continue
-            # Check if latest gamelog is more than 30 days old
-            latest = max(existing.keys()) if existing else ''
-            if latest and len(latest) >= 11:
-                latest_date = latest[3:11]
-                import json
-                with open(cache_path) as f:
-                    game = json.load(f)
-                game_date = game.get('basic_info', {}).get('date_yyyymmdd', '')
-                if game_date > latest_date:
-                    stale.add(pid)
 
         if not stale:
             return
 
-        info(f"     Updating gamelogs for {len(stale)} all-time leaders...")
+        info(f"     Updating gamelogs for {len(stale)} all-time leaders (year {game_year})...")
         scraper = create_scraper()
+        updated = 0
+
         for pid in stale:
             try:
-                firsts = find_career_firsts(pid, scraper, verbose=False, store_gamelogs=True)
-                if firsts.get('gamelogs'):
-                    gc[pid] = {'name': all_time_players[pid].get('name', pid), 'gamelogs': firsts['gamelogs']}
+                existing = gc.get(pid, {}).get('gamelogs', {})
+                stat_type = all_time_players[pid].get('type', 'batting')
+
+                # If no existing gamelogs, need full career scrape
+                if not existing:
+                    from .scrapers.career_firsts_scraper import find_career_firsts as _find_firsts
+                    info(f"       Full scrape for new player: {all_time_players[pid].get('name', pid)}")
+                    firsts = _find_firsts(pid, scraper, verbose=False, store_gamelogs=True)
+                    if firsts.get('gamelogs'):
+                        gc[pid] = {'name': all_time_players[pid].get('name', pid), 'gamelogs': firsts['gamelogs']}
+                        updated += 1
+                    continue
+
+                # Get the last known cumulative totals from existing data
+                prev_totals = {}
+                sorted_games = sorted(existing.keys(), key=lambda g: g[3:11] if len(g) >= 11 else '')
+                for gid in reversed(sorted_games):
+                    data = existing[gid]
+                    if stat_type == 'batting' and data.get('batting'):
+                        prev_totals = data['batting'].copy()
+                        break
+                    elif stat_type == 'pitching' and data.get('pitching'):
+                        prev_totals = data['pitching'].copy()
+                        break
+
+                # Scrape current year's gamelog only (incremental update)
+                _time.sleep(3.1)
+                if stat_type == 'batting':
+                    games_data = scrape_batting_game_log(pid, game_year, scraper)
+                else:
+                    games_data = scrape_pitching_game_log(pid, game_year, scraper)
+
+                if not games_data:
+                    continue
+
+                # Build cumulative totals from this year
+                cumulative = prev_totals.copy()
+                for g in games_data:
+                    gid = g.get('game_id', '')
+                    if not gid or gid in existing:
+                        continue
+                    # Accumulate stats
+                    for stat_key in g:
+                        if stat_key in ('game_id', 'date', 'date_full', 'opponent', 'team'):
+                            continue
+                        val = g.get(stat_key, 0)
+                        if isinstance(val, (int, float)) and val > 0:
+                            cumulative[stat_key] = cumulative.get(stat_key, 0) + val
+
+                    # Special: G (games) always +1
+                    cumulative['G'] = cumulative.get('G', 0) + 1
+
+                    if gid not in existing:
+                        if pid not in gc:
+                            gc[pid] = {'name': all_time_players[pid].get('name', pid), 'gamelogs': {}}
+                        gc[pid]['gamelogs'][gid] = {stat_type: cumulative.copy()}
+
+                updated += 1
             except Exception:
                 pass
-        save_gamelogs_cache(gc)
-    except Exception as e:
+
+        if updated > 0:
+            save_gamelogs_cache(gc)
+            info(f"     ✅ Updated {updated} players")
+    except Exception:
         pass  # Don't fail the pipeline for gamelog updates
 
 
