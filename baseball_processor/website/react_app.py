@@ -7385,12 +7385,23 @@ const PersonalRecords = ({ data }) => {
         return cats;
     }, [data.summary]);
 
+    // Filter out leaderboard records (redundant with Leaderboards subtab) and empty records
+    const HIDDEN_RECORDS = new Set(['Hits Leaders', 'Runs Leaders', 'Home Run Leaders', 'RBI Leaders',
+        'Doubles Leaders', 'Triples Leaders', 'Stolen Base Leaders', 'Walks Leaders (Hitting)',
+        'Batting Average Leaders (min. 10 AB)', 'On-Base Percentage Leaders (min. 10 AB)',
+        'OPS Leaders (min. 10 AB)', 'Wins Leaders', 'Strikeout Leaders (Pitching)',
+        'Save Leaders', 'Innings Pitched Leaders', 'ERA Leaders (min. 10 IP)',
+        'Career WPA Leaders (Top 3)', 'Day Games vs Night Games', 'Weekend vs Weekday Games',
+        'Percent of Possible Matchups Seen']);
+
     // Flatten all records with category tags for filtering
     const allRecords = useMemo(() => {
         const result = [];
         Object.entries(categories).forEach(([name, records]) => {
             records.forEach((record, i) => {
-                result.push({ ...record, category: name, key: `${name}-${i}` });
+                if (!HIDDEN_RECORDS.has(record.record)) {
+                    result.push({ ...record, category: name, key: `${name}-${i}` });
+                }
             });
         });
         return result;
@@ -7426,6 +7437,11 @@ const PersonalRecords = ({ data }) => {
                     const detailParts = (record.detail || '').split(';').map(d => d.trim()).filter(Boolean);
                     const scoreParts = (record.score || '').split(';').map(s => s.trim()).filter(Boolean);
                     const hasDetail = detailParts.length > 0 || games.length > 0;
+                    // For records with games but no detail, build a preview from game data
+                    const previewText = detailParts.length > 0 ? detailParts[0]
+                        : games.length > 0 && games.length <= 3 ? games.map(g => `${g.awayTeam}@${g.homeTeam} ${g.date}`).join(', ')
+                        : games.length > 3 ? `${games.length} games`
+                        : '';
 
                     return (
                         <div key={record.key} className={`bg-white rounded-lg shadow-sm border hover:shadow transition-all ${isExpanded ? 'md:col-span-2 border-blue-300' : ''}`}>
@@ -7433,8 +7449,8 @@ const PersonalRecords = ({ data }) => {
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="text-sm font-semibold text-gray-900">{record.record}</div>
-                                        {!isExpanded && detailParts.length > 0 && (
-                                            <div className="text-xs text-gray-500 mt-0.5 truncate">{detailParts[0]}</div>
+                                        {!isExpanded && previewText && (
+                                            <div className="text-xs text-gray-500 mt-0.5 truncate">{previewText}</div>
                                         )}
                                     </div>
                                     <div className="text-right flex-shrink-0">
@@ -7472,15 +7488,15 @@ const PersonalRecords = ({ data }) => {
                                             </div>
                                         ));
                                     })()}
-                                    {games.length > 0 && detailParts.length === 0 && (
-                                        <div className="flex flex-wrap gap-1">
-                                            {games.slice(0, 8).map((g, gi) => (
+                                    {games.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {games.slice(0, 12).map((g, gi) => (
                                                 <button key={gi} onClick={(e) => { e.stopPropagation(); window._pendingGameId = g.gameId; if (window.__navigateTab) window.__navigateTab('gamelog'); }}
                                                     className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
-                                                    {g.date} {g.awayTeam}@{g.homeTeam}
+                                                    {g.date} {g.awayTeam}@{g.homeTeam} {g.score ? `(${g.score})` : ''}
                                                 </button>
                                             ))}
-                                            {games.length > 8 && <span className="text-[10px] text-gray-400">+{games.length - 8} more</span>}
+                                            {games.length > 12 && <span className="text-[10px] text-gray-400">+{games.length - 12} more</span>}
                                         </div>
                                     )}
                                 </div>
