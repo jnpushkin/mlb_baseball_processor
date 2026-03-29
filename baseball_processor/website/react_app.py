@@ -7446,13 +7446,32 @@ const PersonalRecords = ({ data }) => {
                                 </div>
                             </div>
                             {isExpanded && hasDetail && (
-                                <div className="px-3 pb-3 space-y-1.5 border-t pt-2">
-                                    {detailParts.map((detail, di) => (
-                                        <div key={di} className="flex items-center justify-between text-xs bg-gray-50 rounded p-2">
-                                            <span className="text-gray-700">{detail}</span>
-                                            {scoreParts[di] && <span className="text-gray-400 ml-2 whitespace-nowrap">{scoreParts[di]}</span>}
-                                        </div>
-                                    ))}
+                                <div className="px-3 pb-3 space-y-2 border-t pt-2">
+                                    {(() => {
+                                        // Group detail entries by score (same score = same game)
+                                        const grouped = [];
+                                        detailParts.forEach((detail, di) => {
+                                            const score = scoreParts[di] || '';
+                                            const last = grouped[grouped.length - 1];
+                                            if (last && last.score === score && score) {
+                                                last.details.push(detail);
+                                            } else {
+                                                grouped.push({ details: [detail], score });
+                                            }
+                                        });
+                                        return grouped.map((group, gi) => (
+                                            <div key={gi} className="bg-gray-50 rounded p-2 text-xs">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="space-y-0.5 flex-1">
+                                                        {group.details.map((d, di) => (
+                                                            <div key={di} className="text-gray-700">{d}</div>
+                                                        ))}
+                                                    </div>
+                                                    {group.score && <span className="text-gray-400 whitespace-nowrap flex-shrink-0">{group.score}</span>}
+                                                </div>
+                                            </div>
+                                        ));
+                                    })()}
                                     {games.length > 0 && detailParts.length === 0 && (
                                         <div className="flex flex-wrap gap-1">
                                             {games.slice(0, 8).map((g, gi) => (
