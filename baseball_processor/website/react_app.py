@@ -6891,50 +6891,86 @@ const UmpireTracker = ({ umpireLog }) => {
 
     const totalUmpires = umpireLog.length;
     const multipleGames = umpireLog.filter(u => u.games > 1).length;
+    const totalChallenges = umpireLog.reduce((sum, u) => sum + (u.absChallenges || 0), 0);
+    const totalOverturned = umpireLog.reduce((sum, u) => sum + (u.absOverturned || 0), 0);
 
     return (
         <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                    <div>
-                        <h2 className="section-title font-bold">Umpire Tracker</h2>
-                        <p className="body-text text-gray-500 mt-1">{totalUmpires} unique umpires seen, {multipleGames} seen multiple times</p>
+            {totalChallenges > 0 && (
+                <div className="bg-white rounded-lg border border-slate-200 p-4" style={{ boxShadow: 'var(--shadow)' }}>
+                    <h3 className="subsection-title font-semibold mb-3">ABS Challenge Summary</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-slate-800">{totalChallenges}</div>
+                            <div className="small-text text-slate-500">Total Challenges</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">{totalOverturned}</div>
+                            <div className="small-text text-slate-500">Overturned</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-red-600">{totalChallenges - totalOverturned}</div>
+                            <div className="small-text text-slate-500">Upheld</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-600">{totalChallenges > 0 ? Math.round(totalOverturned / totalChallenges * 100) : 0}%</div>
+                            <div className="small-text text-slate-500">Overturn Rate</div>
+                        </div>
                     </div>
-                    <input
-                        type="text"
-                        placeholder="Search umpires..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="px-4 py-2 body-text border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                    />
+                </div>
+            )}
+            <div className="bg-white rounded-lg border border-slate-200" style={{ boxShadow: 'var(--shadow)' }}>
+                <div className="p-4 border-b border-slate-100">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h2 className="section-title font-semibold text-slate-800">Umpire Tracker</h2>
+                            <p className="small-text text-slate-500 mt-0.5">{totalUmpires} unique umpires, {multipleGames} seen multiple times</p>
+                        </div>
+                        <input type="text" placeholder="Search umpires..." value={search} onChange={(e) => setSearch(e.target.value)}
+                            className="px-3 py-1.5 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
                 </div>
                 <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                     <table className="w-full">
-                        <thead className="bg-gray-50 sticky top-0">
+                        <thead className="bg-slate-50 sticky top-0">
                             <tr>
-                                <th className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase">Umpire</th>
-                                <th className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase">Games</th>
-                                <th className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase">Positions</th>
-                                <th className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase">First Seen</th>
-                                <th className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase">Last Seen</th>
+                                <th className="px-3 py-2 text-left">Umpire</th>
+                                <th className="px-3 py-2 text-center">Games</th>
+                                <th className="px-3 py-2 text-left">Positions</th>
+                                {totalChallenges > 0 && <th className="px-3 py-2 text-center">ABS Challenges</th>}
+                                <th className="px-3 py-2 text-left">First Seen</th>
+                                <th className="px-3 py-2 text-left">Last Seen</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y">
-                            {filtered.map(u => (
-                                <tr key={u.name} className="hover:bg-blue-50">
-                                    <td className="px-4 py-3 body-text font-semibold">{u.name}</td>
-                                    <td className="px-4 py-3 body-text font-bold text-blue-600">{u.games}</td>
-                                    <td className="px-4 py-3">
+                        <tbody className="divide-y divide-slate-100">
+                            {filtered.map((u, idx) => (
+                                <tr key={u.name} className={`hover:bg-blue-50/50 ${idx % 2 === 1 ? 'bg-slate-50/50' : ''}`}>
+                                    <td className="px-3 py-2 body-text font-semibold text-slate-800">{u.name}</td>
+                                    <td className="px-3 py-2 body-text font-bold text-blue-600 text-center">{u.games}</td>
+                                    <td className="px-3 py-2">
                                         <div className="flex gap-1">
                                             {Object.entries(u.positions || {}).sort((a, b) => b[1] - a[1]).map(([pos, count]) => (
-                                                <span key={pos} className="px-1.5 py-0.5 bg-gray-100 rounded text-xs font-medium">
+                                                <span key={pos} className="px-1.5 py-0.5 bg-slate-100 rounded text-xs font-medium text-slate-600">
                                                     {pos}: {count}
                                                 </span>
                                             ))}
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 body-text text-gray-600">{u.firstSeen}</td>
-                                    <td className="px-4 py-3 body-text text-gray-600">{u.lastSeen}</td>
+                                    {totalChallenges > 0 && (
+                                        <td className="px-3 py-2 text-center">
+                                            {u.absChallenges > 0 ? (
+                                                <div className="flex items-center justify-center gap-2 text-xs">
+                                                    <span className="text-green-600 font-medium">{u.absOverturned}✓</span>
+                                                    <span className="text-red-600 font-medium">{u.absUpheld}✗</span>
+                                                    <span className="text-slate-400">/ {u.absChallenges}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-300">—</span>
+                                            )}
+                                        </td>
+                                    )}
+                                    <td className="px-3 py-2 body-text text-slate-500">{u.firstSeen}</td>
+                                    <td className="px-3 py-2 body-text text-slate-500">{u.lastSeen}</td>
                                 </tr>
                             ))}
                         </tbody>

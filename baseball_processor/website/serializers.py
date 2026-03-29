@@ -1838,6 +1838,9 @@ class DataSerializer:
                         'positions': {},
                         'firstSeen': date,
                         'lastSeen': date,
+                        'absChallenges': 0,
+                        'absOverturned': 0,
+                        'absUpheld': 0,
                     }
                 umpire_stats[name]['games'] += 1
                 umpire_stats[name]['positions'][pos] = umpire_stats[name]['positions'].get(pos, 0) + 1
@@ -1845,6 +1848,17 @@ class DataSerializer:
                     umpire_stats[name]['firstSeen'] = date
                 if date and date > umpire_stats[name]['lastSeen']:
                     umpire_stats[name]['lastSeen'] = date
+
+            # Track ABS challenges against HP umpire
+            hp_umpire = umpires.get('HP', '')
+            abs_data = game.get('abs_challenges', {})
+            if hp_umpire and abs_data and hp_umpire in umpire_stats:
+                for review in abs_data.get('reviews', []):
+                    umpire_stats[hp_umpire]['absChallenges'] += 1
+                    if review.get('overturned'):
+                        umpire_stats[hp_umpire]['absOverturned'] += 1
+                    else:
+                        umpire_stats[hp_umpire]['absUpheld'] += 1
 
         # Format dates
         for u in umpire_stats.values():
