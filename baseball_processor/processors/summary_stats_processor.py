@@ -1466,31 +1466,52 @@ class SummaryStatsProcessor(BaseProcessor):
             }
         ])
 
-        # Add consecutive HR events only if they occurred
+        # Add consecutive HR events with full details (players, inning)
+        def _build_consec_hr_detail(df, streak_len):
+            details = []
+            scores = []
+            for _, row in df.iterrows():
+                players = str(row.get("Players", ""))
+                inning = str(row.get("Inning", ""))
+                hr_count = int(row.get("HR Count", 0)) if pd.notna(row.get("HR Count")) else streak_len
+                game_id = str(row.get("GameID", ""))
+                detail = f"{inning}: {players}" if inning and players else players or f"{hr_count} consecutive HRs"
+                details.append(detail)
+                # Try to get score from game data
+                try:
+                    game = next(g for g in self.games if g["game_id"] == game_id)
+                    scores.append(self._create_score_string(game["basic_info"]))
+                except (StopIteration, KeyError):
+                    scores.append("")
+            return "; ".join(details), "; ".join(scores)
+
         if len(self.b2b_only_df) > 0:
+            detail, score = _build_consec_hr_detail(self.b2b_only_df, 2)
             summary_rows.append({
                 "Record": "Back-to-Back HR Events",
                 "Value": len(self.b2b_only_df),
-                "Detail": "Streaks of exactly 2 consecutive home runs",
-                "Score": "",
+                "Detail": detail,
+                "Score": score,
                 "GameIDs": join_sorted_gameids(sorted(self.b2b_only_df["GameID"].unique()))
             })
 
         if len(self.b2b2b_only_df) > 0:
+            detail, score = _build_consec_hr_detail(self.b2b2b_only_df, 3)
             summary_rows.append({
-                "Record": "Back-to-Back-to-Back HR Events", 
+                "Record": "Back-to-Back-to-Back HR Events",
                 "Value": len(self.b2b2b_only_df),
-                "Detail": "Streaks of exactly 3 consecutive home runs",
-                "Score": "",
+                "Detail": detail,
+                "Score": score,
                 "GameIDs": join_sorted_gameids(sorted(self.b2b2b_only_df["GameID"].unique()))
             })
 
         if len(self.b2b2b2b_only_df) > 0:
+            detail, score = _build_consec_hr_detail(self.b2b2b2b_only_df, 4)
             summary_rows.append({
                 "Record": "Back-to-Back-to-Back-to-Back HR Events",
                 "Value": len(self.b2b2b2b_only_df),
-                "Detail": "Streaks of exactly 4 consecutive home runs", 
-                "Score": "",
+                "Detail": detail,
+                "Score": score,
                 "GameIDs": join_sorted_gameids(sorted(self.b2b2b2b_only_df["GameID"].unique()))
             })
 
