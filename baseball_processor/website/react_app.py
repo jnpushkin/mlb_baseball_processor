@@ -383,15 +383,15 @@ const TeamChart = ({ teams }) => {
 };
 
 const StatCard = ({ title, value, subtitle, color = 'blue', onClick }) => {
-    const colors = {
-        blue: 'border-blue-200 bg-blue-50', green: 'border-green-200 bg-green-50',
-        purple: 'border-purple-200 bg-purple-50', orange: 'border-orange-200 bg-orange-50'
+    const accents = {
+        blue: 'border-blue-600', green: 'border-emerald-600',
+        purple: 'border-violet-600', orange: 'border-amber-600'
     };
     return (
-        <div onClick={onClick} className={`bg-white rounded-lg shadow border-l-4 ${colors[color]} p-6 hover:shadow-lg transition-all ${onClick ? 'cursor-pointer' : ''}`}>
-            <h3 className="small-text font-medium text-gray-600 mb-2">{title}</h3>
-            <p className="text-3xl font-bold text-gray-900">{value}</p>
-            {subtitle && <p className="body-text text-gray-500 mt-1">{subtitle}</p>}
+        <div onClick={onClick} className={`bg-white rounded-lg border border-slate-200 border-l-[3px] ${accents[color]} p-4 ${onClick ? 'cursor-pointer hover:border-slate-300' : ''}`} style={{ boxShadow: 'var(--shadow)' }}>
+            <div className="small-text font-medium text-slate-500 mb-1">{title}</div>
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">{value}</div>
+            {subtitle && <div className="small-text text-slate-400 mt-0.5">{subtitle}</div>}
         </div>
     );
 };
@@ -3539,20 +3539,20 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
     const hasActiveFilters = Object.values(activeFilters).some(v => v && v !== 'all') || startDate || endDate;
 
     return (
-        <div className="bg-white rounded-lg shadow">
-            <div className="p-4 border-b space-y-4">
+        <div className="bg-white rounded-lg border border-slate-200" style={{ boxShadow: 'var(--shadow)' }}>
+            <div className="p-4 border-b border-slate-100 space-y-3">
                 <div className="flex justify-between items-center">
-                    <h2 className="section-title font-bold">{title}</h2>
+                    <h2 className="section-title font-semibold text-slate-800">{title}</h2>
                     <div className="flex items-center gap-2">
-                        <span className="body-text text-gray-500">{sorted.length} of {data.length}</span>
+                        <span className="small-text text-slate-400">{sorted.length} of {data.length}</span>
                         {enableExport && <>
-                            <button onClick={() => exportToCSV(sorted, columns, `${title.replace(/[^a-z0-9]/gi, '_')}.csv`)} className="px-3 py-1 bg-green-600 text-white body-text rounded hover:bg-green-700">📥 CSV</button>
-                            <button onClick={() => exportToJSON(sorted, `${title.replace(/[^a-z0-9]/gi, '_')}.json`)} className="px-3 py-1 bg-blue-600 text-white body-text rounded hover:bg-blue-700">📥 JSON</button>
+                            <button onClick={() => exportToCSV(sorted, columns, `${title.replace(/[^a-z0-9]/gi, '_')}.csv`)} className="px-2.5 py-1 bg-slate-100 text-slate-600 small-text rounded hover:bg-slate-200 font-medium">CSV</button>
+                            <button onClick={() => exportToJSON(sorted, `${title.replace(/[^a-z0-9]/gi, '_')}.json`)} className="px-2.5 py-1 bg-slate-100 text-slate-600 small-text rounded hover:bg-slate-200 font-medium">JSON</button>
                         </>}
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-4">
-                    <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 min-w-[200px] px-4 py-2 body-text border rounded-lg" />
+                <div className="flex flex-wrap gap-3">
+                    <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 min-w-[200px] px-3 py-1.5 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" />
                     {enableDateFilter && (
                         <>
                             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
@@ -7770,18 +7770,16 @@ const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games,
 
 // Reusable subtab navigation
 const SubNav = ({ tabs, active, onChange, onSubtabChange }) => (
-    <div className="bg-white rounded-lg shadow mb-4">
-        <div className="flex flex-wrap gap-1 p-2">
-            {tabs.map(t => (
-                <button key={t.id} onClick={() => { onChange(t.id); if (onSubtabChange) onSubtabChange(t.id); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    active === t.id
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}>
-                    {t.label}
-                </button>
-            ))}
-        </div>
+    <div className="flex flex-wrap gap-1 mb-4 bg-slate-100 rounded-lg p-1">
+        {tabs.map(t => (
+            <button key={t.id} onClick={() => { onChange(t.id); if (onSubtabChange) onSubtabChange(t.id); }} className={`px-3.5 py-1.5 rounded-md text-[13px] font-medium transition-all ${
+                active === t.id
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+            }`}>
+                {t.label}
+            </button>
+        ))}
     </div>
 );
 
@@ -8111,11 +8109,11 @@ const App = () => {
     ];
     
     return (
-        <div className={`min-h-screen transition-colors duration-200 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-            <header className={`${darkMode ? 'bg-gray-800 border-b border-gray-700' : 'bg-white border-b border-gray-200'}`}>
-                <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <div className={`min-h-screen ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+            <header className={`${darkMode ? 'bg-slate-900' : 'bg-white'} border-b ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <div>
-                        <h1 className={`text-lg sm:text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Baseball Statistics Portal</h1>
+                        <h1 className={`text-base sm:text-lg font-bold tracking-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>Baseball Statistics Portal</h1>
                         <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{data.games?.length || 0} games attended • {(data.players?.length || 0) + (data.pitchers?.length || 0)} players seen</p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -8154,14 +8152,14 @@ const App = () => {
                     </div>
                 </div>
             </header>
-            <nav className={`shadow-md sticky top-0 z-50 border-b-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-100'}`}>
-                <div className="max-w-7xl mx-auto px-2 sm:px-4 relative">
-                    <div className="flex overflow-x-auto scrollbar-hide" role="tablist" aria-label="Main navigation" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+            <nav className={`sticky top-0 z-50 ${darkMode ? 'bg-slate-900 border-b border-slate-800' : 'bg-white border-b border-slate-200'}`} style={{ boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.04)' }}>
+                <div className="max-w-7xl mx-auto px-2 sm:px-4">
+                    <div className="flex overflow-x-auto" role="tablist" aria-label="Main navigation" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
                         {tabs.map(t => (
-                            <button key={t.id} role="tab" aria-selected={tab === t.id} aria-current={tab === t.id ? 'page' : undefined} onClick={() => setTab(t.id)} className={`px-3 sm:px-5 py-2.5 sm:py-3 font-medium text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
+                            <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={`px-3 sm:px-4 py-2.5 text-xs sm:text-[13px] whitespace-nowrap flex-shrink-0 border-b-2 transition-colors ${
                                 tab === t.id
-                                    ? (darkMode ? 'text-blue-400 border-b-[3px] border-blue-400' : 'text-blue-600 border-b-[3px] border-blue-600 font-semibold')
-                                    : (darkMode ? 'text-gray-400 hover:text-gray-200 border-b-[3px] border-transparent' : 'text-gray-500 hover:text-gray-900 border-b-[3px] border-transparent')
+                                    ? (darkMode ? 'text-blue-400 border-blue-400 font-semibold' : 'text-blue-700 border-blue-700 font-semibold')
+                                    : (darkMode ? 'text-slate-400 hover:text-slate-200 border-transparent' : 'text-slate-500 hover:text-slate-800 border-transparent')
                             }`}>
                                 {t.label}
                             </button>
@@ -8181,11 +8179,12 @@ const App = () => {
                 {tab === 'companions' && <CompanionsView companionData={data.companionData} />}
                 {tab === 'orioles' && <OriolesDashboard orioles={data.orioles || []} games={data.games || []} />}
             </main>
-            <footer className={`border-t mt-8 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                <div className="max-w-7xl mx-auto px-4 py-6 text-center">
-                    <p className={`small-text ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                        Baseball Statistics Portal{data.generatedAt ? ` • Updated ${data.generatedAt}` : ''}
+            <footer className={`border-t mt-8 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between">
+                    <p className={`small-text ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        Baseball Statistics Portal
                     </p>
+                    {data.generatedAt && <p className={`small-text ${darkMode ? 'text-slate-600' : 'text-slate-300'}`}>{data.generatedAt}</p>}
                 </div>
             </footer>
             {showScrollTop && (
