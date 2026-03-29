@@ -93,25 +93,26 @@ class HTMLTemplate:
         .dark .bg-white {{
             background-color: var(--color-surface) !important;
         }}
-        .dark .bg-gray-50, .dark .bg-gray-100 {{
+        .dark .bg-slate-50, .dark .bg-slate-100 {{
             background-color: var(--color-surface-alt) !important;
         }}
-        .dark .text-gray-600, .dark .text-gray-500 {{
+        .dark .text-slate-400, .dark .text-slate-500, .dark .text-slate-600 {{
             color: var(--color-text-secondary) !important;
         }}
-        .dark .text-gray-700, .dark .text-gray-800 {{
+        .dark .text-slate-700, .dark .text-slate-800 {{
             color: #cbd5e1 !important;
         }}
-        .dark .text-gray-900 {{
+        .dark .text-slate-900 {{
             color: var(--color-text) !important;
         }}
-        .dark .border-gray-200, .dark .border-gray-300 {{
+        .dark .border-slate-100, .dark .border-slate-200, .dark .border-slate-300 {{
             border-color: var(--color-border) !important;
         }}
         .dark table {{ color: var(--color-text); }}
         .dark thead {{ background-color: #1e293b !important; }}
         .dark tbody tr {{ border-color: var(--color-border); }}
         .dark tbody tr:hover {{ background-color: rgba(255,255,255,0.04) !important; }}
+        .dark .divide-slate-100 > * + * {{ border-color: var(--color-border); }}
 
         /* Colored tint backgrounds in dark mode */
         .dark .bg-blue-50 {{ background-color: rgba(59, 130, 246, 0.12) !important; }}

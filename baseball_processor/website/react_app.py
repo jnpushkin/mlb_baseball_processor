@@ -228,7 +228,7 @@ const PlayerLink = ({ playerId, name, external }) => {
     return (
         <span className="inline-flex items-center gap-1">
             <a href="#players" onClick={handleClick} className="text-blue-600 hover:underline">{name}</a>
-            <a href={brefUrl} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-600 text-[10px]" title="View on Baseball Reference">↗</a>
+            <a href={brefUrl} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-slate-600 text-[10px]" title="View on Baseball Reference">↗</a>
         </span>
     );
 };
@@ -252,8 +252,8 @@ const GameLink = ({ gameId, mlbGamePk, source }) => {
 const EmptyState = ({ icon = '📭', title = 'No data', message = 'There is nothing to display.' }) => (
     <div className="flex flex-col items-center justify-center p-12 text-center">
         <span className="text-5xl mb-4">{icon}</span>
-        <h3 className="subsection-title font-bold text-gray-700 mb-2">{title}</h3>
-        <p className="body-text text-gray-500 max-w-md">{message}</p>
+        <h3 className="subsection-title font-bold text-slate-700 mb-2">{title}</h3>
+        <p className="body-text text-slate-500 max-w-md">{message}</p>
     </div>
 );
 
@@ -481,7 +481,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
         const annotations = gameData.playerAnnotations[player.playerId] || [];
         const isHardestHit = gameData.hardestHit?.playerId === player.playerId;
         return (
-        <tr className="hover:bg-gray-50">
+        <tr className="hover:bg-slate-50">
             <td className="px-3 py-2">
                 <div className="flex items-center gap-1">
                     <PlayerLink playerId={player.playerId} name={player.name} />
@@ -510,7 +510,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
         const isMostKs = gameData.mostKs?.playerId === pitcher.playerId && pitcher.so >= 6;
         
         return (
-            <tr className="hover:bg-gray-50">
+            <tr className="hover:bg-slate-50">
                 <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
                         <PlayerLink playerId={pitcher.playerId} name={pitcher.name} />
@@ -547,7 +547,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                 <h4 className="subsection-title font-bold mb-3">{game.awayTeam} Batting</h4>
                 <div className="overflow-x-auto">
                     <table className="w-full small-text">
-                        <thead className="bg-gray-50 border-b-2">
+                        <thead className="bg-slate-50 border-b-2">
                             <tr>
                                 <th className="px-3 py-2 text-left">Batter</th>
                                 <th className="px-2 py-2">AB</th>
@@ -585,7 +585,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                 <h4 className="subsection-title font-bold mb-3">{game.homeTeam} Batting</h4>
                 <div className="overflow-x-auto">
                     <table className="w-full small-text">
-                        <thead className="bg-gray-50 border-b-2">
+                        <thead className="bg-slate-50 border-b-2">
                             <tr>
                                 <th className="px-3 py-2 text-left">Batter</th>
                                 <th className="px-2 py-2">AB</th>
@@ -619,14 +619,14 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
             </div>
             
             {/* Pitching */}
-            <div className="p-6 bg-gray-50">
+            <div className="p-6 bg-slate-50">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Away Pitchers */}
                     <div>
                         <h4 className="subsection-title font-bold mb-3">{game.awayTeam} Pitching</h4>
                         <div className="overflow-x-auto">
                             <table className="w-full small-text bg-white rounded">
-                                <thead className="bg-gray-50 border-b-2">
+                                <thead className="bg-slate-50 border-b-2">
                                     <tr>
                                         <th className="px-3 py-2 text-left">Pitcher</th>
                                         <th className="px-2 py-2">IP</th>
@@ -650,7 +650,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                         <h4 className="subsection-title font-bold mb-3">{game.homeTeam} Pitching</h4>
                         <div className="overflow-x-auto">
                             <table className="w-full small-text bg-white rounded">
-                                <thead className="bg-gray-50 border-b-2">
+                                <thead className="bg-slate-50 border-b-2">
                                     <tr>
                                         <th className="px-3 py-2 text-left">Pitcher</th>
                                         <th className="px-2 py-2">IP</th>
@@ -677,27 +677,27 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                     <h4 className="subsection-title font-bold mb-3">Pitch Data</h4>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {Object.entries(game.pitchData).map(([pid, pd]) => (
-                            <div key={pid} className="bg-gray-50 rounded-lg p-4">
+                            <div key={pid} className="bg-slate-50 rounded-lg p-4">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="font-semibold body-text">{pd.name}</span>
-                                    <span className="small-text text-gray-500">{pd.totalPitches} pitches</span>
+                                    <span className="small-text text-slate-500">{pd.totalPitches} pitches</span>
                                 </div>
                                 <div className="grid grid-cols-3 gap-3 small-text mb-3">
                                     {pd.maxSpeed && (
                                         <div className="bg-white p-2 rounded text-center">
-                                            <div className="text-gray-500">Max Velo</div>
+                                            <div className="text-slate-500">Max Velo</div>
                                             <div className="font-bold text-red-600">{pd.maxSpeed} mph</div>
                                         </div>
                                     )}
                                     {pd.avgSpeed && (
                                         <div className="bg-white p-2 rounded text-center">
-                                            <div className="text-gray-500">Avg Velo</div>
-                                            <div className="font-bold text-gray-900">{pd.avgSpeed} mph</div>
+                                            <div className="text-slate-500">Avg Velo</div>
+                                            <div className="font-bold text-slate-900">{pd.avgSpeed} mph</div>
                                         </div>
                                     )}
                                     {pd.avgSpinRate && (
                                         <div className="bg-white p-2 rounded text-center">
-                                            <div className="text-gray-500">Avg Spin</div>
+                                            <div className="text-slate-500">Avg Spin</div>
                                             <div className="font-bold text-purple-600">{pd.avgSpinRate} rpm</div>
                                         </div>
                                     )}
@@ -722,7 +722,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
     const LineupsTab = () => {
         if (!game.lineups) {
             return (
-                <div className="p-8 text-center text-gray-500 body-text">
+                <div className="p-8 text-center text-slate-500 body-text">
                     Starting lineup data not available for this game
                 </div>
             );
@@ -733,7 +733,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                 <h4 className="subsection-title font-bold mb-3">{team} Starting Lineup</h4>
                 <div className="bg-white rounded-lg overflow-hidden">
                     <table className="w-full small-text">
-                        <thead className="bg-gray-50 border-b-2">
+                        <thead className="bg-slate-50 border-b-2">
                             <tr>
                                 <th className="px-3 py-2 text-center">#</th>
                                 <th className="px-3 py-2 text-left">Player</th>
@@ -747,11 +747,11 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                     <td className="px-3 py-2">
                                         <div className="flex items-center gap-2">
                                             <PlayerLink playerId={player.playerId} name={player.name} />
-                                            {player.jerseyNumber && <span className="text-xs text-gray-400">#{player.jerseyNumber}</span>}
+                                            {player.jerseyNumber && <span className="text-xs text-slate-400">#{player.jerseyNumber}</span>}
                                         </div>
                                     </td>
                                     <td className="px-3 py-2 text-center">
-                                        <span className="px-2 py-1 bg-gray-100 rounded font-semibold">
+                                        <span className="px-2 py-1 bg-slate-100 rounded font-semibold">
                                             {player.position}
                                         </span>
                                     </td>
@@ -780,7 +780,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
     const SubstitutionsTab = () => {
         if (!game.substitutions || game.substitutions.length === 0) {
             return (
-                <div className="p-8 text-center text-gray-500 body-text">
+                <div className="p-8 text-center text-slate-500 body-text">
                     No substitutions recorded for this game
                 </div>
             );
@@ -820,20 +820,20 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                         <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">
                                             {sub.half.toUpperCase()} {sub.inning}
                                         </span>
-                                        <span className="body-text font-bold text-gray-700">
+                                        <span className="body-text font-bold text-slate-700">
                                             {getSubLabel(sub.type)}
                                         </span>
                                     </div>
-                                    <div className="body-text text-gray-800">
+                                    <div className="body-text text-slate-800">
                                         {sub.playerIn && sub.playerOut ? (
                                             <>
                                                 <span className="font-semibold text-green-600">{sub.playerIn}</span>
                                                 {' '}replaces{' '}
                                                 <span className="font-semibold text-red-600">{sub.playerOut}</span>
-                                                {sub.position && <span className="text-gray-500"> at {sub.position}</span>}
+                                                {sub.position && <span className="text-slate-500"> at {sub.position}</span>}
                                             </>
                                         ) : (
-                                            <span className="text-gray-600">{sub.text}</span>
+                                            <span className="text-slate-600">{sub.text}</span>
                                         )}
                                     </div>
                                 </div>
@@ -848,7 +848,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
     const PlayByPlayTab = () => {
         if (!game.playByPlay || game.playByPlay.length === 0) {
             return (
-                <div className="p-8 text-center text-gray-500 body-text">
+                <div className="p-8 text-center text-slate-500 body-text">
                     Play-by-play data not available for this game
                 </div>
             );
@@ -898,7 +898,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                     }`}>
                                         <div className="flex items-start gap-3">
                                             <div className="text-center min-w-12">
-                                                <div className="text-xs font-bold text-gray-500">
+                                                <div className="text-xs font-bold text-slate-500">
                                                     {play.outs !== null ? `${play.outs} out${play.outs !== 1 ? 's' : ''}` : ''}
                                                 </div>
                                                 {play.score && (
@@ -909,13 +909,13 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                             </div>
                                             <div className="flex-1">
                                                 <div className="body-text">
-                                                    <span className="font-semibold text-gray-900">{play.batter}</span>
+                                                    <span className="font-semibold text-slate-900">{play.batter}</span>
                                                     {' '}
-                                                    <span className="text-gray-600">
+                                                    <span className="text-slate-600">
                                                         {play.description}
                                                     </span>
                                                 </div>
-                                                <div className="small-text text-gray-500 mt-1">
+                                                <div className="small-text text-slate-500 mt-1">
                                                     vs {play.pitcher}
                                                     {play.pitchCount > 0 && ` • ${play.pitchCount} pitches`}
                                                 </div>
@@ -945,7 +945,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
     
     return (
         <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden" style={{ maxWidth: 'min(72rem, 95vw)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-lg shadow-lg w-full max-h-[90vh] flex flex-col overflow-hidden" style={{ maxWidth: 'min(72rem, 95vw)' }} onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className={`p-6 border-b ${game.gameType === 'spring' ? 'bg-gradient-to-r from-green-600 to-green-700' : 'bg-gradient-to-r from-blue-600 to-blue-700'} text-white flex-shrink-0`}>
                     <div className="flex items-center justify-between mb-2">
@@ -954,7 +954,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                             {game.gameType === 'spring' && <span className="px-2 py-0.5 bg-white/20 text-white text-xs font-semibold rounded">Spring Training</span>}
                             {game.gameType === 'postseason' && <span className="px-2 py-0.5 bg-yellow-400/30 text-white text-xs font-semibold rounded">Postseason</span>}
                         </div>
-                        <button onClick={onClose} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
+                        <button onClick={onClose} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
                     </div>
                     <div className="flex items-center gap-4 body-text text-blue-100">
                         <span>{game.date}</span>
@@ -991,10 +991,10 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                     {/* Linescore */}
                     {game.linescore && (
                         <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
-                            <h5 className="small-text font-bold mb-3 text-gray-700">📊 Line Score</h5>
+                            <h5 className="small-text font-bold mb-3 text-slate-700">📊 Line Score</h5>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-center small-text" style={{ tableLayout: 'fixed' }}>
-                                    <thead className="bg-gray-50">
+                                    <thead className="bg-slate-50">
                                         <tr>
                                             <th className="py-2 text-left" style={{ width: '15%' }}>Team</th>
                                             {Array.from({ length: Math.max(game.linescore.away?.innings?.length || 9, game.linescore.home?.innings?.length || 9, 9) }, (_, i) => (
@@ -1037,36 +1037,36 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                     {/* Umpires */}
                     {game.umpires && Object.values(game.umpires).some(u => u) && (
                         <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
-                            <h5 className="small-text font-bold mb-3 text-gray-700">👨‍⚖️ Umpires</h5>
+                            <h5 className="small-text font-bold mb-3 text-slate-700">👨‍⚖️ Umpires</h5>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
                                 {game.umpires.hp && (
                                     <div className="small-text">
-                                        <span className="text-gray-500">HP:</span> <span className="font-medium">{game.umpires.hp}</span>
+                                        <span className="text-slate-500">HP:</span> <span className="font-medium">{game.umpires.hp}</span>
                                     </div>
                                 )}
                                 {game.umpires['1b'] && (
                                     <div className="small-text">
-                                        <span className="text-gray-500">1B:</span> <span className="font-medium">{game.umpires['1b']}</span>
+                                        <span className="text-slate-500">1B:</span> <span className="font-medium">{game.umpires['1b']}</span>
                                     </div>
                                 )}
                                 {game.umpires['2b'] && (
                                     <div className="small-text">
-                                        <span className="text-gray-500">2B:</span> <span className="font-medium">{game.umpires['2b']}</span>
+                                        <span className="text-slate-500">2B:</span> <span className="font-medium">{game.umpires['2b']}</span>
                                     </div>
                                 )}
                                 {game.umpires['3b'] && (
                                     <div className="small-text">
-                                        <span className="text-gray-500">3B:</span> <span className="font-medium">{game.umpires['3b']}</span>
+                                        <span className="text-slate-500">3B:</span> <span className="font-medium">{game.umpires['3b']}</span>
                                     </div>
                                 )}
                                 {game.umpires.lf && (
                                     <div className="small-text">
-                                        <span className="text-gray-500">LF:</span> <span className="font-medium">{game.umpires.lf}</span>
+                                        <span className="text-slate-500">LF:</span> <span className="font-medium">{game.umpires.lf}</span>
                                     </div>
                                 )}
                                 {game.umpires.rf && (
                                     <div className="small-text">
-                                        <span className="text-gray-500">RF:</span> <span className="font-medium">{game.umpires.rf}</span>
+                                        <span className="text-slate-500">RF:</span> <span className="font-medium">{game.umpires.rf}</span>
                                     </div>
                                 )}
                             </div>
@@ -1076,7 +1076,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                     {/* Key Plays (Home Runs) */}
                     {game.keyPlays && game.keyPlays.length > 0 && (
                         <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
-                            <h5 className="small-text font-bold mb-3 text-gray-700">⚾ Key Plays</h5>
+                            <h5 className="small-text font-bold mb-3 text-slate-700">⚾ Key Plays</h5>
                             <div className="space-y-2">
                                 {game.keyPlays.map((play, idx) => (
                                     <div key={`keyplay-${play.inning}-${play.batter}-${idx}`} className="flex items-start gap-2 p-2 bg-orange-50 rounded border-l-4 border-orange-400">
@@ -1087,7 +1087,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                             <div className="body-text font-semibold">
                                                 {play.batter} {play.type === 'grand_slam' ? 'Grand Slam' : 'Home Run'}
                                             </div>
-                                            <div className="small-text text-gray-600">
+                                            <div className="small-text text-slate-600">
                                                 {play.inning} • off {play.pitcher}
                                                 {play.rbi > 1 && ` (${play.rbi} RBI)`}
                                             </div>
@@ -1104,7 +1104,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                         if (gameMilestones.length === 0) return null;
                         return (
                             <div className="mt-4 bg-white rounded-lg p-4 shadow-sm">
-                                <h5 className="small-text font-bold mb-3 text-gray-700">🏆 Milestones Achieved</h5>
+                                <h5 className="small-text font-bold mb-3 text-slate-700">🏆 Milestones Achieved</h5>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {gameMilestones.map((milestone, idx) => (
                                         <div key={milestone.id || `${milestone.type}-${milestone.gameId}-${idx}`} className="bg-white rounded-lg p-3 shadow-sm border-l-4 border-purple-400">
@@ -1119,10 +1119,10 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                                      '⭐'}
                                                 </span>
                                                 <div className="flex-1">
-                                                    <div className="body-text font-bold text-gray-900">{milestone.type}</div>
-                                                    <div className="body-text text-gray-700 mt-1">{milestone.player}</div>
+                                                    <div className="body-text font-bold text-slate-900">{milestone.type}</div>
+                                                    <div className="body-text text-slate-700 mt-1">{milestone.player}</div>
                                                     {milestone.detail && (
-                                                        <div className="small-text text-gray-600 mt-1">{milestone.detail}</div>
+                                                        <div className="small-text text-slate-600 mt-1">{milestone.detail}</div>
                                                     )}
                                                 </div>
                                             </div>
@@ -1156,7 +1156,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                             </span>
                                             <div className="flex-1">
                                                 <div className="body-text font-bold text-amber-800">{first.milestone}</div>
-                                                <div className="body-text text-gray-700 mt-1">{first.player_name}</div>
+                                                <div className="body-text text-slate-700 mt-1">{first.player_name}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -1167,7 +1167,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                 </div>
                 
                 {/* Tab Navigation */}
-                <div className="border-b bg-gray-50 sticky top-0 z-10">
+                <div className="border-b bg-slate-50 sticky top-0 z-10">
                     <div className="flex gap-1 px-6">
                         {['boxscore', 'lineups', 'substitutions', 'playbyplay', 'context'].map(tab => (
                             <button
@@ -1176,7 +1176,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                 className={`px-4 sm:px-6 py-3 body-text font-semibold transition-all whitespace-nowrap ${
                                     activeTab === tab
                                         ? 'bg-white text-blue-600 border-b-4 border-blue-600'
-                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                                 }`}
                             >
                                 {tab === 'boxscore' ? 'Box Score' :
@@ -1206,21 +1206,21 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                             <div className="bg-red-50 rounded-lg p-3 border border-red-200">
                                                 <div className="text-xs text-red-600 font-semibold">Fastest Pitch</div>
                                                 <div className="text-lg font-bold text-red-700">{gameData.fastestPitch.speed} mph</div>
-                                                <div className="text-xs text-gray-600">{gameData.fastestPitch.name}</div>
+                                                <div className="text-xs text-slate-600">{gameData.fastestPitch.name}</div>
                                             </div>
                                         )}
                                         {gameData.hardestHit && (
                                             <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                                                 <div className="text-xs text-blue-600 font-semibold">Hardest Hit</div>
                                                 <div className="text-lg font-bold text-blue-700">{gameData.hardestHit.velo} mph</div>
-                                                <div className="text-xs text-gray-600">{gameData.hardestHit.name}{gameData.hardestHit.dist ? ` (${gameData.hardestHit.dist} ft)` : ''}</div>
+                                                <div className="text-xs text-slate-600">{gameData.hardestHit.name}{gameData.hardestHit.dist ? ` (${gameData.hardestHit.dist} ft)` : ''}</div>
                                             </div>
                                         )}
                                         {gameData.mostKs && gameData.mostKs.so >= 5 && (
                                             <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
                                                 <div className="text-xs text-orange-600 font-semibold">Most Strikeouts</div>
                                                 <div className="text-lg font-bold text-orange-700">{gameData.mostKs.so} K</div>
-                                                <div className="text-xs text-gray-600">{gameData.mostKs.name}</div>
+                                                <div className="text-xs text-slate-600">{gameData.mostKs.name}</div>
                                             </div>
                                         )}
                                     </div>
@@ -1231,20 +1231,20 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                 <div>
                                     <h4 className="subsection-title font-bold mb-3">⚖️ ABS Challenges</h4>
                                     <div className="grid grid-cols-2 gap-3 mb-3">
-                                        <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                                        <div className="bg-slate-50 rounded-lg p-3 text-sm">
                                             <div className="font-semibold mb-1">{game.awayTeam}</div>
                                             <div className="flex gap-3">
                                                 <span className="text-green-600">✓ {game.absChallenges.away?.usedSuccessful || 0}</span>
                                                 <span className="text-red-600">✗ {game.absChallenges.away?.usedFailed || 0}</span>
-                                                <span className="text-gray-500">{game.absChallenges.away?.remaining || 0} left</span>
+                                                <span className="text-slate-500">{game.absChallenges.away?.remaining || 0} left</span>
                                             </div>
                                         </div>
-                                        <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                                        <div className="bg-slate-50 rounded-lg p-3 text-sm">
                                             <div className="font-semibold mb-1">{game.homeTeam}</div>
                                             <div className="flex gap-3">
                                                 <span className="text-green-600">✓ {game.absChallenges.home?.usedSuccessful || 0}</span>
                                                 <span className="text-red-600">✗ {game.absChallenges.home?.usedFailed || 0}</span>
-                                                <span className="text-gray-500">{game.absChallenges.home?.remaining || 0} left</span>
+                                                <span className="text-slate-500">{game.absChallenges.home?.remaining || 0} left</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1256,15 +1256,15 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                                         <span className={`font-bold ${r.overturned ? 'text-green-700' : 'text-red-700'}`}>
                                                             {r.overturned ? '✓ Overturned' : '✗ Upheld'}
                                                         </span>
-                                                        <span className="text-xs text-gray-500">{r.half === 'top' ? 'Top' : 'Bot'} {r.inning} • {r.count} count</span>
+                                                        <span className="text-xs text-slate-500">{r.half === 'top' ? 'Top' : 'Bot'} {r.inning} • {r.count} count</span>
                                                     </div>
                                                     <div className="mt-1">
                                                         <span className="font-medium">{r.challengePlayer || (r.challengeTeam === 'away' ? game.awayTeam : game.homeTeam)}</span>
                                                         {' challenged '}
                                                         <span className="font-medium">{r.originalCall || 'call'}</span>
-                                                        {r.pitchType && <span className="text-gray-500"> ({r.pitchType})</span>}
+                                                        {r.pitchType && <span className="text-slate-500"> ({r.pitchType})</span>}
                                                     </div>
-                                                    <div className="text-xs text-gray-500 mt-0.5">{r.batter} batting vs {r.pitcher}</div>
+                                                    <div className="text-xs text-slate-500 mt-0.5">{r.batter} batting vs {r.pitcher}</div>
                                                 </div>
                                             ))}
                                         </div>
@@ -1296,7 +1296,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                                     <div className="font-semibold body-text">
                                                         <PlayerLink playerId={first.player_id} name={first.player_name} /> — {first.milestone}
                                                     </div>
-                                                    {first.opponent && <div className="small-text text-gray-600">vs {first.opponent}</div>}
+                                                    {first.opponent && <div className="small-text text-slate-600">vs {first.opponent}</div>}
                                                 </div>
                                             </div>
                                         ))}
@@ -1317,7 +1317,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                                     <div className="font-semibold body-text">
                                                         <PlayerLink playerId={passing.player_id} name={passing.player_name} /> — #{passing.new_rank} all-time in {passing.stat_name}
                                                     </div>
-                                                    <div className="small-text text-gray-600">
+                                                    <div className="small-text text-slate-600">
                                                         {passing.new_value} career {passing.stat_name.toLowerCase()}
                                                         {passing.passed_names && ` • Passed ${passing.passed_names}`}
                                                     </div>
@@ -1333,11 +1333,11 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                 </div>{/* End scrollable body */}
 
                 {/* Footer */}
-                <div className="p-3 border-t bg-gray-50 flex justify-between items-center flex-shrink-0">
+                <div className="p-3 border-t bg-slate-50 flex justify-between items-center flex-shrink-0">
                     <div className="flex items-center gap-2">
-                        {onPrev && <button onClick={onPrev} className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium" title="Previous game">← Prev</button>}
-                        {gameIndex != null && totalGames && <span className="text-xs text-gray-500">Game {gameIndex} of {totalGames}</span>}
-                        {onNext && <button onClick={onNext} className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium" title="Next game">Next →</button>}
+                        {onPrev && <button onClick={onPrev} className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 rounded text-sm font-medium" title="Previous game">← Prev</button>}
+                        {gameIndex != null && totalGames && <span className="text-xs text-slate-500">Game {gameIndex} of {totalGames}</span>}
+                        {onNext && <button onClick={onNext} className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 rounded text-sm font-medium" title="Next game">Next →</button>}
                     </div>
                     <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
                     <button onClick={onClose} className="px-5 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium">
@@ -1401,22 +1401,22 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
 
     if (gamesForPlayer.length === 0) {
         return (
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
                 <h3 className="subsection-title font-bold mb-4">📊 Player Stats</h3>
-                <p className="body-text text-gray-500 text-center py-8">No games found for this player</p>
+                <p className="body-text text-slate-500 text-center py-8">No games found for this player</p>
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                 <h3 className="subsection-title font-bold">📊 {playerName}</h3>
                 <div className="flex rounded-lg overflow-hidden border">
                     <button
                         onClick={() => setActiveView('timeline')}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${
-                            activeView === 'timeline' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
+                            activeView === 'timeline' ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'
                         }`}
                     >
                         📅 Timeline
@@ -1424,7 +1424,7 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
                     <button
                         onClick={() => setActiveView('gamelog')}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${
-                            activeView === 'gamelog' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
+                            activeView === 'gamelog' ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'
                         }`}
                     >
                         📋 Game Log
@@ -1435,10 +1435,10 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
             {/* Game Log View */}
             {activeView === 'gamelog' && (
                 <div>
-                    <div className="text-sm text-gray-500 mb-3">{gamesForPlayer.length} games</div>
+                    <div className="text-sm text-slate-500 mb-3">{gamesForPlayer.length} games</div>
                     <div className="overflow-x-auto border rounded-lg" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                         <table className="w-full text-sm">
-                            <thead className="bg-gray-50 sticky top-0">
+                            <thead className="bg-slate-50 sticky top-0">
                                 <tr>
                                     {[
                                         { key: 'dateSort', label: 'Date' },
@@ -1456,7 +1456,7 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
                                         <th
                                             key={col.key}
                                             onClick={() => handleSort(col.key)}
-                                            className="px-3 py-2 text-left font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                                            className="px-3 py-2 text-left font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap"
                                         >
                                             {col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}
                                         </th>
@@ -1564,10 +1564,10 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
             {/* Year-by-year table */}
             <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b">
+                    <thead className="bg-slate-50 border-b">
                         <tr>
                             {['Year','Team','G','AB','PA','H','R','RBI','HR','2B','3B','SB','BB','SO','AVG','OBP','SLG','OPS'].map(col => (
-                                <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-gray-500">{col}</th>
+                                <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-slate-500">{col}</th>
                             ))}
                         </tr>
                     </thead>
@@ -1661,22 +1661,22 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) =>
 
     if (gamesForPitcher.length === 0) {
         return (
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
                 <h3 className="subsection-title font-bold mb-4">📊 Pitcher Stats</h3>
-                <p className="body-text text-gray-500 text-center py-8">No games found for this pitcher</p>
+                <p className="body-text text-slate-500 text-center py-8">No games found for this pitcher</p>
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                 <h3 className="subsection-title font-bold">📊 {playerName}</h3>
                 <div className="flex rounded-lg overflow-hidden border">
                     <button
                         onClick={() => setActiveView('timeline')}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${
-                            activeView === 'timeline' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
+                            activeView === 'timeline' ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'
                         }`}
                     >
                         📅 Timeline
@@ -1684,7 +1684,7 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) =>
                     <button
                         onClick={() => setActiveView('gamelog')}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${
-                            activeView === 'gamelog' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
+                            activeView === 'gamelog' ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'
                         }`}
                     >
                         📋 Game Log
@@ -1695,10 +1695,10 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) =>
             {/* Game Log View */}
             {activeView === 'gamelog' && (
                 <div>
-                    <div className="text-sm text-gray-500 mb-3">{gamesForPitcher.length} games</div>
+                    <div className="text-sm text-slate-500 mb-3">{gamesForPitcher.length} games</div>
                     <div className="overflow-x-auto border rounded-lg" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                         <table className="w-full text-sm">
-                            <thead className="bg-gray-50 sticky top-0">
+                            <thead className="bg-slate-50 sticky top-0">
                                 <tr>
                                     {[
                                         { key: 'dateSort', label: 'Date' },
@@ -1715,7 +1715,7 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) =>
                                         <th
                                             key={col.key}
                                             onClick={() => handleSort(col.key)}
-                                            className="px-3 py-2 text-left font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                                            className="px-3 py-2 text-left font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap"
                                         >
                                             {col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}
                                         </th>
@@ -1808,10 +1808,10 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) =>
             {/* Year-by-year table */}
             <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b">
+                    <thead className="bg-slate-50 border-b">
                         <tr>
                             {['Year','Team','G','GS','W','L','SV','IP','H','R','ER','BB','SO','HR','ERA','WHIP'].map(col => (
-                                <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-gray-500">{col}</th>
+                                <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-slate-500">{col}</th>
                             ))}
                         </tr>
                     </thead>
@@ -1875,7 +1875,7 @@ const Calendar = ({ games }) => {
     }, [gamesByMonthDay]);
 
     const getHeatmapColor = (gameCount) => {
-        if (gameCount === 0) return 'bg-gray-50 border-gray-200';
+        if (gameCount === 0) return 'bg-slate-50 border-slate-200';
         const intensity = Math.min(gameCount / maxGamesOnDate, 1);
         if (intensity <= 0.25) return 'bg-blue-100 border-blue-200';
         if (intensity <= 0.5) return 'bg-blue-200 border-blue-300';
@@ -1884,9 +1884,9 @@ const Calendar = ({ games }) => {
     };
 
     const getTextColor = (gameCount) => {
-        if (gameCount === 0) return 'text-gray-700';
+        if (gameCount === 0) return 'text-slate-700';
         const intensity = Math.min(gameCount / maxGamesOnDate, 1);
-        return intensity > 0.5 ? 'text-white' : 'text-gray-700';
+        return intensity > 0.5 ? 'text-white' : 'text-slate-700';
     };
 
     const year = useMemo(() => {
@@ -1943,14 +1943,14 @@ const Calendar = ({ games }) => {
         }).length;
 
         return (
-            <div className="bg-white rounded-lg border border-gray-200 p-2">
+            <div className="bg-white rounded-lg border border-slate-200 p-2">
                 <div className="text-center mb-2">
-                    <h3 className="font-bold text-gray-800" style={{ fontSize: '13px' }}>{monthNames[monthIndices.indexOf(monthIndex)]}</h3>
-                    <span className="text-gray-500" style={{ fontSize: '11px' }}>{gamesInMonth} game{gamesInMonth !== 1 ? 's' : ''}</span>
+                    <h3 className="font-bold text-slate-800" style={{ fontSize: '13px' }}>{monthNames[monthIndices.indexOf(monthIndex)]}</h3>
+                    <span className="text-slate-500" style={{ fontSize: '11px' }}>{gamesInMonth} game{gamesInMonth !== 1 ? 's' : ''}</span>
                 </div>
                 <div className="grid grid-cols-7 gap-0.5">
                     {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                        <div key={`day-header-${i}`} className="text-center text-gray-500 font-medium" style={{ fontSize: '9px' }}>{day}</div>
+                        <div key={`day-header-${i}`} className="text-center text-slate-500 font-medium" style={{ fontSize: '9px' }}>{day}</div>
                     ))}
                     {days.map((day, idx) => {
                         if (!day) return <div key={`empty-${idx}`} className="aspect-square" />;
@@ -1975,32 +1975,32 @@ const Calendar = ({ games }) => {
 
     return (
         <>
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-white rounded-lg border border-slate-200">
                 <div className="p-4 border-b">
                     <div className="flex justify-between items-center">
                         <div>
                             <h2 className="section-title font-bold">📅 Season Calendar Heatmap</h2>
-                            <p className="small-text text-gray-500 mt-1">
+                            <p className="small-text text-slate-500 mt-1">
                                 {totalStats.totalGames} games • {totalStats.uniqueDates} unique dates • Click any date with games for details
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="small-text text-gray-600">Legend:</span>
+                            <span className="small-text text-slate-600">Legend:</span>
                             <div className="flex items-center gap-1">
-                                <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded"></div>
-                                <span style={{ fontSize: '10px' }} className="text-gray-500">0</span>
+                                <div className="w-4 h-4 bg-slate-50 border border-slate-200 rounded"></div>
+                                <span style={{ fontSize: '10px' }} className="text-slate-500">0</span>
                             </div>
                             <div className="flex items-center gap-1">
                                 <div className="w-4 h-4 bg-blue-100 border border-blue-200 rounded"></div>
-                                <span style={{ fontSize: '10px' }} className="text-gray-500">1</span>
+                                <span style={{ fontSize: '10px' }} className="text-slate-500">1</span>
                             </div>
                             <div className="flex items-center gap-1">
                                 <div className="w-4 h-4 bg-blue-400 border border-blue-500 rounded"></div>
-                                <span style={{ fontSize: '10px' }} className="text-gray-500">2-3</span>
+                                <span style={{ fontSize: '10px' }} className="text-slate-500">2-3</span>
                             </div>
                             <div className="flex items-center gap-1">
                                 <div className="w-4 h-4 bg-blue-600 border border-blue-700 rounded"></div>
-                                <span style={{ fontSize: '10px' }} className="text-gray-500">4+</span>
+                                <span style={{ fontSize: '10px' }} className="text-slate-500">4+</span>
                             </div>
                         </div>
                     </div>
@@ -2015,7 +2015,7 @@ const Calendar = ({ games }) => {
             </div>
             {showModal && selectedDate && (
                 <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                             <h3 className="section-title font-bold">{monthNames[monthIndices.indexOf(selectedMonthForModal)]} {selectedDate.day} • All Years</h3>
                             <p className="body-text text-blue-100 mt-1">{selectedDate.games.length} game{selectedDate.games.length !== 1 ? 's' : ''} attended</p>
@@ -2027,25 +2027,25 @@ const Calendar = ({ games }) => {
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-3">
                                                 <span className="body-text font-bold text-blue-600">{game.date}</span>
-                                                <span className="small-text text-gray-500">{game.startTime}</span>
+                                                <span className="small-text text-slate-500">{game.startTime}</span>
                                             </div>
                                             <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
                                         </div>
                                         <div className="flex items-center gap-4 flex-wrap">
                                             <div className="flex items-center gap-2">
                                                 <span className="body-text font-semibold w-12 text-right">{game.awayTeam}</span>
-                                                <span className="body-text text-gray-500">@</span>
+                                                <span className="body-text text-slate-500">@</span>
                                                 <span className="body-text font-semibold w-12">{game.homeTeam}</span>
                                             </div>
-                                            <span className="font-mono body-text bg-gray-100 px-3 py-1 rounded font-bold">{game.score}</span>
-                                            <span className="body-text text-gray-600">{game.venue}</span>
-                                            {game.attendance > 0 && <span className="small-text text-gray-500">👥 {game.attendance.toLocaleString()}</span>}
+                                            <span className="font-mono body-text bg-slate-100 px-3 py-1 rounded font-bold">{game.score}</span>
+                                            <span className="body-text text-slate-600">{game.venue}</span>
+                                            {game.attendance > 0 && <span className="small-text text-slate-500">👥 {game.attendance.toLocaleString()}</span>}
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                        <div className="p-4 border-t bg-gray-50">
+                        <div className="p-4 border-t bg-slate-50">
                             <button onClick={() => setShowModal(false)} className="px-6 py-2 bg-blue-600 text-white body-text rounded-lg hover:bg-blue-700 font-medium w-full">Close</button>
                         </div>
                     </div>
@@ -2060,7 +2060,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
     const [showModal, setShowModal] = useState(false);
 
     if (!matchupData || !matchupData.teams || matchupData.teams.length === 0) {
-        return <div className="bg-white rounded-lg shadow p-6 body-text">No matchup data available</div>;
+        return <div className="bg-white rounded-lg border border-slate-200 p-6 body-text">No matchup data available</div>;
     }
 
     const { teams, matrix } = matchupData;
@@ -2104,21 +2104,21 @@ const MatchupMatrix = ({ matchupData, games }) => {
 
     return (
         <>
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-white rounded-lg border border-slate-200">
                 <div className="p-4 border-b">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div>
                             <h2 className="section-title font-bold">🎯 Team Matchup Matrix</h2>
-                            <p className="body-text text-gray-500 mt-1">Click any cell to see games between those teams</p>
+                            <p className="body-text text-slate-500 mt-1">Click any cell to see games between those teams</p>
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="text-center px-4 py-2 bg-blue-50 rounded-lg">
                                 <div className="text-xl font-bold text-blue-600">{uniqueMatchupsSeen}/{totalPossibleMatchups}</div>
-                                <div className="text-xs text-gray-500">Matchups Seen</div>
+                                <div className="text-xs text-slate-500">Matchups Seen</div>
                             </div>
                             <div className="text-center px-4 py-2 bg-green-50 rounded-lg">
                                 <div className="text-xl font-bold text-green-600">{completionPercent}%</div>
-                                <div className="text-xs text-gray-500">Complete</div>
+                                <div className="text-xs text-slate-500">Complete</div>
                             </div>
                         </div>
                     </div>
@@ -2127,22 +2127,22 @@ const MatchupMatrix = ({ matchupData, games }) => {
                     <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                         <thead>
                             <tr>
-                                <th className="border bg-gray-100 font-bold" style={{ fontSize: '9px', padding: '2px', width: '28px' }}></th>
+                                <th className="border bg-slate-100 font-bold" style={{ fontSize: '9px', padding: '2px', width: '28px' }}></th>
                                 {teams.map(team => (
-                                    <th key={team} className="border bg-gray-50 font-medium" style={{ fontSize: '8px', padding: '1px', width: '24px' }}>{team}</th>
+                                    <th key={team} className="border bg-slate-50 font-medium" style={{ fontSize: '8px', padding: '1px', width: '24px' }}>{team}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {matrix.map((row) => (
                                 <tr key={row.team}>
-                                    <td className="border font-bold bg-gray-100" style={{ fontSize: '8px', padding: '1px' }}>{row.team}</td>
+                                    <td className="border font-bold bg-slate-100" style={{ fontSize: '8px', padding: '1px' }}>{row.team}</td>
                                     {teams.map(opponent => {
                                         const value = row[opponent];
                                         const isX = value === 'X';
                                         const hasGames = !isX && value > 0;
                                         return (
-                                            <td key={opponent} onClick={() => hasGames && handleCellClick(row.team, opponent, value)} className={`border text-center ${isX ? 'bg-gray-300' : hasGames ? 'bg-blue-100 font-bold cursor-pointer hover:bg-blue-300' : 'bg-white'}`} style={{ fontSize: '9px', padding: '1px' }}>
+                                            <td key={opponent} onClick={() => hasGames && handleCellClick(row.team, opponent, value)} className={`border text-center ${isX ? 'bg-slate-300' : hasGames ? 'bg-blue-100 font-bold cursor-pointer hover:bg-blue-300' : 'bg-white'}`} style={{ fontSize: '9px', padding: '1px' }}>
                                                 {isX ? '' : (value || '')}
                                             </td>
                                         );
@@ -2152,9 +2152,9 @@ const MatchupMatrix = ({ matchupData, games }) => {
                         </tbody>
                     </table>
                 </div>
-                <div className="p-2 border-t bg-gray-50">
-                    <div className="flex items-center gap-4 justify-center text-gray-600" style={{ fontSize: '10px' }}>
-                        <div className="flex items-center gap-1"><div className="w-4 h-4 bg-gray-300 border rounded"></div><span>Same team</span></div>
+                <div className="p-2 border-t bg-slate-50">
+                    <div className="flex items-center gap-4 justify-center text-slate-600" style={{ fontSize: '10px' }}>
+                        <div className="flex items-center gap-1"><div className="w-4 h-4 bg-slate-300 border rounded"></div><span>Same team</span></div>
                         <div className="flex items-center gap-1"><div className="w-4 h-4 bg-white border rounded"></div><span>No games</span></div>
                         <div className="flex items-center gap-1"><div className="w-4 h-4 bg-blue-100 border rounded"></div><span>Has games (click)</span></div>
                     </div>
@@ -2162,7 +2162,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
             </div>
             {showModal && selectedMatchup && (
                 <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                             <h3 className="section-title font-bold">{selectedMatchup.team} vs {selectedMatchup.opponent}</h3>
                             <p className="body-text text-blue-100 mt-1">{selectedMatchup.count} game{selectedMatchup.count !== 1 ? 's' : ''} attended</p>
@@ -2177,29 +2177,29 @@ const MatchupMatrix = ({ matchupData, games }) => {
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-3">
                                                         <span className="body-text font-bold text-blue-600">{game.date}</span>
-                                                        <span className="small-text text-gray-500">{game.startTime}</span>
+                                                        <span className="small-text text-slate-500">{game.startTime}</span>
                                                     </div>
                                                     <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
                                                 </div>
                                                 <div className="flex items-center gap-4 flex-wrap">
                                                     <div className="flex items-center gap-2">
                                                         <span className={`body-text w-12 text-right ${isHomeGame ? 'font-normal' : 'font-bold'}`}>{game.awayTeam}</span>
-                                                        <span className="body-text text-gray-500">@</span>
+                                                        <span className="body-text text-slate-500">@</span>
                                                         <span className={`body-text w-12 ${isHomeGame ? 'font-bold' : 'font-normal'}`}>{game.homeTeam}</span>
                                                     </div>
-                                                    <span className="font-mono body-text bg-gray-100 px-3 py-1 rounded font-bold">{game.score}</span>
-                                                    <span className="body-text text-gray-600">{game.venue}</span>
-                                                    {game.attendance > 0 && <span className="small-text text-gray-500">👥 {game.attendance.toLocaleString()}</span>}
+                                                    <span className="font-mono body-text bg-slate-100 px-3 py-1 rounded font-bold">{game.score}</span>
+                                                    <span className="body-text text-slate-600">{game.venue}</span>
+                                                    {game.attendance > 0 && <span className="small-text text-slate-500">👥 {game.attendance.toLocaleString()}</span>}
                                                 </div>
                                             </div>
                                         );
                                     })}
                                 </div>
                             ) : (
-                                <div className="p-8 text-center body-text text-gray-500">No games found between these teams</div>
+                                <div className="p-8 text-center body-text text-slate-500">No games found between these teams</div>
                             )}
                         </div>
-                        <div className="p-4 border-t bg-gray-50">
+                        <div className="p-4 border-t bg-slate-50">
                             <button onClick={() => setShowModal(false)} className="px-6 py-2 bg-blue-600 text-white body-text rounded-lg hover:bg-blue-700 font-medium w-full">Close</button>
                         </div>
                     </div>
@@ -2355,7 +2355,7 @@ const OriolesStadiumMap = ({ orioles }) => {
     }, [visitedData]);
 
     return (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
             <div className="p-4 border-b bg-gradient-to-r from-orange-500 to-orange-600 text-white">
                 <h3 className="font-bold text-lg">🗺️ Orioles Stadium Quest</h3>
                 <p className="text-sm text-orange-100 mt-1">See the Orioles at all 30 MLB stadiums</p>
@@ -2365,32 +2365,32 @@ const OriolesStadiumMap = ({ orioles }) => {
                 <div className="grid grid-cols-5 gap-4 text-center">
                     <div>
                         <div className="text-2xl font-bold text-orange-600">{stats.visitedCount}</div>
-                        <div className="text-xs text-gray-600">Current</div>
+                        <div className="text-xs text-slate-600">Current</div>
                     </div>
                     <div>
                         <div className="text-2xl font-bold text-purple-600">{stats.historicalVisited}</div>
-                        <div className="text-xs text-gray-600">Historical</div>
+                        <div className="text-xs text-slate-600">Historical</div>
                     </div>
                     <div>
-                        <div className="text-2xl font-bold text-gray-500">{stats.remaining}</div>
-                        <div className="text-xs text-gray-600">Remaining</div>
+                        <div className="text-2xl font-bold text-slate-500">{stats.remaining}</div>
+                        <div className="text-xs text-slate-600">Remaining</div>
                     </div>
                     <div>
                         <div className="text-2xl font-bold text-orange-600">{stats.percent}%</div>
-                        <div className="text-xs text-gray-600">Complete</div>
+                        <div className="text-xs text-slate-600">Complete</div>
                     </div>
                     <div className="flex flex-col items-center justify-center gap-1">
                         <div className="flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                            <span className="text-xs text-gray-600">Current</span>
+                            <span className="text-xs text-slate-600">Current</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                            <span className="text-xs text-gray-600">Historical</span>
+                            <span className="text-xs text-slate-600">Historical</span>
                         </div>
                         <div className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-gray-400"></span>
-                            <span className="text-xs text-gray-600">Not yet</span>
+                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                            <span className="text-xs text-slate-600">Not yet</span>
                         </div>
                     </div>
                 </div>
@@ -2648,28 +2648,28 @@ const OriolesDashboard = ({ orioles, games }) => {
 
             {/* Streaks & Recent Games */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-lg shadow">
+                <div className="bg-white rounded-lg border border-slate-200">
                     <div className="p-4 border-b">
                         <h3 className="font-bold text-lg">📈 Streaks</h3>
                     </div>
                     <div className="p-4">
                         <div className="grid grid-cols-3 gap-4 mb-4">
-                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                            <div className="text-center p-3 bg-slate-50 rounded-lg">
                                 <div className={`text-2xl font-bold ${streaksData.currentStreak.type === 'W' ? 'text-green-600' : 'text-red-600'}`}>
                                     {streaksData.currentStreak.type}{streaksData.currentStreak.count}
                                 </div>
-                                <div className="text-xs text-gray-500">Current</div>
+                                <div className="text-xs text-slate-500">Current</div>
                             </div>
                             <div className="text-center p-3 bg-green-50 rounded-lg">
                                 <div className="text-2xl font-bold text-green-600">W{streaksData.longestWinStreak}</div>
-                                <div className="text-xs text-gray-500">Longest Win Streak</div>
+                                <div className="text-xs text-slate-500">Longest Win Streak</div>
                             </div>
                             <div className="text-center p-3 bg-red-50 rounded-lg">
                                 <div className="text-2xl font-bold text-red-600">L{streaksData.longestLossStreak}</div>
-                                <div className="text-xs text-gray-500">Longest Loss Streak</div>
+                                <div className="text-xs text-slate-500">Longest Loss Streak</div>
                             </div>
                         </div>
-                        <h4 className="font-semibold text-sm text-gray-600 mb-2">Last 10 Games</h4>
+                        <h4 className="font-semibold text-sm text-slate-600 mb-2">Last 10 Games</h4>
                         <div className="flex gap-1 flex-wrap">
                             {streaksData.recentGames.map((g) => (
                                 <div key={g.gameId || `${g.date}-${g.opponent}`} className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold text-white ${g.result === 'W' ? 'bg-green-500' : 'bg-red-500'}`} title={`${g.date}: ${g.result} ${g.score} vs ${g.opponent}`}>
@@ -2680,7 +2680,7 @@ const OriolesDashboard = ({ orioles, games }) => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow">
+                <div className="bg-white rounded-lg border border-slate-200">
                     <div className="p-4 border-b">
                         <h3 className="font-bold text-lg">📅 Monthly Breakdown</h3>
                     </div>
@@ -2692,7 +2692,7 @@ const OriolesDashboard = ({ orioles, games }) => {
                                 return (
                                     <div key={m.month} className="flex items-center gap-3">
                                         <span className="w-20 text-sm font-medium">{m.month}</span>
-                                        <div className="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
+                                        <div className="flex-1 bg-slate-200 rounded-full h-4 overflow-hidden">
                                             <div className="bg-green-500 h-full" style={{ width: `${winPct}%` }}></div>
                                         </div>
                                         <span className="w-16 text-sm font-semibold text-right">{m.record}</span>
@@ -2706,14 +2706,14 @@ const OriolesDashboard = ({ orioles, games }) => {
 
             {/* Opponent Breakdown */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-lg shadow">
+                <div className="bg-white rounded-lg border border-slate-200">
                     <div className="p-4 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
                         <h3 className="font-bold text-lg">⚔️ vs AL East</h3>
                     </div>
                     <div className="p-4">
                         <table className="w-full">
                             <thead>
-                                <tr className="text-left text-sm text-gray-500 border-b">
+                                <tr className="text-left text-sm text-slate-500 border-b">
                                     <th className="pb-2">Team</th>
                                     <th className="pb-2 text-center">G</th>
                                     <th className="pb-2 text-center">Record</th>
@@ -2724,7 +2724,7 @@ const OriolesDashboard = ({ orioles, games }) => {
                             </thead>
                             <tbody>
                                 {alEastOpponents.map(o => (
-                                    <tr key={o.team} className="border-b last:border-0 hover:bg-gray-50">
+                                    <tr key={o.team} className="border-b last:border-0 hover:bg-slate-50">
                                         <td className="py-2 font-semibold">{o.team}</td>
                                         <td className="py-2 text-center">{o.games}</td>
                                         <td className="py-2 text-center font-mono">{o.record}</td>
@@ -2740,14 +2740,14 @@ const OriolesDashboard = ({ orioles, games }) => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow">
+                <div className="bg-white rounded-lg border border-slate-200">
                     <div className="p-4 border-b">
                         <h3 className="font-bold text-lg">🏟️ vs Other Teams</h3>
                     </div>
                     <div className="p-4 max-h-64 overflow-y-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="text-left text-sm text-gray-500 border-b">
+                                <tr className="text-left text-sm text-slate-500 border-b">
                                     <th className="pb-2">Team</th>
                                     <th className="pb-2 text-center">G</th>
                                     <th className="pb-2 text-center">Record</th>
@@ -2756,7 +2756,7 @@ const OriolesDashboard = ({ orioles, games }) => {
                             </thead>
                             <tbody>
                                 {otherOpponents.map(o => (
-                                    <tr key={o.team} className="border-b last:border-0 hover:bg-gray-50">
+                                    <tr key={o.team} className="border-b last:border-0 hover:bg-slate-50">
                                         <td className="py-2 font-semibold">{o.team}</td>
                                         <td className="py-2 text-center">{o.games}</td>
                                         <td className="py-2 text-center font-mono">{o.record}</td>
@@ -2931,31 +2931,31 @@ const CompanionStadiumMap = ({ companion }) => {
     if (!companion) return null;
 
     return (
-        <div className="bg-white rounded-lg shadow overflow-hidden mt-4">
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden mt-4">
             <div className="p-3 border-b bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
                 <h4 className="font-bold">🗺️ Stadiums with {companion.name}</h4>
             </div>
             <div ref={mapRef} style={{ height: '300px', width: '100%' }}></div>
-            <div className="p-3 bg-gray-50 border-t">
+            <div className="p-3 bg-slate-50 border-t">
                 <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-3 flex-wrap">
                         <div className="flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                            <span className="text-gray-600 text-xs">Visited ({stats.visitedCount - stats.oriolesCount})</span>
+                            <span className="text-slate-600 text-xs">Visited ({stats.visitedCount - stats.oriolesCount})</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                            <span className="text-gray-600 text-xs">O's ({stats.oriolesCount})</span>
+                            <span className="text-slate-600 text-xs">O's ({stats.oriolesCount})</span>
                         </div>
                         {stats.historicalVisited > 0 && (
                             <div className="flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                                <span className="text-gray-600 text-xs">Historical ({stats.historicalVisited})</span>
+                                <span className="text-slate-600 text-xs">Historical ({stats.historicalVisited})</span>
                             </div>
                         )}
                         <div className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-gray-400"></span>
-                            <span className="text-gray-600 text-xs">Not yet ({stats.remaining})</span>
+                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                            <span className="text-slate-600 text-xs">Not yet ({stats.remaining})</span>
                         </div>
                     </div>
                     <span className="font-bold text-blue-600">{stats.visitedCount}/30</span>
@@ -2971,16 +2971,16 @@ const CompanionsView = ({ companionData }) => {
 
     if (!companionData || !companionData.companions || Object.keys(companionData.companions).length === 0) {
         return (
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
                 <h2 className="section-title font-bold mb-4">👥 Games With Companions</h2>
                 <div className="text-center py-8">
-                    <p className="body-text text-gray-600 mb-4">No companion data found.</p>
-                    <div className="bg-gray-50 rounded-lg p-4 max-w-lg mx-auto text-left">
-                        <p className="font-semibold text-gray-800 mb-2">To track games with companions:</p>
-                        <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600">
-                            <li>Edit <code className="bg-gray-200 px-1 rounded">companions.csv</code> in your MLB Game Tracker folder</li>
-                            <li>Add rows with format: <code className="bg-gray-200 px-1 rounded">GameID,Companion1|Companion2</code></li>
-                            <li>Example: <code className="bg-gray-200 px-1 rounded">BAL202505090,Dad</code></li>
+                    <p className="body-text text-slate-600 mb-4">No companion data found.</p>
+                    <div className="bg-slate-50 rounded-lg p-4 max-w-lg mx-auto text-left">
+                        <p className="font-semibold text-slate-800 mb-2">To track games with companions:</p>
+                        <ol className="list-decimal list-inside space-y-1 text-sm text-slate-600">
+                            <li>Edit <code className="bg-slate-200 px-1 rounded">companions.csv</code> in your MLB Game Tracker folder</li>
+                            <li>Add rows with format: <code className="bg-slate-200 px-1 rounded">GameID,Companion1|Companion2</code></li>
+                            <li>Example: <code className="bg-slate-200 px-1 rounded">BAL202505090,Dad</code></li>
                             <li>Regenerate the website</li>
                         </ol>
                     </div>
@@ -2993,10 +2993,10 @@ const CompanionsView = ({ companionData }) => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-white rounded-lg border border-slate-200">
                 <div className="p-4 border-b">
                     <h2 className="section-title font-bold">👥 Games With Companions</h2>
-                    <p className="body-text text-gray-500 mt-1">Track who you've attended games with</p>
+                    <p className="body-text text-slate-500 mt-1">Track who you've attended games with</p>
                 </div>
                 <div className="p-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -3010,15 +3010,15 @@ const CompanionsView = ({ companionData }) => {
                                 </div>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">Stadiums visited:</span>
+                                        <span className="text-slate-600">Stadiums visited:</span>
                                         <span className="font-semibold">{companion.uniqueStadiums}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">Orioles games:</span>
+                                        <span className="text-slate-600">Orioles games:</span>
                                         <span className="font-semibold text-orange-600">{companion.oriolesGames}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">O's stadiums:</span>
+                                        <span className="text-slate-600">O's stadiums:</span>
                                         <span className="font-semibold text-orange-600">{companion.oriolesStadiums}</span>
                                     </div>
                                 </div>
@@ -3038,7 +3038,7 @@ const CompanionsView = ({ companionData }) => {
 
             {/* Detailed stats per companion */}
             {companions.map(companion => (
-                <div key={companion.name} className="bg-white rounded-lg shadow">
+                <div key={companion.name} className="bg-white rounded-lg border border-slate-200">
                     <div className="p-4 border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
                         <h3 className="font-bold text-lg">📊 {companion.name} - Detailed Stats</h3>
                     </div>
@@ -3046,10 +3046,10 @@ const CompanionsView = ({ companionData }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Stadiums visited */}
                             <div>
-                                <h4 className="font-semibold text-gray-800 mb-2">🏟️ Stadiums Visited ({companion.uniqueStadiums})</h4>
+                                <h4 className="font-semibold text-slate-800 mb-2">🏟️ Stadiums Visited ({companion.uniqueStadiums})</h4>
                                 <div className="flex flex-wrap gap-1">
                                     {companion.stadiumsList.map(stadium => (
-                                        <span key={stadium} className="px-2 py-1 bg-gray-100 rounded text-xs">{stadium}</span>
+                                        <span key={stadium} className="px-2 py-1 bg-slate-100 rounded text-xs">{stadium}</span>
                                     ))}
                                 </div>
                             </div>
@@ -3065,7 +3065,7 @@ const CompanionsView = ({ companionData }) => {
                         </div>
                         {/* Recent games */}
                         <div className="mt-4">
-                            <h4 className="font-semibold text-gray-800 mb-2">📋 Recent Games (last 5)</h4>
+                            <h4 className="font-semibold text-slate-800 mb-2">📋 Recent Games (last 5)</h4>
                             <div className="space-y-1">
                                 {companion.games.slice(0, 5).map(game => {
                                     const formatDate = (dateStr) => {
@@ -3074,10 +3074,10 @@ const CompanionsView = ({ companionData }) => {
                                         return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                                     };
                                     return (
-                                        <div key={game.gameId} className="grid grid-cols-3 text-sm bg-gray-50 px-3 py-2 rounded">
+                                        <div key={game.gameId} className="grid grid-cols-3 text-sm bg-slate-50 px-3 py-2 rounded">
                                             <span className="font-medium">{formatDate(game.date)}</span>
                                             <span className="text-center">{game.awayTeam} @ {game.homeTeam}</span>
-                                            <span className="text-gray-500 text-right">{game.venue}</span>
+                                            <span className="text-slate-500 text-right">{game.venue}</span>
                                         </div>
                                     );
                                 })}
@@ -3092,7 +3092,7 @@ const CompanionsView = ({ companionData }) => {
             {/* Modal for all games */}
             {showGames && selectedCompanion && (
                 <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowGames(false)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                             <h3 className="section-title font-bold">Games with {selectedCompanion.name}</h3>
                             <p className="body-text text-blue-100 mt-1">{selectedCompanion.totalGames} total games</p>
@@ -3106,13 +3106,13 @@ const CompanionsView = ({ companionData }) => {
                                                 <span className="font-bold text-blue-600">{(game.date || '').split(' ')[0]}</span>
                                                 <span className="font-semibold">{game.awayTeam} @ {game.homeTeam}</span>
                                             </div>
-                                            <span className="text-gray-600">{game.venue}</span>
+                                            <span className="text-slate-600">{game.venue}</span>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                        <div className="p-4 border-t bg-gray-50">
+                        <div className="p-4 border-t bg-slate-50">
                             <button onClick={() => setShowGames(false)} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium w-full">Close</button>
                         </div>
                     </div>
@@ -3230,12 +3230,12 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
     const gameTypeLabels = { all: 'All Games', spring: 'Spring Training', regular: 'Regular Season', postseason: 'Postseason' };
 
     return (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg border border-slate-200">
             <div className="p-4 border-b space-y-4">
                 <div className="flex justify-between items-center">
                     <h2 className="section-title font-bold">👤 Hitter Statistics {gameTypeFilter !== 'all' && <span className="small-text text-green-600">({gameTypeLabels[gameTypeFilter]})</span>} {useFiltered && <span className="small-text text-blue-600">(Date Filtered)</span>}</h2>
                     <div className="flex items-center gap-2">
-                        <span className="body-text text-gray-500">{sorted.length} players</span>
+                        <span className="body-text text-slate-500">{sorted.length} players</span>
                         <button onClick={() => exportToCSV(sorted, columns, 'Hitter_Statistics.csv')} className="px-3 py-1 bg-green-600 text-white body-text rounded hover:bg-green-700">📥 Export</button>
                     </div>
                 </div>
@@ -3249,7 +3249,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
                     </select>
                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
-                    {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-gray-600 hover:text-gray-900">Clear Dates</button>}
+                    {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-slate-600 hover:text-slate-900">Clear Dates</button>}
                     <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="px-4 py-2 body-text border rounded-lg">
                         <option value="all">All Teams</option>
                         {filterValues.map(val => <option key={val} value={val}>{val}</option>)}
@@ -3259,8 +3259,8 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
             </div>
             <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                 <table className="w-full">
-                    <thead className="bg-gray-50 sticky top-0">
-                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
+                    <thead className="bg-slate-50 sticky top-0">
+                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} className="px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
                     </thead>
                     <tbody className="divide-y">
                         {sorted.map((row) => (
@@ -3274,10 +3274,10 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
 
             {selectedPlayer && (
                 <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPlayer(null)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
                             <h3 className="section-title font-bold">{selectedPlayer.name}</h3>
-                            <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
+                            <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
                         </div>
                         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
                             <PlayerTimeline
@@ -3397,12 +3397,12 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
     const gameTypeLabels = { all: 'All Games', spring: 'Spring Training', regular: 'Regular Season', postseason: 'Postseason' };
 
     return (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg border border-slate-200">
             <div className="p-4 border-b space-y-4">
                 <div className="flex justify-between items-center">
                     <h2 className="section-title font-bold">⚾ Pitcher Statistics {gameTypeFilter !== 'all' && <span className="small-text text-green-600">({gameTypeLabels[gameTypeFilter]})</span>} {useFiltered && <span className="small-text text-blue-600">(Date Filtered)</span>}</h2>
                     <div className="flex items-center gap-2">
-                        <span className="body-text text-gray-500">{sorted.length} pitchers</span>
+                        <span className="body-text text-slate-500">{sorted.length} pitchers</span>
                         <button onClick={() => exportToCSV(sorted, columns, 'Pitcher_Statistics.csv')} className="px-3 py-1 bg-green-600 text-white body-text rounded hover:bg-green-700">📥 Export</button>
                     </div>
                 </div>
@@ -3416,7 +3416,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
                     </select>
                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
-                    {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-gray-600 hover:text-gray-900">Clear Dates</button>}
+                    {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-slate-600 hover:text-slate-900">Clear Dates</button>}
                     <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="px-4 py-2 body-text border rounded-lg">
                         <option value="all">All Teams</option>
                         {filterValues.map(val => <option key={val} value={val}>{val}</option>)}
@@ -3426,8 +3426,8 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
             </div>
             <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                 <table className="w-full">
-                    <thead className="bg-gray-50 sticky top-0">
-                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
+                    <thead className="bg-slate-50 sticky top-0">
+                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} className="px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
                     </thead>
                     <tbody className="divide-y">
                         {sorted.map((row) => (
@@ -3441,10 +3441,10 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
 
             {selectedPitcher && (
                 <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPitcher(null)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
                             <h3 className="section-title font-bold">{selectedPitcher.name}</h3>
-                            <button onClick={() => setSelectedPitcher(null)} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
+                            <button onClick={() => setSelectedPitcher(null)} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
                         </div>
                         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
                             <PitcherTimeline
@@ -3575,7 +3575,7 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                     {hasActiveFilters && (
                         <button
                             onClick={() => { setActiveFilters({}); setStartDate(''); setEndDate(''); }}
-                            className="px-3 py-2 body-text text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+                            className="px-3 py-2 body-text text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded"
                         >
                             Clear filters
                         </button>
@@ -3585,12 +3585,12 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
             {paginate && <PaginationControls page={page} setPage={setPage} totalPages={totalPages} totalItems={totalItems} />}
             <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                 <table className="w-full">
-                    <thead className="bg-gray-50 sticky top-0">
-                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-4 py-3 text-left small-text font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
+                    <thead className="bg-slate-50 sticky top-0">
+                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
                     </thead>
                     <tbody className="divide-y">
                         {displayData.map((row, idx) => (
-                            <tr key={row.gameId || row.id || `item-${idx}`} className={`hover:bg-blue-50 ${idx % 2 === 1 ? 'bg-gray-50/50' : ''} ${onRowClick ? 'cursor-pointer' : ''}`} onClick={() => onRowClick && onRowClick(row)}>
+                            <tr key={row.gameId || row.id || `item-${idx}`} className={`hover:bg-blue-50 ${idx % 2 === 1 ? 'bg-slate-50/50' : ''} ${onRowClick ? 'cursor-pointer' : ''}`} onClick={() => onRowClick && onRowClick(row)}>
                                 {columns.map(col => <td key={col.key} className="px-4 py-3 body-text">{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
                             </tr>
                         ))}
@@ -3669,16 +3669,16 @@ const Leaderboards = ({ data }) => {
         const [expanded, setExpanded] = useState(false);
         const shown = expanded ? leaders : leaders.slice(0, 10);
         return (
-            <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="subsection-title font-bold text-gray-900 mb-1">{title}</h3>
+            <div className="bg-white rounded-lg border border-slate-200 p-4">
+                <h3 className="subsection-title font-bold text-slate-900 mb-1">{title}</h3>
                 {isRateStat && <p className="small-text text-blue-600 italic mb-2">Qualified</p>}
                 <div className="space-y-2">
                     {shown.map((player, idx) => (
                         <div key={player.playerId} className="flex items-center justify-between py-1 border-b last:border-0">
                             <div className="flex items-center gap-2">
-                                <span className="text-gray-500 body-text w-6">{idx + 1}.</span>
+                                <span className="text-slate-500 body-text w-6">{idx + 1}.</span>
                                 <PlayerLink playerId={player.playerId} name={player.name} />
-                                <span className="small-text text-gray-500">({player.team})</span>
+                                <span className="small-text text-slate-500">({player.team})</span>
                             </div>
                             <span className="font-bold text-blue-600 body-text">{player[stat]}</span>
                         </div>
@@ -3695,11 +3695,11 @@ const Leaderboards = ({ data }) => {
     
     return (
         <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-4">
+            <div className="bg-white rounded-lg border border-slate-200 p-4">
                 <div className="flex items-center justify-between flex-wrap gap-4">
                     <div className="flex gap-4">
-                        <button onClick={() => setCategory('batting')} className={`px-6 py-2 rounded body-text font-medium ${category === 'batting' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Batting</button>
-                        <button onClick={() => setCategory('pitching')} className={`px-6 py-2 rounded body-text font-medium ${category === 'pitching' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Pitching</button>
+                        <button onClick={() => setCategory('batting')} className={`px-6 py-2 rounded body-text font-medium ${category === 'batting' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'}`}>Batting</button>
+                        <button onClick={() => setCategory('pitching')} className={`px-6 py-2 rounded body-text font-medium ${category === 'pitching' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'}`}>Pitching</button>
                     </div>
                     <div className="flex items-center gap-3">
                         {category === 'batting' && (
@@ -3719,12 +3719,12 @@ const Leaderboards = ({ data }) => {
                 <div className="mt-4 pt-4 border-t">
                     <div className="flex flex-wrap items-center gap-4">
                         <label className="flex items-center gap-2 body-text">
-                            <span className="font-medium text-gray-700">Date Range:</span>
+                            <span className="font-medium text-slate-700">Date Range:</span>
                             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-3 py-2 body-text border rounded-lg" />
                         </label>
-                        <span className="text-gray-400">to</span>
+                        <span className="text-slate-400">to</span>
                         <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-3 py-2 body-text border rounded-lg" />
-                        {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-gray-600 hover:text-gray-900 border rounded-lg hover:bg-gray-50">Clear Dates</button>}
+                        {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-slate-600 hover:text-slate-900 border rounded-lg hover:bg-slate-50">Clear Dates</button>}
                         {useFiltered && <div className="ml-auto"><span className="px-3 py-2 body-text bg-yellow-100 text-yellow-900 rounded-lg border border-yellow-300">⚡ Stats recalculated for date range</span></div>}
                     </div>
                 </div>
@@ -3855,14 +3855,14 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
             <div className="bg-white rounded-xl shadow-lg p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">🏆 Milestones</h1>
-                        <p className="text-gray-500 mt-1">Special performances you've witnessed</p>
+                        <h1 className="text-2xl font-bold text-slate-900">🏆 Milestones</h1>
+                        <p className="text-slate-500 mt-1">Special performances you've witnessed</p>
                     </div>
                     <div className="flex items-center gap-4">
                         {activeCategory !== 'firsts' && (
                             <div className="flex rounded-lg overflow-hidden border">
-                                <button onClick={() => setViewMode('date')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'date' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>📅 By Date</button>
-                                <button onClick={() => setViewMode('category')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'category' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>📂 By Category</button>
+                                <button onClick={() => setViewMode('date')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'date' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>📅 By Date</button>
+                                <button onClick={() => setViewMode('category')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'category' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>📂 By Category</button>
                             </div>
                         )}
                         <input
@@ -3870,7 +3870,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                             placeholder="Search player, team..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>
                 </div>
@@ -3889,7 +3889,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                             className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
                                 activeCategory === cat.id
                                     ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                             }`}
                         >
                             {cat.label} <span className="ml-1 opacity-75">({cat.count})</span>
@@ -3900,7 +3900,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
 
             {/* Career Milestones Section */}
             {careerFirsts && careerFirsts.length > 0 && (activeCategory === 'all' || activeCategory === 'firsts') && (
-                <div className="bg-white rounded-xl shadow overflow-hidden">
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                     <details open={true}>
                         <summary className="cursor-pointer p-4 bg-gradient-to-r from-yellow-500 to-amber-600 text-white hover:opacity-95 transition-opacity">
                             <div className="flex items-center justify-between">
@@ -4012,10 +4012,10 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                                                 {m.player_name}
                                                             </a>
                                                         ) : (
-                                                            <span className="font-medium text-gray-800">{m.player_name}</span>
+                                                            <span className="font-medium text-slate-800">{m.player_name}</span>
                                                         )}
                                                         <span className="text-sm text-amber-800 font-bold">{shortenMilestone(m.milestone)}</span>
-                                                        {m.venue && <span className="text-xs text-gray-500 ml-auto">@ {m.venue}</span>}
+                                                        {m.venue && <span className="text-xs text-slate-500 ml-auto">@ {m.venue}</span>}
                                                         {gameUrl && (
                                                             <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:text-amber-700">→</a>
                                                         )}
@@ -4087,7 +4087,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                                                             <div key={mIdx} className="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded px-2 py-1">
                                                                                 <span>{event.icon}</span>
                                                                                 <span className="text-sm font-medium text-amber-800">{shortenMilestone(m.milestone)}</span>
-                                                                                <span className="text-xs text-gray-500">({m.date_display || m.date})</span>
+                                                                                <span className="text-xs text-slate-500">({m.date_display || m.date})</span>
                                                                                 {gameUrl && (
                                                                                     <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:text-amber-700 ml-1">→</a>
                                                                                 )}
@@ -4139,9 +4139,9 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                                                                         {m.player_name}
                                                                                     </a>
                                                                                 ) : (
-                                                                                    <span className="font-medium text-gray-800">{m.player_name}</span>
+                                                                                    <span className="font-medium text-slate-800">{m.player_name}</span>
                                                                                 )}
-                                                                                <span className="text-xs text-gray-500">({m.date_display || m.date})</span>
+                                                                                <span className="text-xs text-slate-500">({m.date_display || m.date})</span>
                                                                                 {gameUrl && (
                                                                                     <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:text-amber-700">→</a>
                                                                                 )}
@@ -4189,7 +4189,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
 
                 return (
                     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                        <div className="p-4 border-b bg-gray-50">
+                        <div className="p-4 border-b bg-slate-50">
                             <span className="font-bold body-text">{allFiltered.length} milestones</span>
                         </div>
                         <div className="divide-y" style={{ maxHeight: '600px', overflowY: 'auto' }}>
@@ -4197,18 +4197,18 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                 const config = categoryConfig[m.type] || {};
                                 const game = gameMap[m.gameId];
                                 return (
-                                    <div key={`${m.gameId}-${m.type}-${m.player}-${i}`} className="p-3 hover:bg-gray-50 flex items-start gap-3">
+                                    <div key={`${m.gameId}-${m.type}-${m.player}-${i}`} className="p-3 hover:bg-slate-50 flex items-start gap-3">
                                         <span className="text-lg">{config.icon || '🏆'}</span>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="font-semibold text-sm">{m.player}</span>
                                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium bg-${config.color || 'gray'}-100 text-${config.color || 'gray'}-700`}>{m.type}</span>
                                             </div>
-                                            {m.detail && <div className="text-xs text-gray-600 mt-0.5 truncate">{m.detail}</div>}
+                                            {m.detail && <div className="text-xs text-slate-600 mt-0.5 truncate">{m.detail}</div>}
                                         </div>
                                         <div className="text-right flex-shrink-0">
-                                            <div className="text-xs text-gray-500">{game?.date || ''}</div>
-                                            <div className="text-[10px] text-gray-400">{game?.awayTeam || ''} @ {game?.homeTeam || ''}</div>
+                                            <div className="text-xs text-slate-500">{game?.date || ''}</div>
+                                            <div className="text-[10px] text-slate-400">{game?.awayTeam || ''} @ {game?.homeTeam || ''}</div>
                                         </div>
                                     </div>
                                 );
@@ -4250,7 +4250,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                     if (filteredItems.length === 0) return null;
 
                     return (
-                        <div key={type} className="bg-white rounded-xl shadow overflow-hidden">
+                        <div key={type} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                             <details open={filteredItems.length <= 10}>
                                 <summary className={`cursor-pointer p-4 bg-gradient-to-r from-${config.color}-500 to-${config.color}-600 text-white hover:opacity-95 transition-opacity`}>
                                     <div className="flex items-center justify-between">
@@ -4263,7 +4263,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                         </span>
                                     </div>
                                 </summary>
-                                <div className="p-4 bg-gray-50">
+                                <div className="p-4 bg-slate-50">
                                     {/* Special grouped rendering for Multi-HR Games */}
                                     {type === 'Multi-HR Games' ? (() => {
                                         const getHrCount = (detail) => {
@@ -4286,7 +4286,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                                     <div key={hrCount}>
                                                         <div className="flex items-center gap-2 mb-2">
                                                             <span className="text-lg font-bold text-rose-600">{hrCount} HR</span>
-                                                            <span className="text-sm text-gray-500">({hrGroups[hrCount].length})</span>
+                                                            <span className="text-sm text-slate-500">({hrGroups[hrCount].length})</span>
                                                         </div>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                                             {hrGroups[hrCount]
@@ -4297,7 +4297,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                                                     ? `https://www.baseball-reference.com/boxes/${m.gameId.substring(0, 3)}/${m.gameId}.shtml`
                                                                     : null;
                                                                 return (
-                                                                    <div key={`${m.gameId}-${m.playerId}-${m.type}`} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-rose-300 hover:shadow transition-all">
+                                                                    <div key={`${m.gameId}-${m.playerId}-${m.type}`} className="bg-white rounded-lg p-3 border border-slate-200 hover:border-rose-300 hover:shadow transition-all">
                                                                         <div className="flex items-start justify-between gap-2">
                                                                             <div className="flex-1 min-w-0">
                                                                                 <div className="flex items-center gap-2 mb-1">
@@ -4311,16 +4311,16 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                                                                             {m.player}
                                                                                         </a>
                                                                                     ) : (
-                                                                                        <span className="font-bold text-gray-900">{m.player || 'Team'}</span>
+                                                                                        <span className="font-bold text-slate-900">{m.player || 'Team'}</span>
                                                                                     )}
                                                                                     <span className="text-xs px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-semibold">
                                                                                         {m.team}
                                                                                     </span>
                                                                                 </div>
                                                                                 {m.detail && (
-                                                                                    <p className="text-xs text-gray-600 mb-1 line-clamp-2">{m.detail}</p>
+                                                                                    <p className="text-xs text-slate-600 mb-1 line-clamp-2">{m.detail}</p>
                                                                                 )}
-                                                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                                                <div className="flex items-center gap-2 text-xs text-slate-500">
                                                                                     <span>{m.date}</span>
                                                                                     {game && <span>vs {game.awayTeam === m.team ? game.homeTeam : game.awayTeam}</span>}
                                                                                 </div>
@@ -4354,7 +4354,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                                 : null;
 
                                             return (
-                                                <div key={`${m.gameId}-${m.playerId}-${m.type}`} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 hover:shadow transition-all">
+                                                <div key={`${m.gameId}-${m.playerId}-${m.type}`} className="bg-white rounded-lg p-3 border border-slate-200 hover:border-blue-300 hover:shadow transition-all">
                                                     <div className="flex items-start justify-between gap-2">
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2 mb-1">
@@ -4368,16 +4368,16 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                                                         {m.player}
                                                                     </a>
                                                                 ) : (
-                                                                    <span className="font-bold text-gray-900">{m.player || 'Team'}</span>
+                                                                    <span className="font-bold text-slate-900">{m.player || 'Team'}</span>
                                                                 )}
                                                                 <span className={`text-xs px-2 py-0.5 rounded bg-${config.color}-100 text-${config.color}-700 font-semibold`}>
                                                                     {m.team}
                                                                 </span>
                                                             </div>
                                                             {m.detail && (
-                                                                <p className="text-xs text-gray-600 mb-1 line-clamp-2">{m.detail}</p>
+                                                                <p className="text-xs text-slate-600 mb-1 line-clamp-2">{m.detail}</p>
                                                             )}
-                                                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                            <div className="flex items-center gap-2 text-xs text-slate-500">
                                                                 <span>{m.date}</span>
                                                                 {game && <span>vs {game.awayTeam === m.team ? game.homeTeam : game.awayTeam}</span>}
                                                             </div>
@@ -4400,7 +4400,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                     </div>
                                     )}
                                     {filteredItems.length > 30 && type !== 'Multi-HR Games' && (
-                                        <p className="text-center text-sm text-gray-500 mt-3">
+                                        <p className="text-center text-sm text-slate-500 mt-3">
                                             +{filteredItems.length - 30} more {type.toLowerCase()}
                                         </p>
                                     )}
@@ -4516,7 +4516,7 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
                                 ) : (
                                     <PlayerLink playerId={r.playerId} name={v} />
                                 )}
-                                <a href={`https://www.baseball-reference.com/players/${(r.playerId || '').charAt(0).toLowerCase()}/${r.playerId}.shtml`} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-600 text-xs" title="View on Baseball Reference">↗</a>
+                                <a href={`https://www.baseball-reference.com/players/${(r.playerId || '').charAt(0).toLowerCase()}/${r.playerId}.shtml`} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-slate-600 text-xs" title="View on Baseball Reference">↗</a>
                             </div>
                         )},
                         { key: 'mlbTeam', label: 'MLB Team' },
@@ -4588,19 +4588,19 @@ const NoStatsPlayers = ({ data }) => {
             />
             {selectedPlayer && selectedPlayer.gameList && selectedPlayer.gameList.length > 0 && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPlayer(null)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <div className="p-4 border-b bg-gray-700 text-white rounded-t-lg flex items-center justify-between">
+                    <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-4 border-b bg-slate-700 text-white rounded-t-lg flex items-center justify-between">
                             <h3 className="font-bold">{selectedPlayer.name} — {selectedPlayer.gameList.length} game{selectedPlayer.gameList.length > 1 ? 's' : ''}</h3>
-                            <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-gray-200 text-xl leading-none">&times;</button>
+                            <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-slate-200 text-xl leading-none">&times;</button>
                         </div>
                         <div className="p-3 space-y-2">
                             {selectedPlayer.gameList.map((g, i) => (
-                                <div key={i} className="bg-gray-50 rounded p-3">
+                                <div key={i} className="bg-slate-50 rounded p-3">
                                     <div className="flex items-center justify-between">
                                         <span className="font-medium text-sm">{g.awayTeam} @ {g.homeTeam}</span>
-                                        <span className="text-xs text-gray-500">{g.date}</span>
+                                        <span className="text-xs text-slate-500">{g.date}</span>
                                     </div>
-                                    <div className="text-xs text-gray-400 mt-1">{g.score} • {g.venue || ''}</div>
+                                    <div className="text-xs text-slate-400 mt-1">{g.score} • {g.venue || ''}</div>
                                 </div>
                             ))}
                         </div>
@@ -4723,7 +4723,7 @@ const HistoryWitnessedView = ({ allTimePassings, careerFirsts, games }) => {
         return (
             <div key={`${passing.player_id}-${passing.stat}-${passing.game_id}-${idx}`} className="flex items-start gap-4 relative">
                 <div className="flex flex-col items-center flex-shrink-0">
-                    <div className={`w-14 h-14 ${passing.new_rank <= 10 ? 'bg-gradient-to-br from-yellow-400 to-amber-500 ring-2 ring-yellow-300' : passing.new_rank <= 25 ? 'bg-gradient-to-br from-purple-500 to-violet-600' : passing.new_rank <= 50 ? 'bg-gradient-to-br from-purple-400 to-purple-500' : 'bg-gradient-to-br from-gray-400 to-gray-500'} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md`}>
+                    <div className={`w-14 h-14 ${passing.new_rank <= 10 ? 'bg-gradient-to-br from-yellow-400 to-amber-500 ring-2 ring-yellow-300' : passing.new_rank <= 25 ? 'bg-gradient-to-br from-purple-500 to-violet-600' : passing.new_rank <= 50 ? 'bg-gradient-to-br from-purple-400 to-purple-500' : 'bg-gradient-to-br from-slate-400 to-slate-500'} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md`}>
                         #{passing.new_rank}
                     </div>
                 </div>
@@ -4734,12 +4734,12 @@ const HistoryWitnessedView = ({ allTimePassings, careerFirsts, games }) => {
                                 {passing.player_name}
                             </a>
                         ) : (
-                            <span className="font-bold text-gray-900 text-lg">{passing.player_name}</span>
+                            <span className="font-bold text-slate-900 text-lg">{passing.player_name}</span>
                         )}
                         <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">{passing.stat_name}</span>
                     </div>
                     <p className="text-purple-600 mt-1">{passedText}</p>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                    <div className="mt-2 flex items-center gap-3 text-xs text-slate-500 flex-wrap">
                         <span className="font-semibold text-purple-700">{formatStatValue(passing.new_value, passing.stat)} career {passing.stat_name.toLowerCase()}</span>
                         <span>{passing.date_display || passing.date}</span>
                         {passing.venue && <span>@ {passing.venue}</span>}
@@ -4755,8 +4755,8 @@ const HistoryWitnessedView = ({ allTimePassings, careerFirsts, games }) => {
             <div className="bg-white rounded-xl shadow-lg p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">📜 History Witnessed</h1>
-                        <p className="text-gray-500 mt-1">Players climbing the all-time leaderboards at games you attended</p>
+                        <h1 className="text-2xl font-bold text-slate-900">📜 History Witnessed</h1>
+                        <p className="text-slate-500 mt-1">Players climbing the all-time leaderboards at games you attended</p>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div className="bg-purple-50 rounded-lg p-3 text-center">
@@ -4781,22 +4781,22 @@ const HistoryWitnessedView = ({ allTimePassings, careerFirsts, games }) => {
                 {/* Filters */}
                 <div className="flex flex-wrap gap-3 mt-4 items-center">
                     <select value={statFilter} onChange={(e) => setStatFilter(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        className="px-3 py-2 border border-slate-300 rounded-lg text-sm">
                         <option value="all">All Stats</option>
                         {availableStats.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <select value={rankFilter} onChange={(e) => setRankFilter(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        className="px-3 py-2 border border-slate-300 rounded-lg text-sm">
                         <option value="all">All Ranks</option>
                         <option value="top10">Top 10</option>
                         <option value="top25">Top 25</option>
                         <option value="top50">Top 50</option>
                     </select>
                     <input type="text" placeholder="Search player..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1 min-w-[150px]" />
-                    <div className="flex rounded-lg overflow-hidden border border-gray-300">
-                        <button onClick={() => setViewMode('timeline')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'timeline' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>Timeline</button>
-                        <button onClick={() => setViewMode('by-stat')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'by-stat' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>By Stat</button>
+                        className="px-3 py-2 border border-slate-300 rounded-lg text-sm flex-1 min-w-[150px]" />
+                    <div className="flex rounded-lg overflow-hidden border border-slate-300">
+                        <button onClick={() => setViewMode('timeline')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'timeline' ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`}>Timeline</button>
+                        <button onClick={() => setViewMode('by-stat')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'by-stat' ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`}>By Stat</button>
                     </div>
                 </div>
             </div>
@@ -4811,8 +4811,8 @@ const HistoryWitnessedView = ({ allTimePassings, careerFirsts, games }) => {
                                 <div className="flex items-center gap-2">
                                     <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-white text-sm font-bold ${p.new_rank <= 10 ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : 'bg-gradient-to-br from-purple-500 to-violet-600'}`}>#{p.new_rank}</span>
                                     <div>
-                                        <div className="font-bold text-gray-900 text-sm">{p.player_name}</div>
-                                        <div className="text-xs text-gray-500">{p.stat_name} - {p.date_display || p.date}</div>
+                                        <div className="font-bold text-slate-900 text-sm">{p.player_name}</div>
+                                        <div className="text-xs text-slate-500">{p.stat_name} - {p.date_display || p.date}</div>
                                     </div>
                                 </div>
                             </div>
@@ -4833,7 +4833,7 @@ const HistoryWitnessedView = ({ allTimePassings, careerFirsts, games }) => {
             {viewMode === 'by-stat' && (
                 <div className="space-y-6">
                     {byStat.map(([stat, passings]) => (
-                        <div key={stat} className="bg-white rounded-xl shadow overflow-hidden">
+                        <div key={stat} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                             <div className="p-4 bg-gradient-to-r from-purple-600 to-violet-700 text-white flex items-center justify-between">
                                 <h3 className="font-bold text-lg">{stat}</h3>
                                 <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-bold">{passings.length} passing{passings.length !== 1 ? 's' : ''}</span>
@@ -4865,7 +4865,7 @@ const GamesPerYearChart = ({ games }) => {
     const maxGames = Math.max(...yearlyData.map(y => y.count));
 
     return (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg border border-slate-200">
             <div className="p-4 border-b">
                 <h2 className="subsection-title font-bold">Games Per Year</h2>
             </div>
@@ -4878,7 +4878,7 @@ const GamesPerYearChart = ({ games }) => {
                                      style={{ height: `${(d.count / maxGames) * 100}%`, minHeight: '24px' }}>
                                     <span className="text-xs text-white font-bold">{d.count}</span>
                                 </div>
-                                <span className="text-[10px] text-gray-500 mt-1">{d.year.slice(2)}</span>
+                                <span className="text-[10px] text-slate-500 mt-1">{d.year.slice(2)}</span>
                             </div>
                         ))}
                     </div>
@@ -4948,7 +4948,7 @@ const CumulativeStatsChart = ({ games, playerGames, pitcherGames }) => {
     const yLabels = [0, 0.25, 0.5, 0.75, 1].map(pct => ({ val: Math.round(maxVal * pct), y: pad.top + chartH - pct * chartH }));
 
     return (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg border border-slate-200">
             <div className="p-4 border-b">
                 <h2 className="subsection-title font-bold">Cumulative Stats Witnessed</h2>
             </div>
@@ -4956,7 +4956,7 @@ const CumulativeStatsChart = ({ games, playerGames, pitcherGames }) => {
                 <div className="flex flex-wrap gap-1.5 mb-3">
                     {statDefs.map(s => (
                         <button key={s.key} onClick={() => setActiveStat(s.key)}
-                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${activeStat === s.key ? 'text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${activeStat === s.key ? 'text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                             style={activeStat === s.key ? { backgroundColor: s.color } : {}}>
                             {s.label}
                         </button>
@@ -4972,7 +4972,7 @@ const CumulativeStatsChart = ({ games, playerGames, pitcherGames }) => {
                     <polygon points={`${pad.left},${pad.top + chartH} ${points} ${width - pad.right},${pad.top + chartH}`} fill={activeColor} fillOpacity="0.1" />
                     <polyline points={points} fill="none" stroke={activeColor} strokeWidth="2" strokeLinejoin="round" />
                 </svg>
-                <div className="text-center text-xs text-gray-500 mt-1">
+                <div className="text-center text-xs text-slate-500 mt-1">
                     Total: <span className="font-bold" style={{ color: activeColor }}>{chartData[chartData.length - 1]?.[activeStat]?.toLocaleString()}</span> {statDefs.find(s => s.key === activeStat)?.label.toLowerCase()} across {chartData.length} games
                 </div>
             </div>
@@ -5005,14 +5005,14 @@ const AttendancePatterns = ({ games }) => {
     }, [games]);
 
     return (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg border border-slate-200">
             <div className="p-4 border-b">
                 <h2 className="subsection-title font-bold">Attendance Patterns</h2>
             </div>
             <div className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <h3 className="small-text font-bold text-gray-500 uppercase mb-3">Day of Week</h3>
+                        <h3 className="small-text font-bold text-slate-500 uppercase mb-3">Day of Week</h3>
                         <div className="relative" style={{ height: '140px' }}>
                             <div className="absolute inset-0 flex items-end justify-between gap-1.5">
                                 {patterns.dayNames.map((day, i) => {
@@ -5024,7 +5024,7 @@ const AttendancePatterns = ({ games }) => {
                                                  style={{ height: `${pct}%`, minHeight: count > 0 ? '22px' : '0' }}>
                                                 {count > 0 && <span className="text-[10px] text-white font-bold">{count}</span>}
                                             </div>
-                                            <span className="text-[10px] text-gray-500 mt-1">{day}</span>
+                                            <span className="text-[10px] text-slate-500 mt-1">{day}</span>
                                         </div>
                                     );
                                 })}
@@ -5032,19 +5032,19 @@ const AttendancePatterns = ({ games }) => {
                         </div>
                     </div>
                     <div>
-                        <h3 className="small-text font-bold text-gray-500 uppercase mb-3">Most Seen Teams</h3>
+                        <h3 className="small-text font-bold text-slate-500 uppercase mb-3">Most Seen Teams</h3>
                         <div className="space-y-1.5">
                             {patterns.topTeams.map(([team, count], i) => (
                                 <div key={team} className="flex items-center justify-between text-sm">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-gray-400 w-4">{i + 1}.</span>
+                                        <span className="text-slate-400 w-4">{i + 1}.</span>
                                         <span className="font-medium">{team}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                                        <div className="w-20 bg-slate-200 rounded-full h-2">
                                             <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${(count / patterns.topTeams[0][1]) * 100}%` }}></div>
                                         </div>
-                                        <span className="text-xs text-gray-500 w-6 text-right">{count}</span>
+                                        <span className="text-xs text-slate-500 w-6 text-right">{count}</span>
                                     </div>
                                 </div>
                             ))}
@@ -5095,8 +5095,8 @@ const Dashboard = ({ data, onTabChange }) => {
                 <StatCard title="Teams" value={data.teams?.length || 0} color="orange" onClick={() => onTabChange && onTabChange('venues')} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-lg shadow p-6"><MilestoneChart milestones={data.milestones} /></div>
-                <div className="bg-white rounded-lg shadow p-6"><TeamChart teams={data.teams} /></div>
+                <div className="bg-white rounded-lg border border-slate-200 p-6"><MilestoneChart milestones={data.milestones} /></div>
+                <div className="bg-white rounded-lg border border-slate-200 p-6"><TeamChart teams={data.teams} /></div>
             </div>
 
             {/* Trends & Patterns */}
@@ -5110,9 +5110,9 @@ const Dashboard = ({ data, onTabChange }) => {
             {(recentDebuts.length > 0 || recentFinalGames.length > 0) && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {recentDebuts.length > 0 && (
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="bg-white rounded-lg border border-slate-200 p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="subsection-title font-bold text-gray-900">🌟 Recent MLB Debuts</h3>
+                                <h3 className="subsection-title font-bold text-slate-900">🌟 Recent MLB Debuts</h3>
                                 <button onClick={() => onTabChange && onTabChange('special')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
                             </div>
                             <div className="space-y-3">
@@ -5120,18 +5120,18 @@ const Dashboard = ({ data, onTabChange }) => {
                                     <div key={`debut-${d.playerId || i}`} className="flex items-center justify-between py-2 border-b last:border-0">
                                         <div>
                                             <PlayerLink playerId={d.playerId} name={d.player} />
-                                            <span className="small-text text-gray-500 ml-2">{d.team}</span>
+                                            <span className="small-text text-slate-500 ml-2">{d.team}</span>
                                         </div>
-                                        <span className="small-text text-gray-400">{d.date}</span>
+                                        <span className="small-text text-slate-400">{d.date}</span>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
                     {recentFinalGames.length > 0 && (
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="bg-white rounded-lg border border-slate-200 p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="subsection-title font-bold text-gray-900">👋 Recent Final Games</h3>
+                                <h3 className="subsection-title font-bold text-slate-900">👋 Recent Final Games</h3>
                                 <button onClick={() => onTabChange && onTabChange('special')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
                             </div>
                             <div className="space-y-3">
@@ -5139,9 +5139,9 @@ const Dashboard = ({ data, onTabChange }) => {
                                     <div key={`final-${d.playerId || i}`} className="flex items-center justify-between py-2 border-b last:border-0">
                                         <div>
                                             <PlayerLink playerId={d.playerId} name={d.player} />
-                                            <span className="small-text text-gray-500 ml-2">{d.team}</span>
+                                            <span className="small-text text-slate-500 ml-2">{d.team}</span>
                                         </div>
-                                        <span className="small-text text-gray-400">{d.date}</span>
+                                        <span className="small-text text-slate-400">{d.date}</span>
                                     </div>
                                 ))}
                             </div>
@@ -5154,9 +5154,9 @@ const Dashboard = ({ data, onTabChange }) => {
             {(notableCareerMilestones.length > 0 || topPassings.length > 0) && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {notableCareerMilestones.length > 0 && (
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="bg-white rounded-lg border border-slate-200 p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="subsection-title font-bold text-gray-900">⭐ Notable Career Milestones</h3>
+                                <h3 className="subsection-title font-bold text-slate-900">⭐ Notable Career Milestones</h3>
                                 <button onClick={() => onTabChange && onTabChange('milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
                             </div>
                             <div className="space-y-3">
@@ -5167,9 +5167,9 @@ const Dashboard = ({ data, onTabChange }) => {
                                             <span className="inline-flex items-center justify-center min-w-[48px] h-8 bg-gradient-to-r from-amber-400 to-yellow-500 text-white text-sm font-bold rounded-full px-2">#{num}</span>
                                             <div className="flex-1">
                                                 <PlayerLink playerId={m.player_id} name={m.player_name} />
-                                                <span className="small-text text-gray-500 ml-1">{m.milestone?.replace(/#?\\d+\\w*\\s*/, '').trim()}</span>
+                                                <span className="small-text text-slate-500 ml-1">{m.milestone?.replace(/#?\\d+\\w*\\s*/, '').trim()}</span>
                                             </div>
-                                            <span className="small-text text-gray-400">{m.date_display || m.date}</span>
+                                            <span className="small-text text-slate-400">{m.date_display || m.date}</span>
                                         </div>
                                     );
                                 })}
@@ -5177,9 +5177,9 @@ const Dashboard = ({ data, onTabChange }) => {
                         </div>
                     )}
                     {topPassings.length > 0 && (
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="bg-white rounded-lg border border-slate-200 p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="subsection-title font-bold text-gray-900">📜 History Witnessed</h3>
+                                <h3 className="subsection-title font-bold text-slate-900">📜 History Witnessed</h3>
                                 <button onClick={() => onTabChange && onTabChange('milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all {data.allTimePassings?.length || 0} →</button>
                             </div>
                             <div className="space-y-3">
@@ -5190,7 +5190,7 @@ const Dashboard = ({ data, onTabChange }) => {
                                             <PlayerLink playerId={p.player_id} name={p.player_name} />
                                             <span className="small-text text-purple-600 ml-1">{p.stat_name}</span>
                                         </div>
-                                        <span className="small-text text-gray-400">{p.date_display || p.date}</span>
+                                        <span className="small-text text-slate-400">{p.date_display || p.date}</span>
                                     </div>
                                 ))}
                             </div>
@@ -5201,16 +5201,16 @@ const Dashboard = ({ data, onTabChange }) => {
 
             {/* Companions summary */}
             {data.companionData?.companions?.length > 0 && (
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="bg-white rounded-lg border border-slate-200 p-6">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="subsection-title font-bold text-gray-900">👥 Top Game Companions</h3>
+                        <h3 className="subsection-title font-bold text-slate-900">👥 Top Game Companions</h3>
                         <button onClick={() => onTabChange && onTabChange('companions')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {data.companionData.companions.slice(0, 6).map((c, i) => (
-                            <div key={`comp-${c.name || i}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <span className="body-text font-medium text-gray-900">{c.name}</span>
-                                <span className="small-text text-gray-500">{c.games} games</span>
+                            <div key={`comp-${c.name || i}`} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                <span className="body-text font-medium text-slate-900">{c.name}</span>
+                                <span className="small-text text-slate-500">{c.games} games</span>
                             </div>
                         ))}
                     </div>
@@ -5228,14 +5228,14 @@ const BadgeCell = ({ badges, badgeColors }) => {
             {badges.slice(0, 3).map((badge, i) => (
                 <span
                     key={`${badge.type}-${badge.text}-${i}`}
-                    className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-gray-100 text-gray-700'}`}
+                    className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`}
                     title={badge.title}
                 >
                     {badge.text}
                 </span>
             ))}
             {badges.length > 3 && (
-                <span className="px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-600">
+                <span className="px-1.5 py-0.5 rounded text-xs bg-slate-200 text-slate-600">
                     +{badges.length - 3}
                 </span>
             )}
@@ -5243,7 +5243,7 @@ const BadgeCell = ({ badges, badgeColors }) => {
                 <div className="hidden group-hover:block absolute top-full left-0 mt-1 z-20 bg-white rounded-lg shadow-lg border p-2 max-w-sm" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-wrap gap-1">
                         {badges.map((badge, i) => (
-                            <span key={`full-${badge.type}-${badge.text}-${i}`} className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-gray-100 text-gray-700'}`} title={badge.title}>
+                            <span key={`full-${badge.type}-${badge.text}-${i}`} className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`} title={badge.title}>
                                 {badge.text}
                             </span>
                         ))}
@@ -5421,7 +5421,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         'div-first': 'bg-orange-100 text-orange-700',
         'div-complete': 'bg-yellow-100 text-yellow-800 font-bold',
         'div-stadiums': 'bg-indigo-100 text-indigo-700 font-bold',
-        'matchup': 'bg-gray-100 text-gray-700',
+        'matchup': 'bg-slate-100 text-slate-700',
         'holiday': 'bg-red-100 text-red-700',
         'career-first': 'bg-amber-100 text-amber-800 font-bold',
         'cumulative-stat': 'bg-teal-100 text-teal-800 font-bold',
@@ -5545,9 +5545,9 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                 </div>
             </div>
             {/* Badge filter bar */}
-            <div className="bg-white rounded-lg shadow mb-2 p-3">
+            <div className="bg-white rounded-lg border border-slate-200 mb-2 p-3">
                 <div className="flex flex-wrap items-center gap-3">
-                    <span className="small-text font-semibold text-gray-600">🏅 Badge Filter:</span>
+                    <span className="small-text font-semibold text-slate-600">🏅 Badge Filter:</span>
                     <select
                         value={badgeTypeFilter}
                         onChange={(e) => setBadgeTypeFilter(e.target.value)}
@@ -5569,13 +5569,13 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                     {hasBadgeFilter && (
                         <button
                             onClick={() => { setBadgeTypeFilter('all'); setBadgeTextFilter(''); }}
-                            className="px-3 py-1.5 body-text text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+                            className="px-3 py-1.5 body-text text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded"
                         >
                             Clear
                         </button>
                     )}
                     {hasBadgeFilter && (
-                        <span className="small-text text-gray-500">{badgeFilteredGames.length} of {games.length} games</span>
+                        <span className="small-text text-slate-500">{badgeFilteredGames.length} of {games.length} games</span>
                     )}
                 </div>
             </div>
@@ -6071,7 +6071,7 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="p-4 border-b">
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                    <h2 className="section-title font-bold text-gray-900">🗺️ Stadium Checklist</h2>
+                    <h2 className="section-title font-bold text-slate-900">🗺️ Stadium Checklist</h2>
 
                     <div className="flex items-center gap-4">
                         <select
@@ -6089,18 +6089,18 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
 
                 {/* Legend */}
                 <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
-                    <span className="text-gray-600">Legend:</span>
+                    <span className="text-slate-600">Legend:</span>
                     <span className="flex items-center gap-1">
-                        <span className="w-4 h-4 rounded-full bg-gray-400 opacity-40"></span>
-                        <span className="text-gray-600">Not Visited</span>
+                        <span className="w-4 h-4 rounded-full bg-slate-400 opacity-40"></span>
+                        <span className="text-slate-600">Not Visited</span>
                     </span>
                     <span className="flex items-center gap-1">
                         <span className="w-4 h-4 rounded-full bg-green-500"></span>
-                        <span className="text-gray-600">Visited</span>
+                        <span className="text-slate-600">Visited</span>
                     </span>
                     <span className="flex items-center gap-1">
                         <span className="w-4 h-4 rounded-full bg-orange-500"></span>
-                        <span className="text-gray-600">Visited + Saw Orioles</span>
+                        <span className="text-slate-600">Visited + Saw Orioles</span>
                     </span>
                 </div>
             </div>
@@ -6109,27 +6109,27 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
             <div ref={mapRef} style={{ height: '500px', width: '100%' }}></div>
 
             {/* Progress Stats */}
-            <div className="p-4 border-t bg-gray-50">
+            <div className="p-4 border-t bg-slate-50">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-green-600">{stats.visitedCurrent}/{stats.currentTotal}</div>
-                        <div className="small-text text-gray-600">Current Stadiums</div>
-                        <div className="text-xs text-gray-400">{stats.percentCurrent}% complete</div>
+                        <div className="small-text text-slate-600">Current Stadiums</div>
+                        <div className="text-xs text-slate-400">{stats.percentCurrent}% complete</div>
                     </div>
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-orange-500">{stats.oriolesCurrent}/{stats.currentTotal}</div>
-                        <div className="small-text text-gray-600">Saw Orioles</div>
-                        <div className="text-xs text-gray-400">{stats.percentOrioles}% complete</div>
+                        <div className="small-text text-slate-600">Saw Orioles</div>
+                        <div className="text-xs text-slate-400">{stats.percentOrioles}% complete</div>
                     </div>
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-blue-600">{stats.totalVisited}</div>
-                        <div className="small-text text-gray-600">Total Stadiums</div>
-                        <div className="text-xs text-gray-400">Including historical</div>
+                        <div className="small-text text-slate-600">Total Stadiums</div>
+                        <div className="text-xs text-slate-400">Including historical</div>
                     </div>
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-purple-600">{stats.totalOrioles}</div>
-                        <div className="small-text text-gray-600">O's Venues</div>
-                        <div className="text-xs text-gray-400">Total Orioles venues</div>
+                        <div className="small-text text-slate-600">O's Venues</div>
+                        <div className="text-xs text-slate-400">Total Orioles venues</div>
                     </div>
                 </div>
             </div>
@@ -6142,9 +6142,9 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
                     if (visitedStadiums.length === 0) return null;
                     return (
                         <div className="mb-4">
-                            <h3 className="font-semibold text-gray-700 mb-3">
+                            <h3 className="font-semibold text-slate-700 mb-3">
                                 Visited Stadiums
-                                <span className="text-sm font-normal text-gray-500 ml-2">({visitedStadiums.length})</span>
+                                <span className="text-sm font-normal text-slate-500 ml-2">({visitedStadiums.length})</span>
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                                 {visitedStadiums.map(stadium => {
@@ -6159,8 +6159,8 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
                                         >
                                             <span className="text-lg">{sawOrioles ? '🧡' : '✅'}</span>
                                             <div className="flex-1 min-w-0">
-                                                <div className="font-medium truncate text-gray-900">{stadium.name}</div>
-                                                <div className="text-xs text-gray-500">
+                                                <div className="font-medium truncate text-slate-900">{stadium.name}</div>
+                                                <div className="text-xs text-slate-500">
                                                     {stadium.team} {!stadium.current && '(Defunct)'}
                                                     {data.games && ` • ${data.games} games`}
                                                 </div>
@@ -6179,20 +6179,20 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
                     if (toVisit.length === 0) return null;
                     return (
                         <div>
-                            <h3 className="font-semibold text-gray-700 mb-3">
+                            <h3 className="font-semibold text-slate-700 mb-3">
                                 Still To Visit
-                                <span className="text-sm font-normal text-gray-500 ml-2">({toVisit.length} remaining)</span>
+                                <span className="text-sm font-normal text-slate-500 ml-2">({toVisit.length} remaining)</span>
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                                 {toVisit.map(stadium => (
                                     <div
                                         key={stadium.id}
-                                        className="flex items-center gap-2 p-2 rounded text-sm bg-gray-50 border border-gray-200"
+                                        className="flex items-center gap-2 p-2 rounded text-sm bg-slate-50 border border-slate-200"
                                     >
                                         <span className="text-lg opacity-30">⬜</span>
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-medium truncate text-gray-400">{stadium.name}</div>
-                                            <div className="text-xs text-gray-400">{stadium.team}</div>
+                                            <div className="font-medium truncate text-slate-400">{stadium.name}</div>
+                                            <div className="text-xs text-slate-400">{stadium.team}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -6548,7 +6548,7 @@ const DivisionChecklist = ({ divisionChecklist, games }) => {
         : 0;
 
     return (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg border border-slate-200">
             <div className="p-4 border-b">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <h2 className="section-title font-bold">Division Checklist</h2>
@@ -6565,13 +6565,13 @@ const DivisionChecklist = ({ divisionChecklist, games }) => {
                         <div className="flex border rounded-lg overflow-hidden">
                             <button
                                 onClick={() => setViewMode('teams')}
-                                className={`px-3 py-2 ${viewMode === 'teams' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+                                className={`px-3 py-2 ${viewMode === 'teams' ? 'bg-blue-500 text-white' : 'bg-slate-100'}`}
                             >
                                 Teams
                             </button>
                             <button
                                 onClick={() => setViewMode('stadiums')}
-                                className={`px-3 py-2 ${viewMode === 'stadiums' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+                                className={`px-3 py-2 ${viewMode === 'stadiums' ? 'bg-blue-500 text-white' : 'bg-slate-100'}`}
                             >
                                 Stadiums
                             </button>
@@ -6581,39 +6581,39 @@ const DivisionChecklist = ({ divisionChecklist, games }) => {
             </div>
 
             {/* Progress Summary */}
-            <div className="p-4 bg-gray-50 border-b">
+            <div className="p-4 bg-slate-50 border-b">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-blue-600">
                             {currentData.teamsSeen}/{currentData.totalTeams}
                         </div>
-                        <div className="text-sm text-gray-600">Teams Seen</div>
-                        <div className="text-xs text-gray-400">{teamProgress}% complete</div>
+                        <div className="text-sm text-slate-600">Teams Seen</div>
+                        <div className="text-xs text-slate-400">{teamProgress}% complete</div>
                     </div>
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-green-600">
                             {currentData.stadiumsVisited}/{currentData.totalStadiums}
                         </div>
-                        <div className="text-sm text-gray-600">Stadiums Visited</div>
-                        <div className="text-xs text-gray-400">{stadiumProgress}% complete</div>
+                        <div className="text-sm text-slate-600">Stadiums Visited</div>
+                        <div className="text-xs text-slate-400">{stadiumProgress}% complete</div>
                     </div>
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-purple-600">
                             {Object.keys(tracking.divisionTeamsCompleted || {}).length}/6
                         </div>
-                        <div className="text-sm text-gray-600">Div. Teams</div>
+                        <div className="text-sm text-slate-600">Div. Teams</div>
                     </div>
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-indigo-600">
                             {Object.keys(tracking.divisionStadiumsCompleted || {}).length}/6
                         </div>
-                        <div className="text-sm text-gray-600">Div. Stadiums</div>
+                        <div className="text-sm text-slate-600">Div. Stadiums</div>
                     </div>
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-orange-600">
                             {tracking.totalGames || games?.length || 0}
                         </div>
-                        <div className="text-sm text-gray-600">Total Games</div>
+                        <div className="text-sm text-slate-600">Total Games</div>
                     </div>
                 </div>
             </div>
@@ -6632,15 +6632,15 @@ const DivisionChecklist = ({ divisionChecklist, games }) => {
                                 className={`flex items-center gap-3 p-3 rounded-lg border ${
                                     isSeen
                                         ? 'bg-green-50 border-green-200'
-                                        : 'bg-gray-50 border-gray-200'
+                                        : 'bg-slate-50 border-slate-200'
                                 }`}
                             >
                                 <span className="text-2xl">{isSeen ? '✅' : '⬜'}</span>
                                 <div className="flex-1 min-w-0">
-                                    <div className={`font-medium truncate ${!isSeen && 'text-gray-400'}`}>
+                                    <div className={`font-medium truncate ${!isSeen && 'text-slate-400'}`}>
                                         {displayName || 'Unknown'}
                                     </div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-xs text-slate-500">
                                         {viewMode === 'teams' ? team.division : team.teamName}
                                         {isSeen && count > 0 && ` • ${count} ${count === 1 ? 'game' : 'games'}`}
                                     </div>
@@ -6654,7 +6654,7 @@ const DivisionChecklist = ({ divisionChecklist, games }) => {
             {/* Division Progress Cards */}
             {selectedGroup === 'All MLB' && (
                 <div className="p-4 border-t">
-                    <h3 className="font-semibold text-gray-700 mb-4">Division Progress</h3>
+                    <h3 className="font-semibold text-slate-700 mb-4">Division Progress</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {['AL East', 'AL Central', 'AL West', 'NL East', 'NL Central', 'NL West'].map(div => {
                             const divData = divisionChecklist?.[div] || {};
@@ -6668,14 +6668,14 @@ const DivisionChecklist = ({ divisionChecklist, games }) => {
                                     key={div}
                                     onClick={() => setSelectedGroup(div)}
                                     className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                                        isComplete ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'
+                                        isComplete ? 'bg-green-50 border-green-300' : 'bg-white border-slate-200'
                                     }`}
                                 >
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="font-semibold">{div}</span>
                                         <span className="text-sm">{divData.teamsSeen}/{divData.totalTeams}</span>
                                     </div>
-                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                                         <div
                                             className={`h-full rounded-full transition-all ${
                                                 isComplete ? 'bg-green-500' : 'bg-blue-500'
@@ -6770,11 +6770,11 @@ const BadgesDisplay = ({ games }) => {
             'holiday': 'bg-red-100 border-red-300',
             'div-stadiums': 'bg-indigo-100 border-indigo-300',
         };
-        return colors[type] || 'bg-gray-100 border-gray-300';
+        return colors[type] || 'bg-slate-100 border-slate-300';
     };
 
     return (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg border border-slate-200">
             <div className="p-4 border-b">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <h2 className="section-title font-bold">Badges & Milestones</h2>
@@ -6797,23 +6797,23 @@ const BadgesDisplay = ({ games }) => {
             </div>
 
             {/* Summary Stats */}
-            <div className="p-4 bg-gray-50 border-b">
+            <div className="p-4 bg-slate-50 border-b">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-blue-600">{badgeCounts.all}</div>
-                        <div className="text-sm text-gray-600">Total Badges</div>
+                        <div className="text-sm text-slate-600">Total Badges</div>
                     </div>
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-green-600">{badgeCounts['div-complete'] || 0}</div>
-                        <div className="text-sm text-gray-600">Divisions Complete</div>
+                        <div className="text-sm text-slate-600">Divisions Complete</div>
                     </div>
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-purple-600">{milestoneData.tracking?.venueOrder?.length || 0}</div>
-                        <div className="text-sm text-gray-600">Unique Venues</div>
+                        <div className="text-sm text-slate-600">Unique Venues</div>
                     </div>
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-orange-600">{Object.keys(milestoneData.tracking?.matchupsSeen || {}).length}</div>
-                        <div className="text-sm text-gray-600">Unique Matchups</div>
+                        <div className="text-sm text-slate-600">Unique Matchups</div>
                     </div>
                 </div>
             </div>
@@ -6837,9 +6837,9 @@ const BadgesDisplay = ({ games }) => {
                                 <div className="flex items-start gap-3">
                                     <span className="text-2xl">{getBadgeIcon(badge.type)}</span>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-semibold text-gray-800 truncate">{badge.text}</div>
-                                        <div className="text-xs text-gray-600 truncate">{badge.away} vs {badge.home}</div>
-                                        <div className="text-xs text-gray-400 mt-1">{badge.date}</div>
+                                        <div className="font-semibold text-slate-800 truncate">{badge.text}</div>
+                                        <div className="text-xs text-slate-600 truncate">{badge.away} vs {badge.home}</div>
+                                        <div className="text-xs text-slate-400 mt-1">{badge.date}</div>
                                     </div>
                                 </div>
                             </div>
@@ -6866,12 +6866,12 @@ class ErrorBoundary extends React.Component {
     render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="min-h-screen flex items-center justify-center bg-slate-50">
                     <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg text-center">
                         <h2 className="text-xl font-bold text-red-600 mb-4">Something went wrong</h2>
-                        <p className="text-gray-600 mb-4">{this.state.error?.message || 'An unexpected error occurred while rendering.'}</p>
+                        <p className="text-slate-600 mb-4">{this.state.error?.message || 'An unexpected error occurred while rendering.'}</p>
                         <button onClick={() => { this.setState({ hasError: false, error: null }); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mr-2">Try Again</button>
-                        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Reload Page</button>
+                        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">Reload Page</button>
                     </div>
                 </div>
             );
@@ -7005,21 +7005,21 @@ const JerseyCollection = ({ jerseyLog }) => {
 
     return (
         <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
                 <div className="mb-4">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div>
                             <h2 className="section-title font-bold">Jersey Number Collection</h2>
-                            <p className="body-text text-gray-500 mt-1">
+                            <p className="body-text text-slate-500 mt-1">
                                 {collected} of {total} numbers collected ({Math.round(collected / total * 100)}%)
                             </p>
                         </div>
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" checked={includeSpring} onChange={(e) => setIncludeSpring(e.target.checked)} className="rounded" />
-                            <span className="body-text text-gray-600">Include Spring Training</span>
+                            <span className="body-text text-slate-600">Include Spring Training</span>
                         </label>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 mt-2">
+                    <div className="w-full bg-slate-200 rounded-full h-3 mt-2">
                         <div className="bg-blue-600 h-3 rounded-full transition-all" style={{ width: `${(collected / total * 100)}%` }}></div>
                     </div>
                 </div>
@@ -7036,7 +7036,7 @@ const JerseyCollection = ({ jerseyLog }) => {
                                         ? selectedNumber === num
                                             ? 'bg-blue-600 text-white ring-2 ring-blue-400'
                                             : 'bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer'
-                                        : 'bg-gray-100 text-gray-400'
+                                        : 'bg-slate-100 text-slate-400'
                                 }`}
                                 title={hasPlayers ? `#${num}: ${players.length} player${players.length > 1 ? 's' : ''}` : `#${num}: not seen yet`}
                             >
@@ -7066,9 +7066,9 @@ const JerseyCollection = ({ jerseyLog }) => {
                                 <div key={`${p.playerId}-${i}`} className="flex items-center justify-between bg-white rounded p-2">
                                     <div className="flex items-center gap-2">
                                         <PlayerLink playerId={p.playerId} name={p.name} />
-                                        <span className="text-xs text-gray-500">{p.team}</span>
+                                        <span className="text-xs text-slate-500">{p.team}</span>
                                     </div>
-                                    <span className="text-xs text-gray-400">{p.date}</span>
+                                    <span className="text-xs text-slate-400">{p.date}</span>
                                 </div>
                             ))}
                         </div>
@@ -7239,16 +7239,16 @@ const PlayerOrigins = ({ playerBios, allPlayers }) => {
     }, [selectedPlace, data]);
 
     return (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                 <div>
                     <h2 className="section-title font-bold">Player Origins</h2>
-                    <p className="body-text text-gray-500 mt-1">{data.total} players from {Object.keys(data.byCountry).length} countries, {Object.keys(data.byState).length} US states</p>
+                    <p className="body-text text-slate-500 mt-1">{data.total} players from {Object.keys(data.byCountry).length} countries, {Object.keys(data.byState).length} US states</p>
                 </div>
                 <div className="flex rounded-lg overflow-hidden border">
-                    <button onClick={() => { setViewMode('statesMap'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'statesMap' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>US States</button>
-                    <button onClick={() => { setViewMode('countriesMap'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'countriesMap' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>World</button>
-                    <button onClick={() => { setViewMode('list'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>List</button>
+                    <button onClick={() => { setViewMode('statesMap'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'statesMap' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>US States</button>
+                    <button onClick={() => { setViewMode('countriesMap'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'countriesMap' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>World</button>
+                    <button onClick={() => { setViewMode('list'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>List</button>
                 </div>
             </div>
 
@@ -7286,7 +7286,7 @@ const PlayerOrigins = ({ playerBios, allPlayers }) => {
                         {selectedPlayers.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(p => (
                             <span key={p.playerId} className="px-2 py-1 bg-white rounded text-sm">
                                 <PlayerLink playerId={p.playerId} name={p.name} />
-                                {p.birthCity && <span className="text-gray-400 text-xs ml-1">({p.birthCity})</span>}
+                                {p.birthCity && <span className="text-slate-400 text-xs ml-1">({p.birthCity})</span>}
                             </span>
                         ))}
                     </div>
@@ -7296,8 +7296,8 @@ const PlayerOrigins = ({ playerBios, allPlayers }) => {
             {viewMode === 'list' && (
                 <div className="space-y-2">
                     {Object.entries(data.byCountry).sort((a, b) => b[1].length - a[1].length).map(([place, players]) => (
-                        <details key={place} className="bg-gray-50 rounded-lg">
-                            <summary className="px-4 py-3 cursor-pointer hover:bg-gray-100 flex items-center justify-between">
+                        <details key={place} className="bg-slate-50 rounded-lg">
+                            <summary className="px-4 py-3 cursor-pointer hover:bg-slate-100 flex items-center justify-between">
                                 <span className="font-semibold body-text">{place}</span>
                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold">{players.length}</span>
                             </summary>
@@ -7305,7 +7305,7 @@ const PlayerOrigins = ({ playerBios, allPlayers }) => {
                                 {players.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(p => (
                                     <span key={p.playerId} className="px-2 py-1 bg-white rounded text-sm">
                                         <PlayerLink playerId={p.playerId} name={p.name} />
-                                        {p.birthCity && <span className="text-gray-400 text-xs ml-1">({p.birthCity})</span>}
+                                        {p.birthCity && <span className="text-slate-400 text-xs ml-1">({p.birthCity})</span>}
                                     </span>
                                 ))}
                             </div>
@@ -7343,13 +7343,13 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
     }, [playerBios, allPlayers]);
 
     return (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
             <div className="mb-4">
                 <h2 className="section-title font-bold">Birthday Calendar</h2>
-                <p className="body-text text-gray-500 mt-1">
+                <p className="body-text text-slate-500 mt-1">
                     {data.collected} of {data.totalDays} days collected ({Math.round(data.collected / data.totalDays * 100)}%)
                 </p>
-                <div className="w-full bg-gray-200 rounded-full h-3 mt-2">
+                <div className="w-full bg-slate-200 rounded-full h-3 mt-2">
                     <div className="bg-purple-600 h-3 rounded-full transition-all" style={{ width: `${(data.collected / data.totalDays * 100)}%` }}></div>
                 </div>
             </div>
@@ -7366,17 +7366,17 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
                     }).reduce((a, b) => a + b, 0);
 
                     return (
-                        <div key={month} className="bg-gray-50 rounded-lg p-3">
+                        <div key={month} className="bg-slate-50 rounded-lg p-3">
                             <div className="flex items-center justify-between mb-1">
-                                <div className="text-sm font-bold text-gray-700">{month}</div>
-                                <div className="text-xs text-gray-500">{collected}/{days}</div>
+                                <div className="text-sm font-bold text-slate-700">{month}</div>
+                                <div className="text-xs text-slate-500">{collected}/{days}</div>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+                            <div className="w-full bg-slate-200 rounded-full h-1.5 mb-2">
                                 <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${(collected / days * 100)}%` }}></div>
                             </div>
                             <div className="grid grid-cols-7 gap-0.5 text-center">
                                 {['S','M','T','W','T','F','S'].map((d, i) => (
-                                    <div key={`hdr-${i}`} className="text-[10px] font-medium text-gray-400 py-0.5">{d}</div>
+                                    <div key={`hdr-${i}`} className="text-[10px] font-medium text-slate-400 py-0.5">{d}</div>
                                 ))}
                                 {Array.from({ length: firstDow }, (_, i) => (
                                     <div key={`pad-${i}`}></div>
@@ -7400,7 +7400,7 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
                                                 count >= 10 ? 'bg-purple-500 text-white cursor-pointer' :
                                                 count >= 5 ? 'bg-purple-300 text-purple-900 cursor-pointer' :
                                                 hasPlayers ? 'bg-purple-100 text-purple-800 hover:bg-purple-200 cursor-pointer' :
-                                                'text-gray-400'
+                                                'text-slate-400'
                                             }`}
                                             title={hasPlayers ? `${month} ${di+1}: ${count} player${count > 1 ? 's' : ''}` : `${month} ${di+1}`}
                                         >
@@ -7416,21 +7416,21 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
 
             {selectedDay && data.byDay[selectedDay] && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedDay(null)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b bg-purple-600 text-white rounded-t-lg flex items-center justify-between">
                             <h3 className="font-bold">
                                 {monthNames[parseInt(selectedDay.split('-')[0]) - 1]} {parseInt(selectedDay.split('-')[1])} — {data.byDay[selectedDay].length} player{data.byDay[selectedDay].length > 1 ? 's' : ''}
                             </h3>
-                            <button onClick={() => setSelectedDay(null)} className="text-white hover:text-gray-200 text-xl leading-none">&times;</button>
+                            <button onClick={() => setSelectedDay(null)} className="text-white hover:text-slate-200 text-xl leading-none">&times;</button>
                         </div>
                         <div className="p-4 space-y-2">
                             {data.byDay[selectedDay]
                                 .filter((p, i, arr) => arr.findIndex(x => x.playerId === p.playerId) === i)
                                 .sort((a, b) => (a.birthDate || '').localeCompare(b.birthDate || ''))
                                 .map((p, i) => (
-                                <div key={`${p.playerId}-${i}`} className="flex items-center justify-between bg-gray-50 rounded p-2">
+                                <div key={`${p.playerId}-${i}`} className="flex items-center justify-between bg-slate-50 rounded p-2">
                                     <PlayerLink playerId={p.playerId} name={p.name} />
-                                    <span className="text-xs text-gray-400">{p.birthDate}</span>
+                                    <span className="text-xs text-slate-400">{p.birthDate}</span>
                                 </div>
                             ))}
                         </div>
@@ -7452,7 +7452,7 @@ const DebutPerformance = ({ r }) => {
         if (r.so > 0) parts.push(`${r.so} SO`);
         return <span className="font-mono small-text">{parts.join(', ')}</span>;
     }
-    return <span className="text-gray-500 italic small-text">Defensive replacement</span>;
+    return <span className="text-slate-500 italic small-text">Defensive replacement</span>;
 };
 
 const PersonalRecords = ({ data }) => {
@@ -7520,15 +7520,15 @@ const PersonalRecords = ({ data }) => {
     return (
         <div className="space-y-4">
             {/* Category filter pills */}
-            <div className="bg-white rounded-lg shadow p-3">
+            <div className="bg-white rounded-lg border border-slate-200 p-3">
                 <div className="flex flex-wrap gap-2">
                     <button onClick={() => setActiveCategory('all')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${activeCategory === 'all' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${activeCategory === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                         All ({allRecords.length})
                     </button>
                     {activeCats.map(([name, records]) => (
                         <button key={name} onClick={() => setActiveCategory(name)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${activeCategory === name ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${activeCategory === name ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                             {categoryConfig[name]?.icon} {name} ({records.length})
                         </button>
                     ))}
@@ -7555,15 +7555,15 @@ const PersonalRecords = ({ data }) => {
                             <div className="p-3 cursor-pointer" onClick={() => hasDetail && setExpandedRecord(isExpanded ? null : record.key)}>
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-semibold text-gray-900">{record.record}</div>
+                                        <div className="text-sm font-semibold text-slate-900">{record.record}</div>
                                         {!isExpanded && previewText && (
-                                            <div className="text-xs text-gray-500 mt-0.5 truncate">{previewText}</div>
+                                            <div className="text-xs text-slate-500 mt-0.5 truncate">{previewText}</div>
                                         )}
                                     </div>
                                     <div className="text-right flex-shrink-0">
                                         <div className="text-xl font-bold text-blue-600">{record.value}</div>
                                         {activeCategory === 'all' && (
-                                            <div className="text-[10px] text-gray-400">{record.category}</div>
+                                            <div className="text-[10px] text-slate-400">{record.category}</div>
                                         )}
                                     </div>
                                 </div>
@@ -7583,14 +7583,14 @@ const PersonalRecords = ({ data }) => {
                                             }
                                         });
                                         return grouped.map((group, gi) => (
-                                            <div key={gi} className="bg-gray-50 rounded p-2 text-xs">
+                                            <div key={gi} className="bg-slate-50 rounded p-2 text-xs">
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="space-y-0.5 flex-1">
                                                         {group.details.map((d, di) => (
-                                                            <div key={di} className="text-gray-700">{d}</div>
+                                                            <div key={di} className="text-slate-700">{d}</div>
                                                         ))}
                                                     </div>
-                                                    {group.score && <span className="text-gray-400 whitespace-nowrap flex-shrink-0">{group.score}</span>}
+                                                    {group.score && <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{group.score}</span>}
                                                 </div>
                                             </div>
                                         ));
@@ -7603,7 +7603,7 @@ const PersonalRecords = ({ data }) => {
                                                     {g.date} {g.awayTeam}@{g.homeTeam} {g.score ? `(${g.score})` : ''}
                                                 </button>
                                             ))}
-                                            {games.length > 12 && <span className="text-[10px] text-gray-400">+{games.length - 12} more</span>}
+                                            {games.length > 12 && <span className="text-[10px] text-slate-400">+{games.length - 12} more</span>}
                                         </div>
                                     )}
                                 </div>
@@ -7692,28 +7692,28 @@ const ScorigamiChart = ({ games }) => {
     }, [games]);
 
     return (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
             <div className="mb-4">
                 <h2 className="section-title font-bold">Personal Scorigami</h2>
-                <p className="body-text text-gray-500 mt-1">{data.unique} unique final scores witnessed</p>
+                <p className="body-text text-slate-500 mt-1">{data.unique} unique final scores witnessed</p>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                     <thead>
                         <tr>
-                            <th className="p-0 text-xs text-gray-500 text-center" style={{width:'30px'}}></th>
+                            <th className="p-0 text-xs text-slate-500 text-center" style={{width:'30px'}}></th>
                             {Array.from({ length: data.displayMaxWinner + 1 }, (_, i) => (
-                                <th key={i} className="p-0 text-xs text-gray-500 text-center">{i}</th>
+                                <th key={i} className="p-0 text-xs text-slate-500 text-center">{i}</th>
                             ))}
                         </tr>
                     </thead>
                     <tbody>
                         {Array.from({ length: data.displayMaxLoser + 1 }, (_, loser) => (
                             <tr key={loser}>
-                                <td className="p-0 text-xs text-gray-500 text-center font-medium" style={{width:'30px'}}>{loser}</td>
+                                <td className="p-0 text-xs text-slate-500 text-center font-medium" style={{width:'30px'}}>{loser}</td>
                                 {Array.from({ length: data.displayMaxWinner + 1 }, (_, winner) => {
                                     if (winner <= loser) {
-                                        return <td key={winner} className="p-px"><div className="w-full aspect-square bg-gray-200 rounded-sm"></div></td>;
+                                        return <td key={winner} className="p-px"><div className="w-full aspect-square bg-slate-200 rounded-sm"></div></td>;
                                     }
                                     const key = `${loser}-${winner}`;
                                     const count = data.scoreCounts[key] || 0;
@@ -7728,7 +7728,7 @@ const ScorigamiChart = ({ games }) => {
                                                     count >= 3 ? 'bg-green-400 text-white' :
                                                     count >= 2 ? 'bg-green-300 text-green-900' :
                                                     count === 1 ? 'bg-green-100 text-green-800' :
-                                                    'bg-white border border-gray-200'
+                                                    'bg-white border border-slate-200'
                                                 } ${count > 0 ? 'cursor-pointer hover:ring-1 hover:ring-blue-300' : ''}`}
                                                 title={count > 0 ? `${loser}-${winner}: ${count} game${count > 1 ? 's' : ''}` : `${loser}-${winner}: never seen`}
                                             >
@@ -7741,11 +7741,11 @@ const ScorigamiChart = ({ games }) => {
                         ))}
                     </tbody>
                 </table>
-                <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
                     <span>Losing score ↓</span>
                     <span>Winning score →</span>
                     <div className="flex items-center gap-1 ml-4">
-                        <div className="w-3 h-3 bg-white border border-gray-200 rounded-sm"></div> <span>0</span>
+                        <div className="w-3 h-3 bg-white border border-slate-200 rounded-sm"></div> <span>0</span>
                         <div className="w-3 h-3 bg-green-100 rounded-sm ml-1"></div> <span>1</span>
                         <div className="w-3 h-3 bg-green-300 rounded-sm ml-1"></div> <span>2</span>
                         <div className="w-3 h-3 bg-green-400 rounded-sm ml-1"></div> <span>3-4</span>
@@ -7756,23 +7756,23 @@ const ScorigamiChart = ({ games }) => {
 
             {selectedCell && data.scoreGames[selectedCell] && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedCell(null)}>
-                    <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-lg max-w-lg w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b bg-green-600 text-white rounded-t-lg flex items-center justify-between">
                             <h3 className="font-bold">Final Score: {selectedCell.replace('-', ' - ')} ({data.scoreGames[selectedCell].length} game{data.scoreGames[selectedCell].length > 1 ? 's' : ''})</h3>
-                            <button onClick={() => setSelectedCell(null)} className="text-white hover:text-gray-200 text-xl leading-none">&times;</button>
+                            <button onClick={() => setSelectedCell(null)} className="text-white hover:text-slate-200 text-xl leading-none">&times;</button>
                         </div>
                         <div className="p-3 space-y-2">
                             {data.scoreGames[selectedCell].map((g, i) => (
-                                <div key={i} className="bg-gray-50 rounded p-3">
+                                <div key={i} className="bg-slate-50 rounded p-3">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <span className="font-bold text-green-700">{g.winnerTeam} {g.winnerScore}</span>
-                                            <span className="text-gray-400">def.</span>
-                                            <span className="text-gray-600">{g.loserTeam} {g.loserScore}</span>
+                                            <span className="text-slate-400">def.</span>
+                                            <span className="text-slate-600">{g.loserTeam} {g.loserScore}</span>
                                         </div>
-                                        <span className="text-xs text-gray-500">{g.date}</span>
+                                        <span className="text-xs text-slate-500">{g.date}</span>
                                     </div>
-                                    <div className="text-xs text-gray-400 mt-1">{g.awayTeam} @ {g.homeTeam} • {g.venue || ''}</div>
+                                    <div className="text-xs text-slate-400 mt-1">{g.awayTeam} @ {g.homeTeam} • {g.venue || ''}</div>
                                 </div>
                             ))}
                         </div>
@@ -8103,17 +8103,17 @@ const App = () => {
     if (loadError) {
         const isFileProtocol = loadError === 'file_protocol';
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
                 <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg text-center">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">{isFileProtocol ? 'Local File Access' : 'Failed to Load Data'}</h2>
+                    <h2 className="text-xl font-bold text-slate-800 mb-4">{isFileProtocol ? 'Local File Access' : 'Failed to Load Data'}</h2>
                     {isFileProtocol ? (
-                        <div className="text-left text-gray-600 space-y-3">
+                        <div className="text-left text-slate-600 space-y-3">
                             <p>This page needs a local server to load data. Run one of these from the folder containing this file:</p>
-                            <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">python3 -m http.server 8000</pre>
+                            <pre className="bg-slate-100 p-3 rounded text-sm overflow-x-auto">python3 -m http.server 8000</pre>
                             <p>Then open <a href="http://localhost:8000" className="text-blue-600 underline">http://localhost:8000</a></p>
                         </div>
                     ) : (
-                        <p className="text-gray-600">{loadError}</p>
+                        <p className="text-slate-600">{loadError}</p>
                     )}
                 </div>
             </div>
@@ -8122,10 +8122,10 @@ const App = () => {
 
     if (!data) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
                 <div className="text-center">
                     <div className="inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full" style={{ animation: 'spin 1s linear infinite' }}></div>
-                    <p className="mt-4 text-lg font-medium text-gray-600">Loading baseball data...</p>
+                    <p className="mt-4 text-lg font-medium text-slate-600">Loading baseball data...</p>
                 </div>
             </div>
         );
@@ -8150,7 +8150,7 @@ const App = () => {
                 <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <div>
                         <h1 className={`text-base sm:text-lg font-bold tracking-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>Baseball Statistics Portal</h1>
-                        <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{data.games?.length || 0} games attended • {(data.players?.length || 0) + (data.pitchers?.length || 0)} players seen</p>
+                        <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{data.games?.length || 0} games attended • {(data.players?.length || 0) + (data.pitchers?.length || 0)} players seen</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <div ref={searchRef} role="search" className="relative flex-1 sm:flex-none">
@@ -8161,17 +8161,17 @@ const App = () => {
                                 value={searchQuery}
                                 onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
                                 onFocus={() => setSearchOpen(true)}
-                                className={`w-full sm:w-48 md:w-64 px-3 py-2 rounded-lg text-sm transition-colors border ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'} outline-none`}
+                                className={`w-full sm:w-48 md:w-64 px-3 py-2 rounded-lg text-sm transition-colors border ${darkMode ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:border-blue-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-500'} outline-none`}
                             />
                             {searchOpen && searchResults.length > 0 && (
-                                <div className={`absolute top-full right-0 mt-1 w-80 rounded-lg shadow-xl border z-[60] max-h-96 overflow-y-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                                <div className={`absolute top-full right-0 mt-1 w-80 rounded-lg shadow-md border z-[60] max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                                     {searchResults.map((r, i) => (
                                         <button key={`search-${r.type}-${r.id || r.label}-${i}`} onClick={() => { setTab(r.tab); setSearchQuery(''); setSearchOpen(false); }}
-                                            className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${darkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-800'}`}>
+                                            className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${darkMode ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-blue-50 text-slate-800'}`}>
                                             <span className="text-xs font-medium uppercase opacity-50 w-14 shrink-0">{r.type}</span>
                                             <div className="min-w-0">
                                                 <div className="text-sm font-medium truncate">{r.label}</div>
-                                                {r.sub && <div className={`text-xs truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{r.sub}</div>}
+                                                {r.sub && <div className={`text-xs truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{r.sub}</div>}
                                             </div>
                                         </button>
                                     ))}
@@ -8180,7 +8180,7 @@ const App = () => {
                         </div>
                         <button
                             onClick={() => setDarkMode(!darkMode)}
-                            className={`px-3 py-2 rounded-lg transition-colors border ${darkMode ? 'bg-gray-700 border-gray-600 hover:bg-gray-600 text-white' : 'bg-gray-50 border-gray-300 hover:bg-gray-100 text-gray-700'}`}
+                            className={`px-3 py-2 rounded-lg transition-colors border ${darkMode ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-white' : 'bg-slate-50 border-slate-300 hover:bg-slate-100 text-slate-700'}`}
                             title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
                         >
                             {darkMode ? '☀️' : '🌙'}
@@ -8226,7 +8226,7 @@ const App = () => {
             {showScrollTop && (
                 <button
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                    className={`fixed bottom-6 right-6 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all z-50 ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                    className={`fixed bottom-6 right-6 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all z-50 ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                     title="Scroll to top"
                     aria-label="Scroll to top"
                 >
