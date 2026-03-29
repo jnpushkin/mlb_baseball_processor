@@ -106,6 +106,50 @@ def deploy_to_surge(html_path: str, domain: str | None = None) -> bool:
             return False
 
 
+def _print_game_summary(game_data):
+    """Print a 'New This Game' summary highlighting notable aspects."""
+    bi = game_data.get('basic_info', {})
+    game_id = game_data.get('game_id', '')
+    highlights = []
+
+    # Pitch superlatives
+    pd = game_data.get('pitch_data', {})
+    if pd:
+        max_velo = max((p.get('maxSpeed', 0) or 0 for p in pd.values()), default=0)
+        if max_velo > 0:
+            pitcher = next((p['name'] for p in pd.values() if p.get('maxSpeed') == max_velo), '')
+            highlights.append(f"Fastest pitch: {max_velo} mph ({pitcher})")
+
+    # Exit velo superlatives
+    hd = game_data.get('hit_data', {})
+    if hd:
+        max_ev = max((h.get('maxExitVelo', 0) or 0 for h in hd.values()), default=0)
+        if max_ev > 0:
+            batter = next((h['name'] for h in hd.values() if h.get('maxExitVelo') == max_ev), '')
+            highlights.append(f"Hardest hit: {max_ev} mph ({batter})")
+
+    # Milestones
+    ms = game_data.get('milestone_stats', {})
+    for key, events in ms.items():
+        if isinstance(events, list) and events:
+            for e in events:
+                highlights.append(f"Milestone: {e.get('player', '')} — {key.replace('_', ' ').title()}")
+
+    # ABS challenges
+    abs_data = game_data.get('abs_challenges', {})
+    if abs_data:
+        reviews = abs_data.get('reviews', [])
+        if reviews:
+            for r in reviews:
+                result = 'Overturned' if r.get('overturned') else 'Upheld'
+                highlights.append(f"ABS Challenge: {result} — {r.get('originalCall', 'call')} ({r.get('batter', '')} vs {r.get('pitcher', '')})")
+
+    if highlights:
+        info(f"  📝 New This Game:")
+        for h in highlights[:8]:
+            info(f"     • {h}")
+
+
 def _refresh_all_time_leaders_if_stale(max_age_days=7):
     """Refresh all-time leaders from BREF if data is older than max_age_days."""
     import subprocess
@@ -491,6 +535,9 @@ def process_html_file(file_path, index=None, total=None):
                 _update_gamelogs_for_game(cache_path)
             except Exception as e:
                 debug(f"  ⚠️ Gamelogs update skipped: {e}")
+
+        # Print "New This Game" summary
+        _print_game_summary(game_data)
 
         return game_data
 

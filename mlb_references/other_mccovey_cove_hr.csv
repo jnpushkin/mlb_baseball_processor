@@ -1,0 +1,79 @@
+Splash Hit Number,Player,Team,Date,Pitcher,PlayerID,Date_yyyymmdd
+1,Todd Hundley,Los Angeles Dodgers,2000-06-30,Robb Nen,hundlto01,20000630
+2,Luis Gonzalez,Arizona Diamondbacks,2000-09-23,Shawn Estes,gonzalu01,20000923
+3,Mark Grace,Arizona Diamondbacks,2001-05-28,Tim Worrell,gracema01,20010528
+4,Luis Gonzalez,Arizona Diamondbacks,2002-05-30,Kirk Rueter,gonzalu01,20020530
+5,Ryan Klesko,San Diego Padres,2003-04-09,Ryan Jensen,kleskry01,20030409
+6,Hee-Seop Choi,Florida Marlins,2004-04-30,Kevin Correia,choihe01,20040430
+7,Corey Patterson,Chicago Cubs,2004-08-07,Tyler Walker,patteco01,20040807
+8,Cliff Floyd,New York Mets,2004-08-21,Brett Tomko,floydcl01,20040821
+9,Russell Branyan,Milwaukee Brewers,2005-04-23,Brett Tomko,branyru01,20050423
+10,Larry Walker,St. Louis Cardinals,2005-07-08,Jason Schmidt,walkela01,20050708
+11,Carlos Delgado,Florida Marlins,2005-07-23,Brad Hennessey,delgaca01,20050723
+12,Cliff Floyd,New York Mets,2006-04-25,Jamey Wright,floydcl01,20060425
+13,Carlos Delgado,New York Mets,2006-04-26,Matt Morris,delgaca01,20060426
+14,Carlos Delgado,New York Mets,2007-05-09,Matt Morris,delgaca01,20070509
+15,Adam LaRoche,Pittsburgh Pirates,2007-08-11,Tim Lincecum,larocad01,20070811
+16,Lance Berkman,Houston Astros,2008-05-15,Vinnie Chulk,berkmla01,20080515
+17,Prince Fielder,Milwaukee Brewers,2008-07-19,Osiris Matos,fieldpr01,20080719
+18,Brian Giles,San Diego Padres,2008-08-24,Kevin Correia,gilesbr02,20080824
+19,Miguel Montero,Arizona Diamondbacks,2009-09-29,Jonathan Sánchez,montemi01,20090929
+20,David Ortiz,Boston Red Sox,2010-06-27,Tim Lincecum,ortizda01,20100627
+21,Ike Davis,New York Mets,2010-07-17,Matt Cain,davisik01,20100717
+22,Kosuke Fukudome,Chicago Cubs,2010-08-10,Tim Lincecum,fukudko01,20100810
+23,Adam LaRoche,Arizona Diamondbacks,2010-08-27,Tim Lincecum,larocad01,20100827
+24,Adam LaRoche,Arizona Diamondbacks,2010-08-28,Sergio Romo,larocad01,20100828
+25,Rick Ankiel,Atlanta Braves,2010-10-08,Ramón Ramírez,ankieri01,20101008
+26,Will Venable,San Diego Padres,2011-07-04,Guillermo Mota,venabwi01,20110704
+27,Dioner Navarro,Los Angeles Dodgers,2011-07-20,Tim Lincecum,navardi01,20110720
+28,Mitch Moreland,Texas Rangers,2012-06-09,Ryan Vogelsong,morelmi01,20120609
+29,Chase Headley,San Diego Padres,2012-09-21,Ryan Vogelsong,headlch01,20120921
+30,Carlos González,Colorado Rockies,2013-04-08,Madison Bumgarner,gonzaca01,20130408
+31,Domonic Brown,Philadelphia Phillies,2013-05-06,Madison Bumgarner,browndo01,20130506
+32,Brian McCann,Atlanta Braves,2013-05-10,Matt Cain,mccanbr01,20130510
+33,Carlos González,Colorado Rockies,2013-05-25,Barry Zito,gonzaca01,20130525
+34,Garrett Jones,Pittsburgh Pirates,2013-08-22,Matt Cain,jonesga02,20130822
+35,Carlos González,Colorado Rockies,2014-04-11,Madison Bumgarner,gonzaca01,20140411
+36,Yasmani Grandal,San Diego Padres,2014-04-30,Tim Hudson,grandya01,20140430
+37,Freddie Freeman,Atlanta Braves,2014-05-12,Javier López,freemfr01,20140512
+38,Curtis Granderson,New York Mets,2014-06-08,Tim Lincecum,grandcu01,20140608
+39,Adam Dunn,Chicago White Sox,2014-08-13,Jake Peavy,dunnad01.01,20140813
+40,Corey Dickerson,Colorado Rockies,2014-08-27,Tim Hudson,dickeco01,20140827
+41,Ender Inciarte,Arizona Diamondbacks,2014-09-09,Yusmeiro Petit,inciaen01,20140909
+42,Bryce Harper,Washington Nationals,2014-10-07,Hunter Strickland,harpebr03,20141007
+43,Cody Asche,Philadelphia Phillies,2015-07-11,Ryan Vogelsong,ascheco01,20150711
+44,Ben Zobrist,Chicago Cubs,2016-05-20,George Kontos,zobribe01,20160520
+45,Joc Pederson,Los Angeles Dodgers,2016-06-12,Hunter Strickland,pederjo01,20160612
+46,Gregory Polanco,Pittsburgh Pirates,2016-08-15,Matt Moore,polangr01,20160815
+47,Curtis Granderson,New York Mets,2016-08-19,Johnny Cueto,grandcu01,20160819
+48,Mike Moustakas,Kansas City Royals,2017-06-14,Johnny Cueto,moustmi01,20170614
+49,Curtis Granderson,New York Mets,2017-06-25,Hunter Strickland,grandcu01,20170625
+50,Chase Utley,Los Angeles Dodgers,2017-09-12,Johnny Cueto,utleych01,20170912
+51,Cody Bellinger,Los Angeles Dodgers,2017-09-13,Matt Moore,bellico01,20170913
+52,Matt Carpenter,St. Louis Cardinals,2018-07-08,Ray Black,carpema01,20180708
+53,Rougned Odor,Texas Rangers,2018-08-24,Will Smith,odorro01,20180824
+54,Max Muncy,Los Angeles Dodgers,2018-09-30,Chris Stratton,muncyma02,20180930
+55,Eduardo Escobar,Arizona Diamondbacks,2019-05-24,Nick Vincent,escobed01,20190524
+56,Max Muncy,Los Angeles Dodgers,2019-06-09,Madison Bumgarner,muncyma02,20190609
+57,Michael Conforto,New York Mets,2019-07-21,Conner Menez,confomi01,20190721
+58,Robel García,Chicago Cubs,2019-07-22,Shaun Anderson,garciro02,20190722
+59,Bryce Harper,Philadelphia Phillies,2019-08-09,Tony Watson,harpebr03,20190809
+60,Joc Pederson,Los Angeles Dodgers,2019-09-27,Johnny Cueto,pederjo01,20190927
+61,Shin-Soo Choo,Texas Rangers,2020-08-02,Jeff Samardzija,choosh01,20200802
+62,Daulton Varsho,Arizona Diamondbacks,2020-09-05,Trevor Gott,varshda01,20200905
+63,Joey Votto,Cincinnati Reds,2021-04-12,Jarlin García,vottojo01,20210412
+64,Mike Moustakas,Cincinnati Reds,2021-04-13,Kevin Gausman,moustmi01,20210413
+65,Jake Cronenworth,San Diego Padres,2021-05-09,Johnny Cueto,croneja01,20210509
+66,Max Muncy,Los Angeles Dodgers,2021-05-22,Scott Kazmir,muncyma02,20210522
+67,Joc Pederson,Chicago Cubs,2021-06-03,Anthony DeSclafani,pederjo01,20210603
+68,Eddie Rosario,Atlanta Braves,2021-09-19,Zack Littell,rosared01,20210919
+69,Charlie Blackmon,Colorado Rockies,2022-06-07,José Álvarez,blackch02,20220607
+70,Bryson Stott,Philadelphia Phillies,2022-09-03,Jakob Junis,stottbr01,20220903
+71,Jack Suwinski,Pittsburgh Pirates,2023-05-29,Anthony DeSclafani,suwinja01,20230529
+72,Jack Suwinski,Pittsburgh Pirates,2023-05-29,Brett Wisely,suwinja01,20230529
+73,Nathaniel Lowe,Texas Rangers,2023-08-11,Ross Stripling,lowena01,20230811
+74,Josh Naylor,Cleveland Guardians,2023-09-11,Alex Cobb,naylojo01,20230911
+75,Spencer Horwitz,Toronto Blue Jays,2024-07-11,Jordan Hicks,horwisp01,20240711
+76,Michael Harris II,Atlanta Braves,2024-08-14,Robbie Ray,harrimi04,20240814
+77,Kyle Schwarber,Philadelphia Phillies,2025-07-08,Spencer Bivens,schwaky01,20250708
+78,Shohei Ohtani,Los Angeles Dodgers,2025-07-11,Logan Webb,ohtansh01,20250711

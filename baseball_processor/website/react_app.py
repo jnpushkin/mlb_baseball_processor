@@ -438,18 +438,56 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
             so: acc.so + p.so
         }), { ab: 0, h: 0, r: 0, rbi: 0, hr: 0, doubles: 0, triples: 0, bb: 0, so: 0 });
         
-        return { 
+        // Build annotations from career firsts and superlatives
+        const playerAnnotations = {};
+        (careerFirsts || []).forEach(f => {
+            if (!playerAnnotations[f.player_id]) playerAnnotations[f.player_id] = [];
+            playerAnnotations[f.player_id].push(f.milestone);
+        });
+
+        // Find game superlatives from pitch/hit data
+        let fastestPitch = null, hardestHit = null, mostKs = null;
+        if (game.pitchData) {
+            Object.entries(game.pitchData).forEach(([pid, pd]) => {
+                if (pd.maxSpeed && (!fastestPitch || pd.maxSpeed > fastestPitch.speed)) {
+                    fastestPitch = { playerId: pid, name: pd.name, speed: pd.maxSpeed };
+                }
+            });
+        }
+        if (game.hitData) {
+            Object.entries(game.hitData).forEach(([pid, hd]) => {
+                if (hd.maxExitVelo && (!hardestHit || hd.maxExitVelo > hardestHit.velo)) {
+                    hardestHit = { playerId: pid, name: hd.name, velo: hd.maxExitVelo, dist: hd.maxDistance };
+                }
+            });
+        }
+        const allPitchers = [...homePitchers, ...awayPitchers];
+        allPitchers.forEach(p => {
+            if (p.so > 0 && (!mostKs || p.so > mostKs.so)) {
+                mostKs = { playerId: p.playerId, name: p.name, so: p.so };
+            }
+        });
+
+        return {
             homeHitters, awayHitters, homePitchers, awayPitchers,
-            homeHittingTotals, awayHittingTotals
+            homeHittingTotals, awayHittingTotals,
+            playerAnnotations, fastestPitch, hardestHit, mostKs
         };
-    }, [game, playerGames, pitcherGames]);
-    
+    }, [game, playerGames, pitcherGames, careerFirsts]);
+
     if (!game || !gameData) return null;
-    
-    const HitterRow = ({ player }) => (
+
+    const HitterRow = ({ player }) => {
+        const annotations = gameData.playerAnnotations[player.playerId] || [];
+        const isHardestHit = gameData.hardestHit?.playerId === player.playerId;
+        return (
         <tr className="hover:bg-gray-50">
             <td className="px-3 py-2">
-                <PlayerLink playerId={player.playerId} name={player.name} />
+                <div className="flex items-center gap-1">
+                    <PlayerLink playerId={player.playerId} name={player.name} />
+                    {annotations.length > 0 && <span title={annotations.join(', ')} className="text-amber-500 text-xs">⭐</span>}
+                    {isHardestHit && <span title={`Hardest hit: ${gameData.hardestHit.velo} mph`} className="text-red-500 text-xs">💪</span>}
+                </div>
             </td>
             <td className="px-2 py-2 text-center">{player.ab || 0}</td>
             <td className="px-2 py-2 text-center font-semibold">{player.h || 0}</td>
@@ -462,10 +500,14 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
             <td className="px-2 py-2 text-center">{player.so || 0}</td>
         </tr>
     );
-    
+    };
+
     const PitcherRow = ({ pitcher }) => {
         const ip = `${Math.floor(pitcher.outs / 3)}.${pitcher.outs % 3}`;
         const decision = pitcher.wins ? 'W' : pitcher.losses ? 'L' : pitcher.saves ? 'SV' : '';
+        const annotations = gameData.playerAnnotations[pitcher.playerId] || [];
+        const isFastest = gameData.fastestPitch?.playerId === pitcher.playerId;
+        const isMostKs = gameData.mostKs?.playerId === pitcher.playerId && pitcher.so >= 6;
         
         return (
             <tr className="hover:bg-gray-50">
@@ -481,6 +523,9 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                 {decision}
                             </span>
                         )}
+                        {annotations.length > 0 && <span title={annotations.join(', ')} className="text-amber-500 text-xs">⭐</span>}
+                        {isFastest && <span title={`Fastest pitch: ${gameData.fastestPitch.speed} mph`} className="text-red-500 text-xs">🔥</span>}
+                        {isMostKs && <span title={`Game-high ${pitcher.so} strikeouts`} className="text-orange-500 text-xs">🔥</span>}
                     </div>
                 </td>
                 <td className="px-2 py-2 text-center font-semibold">{ip}</td>
@@ -1152,8 +1197,34 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                     {activeTab === 'playbyplay' && <PlayByPlayTab />}
                     {activeTab === 'context' && (
                         <div className="p-6 space-y-6">
-                            {(careerFirsts?.length || 0) === 0 && (allTimePassings?.length || 0) === 0 && (badges?.length || 0) === 0 && !game.absChallenges && (
-                                <div className="text-center py-8 text-gray-500 body-text">No special context for this game</div>
+                            {/* Game Superlatives */}
+                            {(gameData.fastestPitch || gameData.hardestHit || gameData.mostKs) && (
+                                <div>
+                                    <h4 className="subsection-title font-bold mb-3">Game Highlights</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        {gameData.fastestPitch && (
+                                            <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                                                <div className="text-xs text-red-600 font-semibold">Fastest Pitch</div>
+                                                <div className="text-lg font-bold text-red-700">{gameData.fastestPitch.speed} mph</div>
+                                                <div className="text-xs text-gray-600">{gameData.fastestPitch.name}</div>
+                                            </div>
+                                        )}
+                                        {gameData.hardestHit && (
+                                            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                                                <div className="text-xs text-blue-600 font-semibold">Hardest Hit</div>
+                                                <div className="text-lg font-bold text-blue-700">{gameData.hardestHit.velo} mph</div>
+                                                <div className="text-xs text-gray-600">{gameData.hardestHit.name}{gameData.hardestHit.dist ? ` (${gameData.hardestHit.dist} ft)` : ''}</div>
+                                            </div>
+                                        )}
+                                        {gameData.mostKs && gameData.mostKs.so >= 5 && (
+                                            <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                                                <div className="text-xs text-orange-600 font-semibold">Most Strikeouts</div>
+                                                <div className="text-lg font-bold text-orange-700">{gameData.mostKs.so} K</div>
+                                                <div className="text-xs text-gray-600">{gameData.mostKs.name}</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             )}
 
                             {game.absChallenges && (game.absChallenges.reviews?.length > 0 || (game.absChallenges.away?.usedSuccessful + game.absChallenges.away?.usedFailed + game.absChallenges.home?.usedSuccessful + game.absChallenges.home?.usedFailed) > 0) && (

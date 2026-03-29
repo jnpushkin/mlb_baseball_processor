@@ -1,0 +1,134 @@
+Eutaw Street HR #,Player,PlayerID,Team,Date,Ft,Pitcher,Pitcher Team
+1,Mickey Tettleton,tettlmi01,Tigers,4/20/92,406',Ben McDonald,BAL
+2,Kevin Reimer,reimeke01,Rangers,5/5/92,403',Jose Mesa,BAL
+3,Lee Stevens,stevele01,Angels,5/23/92,430',Rick Sutcliffe,BAL
+4,"Ken Griffey, Jr.",griffke02,Mariners,4/24/94,438',Brad Pennington,BAL
+5,Kevin Bass,basske01,Orioles,6/8/95,409',Solomon Torres,SEA
+6,Rafael Palmeiro,palmera01,Orioles,4/3/96,412',Mark Gubicza,KC
+7,Brady Anderson,anderbr01,Orioles,4/27/96,380',Bobby Witt,TEX
+8,Paul O'Neill,o'neipa01,Yankees,4/30/96,431',Arthur Rhodes,BAL
+9,Mo Vaughn,vaughmo01,Red Sox,7/7/96,419',Scott Erickson,BAL
+10,Jim Thome,thomeji01,Indians,7/26/96,440',Mike Mussina,BAL
+11,Eddie Murray,murraed02,Orioles,8/14/96,384',Jeff D'Amico,MIL
+12,Bobby Bonilla,bonilbo01,Orioles,9/8/96,405',Jose Lima,DET
+13,Rafael Palmeiro,palmera01,Orioles,4/11/97,411',Eric Gunderson,TEX
+14,Rafael Palmeiro,palmera01,Orioles,4/11/97,408',Eric Vosberg,TEX
+15,Henry Rodriguez,rodrihe02,Expos,6/17/97,443',Scott Kamieniecki,BAL
+16,Brady Anderson,anderbr01,Orioles,5/13/98,405',Chad Ogea,CLE
+17,Lee Stevens,stevele01,Rangers,5/30/98,415',Sidney Ponson,BAL
+18,Carlos Delgado,delgaca01,Blue Jays,6/21/98,415',Sidney Ponson,BAL
+19,Rafael Palmeiro,palmera01,Orioles,7/24/98,413',Bill Swift,DET
+20,Brady Anderson,anderbr01,Orioles,4/29/99,420',Jeff Suppan,KC
+21,Troy O'Leary,o'leatr01,Red Sox,6/22/99,413',Sidney Ponson,BAL
+22,Delino DeShields,deshide01,Orioles,8/8/99,420',Brian Moehler,DET
+23,Jim Thome,thomeji01,Indians,9/5/99,420',Sidney Ponson,BAL
+24,Matt Stairs,stairma01,Athletics,9/23/99,423',Sidney Ponson,BAL
+25,Carl Everett,evereca01,Red Sox,5/11/00,429',Jose Mercedes,BAL
+26,Jeff Liefer,liefeje01,White Sox,6/21/01,410',Jason Johnson,BAL
+27,Shawn Green,greensh01,Dodgers,6/8/02,410',Jason Johnson,BAL
+28,Gary Matthews,matthga02,Orioles,7/19/02,406',Jon Garland,CHW
+29,Ben Grieve,grievbe01,Rays,8/20/02,435',Jason Johnson,BAL
+30,Jay Gibbons,gibboja01,Orioles,6/28/03,420',Brett Myers,PHI
+31,Hank Blalock,blaloha01,Rangers,7/22/03,380',Rodrigo Lopez,BAL
+32,Aubrey Huff,huffau01,Rays,8/21/03,414',Jason Johnson,BAL
+33,David Ortiz,ortizda01,Red Sox,9/9/03,430',Damian Moss,BAL
+34,Jay Gibbons,gibboja01,Orioles,4/23/04,393',Aquilino Lopez,TOR
+35,Justin Morneau,morneju01,Twins,7/25/04,412',Daniel Cabrera,BAL
+36,Eric Hinske,hinsker01,Blue Jays,8/22/04,385',Erik Bedard,BAL
+37,Rafael Palmeiro,palmera01,Orioles,9/29/04,390',Ted Lilly,TOR
+38,Jason Giambi,giambja01,Yankees,9/29/05,425',Erik Bedard,BAL
+39,Brian Roberts,roberbr01,Orioles,7/31/06,410',Gil Meche,SEA
+40,Johnny Damon,damonjo01,Yankees,9/28/07,390',Victor Zambrano,BAL
+41,Jason Giambi,giambja01,Yankees,5/27/08,415',Brian Burres,BAL
+42,Jason Giambi,giambja01,Yankees,5/28/08,410',Jeremy Guthrie,BAL
+43,Nick Markakis,markani01,Orioles,6/14/08,395',John Grabow,PIT
+44,Lance Berkman,berkmla01,Astros,6/18/08,430',Jeremy Guthrie,BAL
+45,Alex Gordon,gordoal01,Royals,7/1/08,425',Radhames Liz,BAL
+46,Luke Scott,scottlu01,Orioles,7/19/08,420',Freddy Dolsi,DET
+47,Robinson Cano,canoro01,Yankees,8/22/08,425',Radhames Liz,BAL
+48,Luke Scott,scottlu01,Orioles,9/8/08,415',Roberto Hernandez,CLE
+49,Aubrey Huff,huffau01,Orioles,4/21/09,415',Jose Contreras,CHW
+50,Adam Dunn,dunnad01,Nationals,6/28/09,442',David Hernandez,BAL
+51,Luke Scott,scottlu01,Orioles,7/11/09,394',Ricky Romero,TOR
+52,Luke Scott,scottlu01,Orioles,9/1/09,412',AJ Burnett,NYY
+53,Luke Scott,scottlu01,Orioles,4/27/11,426',Josh Beckett,BOS
+54,Luke Scott,scottlu01,Orioles,6/7/11,418',Guillermo Moscoso,OAK
+55,Lance Berkman,berkmla01,Cardinals,6/30/11,418',Alfredo Simon,BAL
+56,Carlos Santana,santaca01,Indians,7/17/11,424',Mitch Atkins,BAL
+57,Nick Swisher,swishni01,Yankees,8/26/11,412',Tommy Hunter,BAL
+58,Eric Thames,thameer01,Blue Jays,4/24/12,410',Tommy Hunter,BAL
+59,Chris Davis,davisch02,Orioles,4/28/12,418',Jim Miller,OAK
+60,Josh Hamilton,hamiljo03,Rangers,5/10/12,425',Tommy Hunter,BAL
+61,Curtis Granderson,grandcu01,Yankees,5/14/12,422',Jason Hammel,BAL
+62,David Ortiz,ortizda01,Red Sox,5/21/12,424',Tommy Hunter,BAL
+63,Asdrubal Cabrera,cabreas01,Indians,6/29/12,423',Jake Arrieta,BAL
+64,Matt Wieters,wietema01,Orioles,6/29/12,395',Derek Lowe,CLE
+65,Chris Davis,davisch02,Orioles,6/30/12,431',Josh Tomlin,CLE
+66,Chris Davis,davisch02,Orioles,8/24/12,404',Carlos Villanueva,TOR
+67,Andre Ethier,ethiean01,Dodgers,4/20/13,383',Jason Hammel,BAL
+68,Roger Bernadina,bernaro01,Nationals,5/29/13,406',Chris Tillman,BAL
+69,Hank Conger,congeha01,Angels,6/12/13,412',Jason Hammel,BAL
+70,Lonnie Chisenhall,chiselo01,Indians,6/27/13,413',Miguel González,BAL
+71,Robbie Grossman,grossro01,Astros,7/31/13,385',Miguel González,BAL
+72,Chris Davis,davisch02,Orioles,8/2/13,414',Aaron Harang,SEA
+73,Charlie Blackmon,blackch02,Rockies,8/16/13,392',Francisco Rodriguez,BAL
+74,Chris Davis,davisch02,Orioles,8/21/13,400',Jeremy Hellickson,TB
+75,Adam Dunn,dunnad01,White Sox,9/8/13,424',Bud Norris,BAL
+76,Curtis Granderson,grandcu01,Yankees,9/11/13,422',Scott Feldman,BAL
+77,Ryan Flaherty,flahery01,Orioles,9/25/13,413',Esmil Rogers,TOR
+78,Colby Rasmus,rasmuco01,Blue Jays,4/13/14,399',Ubaldo Jimenez,BAL
+79,Victor Martinez,martivi01,Tigers,5/13/14,416',Tommy Hunter,BAL
+80,Chris Davis,davisch02,Orioles,4/29/15,385',Jeff Samardzija,CHW
+81,Chris Davis,davisch02,Orioles,6/16/15,418',Dustin McGowan,PHI
+82,Chris Davis,davisch02,Orioles,8/14/15,420',Fernando Abad,OAK
+83,Pedro Alvarez,Pedro Alvarez,Orioles,5/8/16,434',Kendall Graveman,OAK
+84,Ryan Flaherty,flahery01,Orioles,6/7/16,420',Yordano Ventura,KC
+85,Matt Wieters,wietema01,Orioles,6/25/16,399',Jake Odorizzi,TB
+86,Chris Davis,davisch02,Orioles,8/17/16,395',David Price,BOS
+87,Chris Davis,davisch02,Orioles,8/18/16,427',James Hoyt,HOU
+88,Pedro Alvarez,alvarpe01,Orioles,9/2/16,419',Chad Green,NYY
+89,"Jackie Bradley, Jr.",bradlja02,Red Sox,4/22/17,416',Jayson Aquino,BAL
+90,Jason Kipnis,kipnija01,Indians,6/19/17,423',Dylan Bundy,BAL
+91,Logan Morrison,morrilo01,Rays,7/1/17,410',Dylan Bundy,BAL
+92,Jason Heyward,heywaja01,Cubs,7/14/17,382',Kevin Gausman,BAL
+93,Marwin Gonzalez,gonzama01,Astros,7/22/17,393',Darren O'Day,BAL
+94,Yonder Alonso,alonsyo01,Indians,4/21/18,413',Chris Tillman,BAL
+95,Mike Moustakas,moustmi01,Royals,5/8/18,399',Dylan Bundy,BAL
+96,Chris Davis,davisch02,Orioles,6/27/18,401',Alex Colome,SEA
+97,Jonathan Villar,villajo01,Orioles,8/15/18,420',Tim Peterson,NYM
+98,Jonathan Villar,villajo01,Orioles,9/16/18,435',Lucas Giolito,CHW
+99,Chance Sisco,siscoch01,Orioles,6/28/19,399',Mike Clevinger,CLE
+100,Anthony Santander,santaan02,Orioles,6/29/19,404',Zach Plesac,CLE
+101,Austin Meadows,meadoau01,Rays,7/14/19,419',Thomas Eshelman,BAL
+102,Matt Adams,adamsma01,Nationals,7/16/19,386',Asher Wojciechowski,BAL
+103,Anthony Santander,santaan02,Orioles,7/20/19,413',Rich Porcello,BOS
+104,Didi Gregorius,gregodi01,Yankees,8/6/19,400',Asher Wojciechowski,BAL
+105,Rio Ruiz,ruizri01,Orioles,8/11/19,422',Roberto Osuna,HOU
+106,Anthony Santander,santaan02,Orioles,8/16/20,400',Max Scherzer,WAS
+107,Sam Haggerty,haggesa01,Mariners,4/13/21,409',Adam Plutko,BAL
+108,Cedric Mullins,mullice01,Orioles,4/26/21,406',Deivi García,NYY
+109,Anthony Santander,santaan02,Orioles,7/6/21,423',Trent Thornton,TOR
+110,Sandy León,leonsa01,Marlins,7/27/21,403',Spenser Watkins,BAL
+111,Anthony Santander,santaan02,Orioles,8/10/21,414',Casey Mize,DET
+112,Anthony Santander,santaan02,Orioles,8/11/21,413',Erasmo Ramírez,DET
+113,Anthony Santander,santaan02,Orioles,8/24/21,422',Andrew Wantz,LAA
+114,Andrés Giménez,gimenan01,Guardians,6/4/22,418',Tyler Wells,BAL
+115,Rougned Odor,odorro01,Orioles,6/4/22,393',Triston McKenzie,CLE
+116,Seth Brown,brownse01,Athletics,9/4/22,397',Nick Vespi,BAL
+117,Anthony Santander,santaan02,Orioles,9/5/22,414',Kevin Gausman,TOR
+118,Rafael Devers,deverra01,Red Sox,4/24/23,387',Dean Kremer,BAL
+119,Adley Rutschman,rutscad01,Orioles,5/9/23,407',Zach Eflin,BAL
+120,Gunnar Henderson,hendegu01,Orioles,6/11/23,439',Jackson Kowar,KC
+121,Cal Raleigh,raleica01,Mariners,6/25/23,412',Kyle Bradish,BAL
+122,Anthony Santander,santaan02,Orioles,8/24/23,399',José Berríos,TOR
+123,Juan Soto,sotoju01,Yankees,4/30/24,440',Dean Kremer,BAL
+124,Anthony Santander,santaan02,Orioles,6/1/24,386',Taj Bradley,TB
+125,Gunnar Henderson,hendegu01,Orioles,6/2/24,401',Zack Littell,TB
+126,Cedric Mullins,mullice01,Orioles,6/26/24,382',Xzavion Curry,CLE
+127,Ian Happ,happia01,Cubs,7/9/24,395',Dean Kremer,BAL
+128,Anthony Santander,santaan02,Orioles,7/14/24,412',Tommy Kahnle,NYY
+129,Jackson Holliday,hollija01,Orioles,7/31/24,405',Yerry Rodríguez,TOR
+130,Gunnar Henderson,hendegu01,Orioles,8/14/24,402',DJ Herz,WAS
+131,Wilyer Abreu,abreuwi02,Red Sox,8/15/24,403',Zach Eflin,BAL
+132,Jake Fraley,fraleja01,Reds,4/19/25,429',Brandon Young,BAL
+133,Trent Grisham,grishtr01,Yankees,4/29/25,412',Kyle Gibson,BAL
