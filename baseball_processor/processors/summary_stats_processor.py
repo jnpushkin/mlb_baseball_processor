@@ -156,6 +156,9 @@ class SummaryStatsProcessor(BaseProcessor):
         """Process all summary statistics and build the summary stats DataFrame."""
         print("📊 Processing summary statistics...")
 
+        # Exclude spring training games from records
+        self.games = [g for g in self.games if g.get('basic_info', {}).get('game_type', 'regular') != 'spring']
+
         # Process each game
         for game in self.games:
             self._process_game_statistics(game)
