@@ -17,9 +17,12 @@ class HTMLTemplate:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Interactive baseball statistics portal - game logs, milestones, player stats, stadium maps, and more.">
+    <meta name="theme-color" content="#1e40af" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
     <meta property="og:title" content="Baseball Statistics Portal">
     <meta property="og:description" content="Interactive baseball statistics portal with game logs, milestones, player comparisons, and stadium maps.">
     <meta property="og:type" content="website">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x26be;</text></svg>">
     <title>Baseball Statistics Portal</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -146,6 +149,14 @@ class HTMLTemplate:
         .leaflet-container {{
             font-family: inherit;
         }}
+        .dark .leaflet-container {{
+            filter: invert(1) hue-rotate(180deg);
+        }}
+        .dark .leaflet-container .leaflet-marker-icon,
+        .dark .leaflet-container .leaflet-popup-content-wrapper,
+        .dark .leaflet-container .leaflet-popup-tip {{
+            filter: invert(1) hue-rotate(180deg);
+        }}
         .stadium-popup .leaflet-popup-content-wrapper {{
             border-radius: 8px;
         }}
@@ -164,7 +175,13 @@ class HTMLTemplate:
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <div id="initial-loader" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;">
+            <div style="width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#1e40af;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:16px;"></div>
+            <div style="font-size:15px;font-weight:500;color:#334155;">Loading baseball data...</div>
+            <div id="loader-status" style="font-size:12px;color:#94a3b8;margin-top:6px;"></div>
+        </div>
+    </div>
     <script>
         // Load data from separate JSON file
         var BASEBALL_DATA = null;

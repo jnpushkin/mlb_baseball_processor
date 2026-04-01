@@ -167,15 +167,38 @@ class SpecialEventsEngine:
             'pinch_hit_hrs': [],
         })
 
+        # Build name-to-player-ID lookup from batting/pitching rosters
+        self._name_to_id = {}
+        for side in ('home', 'away'):
+            for player in game_data.get('batting', {}).get(side, []):
+                name = player.get('name', '').strip()
+                pid = player.get('player_id', '')
+                if name and pid:
+                    self._name_to_id[name] = pid
+                    self._name_to_id[self._normalize_name_for_comparison(name)] = pid
+            for player in game_data.get('pitching', {}).get(side, []):
+                name = player.get('name', '').strip()
+                pid = player.get('player_id', '')
+                if name and pid:
+                    self._name_to_id[name] = pid
+                    self._name_to_id[self._normalize_name_for_comparison(name)] = pid
+
     def _normalize_name_for_comparison(self, name):
         """Normalize name for comparison by removing accents and standardizing."""
         if not name:
             return ""
-        
+
         normalized = unicodedata.normalize('NFD', name)
         ascii_name = ''.join(char for char in normalized if unicodedata.category(char) != 'Mn')
-        
+
         return ascii_name.strip().lower()
+
+    def _resolve_player_id(self, name):
+        """Resolve a player name to their BREF player ID."""
+        if not name:
+            return ""
+        # Try exact match first, then normalized
+        return self._name_to_id.get(name, "") or self._name_to_id.get(self._normalize_name_for_comparison(name), "")
 
     def get_footer_stat_count(self, player_name, team_type, stat_type):
         """Get stat count for player from footer data."""
@@ -233,9 +256,10 @@ class SpecialEventsEngine:
             plays = self.game_data.get("play_by_play", [])
             last_play = plays[-1] if plays else None
             if last_play and last_play.get("half") == "bottom" and (last_play.get("run_scored", False) or last_play.get("home_run", False)):
+                batter_name = last_play.get("batter", "Unknown")
                 self.special_events["walkoff"] = {
-                    "batter": last_play.get("batter", "Unknown"),
-                    "batter_id": last_play.get("batter_id", ""),
+                    "batter": batter_name,
+                    "batter_id": last_play.get("batter_id", "") or self._resolve_player_id(batter_name),
                     "team": last_play.get("batting_team", ""),
                     "team_code": self.basic.get("home_team_code", ""),
                     "opposing_team": self.away_team,
@@ -263,9 +287,10 @@ class SpecialEventsEngine:
                     team_code = self.basic.get("away_team_code" if half == "top" else "home_team_code")
                     opp_team = self.home_team if team == self.away_team else self.away_team
                     opp_code = self.basic.get("home_team_code" if half == "top" else "away_team_code")
+                    leadoff_batter = play.get("batter", "Unknown")
                     self.special_events["leadoff_hrs"].append({
-                        "batter": play.get("batter", "Unknown"),
-                        "batter_id": play.get("batter_id", ""),
+                        "batter": leadoff_batter,
+                        "batter_id": play.get("batter_id", "") or self._resolve_player_id(leadoff_batter),
                         "team": team,
                         "team_code": team_code,
                         "opposing_team": opp_team,
@@ -338,6 +363,7 @@ class SpecialEventsEngine:
 
                     self.special_events["grand_slams"].append({
                         "player": batter,
+                        "player_id": self._resolve_player_id(batter),
                         "team": self.home_team if side == "home" else self.away_team,
                         "team_code": self.basic.get(f"{side}_team_code", ""),
                         "opposing_team": self.away_team if side == "home" else self.home_team,
@@ -378,27 +404,9 @@ class SpecialEventsEngine:
                 debug("❌ No substitutions found in HTML")
                 return
             
-            # Build name-to-player-ID lookup from roster data
-            name_to_id = {}
-            
-            for side in ['home', 'away']:
-                for player in self.game_data.get('batting', {}).get(side, []):
-                    player_name = player.get('name', '').strip()
-                    player_id = player.get('player_id', '')
-                    if player_name and player_id:
-                        name_to_id[player_name] = player_id
-                        normalized = player_name.replace('&nbsp;', ' ').strip()
-                        name_to_id[normalized] = player_id
-                
-                for player in self.game_data.get('pitching', {}).get(side, []):
-                    player_name = player.get('name', '').strip()
-                    player_id = player.get('player_id', '')
-                    if player_name and player_id:
-                        name_to_id[player_name] = player_id
-                        normalized = player_name.replace('&nbsp;', ' ').strip()
-                        name_to_id[normalized] = player_id
-            
-            debug(f"🔍 Built name-to-ID lookup for {len(name_to_id)} players")
+            # Use the name-to-ID lookup built in __init__
+            name_to_id = self._name_to_id
+            debug(f"🔍 Using name-to-ID lookup with {len(name_to_id)} entries")
             
             # Track active pinch hitters by player ID
             pinch_hitters_by_id = {}

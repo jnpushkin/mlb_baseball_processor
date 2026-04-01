@@ -156,9 +156,9 @@ class PlayerStatsProcessor(BaseProcessor):
                     hit_by_type[game_type][player_id][stat_key] += value
                     has_meaningful_stats = True
 
-            if has_meaningful_stats:
+            if has_meaningful_stats and game_type == 'regular':
                 players_with_stats.add(player_id)
-    
+
     def _process_pitching_stats(self, game, side, team_code, game_id, all_players,
                                players_with_stats, pit_tot, pit_team, pit_games,
                                pit_by_type, pit_games_by_type, pit_team_by_type, game_type):
@@ -234,7 +234,7 @@ class PlayerStatsProcessor(BaseProcessor):
                 pit_by_type[game_type][player_id]["SV"] += 1
                 has_meaningful_stats = True
 
-            if has_meaningful_stats or outs > 0:
+            if (has_meaningful_stats or outs > 0) and game_type == 'regular':
                 players_with_stats.add(player_id)
     
     def _process_footer_stats(self, game, name_to_id, hit_tot, players_with_stats,
@@ -283,7 +283,7 @@ class PlayerStatsProcessor(BaseProcessor):
                             hit_by_type[game_type][player_id][stat] = 0
                         hit_by_type[game_type][player_id][stat] += count
 
-                        if count > 0:
+                        if count > 0 and game_type == 'regular':
                             players_with_stats.add(player_id)
     
     def _track_player(self, player_id, name, team_code, game_id, position, all_players):

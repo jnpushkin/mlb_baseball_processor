@@ -3,11 +3,20 @@ Data serializers for converting DataFrames to JSON format for website.
 Complete version with all stats fields and game-by-game data.
 """
 import json
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 import pandas as pd
 
 from ..engines.all_time_passing_engine import AllTimePassingEngine, find_passings_reverse_lookup, load_gamelogs_cache
+
+
+def _format_date(date_str):
+    """Convert YYYYMMDD to (formatted, sortable) tuple."""
+    if not date_str or len(str(date_str)) < 8:
+        return "", ""
+    d = str(date_str)
+    return f"{d[4:6]}/{d[6:8]}/{d[0:4]}", f"{d[0:4]}-{d[4:6]}-{d[6:8]}"
 
 
 def load_career_firsts_cache():
@@ -287,18 +296,7 @@ def find_all_time_passings(witnessed_firsts: list, career_firsts_cache: dict, ra
         # No leaderboard files available yet - that's OK, just return empty
         return all_passings, passings_by_game
 
-    # Approach 1: Check witnessed milestones
-    # NOTE: This approach is now SKIPPED because it doesn't properly track
-    # which players were passed at this specific milestone vs earlier.
-    # The reverse lookup (Approach 2) handles this correctly with gamelogs.
-    # Keeping the code structure but skipping the logic.
-    #
-    # for milestone in witnessed_firsts:
-    #     ... (disabled - reverse lookup handles this better)
-    #
-    pass  # Approach 1 disabled - Approach 2 (reverse lookup) handles all cases
-
-    # Approach 2: Reverse lookup from leaderboards (uses gamelogs cache if available)
+    # Reverse lookup from leaderboards (uses gamelogs cache if available)
     if raw_games:
         gamelogs_cache = load_gamelogs_cache()
         reverse_passings = find_passings_reverse_lookup(engine, raw_games, career_firsts_cache, gamelogs_cache)
@@ -748,8 +746,6 @@ class DataSerializer:
                         
                         ab = int(player.get('AB', 0))
                         pa = int(player.get('PA', 0))
-                        if ab == 0 and pa == 0:
-                            continue
                         
                         # Get extra stats for this player by ID (from play-by-play),
                         # falling back to batting data (MLB API stores 2B/3B/HR directly)
@@ -1838,11 +1834,14 @@ class DataSerializer:
                         'positions': {},
                         'firstSeen': date,
                         'lastSeen': date,
+                        'gameIds': [],
                         'absChallenges': 0,
                         'absOverturned': 0,
                         'absUpheld': 0,
                     }
                 umpire_stats[name]['games'] += 1
+                if game_id and game_id not in umpire_stats[name]['gameIds']:
+                    umpire_stats[name]['gameIds'].append(game_id)
                 umpire_stats[name]['positions'][pos] = umpire_stats[name]['positions'].get(pos, 0) + 1
                 if date and date < umpire_stats[name]['firstSeen']:
                     umpire_stats[name]['firstSeen'] = date

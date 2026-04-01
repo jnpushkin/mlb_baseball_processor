@@ -25,16 +25,3 @@ class StatUtils:
             return 0.0
 
 # Legacy functions for backwards compatibility
-def ip_to_outs(ip) -> int:
-    """Legacy function - use StatUtils.ip_to_outs instead."""
-    return StatUtils.ip_to_outs(ip)
-
-def outs_to_ip(outs: int) -> str:
-    """Legacy function - convert outs to IP string."""
-    whole = outs // 3
-    remainder = outs % 3
-    return f"{whole}.{remainder}"
-
-def outs_to_baseball_float_ip(outs: int) -> float:
-    """Legacy function - use StatUtils.outs_to_baseball_ip instead."""
-    return StatUtils.outs_to_baseball_ip(outs)

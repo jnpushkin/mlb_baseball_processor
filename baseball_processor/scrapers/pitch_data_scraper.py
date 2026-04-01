@@ -17,6 +17,7 @@ import time
 from pathlib import Path
 
 from ..parsers.mlb_api_parser import TEAM_ID_TO_CODE, parse_pitch_data, parse_hit_data
+from ..utils.helpers import normalize_name as _normalize_name
 from ..utils.http import create_retry_session, get_with_retry
 
 # Reverse mapping: BREF team code -> MLB API team ID
@@ -45,11 +46,6 @@ def find_game_pk(schedule_games, home_code, away_code, doubleheader='0'):
                 return sg['gamePk']
     return None
 
-
-def _normalize_name(name):
-    """Normalize name for matching: strip accents, lowercase."""
-    import unicodedata
-    return unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').decode('utf-8').strip().lower()
 
 
 def _remap_hit_data_keys(hit_data, game):

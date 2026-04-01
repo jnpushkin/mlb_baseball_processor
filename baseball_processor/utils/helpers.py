@@ -40,23 +40,6 @@ def _parse_gid_date(gid: str):
             return None
     return None
 
-def create_bbref_hyperlink(player_id):
-    """Create a Baseball-Reference hyperlink for a player ID."""
-    if not player_id or player_id == "UNKNOWN":
-        return player_id
-    
-    first_letter = player_id[0].lower()
-    url = f"https://www.baseball-reference.com/players/{first_letter}/{player_id}.shtml"
-    hyperlink = f'=HYPERLINK("{url}", "{player_id}")'
-    
-    return hyperlink
-
-def add_player_hyperlinks(df, column_name="Player ID"):
-    """Add Baseball-Reference hyperlinks to a Player ID column."""
-    if column_name in df.columns:
-        df = df.copy()
-        df[column_name] = df[column_name].apply(create_bbref_hyperlink)
-    return df
 
 def sort_join_gameids_by_date(cell_value, sep_out=", ", dedupe=True):
     """Sort GameIDs inside a string/list by embedded date (YYYYMMDD) and return as a joined string."""

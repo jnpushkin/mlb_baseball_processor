@@ -1,13 +1,21 @@
 Rk,Name,Age,Debut,Last Game,Pos,Tm,WAR,Ht,Wt,B,T,Birthdate,Birthplace,Draft/Signing,Schools,High School,Given Name,Name-additional
-1,Carter Baumler,24.054,Mar 26,,*/1,TEX,0.0,6-2,195,R,R,"Jan 31, 2002","Grimes, IA, US",,,"Dowling Catholic HS (West Des Moines, IA)",Carter Cornelius,baumlca01
-2,Carson Benge,23.065,Mar 26,,*/9,NYM,0.0,6-1,184,L,R,"Jan 20, 2003","Oklahoma City, OK, US",,"Oklahoma State University (Stillwater, OK)","Yukon HS (Yukon, OK)",Carson Grant,bengeca01
+1,Carter Baumler,24.054,Mar 26,,/1,TEX,0.0,6-2,195,R,R,"Jan 31, 2002","Grimes, IA, US",,,"Dowling Catholic HS (West Des Moines, IA)",Carter Cornelius,baumlca01
+2,Carson Benge,23.065,Mar 26,,*/98,NYM,0.0,6-1,184,L,R,"Jan 20, 2003","Oklahoma City, OK, US",,"Oklahoma State University (Stillwater, OK)","Yukon HS (Yukon, OK)",Carson Grant,bengeca01
 3,Justin Crawford,22.072,Mar 26,,*/8,PHI,0.0,6-2,188,L,R,"Jan 13, 2004","Phoenix, AZ, US",,,"Bishop Gorman HS (Las Vegas, NV)",Justin,crawfju01
-4,Kevin McGonigle,21.220,Mar 26,,*/56,DET,0.0,5-9,187,L,R,"Aug 18, 2004","Media, PA, US",,,"Monsignor Bonner and Archbishop Prendergast HS (Drexel Hill, PA)",Kevin Patrick,mcgonke01
-5,Munetaka Murakami,26.052,Mar 26,,*/3,CHW,0.0,6-2,213,L,R,"Feb 2, 2000","Kumamoto, JP",,,,Munetaka,murakmu01
-6,Kazuma Okamoto,29.270,Mar 27,,*/5,TOR,0.0,6-1,220,R,R,"Jun 30, 1996","Gojo, JP",,,,Kazuma,okamoka01
-7,Jedixson Paez,22.068,Mar 26,,*/1,CHW,0.0,6-1,170,R,R,"Jan 17, 2004","Tinaquillo, Cojedes, VE",,,,Jedixson Jose,paezje01
-8,Peyton Pallette,24.322,Mar 27,,*/1,CLE,0.0,6-1,190,R,R,"May 9, 2001","Little Rock, AR, US",,"University of Arkansas (Fayetteville, AR)","Benton HS (Benton, AR)",Peyton Minor,pallepe01
-9,TJ Rumfield,25.314,Mar 27,,*/3,COL,0.0,6-5,225,L,R,"May 17, 2000","Richmond, VA, US",,"Texas Tech University (Lubbock, TX),Virginia Polytechnic Institute and State University (Blacksburg, VA)","Temple HS (Temple, TX)",Toby Joseph,rumfitj01
-10,Walbert UreÃ±a,22.060,Mar 26,,*/1,LAA,0.0,6-0,210,R,R,"Jan 25, 2004","Mao, Valverde, DO",,,,Walbert Jhoel,urenawa01
-11,Ryan Weiss,29.107,Mar 27,,*/1,HOU,0.0,6-4,210,R,R,"Dec 10, 1996","South Elgin, IL, US",,"Wright State University (Dayton, OH)",,Ryan,weissry01
-12,JJ Wetherholt,23.197,Mar 26,,*/4,STL,0.0,5-9,190,L,R,"Sep 10, 2002","Baltimore, MD, US",,"West Virginia University (Morgantown, WV)",,Jonathan David,wethejj01
+4,Deyvison De Los Santos,22.281,Mar 29,,/3,MIA,0.0,6-1,185,R,R,"Jun 21, 2003","Santo Domingo, Distrito Nacional, DO",,,,Deyvison,delosde01
+5,Jose Franco,25.125,Mar 30,,/1,CIN,0.0,6-2,257,R,R,"Nov 25, 2000","Maracay, Aragua, VE",,,,Jose Alejandro,francjo02
+6,Tatsuya Imai,27.324,Mar 29,,/1,HOU,0.0,5-11,176,R,R,"May 9, 1998","Kanuma, JP",,,,Tatsuya,imaita01
+7,Kevin McGonigle,21.220,Mar 26,,*/56,DET,0.0,5-9,187,L,R,"Aug 18, 2004","Media, PA, US",,,"Monsignor Bonner and Archbishop Prendergast HS (Drexel Hill, PA)",Kevin Patrick,mcgonke01
+8,Spencer Miles,25.245,Mar 28,,/1,TOR,0.0,6-3,180,L,R,"Jul 26, 2000","Columbia, MO, US",,"University of Missouri (Columbia, MO)",,Spencer David,milessp01
+9,Munetaka Murakami,26.052,Mar 26,,*/3D,CHW,0.0,6-2,213,L,R,"Feb 2, 2000","Kumamoto, JP",,,,Munetaka,murakmu01
+10,Anthony Nunez,24.261,Mar 28,,/1,BAL,0.0,6-2,225,B,R,"Jul 10, 2001","Miami, FL, US",,"University of Tampa (Tampa, FL)","Miami Springs HS (Miami Springs, FL)",Anthony,nunezan01
+11,Kazuma Okamoto,29.270,Mar 27,,*/53,TOR,0.0,6-1,220,R,R,"Jun 30, 1996","Gojo, JP",,,,Kazuma,okamoka01
+12,Jedixson Paez,22.068,Mar 26,,/1,CHW,0.0,6-1,170,R,R,"Jan 17, 2004","Tinaquillo, Cojedes, VE",,,,Jedixson Jose,paezje01
+13,Peyton Pallette,24.322,Mar 27,,/1,CLE,0.0,6-1,190,R,R,"May 9, 2001","Little Rock, AR, US",,"University of Arkansas (Fayetteville, AR)","Benton HS (Benton, AR)",Peyton Minor,pallepe01
+14,Matt Pushard,28.153,Mar 29,,/1,STL,0.0,6-4,250,R,R,"Oct 27, 1997","Bangor, ME, US",,"University of Maine (Orono, ME)",,Matthew Louis,pushama01
+15,Jeferson Quero,23.172,Mar 29,,/2,MIL,0.0,6-0,203,R,R,"Oct 8, 2002","Barquisimeto, Lara, VE",,,,Jeferson Jose,queroje01
+16,TJ Rumfield,25.314,Mar 27,,*/3,COL,0.0,6-5,225,L,R,"May 17, 2000","Richmond, VA, US",,"Texas Tech University (Lubbock, TX),Virginia Polytechnic Institute and State University (Blacksburg, VA)","Temple HS (Temple, TX)",Toby Joseph,rumfitj01
+17,Walbert UreÃ±a,22.060,Mar 26,,/1,LAA,0.0,6-0,210,R,R,"Jan 25, 2004","Mao, Valverde, DO",,,,Walbert Jhoel,urenawa01
+18,Ryan Watson,28.133,Mar 28,,/1,BOS,0.0,6-5,225,R,R,"Nov 15, 1997","Auburn, AL, US",,"Auburn University (Auburn, AL)","Auburn HS (Auburn, AL)",Ryan Traylor,watsory01
+19,Ryan Weiss,29.107,Mar 27,,/1,HOU,0.0,6-4,210,R,R,"Dec 10, 1996","South Elgin, IL, US",,"Wright State University (Dayton, OH)",,Ryan,weissry01
+20,JJ Wetherholt,23.197,Mar 26,,*/4,STL,0.0,5-9,190,L,R,"Sep 10, 2002","Baltimore, MD, US",,"West Virginia University (Morgantown, WV)",,Jonathan David,wethejj01

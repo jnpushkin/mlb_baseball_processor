@@ -305,6 +305,86 @@ def _update_gamelogs_for_game(cache_path):
         pass  # Don't fail the pipeline for gamelog updates
 
 
+COUNTRY_NORMALIZE = {
+    'Republic of Korea': 'South Korea', 'Korea, Republic of': 'South Korea',
+    'VEN': 'Venezuela', 'DOM': 'Dominican Republic', 'D.R.': 'Dominican Republic',
+    'PR': 'Puerto Rico', 'CAN': 'Canada', 'MEX': 'Mexico', 'CUB': 'Cuba',
+    'JPN': 'Japan', 'COL': 'Colombia', 'PAN': 'Panama', 'NIC': 'Nicaragua',
+    'AUS': 'Australia', 'BRA': 'Brazil', 'GER': 'Germany', 'NED': 'Netherlands',
+    'TWN': 'Taiwan', 'Curaçao': 'Curacao',
+}
+
+
+def _fetch_missing_bios_for_game(game_data):
+    """Fetch player bios from MLB API for any players not yet in the cache."""
+    import json
+    from pathlib import Path
+    from .utils.http import create_retry_session, get_with_retry
+
+    bio_path = Path(__file__).parent.parent / 'cache' / 'player_bios.json'
+    bios = {}
+    if bio_path.exists():
+        try:
+            with open(bio_path, 'r') as f:
+                bios = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            pass
+
+    # Collect all player IDs and names from the game
+    player_names = {}
+    for side in ('home', 'away'):
+        for p in game_data.get('batting', {}).get(side, []):
+            pid = p.get('player_id', '')
+            if pid and pid not in bios:
+                player_names[pid] = p.get('name', '')
+        for p in game_data.get('pitching', {}).get(side, []):
+            pid = p.get('player_id', '')
+            if pid and pid not in bios:
+                player_names[pid] = p.get('name', '')
+
+    if not player_names:
+        return
+
+    info(f"  🪪 Fetching bios for {len(player_names)} new players...")
+    session = create_retry_session()
+    found = 0
+
+    for pid, name in player_names.items():
+        if not name:
+            continue
+        try:
+            resp = get_with_retry(
+                session,
+                f'https://statsapi.mlb.com/api/v1/people/search?names={name.replace(" ", "%20")}&sportIds=1,11,12,13,14,15,16',
+                timeout=10
+            )
+            if resp.status_code == 200:
+                people = resp.json().get('people', [])
+                if people:
+                    p = people[0]
+                    country = p.get('birthCountry', '')
+                    bios[pid] = {
+                        'name': p.get('fullName', name),
+                        'birthDate': p.get('birthDate', ''),
+                        'birthCity': p.get('birthCity', ''),
+                        'birthState': p.get('birthStateProvince', ''),
+                        'birthCountry': COUNTRY_NORMALIZE.get(country, country),
+                        'height': p.get('height', ''),
+                        'weight': p.get('weight', 0),
+                        'bats': p.get('batSide', {}).get('code', ''),
+                        'throws': p.get('pitchHand', {}).get('code', ''),
+                        'debutDate': p.get('mlbDebutDate', ''),
+                    }
+                    found += 1
+        except Exception:
+            pass
+
+    if found > 0:
+        with open(bio_path, 'w') as f:
+            json.dump(bios, f, ensure_ascii=False)
+        info(f"  ✅ Fetched {found} new player bios ({len(bios)} total)")
+
+
 def _scrape_career_firsts_for_game(cache_path):
     """Scrape/update career milestones for all players in a newly parsed game."""
     from .scrapers.career_firsts_scraper import (
@@ -369,7 +449,7 @@ def _enrich_with_api_data(game_data):
         hit_data = parse_hit_data(feed_data, {})
         if hit_data:
             # Remap keys by name matching (same as pitch data)
-            from .scrapers.pitch_data_scraper import _normalize_name
+            from .utils.helpers import normalize_name as _normalize_name
             name_to_bref = {}
             for side in ('away', 'home'):
                 for p in game_data.get('batting', {}).get(side, []):
@@ -523,6 +603,12 @@ def process_html_file(file_path, index=None, total=None):
             json.dump(game_data, f, indent=2)
         temp_cache.replace(cache_path)
         info("  💾 Saved to cache")
+
+        # Fetch bios for any new players in this game
+        try:
+            _fetch_missing_bios_for_game(game_data)
+        except Exception as e:
+            debug(f"  ⚠️ Bio fetch skipped: {e}")
 
         # Scrape career milestones for all players in this game (regular season only)
         game_type = game_data.get('basic_info', {}).get('game_type', 'regular')

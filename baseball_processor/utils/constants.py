@@ -224,15 +224,6 @@ STADIUM_ALIASES = {
 MILESTONE_COUNTS = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 75, 100, 150, 200]
 GAME_MILESTONES = [1, 10, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000]
 
-TEAM_ALIAS = {
-    "Tampa Bay Devil Rays": "TB",
-}
-
-STADIUM_ALIAS = {
-    "AT&T Park": "Oracle Park",
-    "O.co Coliseum": "Oakland Coliseum",
-    "RingCentral Coliseum": "Oakland Coliseum",
-}
 
 # Stat label normalization mapping
 LABEL_MAP = {

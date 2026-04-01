@@ -468,7 +468,7 @@ def extract_umpires(soup: BeautifulSoup) -> Dict[str, str]:
     Returns:
         Dictionary mapping position codes (HP, 1B, 2B, 3B) to umpire names.
     """
-    pattern = r"([HP123LRFB]+)\s*-\s*([\w\s\.\']+?)(?=,|$)"
+    pattern = r"([HP123LRFB]+)\s*-\s*([\w\s\.\']+?)(?=,|\.\s|\.?$)"
 
     for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
         if "Umpires:" in comment:

@@ -8,6 +8,21 @@ class ReactComponents:
         """Get the complete React app code with enhanced interactive insights."""
         return """const { useState, useMemo, useEffect, useRef } = React;
 
+// ── Global utilities (shared across all components) ──
+const toSortableDate = (d) => {
+    if (!d) return '';
+    if (d.includes('/')) { const [m, dd, y] = d.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; }
+    return d;
+};
+const shortenMilestone = (m) => (m || '').replace('First Career ', '1st Career ').replace('Home Run', 'HR').replace('Stolen Base', 'SB').replace('Run Scored', 'Run').replace('Strikeout', 'K').replace('Inning Pitched', 'IP').replace('Double', '2B').replace('Triple', '3B');
+const getLastName = (name) => {
+    const parts = (name || '').split(' ');
+    const particles = ['de', 'la', 'del', 'van', 'von', 'di', 'el', 'al', 'dos', 'das', 'le', 'da'];
+    if (parts.length >= 3 && particles.includes(parts[parts.length - 2].toLowerCase())) return parts.slice(-2).join(' ');
+    return parts[parts.length - 1] || name || '?';
+};
+const getHrCount = (detail) => { const match = detail?.match(/(\\d+)\\s*HR/); return match ? parseInt(match[1], 10) : 0; };
+
 // Aggregation utilities
 const aggregateHitterStats = (playerGames) => {
     const grouped = {};
@@ -221,6 +236,7 @@ const PlayerLink = ({ playerId, name, external }) => {
     // Default: navigate to Players tab and open timeline
     const handleClick = (e) => {
         e.preventDefault();
+        e.stopPropagation();
         window._pendingPlayerSelect = { id: playerId, name };
         if (window.__navigateTab) window.__navigateTab('players');
     };
@@ -257,24 +273,36 @@ const EmptyState = ({ icon = '📭', title = 'No data', message = 'There is noth
     </div>
 );
 
+const isDark = () => document.documentElement.classList.contains('dark');
+const chartColors = () => {
+    const dark = isDark();
+    return {
+        text: dark ? '#cbd5e1' : '#334155',
+        grid: dark ? 'rgba(148,163,184,0.15)' : 'rgba(0,0,0,0.06)',
+        legend: dark ? '#e2e8f0' : '#334155',
+        tooltip: { bg: dark ? '#1e293b' : '#fff', border: dark ? '#475569' : '#e2e8f0', text: dark ? '#f1f5f9' : '#0f172a' }
+    };
+};
+
 const MilestoneChart = ({ milestones }) => {
     const canvasRef = useRef(null);
     useEffect(() => {
         if (!canvasRef.current || !milestones?.length) return;
         const ctx = canvasRef.current.getContext('2d');
+        const cc = chartColors();
         const typeCounts = {};
         milestones.forEach(m => { typeCounts[m.type] = (typeCounts[m.type] || 0) + 1; });
-        
+
         // Only top 5 for performance
         const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        
+
         const chart = new Chart(ctx, {
             type: 'bar',
-            data: { 
-                labels: sortedTypes.map(([type]) => type), 
-                datasets: [{ 
-                    label: 'Count', 
-                    data: sortedTypes.map(([, count]) => count), 
+            data: {
+                labels: sortedTypes.map(([type]) => type),
+                datasets: [{
+                    label: 'Count',
+                    data: sortedTypes.map(([, count]) => count),
                     backgroundColor: [
                         'rgba(59, 130, 246, 0.8)',
                         'rgba(147, 51, 234, 0.8)',
@@ -282,35 +310,35 @@ const MilestoneChart = ({ milestones }) => {
                         'rgba(34, 197, 94, 0.8)',
                         'rgba(251, 146, 60, 0.8)'
                     ]
-                }] 
+                }]
             },
-            options: { 
+            options: {
                 indexAxis: 'y',
-                responsive: true, 
-                maintainAspectRatio: false, 
-                plugins: { 
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
                     legend: { display: false },
                     tooltip: {
+                        backgroundColor: cc.tooltip.bg, titleColor: cc.tooltip.text, bodyColor: cc.tooltip.text,
+                        borderColor: cc.tooltip.border, borderWidth: 1,
                         callbacks: {
                             label: function(context) {
                                 return `${context.parsed.x} milestone${context.parsed.x !== 1 ? 's' : ''}`;
                             }
                         }
                     }
-                }, 
-                scales: { 
-                    x: { 
+                },
+                scales: {
+                    x: {
                         beginAtZero: true,
-                        ticks: {
-                            font: { size: 11 }
-                        }
+                        ticks: { font: { size: 11 }, color: cc.text },
+                        grid: { color: cc.grid }
                     },
                     y: {
-                        ticks: {
-                            font: { size: 12 }
-                        }
+                        ticks: { font: { size: 12 }, color: cc.text },
+                        grid: { color: cc.grid }
                     }
-                } 
+                }
             }
         });
         return () => chart.destroy();
@@ -323,58 +351,62 @@ const TeamChart = ({ teams }) => {
     useEffect(() => {
         if (!canvasRef.current || !teams?.length) return;
         const ctx = canvasRef.current.getContext('2d');
-        
+        const cc = chartColors();
+
         // Top 8 teams by games attended
         const topTeams = teams.slice(0, 8);
-        
+
         const chart = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: topTeams.map(t => t.team),
                 datasets: [
-                    { 
-                        label: 'Runs Scored', 
-                        data: topTeams.map(t => t.runs), 
+                    {
+                        label: 'Runs Scored',
+                        data: topTeams.map(t => t.runs),
                         backgroundColor: 'rgba(34, 197, 94, 0.8)',
                         borderColor: 'rgba(34, 197, 94, 1)',
                         borderWidth: 2
                     },
-                    { 
-                        label: 'Runs Allowed', 
-                        data: topTeams.map(t => t.runsAllowed), 
+                    {
+                        label: 'Runs Allowed',
+                        data: topTeams.map(t => t.runsAllowed),
                         backgroundColor: 'rgba(239, 68, 68, 0.8)',
                         borderColor: 'rgba(239, 68, 68, 1)',
                         borderWidth: 2
                     }
                 ]
             },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                plugins: { 
-                    legend: { 
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
                         display: true,
                         position: 'top',
                         labels: {
                             font: { size: 12 },
                             padding: 12,
-                            usePointStyle: true
-                        }
-                    }
-                }, 
-                scales: { 
-                    y: { 
-                        beginAtZero: true,
-                        ticks: {
-                            font: { size: 11 }
+                            usePointStyle: true,
+                            color: cc.legend
                         }
                     },
-                    x: {
-                        ticks: {
-                            font: { size: 12, weight: 'bold' }
-                        }
+                    tooltip: {
+                        backgroundColor: cc.tooltip.bg, titleColor: cc.tooltip.text, bodyColor: cc.tooltip.text,
+                        borderColor: cc.tooltip.border, borderWidth: 1
                     }
-                } 
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { font: { size: 11 }, color: cc.text },
+                        grid: { color: cc.grid }
+                    },
+                    x: {
+                        ticks: { font: { size: 12, weight: 'bold' }, color: cc.text },
+                        grid: { color: cc.grid }
+                    }
+                }
             }
         });
         return () => chart.destroy();
@@ -399,7 +431,17 @@ const StatCard = ({ title, value, subtitle, color = 'blue', onClick }) => {
 
 const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, badges, onClose, onPrev, onNext, gameIndex, totalGames }) => {
     const [activeTab, setActiveTab] = useState('boxscore');
-    
+
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowLeft' && onPrev) { e.stopPropagation(); onPrev(); }
+            if (e.key === 'ArrowRight' && onNext) { e.stopPropagation(); onNext(); }
+        };
+        window.addEventListener('keydown', onKey, true);
+        return () => window.removeEventListener('keydown', onKey, true);
+    }, [onPrev, onNext]);
+
     const gameData = useMemo(() => {
         if (!game) return null;
         
@@ -747,7 +789,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                     <td className="px-3 py-2">
                                         <div className="flex items-center gap-2">
                                             <PlayerLink playerId={player.playerId} name={player.name} />
-                                            {player.jerseyNumber && <span className="text-xs text-slate-400">#{player.jerseyNumber}</span>}
+                                            {player.jerseyNumber && <button className="text-xs text-slate-400 hover:text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('trivia', 'jerseys'); if (onClose) onClose(); }}>#{player.jerseyNumber}</button>}
                                         </div>
                                     </td>
                                     <td className="px-3 py-2 text-center">
@@ -778,7 +820,27 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
     };
     
     const SubstitutionsTab = () => {
-        if (!game.substitutions || game.substitutions.length === 0) {
+        // Derive substitutions from batting/pitching data if PBP parser didn't find any
+        const derivedSubs = useMemo(() => {
+            if (game.substitutions && game.substitutions.length > 0) return game.substitutions;
+            const subs = [];
+            ['away', 'home'].forEach(side => {
+                const team = side === 'away' ? game.awayTeam : game.homeTeam;
+                (game.batters?.[side] || []).forEach(p => {
+                    if (p.isStarter) return;
+                    const pos = p.position || '';
+                    const type = pos === 'PH' ? 'pinch_hit' : pos === 'PR' ? 'pinch_run' : pos === 'P' ? 'pitching_change' : 'defensive_sub';
+                    subs.push({ type, playerIn: p.name, playerOut: '', position: pos, inning: 0, half: side === 'away' ? 'top' : 'bottom', text: `${p.name} entered as ${pos} (${team})` });
+                });
+                (game.pitchers?.[side] || []).forEach((p, i) => {
+                    if (i === 0) return; // starter
+                    subs.push({ type: 'pitching_change', playerIn: p.name, playerOut: '', position: 'P', inning: 0, half: side === 'away' ? 'top' : 'bottom', text: `${p.name} entered to pitch (${team})` });
+                });
+            });
+            return subs;
+        }, [game]);
+
+        if (!derivedSubs || derivedSubs.length === 0) {
             return (
                 <div className="p-8 text-center text-slate-500 body-text">
                     No substitutions recorded for this game
@@ -811,7 +873,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
         return (
             <div className="p-6">
                 <div className="space-y-3">
-                    {game.substitutions.map((sub, idx) => (
+                    {derivedSubs.map((sub, idx) => (
                         <div key={`sub-${idx}-${sub.inning}-${sub.half}`} className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-400 hover:shadow-md transition-all">
                             <div className="flex items-start gap-3">
                                 <span className="text-2xl">{getSubIcon(sub.type)}</span>
@@ -964,7 +1026,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                         <span className="font-mono text-2xl text-white font-bold">{game.score}</span>
                     </div>
                     <div className="body-text text-blue-100 mt-2">
-                        📍 {game.venue}
+                        📍 <button className="hover:underline hover:text-white" onClick={() => { if (window.__navigateTab) window.__navigateTab('venues'); if (onClose) onClose(); }}>{game.venue}</button>
                         {game.attendance > 0 && <> • 👥 {game.attendance.toLocaleString()} fans</>}
                         {game.gameLength && <> • ⏱️ {game.gameLength}</>}
                     </div>
@@ -1039,36 +1101,16 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                         <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
                             <h5 className="small-text font-bold mb-3 text-slate-700">👨‍⚖️ Umpires</h5>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-                                {game.umpires.hp && (
-                                    <div className="small-text">
-                                        <span className="text-slate-500">HP:</span> <span className="font-medium">{game.umpires.hp}</span>
+                                {['hp', '1b', '2b', '3b', 'lf', 'rf'].map(pos => game.umpires[pos] ? (
+                                    <div key={pos} className="small-text">
+                                        <span className="text-slate-500">{pos.toUpperCase()}:</span>{' '}
+                                        <button className="font-medium text-blue-600 hover:underline" onClick={() => {
+                                            window._pendingUmpireSearch = game.umpires[pos];
+                                            if (window.__navigateTab) window.__navigateTab('trivia', 'umpires');
+                                            if (onClose) onClose();
+                                        }}>{game.umpires[pos]}</button>
                                     </div>
-                                )}
-                                {game.umpires['1b'] && (
-                                    <div className="small-text">
-                                        <span className="text-slate-500">1B:</span> <span className="font-medium">{game.umpires['1b']}</span>
-                                    </div>
-                                )}
-                                {game.umpires['2b'] && (
-                                    <div className="small-text">
-                                        <span className="text-slate-500">2B:</span> <span className="font-medium">{game.umpires['2b']}</span>
-                                    </div>
-                                )}
-                                {game.umpires['3b'] && (
-                                    <div className="small-text">
-                                        <span className="text-slate-500">3B:</span> <span className="font-medium">{game.umpires['3b']}</span>
-                                    </div>
-                                )}
-                                {game.umpires.lf && (
-                                    <div className="small-text">
-                                        <span className="text-slate-500">LF:</span> <span className="font-medium">{game.umpires.lf}</span>
-                                    </div>
-                                )}
-                                {game.umpires.rf && (
-                                    <div className="small-text">
-                                        <span className="text-slate-500">RF:</span> <span className="font-medium">{game.umpires.rf}</span>
-                                    </div>
-                                )}
+                                ) : null)}
                             </div>
                         </div>
                     )}
@@ -1349,10 +1391,11 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
     );
 };
 
-const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
+const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick, careerMilestones, allTimePassings }) => {
     const [activeView, setActiveView] = useState('timeline');
     const [sortKey, setSortKey] = useState('dateSort');
     const [sortDir, setSortDir] = useState('desc');
+    const [opponentFilter, setOpponentFilter] = useState(null);
 
     // Get all games for this player
     const gamesForPlayer = useMemo(() => {
@@ -1383,16 +1426,17 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
         return yearlyStats;
     }, [gamesForPlayer]);
 
-    // Sorted game log
+    // Sorted game log (with optional opponent filter)
     const sortedGameLog = useMemo(() => {
-        return [...gamesForPlayer].sort((a, b) => {
+        const filtered = opponentFilter ? gamesForPlayer.filter(g => g.opponent === opponentFilter) : gamesForPlayer;
+        return [...filtered].sort((a, b) => {
             const aVal = a[sortKey], bVal = b[sortKey];
             const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
             const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
             let result = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(aVal || '').localeCompare(String(bVal || ''));
             return sortDir === 'asc' ? result : -result;
         });
-    }, [gamesForPlayer, sortKey, sortDir]);
+    }, [gamesForPlayer, sortKey, sortDir, opponentFilter]);
 
     const handleSort = (key) => {
         if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
@@ -1435,7 +1479,14 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
             {/* Game Log View */}
             {activeView === 'gamelog' && (
                 <div>
-                    <div className="text-sm text-slate-500 mb-3">{gamesForPlayer.length} games</div>
+                    <div className="text-sm text-slate-500 mb-3 flex items-center gap-2">
+                        <span>{sortedGameLog.length} game{sortedGameLog.length !== 1 ? 's' : ''}</span>
+                        {opponentFilter && (
+                            <button onClick={() => setOpponentFilter(null)} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium hover:bg-blue-200">
+                                vs {opponentFilter} <span className="ml-0.5">&times;</span>
+                            </button>
+                        )}
+                    </div>
                     <div className="overflow-x-auto border rounded-lg" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                         <table className="w-full text-sm">
                             <thead className="bg-slate-50 sticky top-0">
@@ -1471,7 +1522,7 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
                                         <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 cursor-pointer ${isHR ? 'bg-orange-50' : isMultiHit ? 'bg-green-50' : ''}`} onClick={() => onGameClick && onGameClick(game.gameId)}>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{game.date}</td>
                                             <td className="px-3 py-2">{game.team}</td>
-                                            <td className="px-3 py-2">{game.opponent}</td>
+                                            <td className="px-3 py-2"><button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); setOpponentFilter(opponentFilter === game.opponent ? null : game.opponent); }}>{game.opponent}</button></td>
                                             <td className="px-3 py-2">{game.ab}</td>
                                             <td className={`px-3 py-2 ${isMultiHit ? 'font-bold text-green-600' : ''}`}>{game.h}</td>
                                             <td className="px-3 py-2">{game.r}</td>
@@ -1601,14 +1652,60 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick }) => {
             </div>
                 </div>
             )}
+
+            {/* Career Milestones Witnessed */}
+            {careerMilestones && careerMilestones.length > 0 && (
+                <div className="mt-6">
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">⭐ Career Milestones Witnessed</h4>
+                    <div className="space-y-1">
+                        {careerMilestones.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((m, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${m.category === 'first' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {m.category === 'first' ? 'FIRST' : 'MILESTONE'}
+                                </span>
+                                <span className="font-medium">{m.milestone}</span>
+                                <span className="text-slate-400">—</span>
+                                <button onClick={() => onGameClick && onGameClick(m.game_id)} className="text-blue-600 hover:underline text-xs">{m.date_display || m.date}</button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* All-Time Passings */}
+            {allTimePassings && allTimePassings.length > 0 && (
+                <div className="mt-4">
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">🏆 All-Time List Movements</h4>
+                    <div className="space-y-1">
+                        {allTimePassings.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((p, i) => {
+                            const passed = (p.passed_players || []).filter(pp => !pp.tied).map(pp => pp.name);
+                            const tied = (p.passed_players || []).filter(pp => pp.tied).map(pp => pp.name);
+                            const parts = [];
+                            if (passed.length) parts.push('passed ' + passed.join(', '));
+                            if (tied.length) parts.push('tied ' + tied.join(', '));
+                            const desc = parts.join(' and ') || p.milestone;
+                            return (
+                                <div key={i} className="flex items-center gap-2 text-sm">
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700">#{p.new_rank}</span>
+                                    <span className="font-medium">{desc}</span>
+                                    <span className="text-xs text-slate-400">({p.stat_name})</span>
+                                    <span className="text-slate-400">—</span>
+                                    <button onClick={() => onGameClick && onGameClick(p.game_id)} className="text-blue-600 hover:underline text-xs">{p.date_display || p.date}</button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
-const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) => {
+const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, careerMilestones, allTimePassings }) => {
     const [activeView, setActiveView] = useState('timeline');
     const [sortKey, setSortKey] = useState('dateSort');
     const [sortDir, setSortDir] = useState('desc');
+    const [opponentFilter, setOpponentFilter] = useState(null);
 
     // Get all games for this pitcher with derived fields
     const gamesForPitcher = useMemo(() => {
@@ -1643,16 +1740,17 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) =>
         return yearlyStats;
     }, [gamesForPitcher]);
 
-    // Sorted game log
+    // Sorted game log (with optional opponent filter)
     const sortedGameLog = useMemo(() => {
-        return [...gamesForPitcher].sort((a, b) => {
+        const filtered = opponentFilter ? gamesForPitcher.filter(g => g.opponent === opponentFilter) : gamesForPitcher;
+        return [...filtered].sort((a, b) => {
             const aVal = a[sortKey], bVal = b[sortKey];
             const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
             const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
             let result = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(aVal || '').localeCompare(String(bVal || ''));
             return sortDir === 'asc' ? result : -result;
         });
-    }, [gamesForPitcher, sortKey, sortDir]);
+    }, [gamesForPitcher, sortKey, sortDir, opponentFilter]);
 
     const handleSort = (key) => {
         if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
@@ -1695,7 +1793,14 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) =>
             {/* Game Log View */}
             {activeView === 'gamelog' && (
                 <div>
-                    <div className="text-sm text-slate-500 mb-3">{gamesForPitcher.length} games</div>
+                    <div className="text-sm text-slate-500 mb-3 flex items-center gap-2">
+                        <span>{sortedGameLog.length} game{sortedGameLog.length !== 1 ? 's' : ''}</span>
+                        {opponentFilter && (
+                            <button onClick={() => setOpponentFilter(null)} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium hover:bg-blue-200">
+                                vs {opponentFilter} <span className="ml-0.5">&times;</span>
+                            </button>
+                        )}
+                    </div>
                     <div className="overflow-x-auto border rounded-lg" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                         <table className="w-full text-sm">
                             <thead className="bg-slate-50 sticky top-0">
@@ -1731,7 +1836,7 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) =>
                                         <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 cursor-pointer ${isWin ? 'bg-green-50' : ''} ${isQS ? 'bg-blue-50' : ''}`} onClick={() => onGameClick && onGameClick(game.gameId)}>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{game.date}</td>
                                             <td className="px-3 py-2">{game.team}</td>
-                                            <td className="px-3 py-2">{game.opponent}</td>
+                                            <td className="px-3 py-2"><button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); setOpponentFilter(opponentFilter === game.opponent ? null : game.opponent); }}>{game.opponent}</button></td>
                                             <td className="px-3 py-2 font-medium">{game.ip}</td>
                                             <td className="px-3 py-2">{game.h}</td>
                                             <td className="px-3 py-2">{game.r}</td>
@@ -1841,6 +1946,51 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick }) =>
                     </tbody>
                 </table>
             </div>
+                </div>
+            )}
+
+            {/* Career Milestones Witnessed */}
+            {careerMilestones && careerMilestones.length > 0 && (
+                <div className="mt-6">
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">⭐ Career Milestones Witnessed</h4>
+                    <div className="space-y-1">
+                        {careerMilestones.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((m, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${m.category === 'first' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {m.category === 'first' ? 'FIRST' : 'MILESTONE'}
+                                </span>
+                                <span className="font-medium">{m.milestone}</span>
+                                <span className="text-slate-400">—</span>
+                                <button onClick={() => onGameClick && onGameClick(m.game_id)} className="text-blue-600 hover:underline text-xs">{m.date_display || m.date}</button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* All-Time Passings */}
+            {allTimePassings && allTimePassings.length > 0 && (
+                <div className="mt-4">
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">🏆 All-Time List Movements</h4>
+                    <div className="space-y-1">
+                        {allTimePassings.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((p, i) => {
+                            const passed = (p.passed_players || []).filter(pp => !pp.tied).map(pp => pp.name);
+                            const tied = (p.passed_players || []).filter(pp => pp.tied).map(pp => pp.name);
+                            const parts = [];
+                            if (passed.length) parts.push('passed ' + passed.join(', '));
+                            if (tied.length) parts.push('tied ' + tied.join(', '));
+                            const desc = parts.join(' and ') || p.milestone;
+                            return (
+                                <div key={i} className="flex items-center gap-2 text-sm">
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700">#{p.new_rank}</span>
+                                    <span className="font-medium">{desc}</span>
+                                    <span className="text-xs text-slate-400">({p.stat_name})</span>
+                                    <span className="text-slate-400">—</span>
+                                    <button onClick={() => onGameClick && onGameClick(p.game_id)} className="text-blue-600 hover:underline text-xs">{p.date_display || p.date}</button>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
         </div>
@@ -2023,13 +2173,16 @@ const Calendar = ({ games }) => {
                         <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
                             <div className="divide-y">
                                 {selectedDate.games.sort((a, b) => new Date(b.date) - new Date(a.date)).map((game) => (
-                                    <div key={game.gameId} className="p-4 hover:bg-blue-50 transition-colors">
+                                    <div key={game.gameId} className="p-4 hover:bg-blue-50 transition-colors cursor-pointer"
+                                        onClick={() => { window._pendingGameId = game.gameId; setShowModal(false); if (window.__navigateTab) window.__navigateTab('gamelog'); }}>
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-3">
                                                 <span className="body-text font-bold text-blue-600">{game.date}</span>
                                                 <span className="small-text text-slate-500">{game.startTime}</span>
                                             </div>
-                                            <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
+                                            <div onClick={(e) => e.stopPropagation()}>
+                                                <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
+                                            </div>
                                         </div>
                                         <div className="flex items-center gap-4 flex-wrap">
                                             <div className="flex items-center gap-2">
@@ -2086,8 +2239,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
 
     // Normalize team codes for matching (e.g., ATH -> OAK)
     const normalizeCode = (code) => {
-        const aliases = { 'ATH': 'OAK', 'FLA': 'MIA' };
-        return aliases[code] || code;
+        return normalizeTeamCode(code);
     };
 
     const handleCellClick = (team, opponent, count) => {
@@ -2173,13 +2325,16 @@ const MatchupMatrix = ({ matchupData, games }) => {
                                     {selectedMatchup.games.map((game) => {
                                         const isHomeGame = game.homeTeam === selectedMatchup.team;
                                         return (
-                                            <div key={game.gameId} className="p-4 hover:bg-blue-50 transition-colors">
+                                            <div key={game.gameId} className="p-4 hover:bg-blue-50 transition-colors cursor-pointer"
+                                                onClick={() => { window._pendingGameId = game.gameId; setShowModal(false); if (window.__navigateTab) window.__navigateTab('gamelog'); }}>
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-3">
                                                         <span className="body-text font-bold text-blue-600">{game.date}</span>
                                                         <span className="small-text text-slate-500">{game.startTime}</span>
                                                     </div>
-                                                    <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
+                                                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                        <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center gap-4 flex-wrap">
                                                     <div className="flex items-center gap-2">
@@ -2469,8 +2624,7 @@ const OriolesDashboard = ({ orioles, games }) => {
 
     // Normalize team codes (OAK and ATH are the same franchise)
     const normalizeTeam = (code) => {
-        if (code === 'ATH' || code === 'OAK') return 'OAK';
-        return code;
+        return normalizeTeamCode(code);
     };
 
     // Calculate opponent breakdown
@@ -3100,13 +3254,18 @@ const CompanionsView = ({ companionData }) => {
                         <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
                             <div className="divide-y">
                                 {selectedCompanion.games.map((game) => (
-                                    <div key={game.gameId || `${game.date}-${game.awayTeam}-${game.homeTeam}`} className="p-4 hover:bg-blue-50 transition-colors">
+                                    <div key={game.gameId || `${game.date}-${game.awayTeam}-${game.homeTeam}`}
+                                        className="p-4 hover:bg-blue-50 transition-colors cursor-pointer"
+                                        onClick={() => { if (game.gameId) { window._pendingGameId = game.gameId; setShowGames(false); if (window.__navigateTab) window.__navigateTab('gamelog'); } }}>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-4">
                                                 <span className="font-bold text-blue-600">{(game.date || '').split(' ')[0]}</span>
                                                 <span className="font-semibold">{game.awayTeam} @ {game.homeTeam}</span>
                                             </div>
-                                            <span className="text-slate-600">{game.venue}</span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-slate-600">{game.venue}</span>
+                                                <span className="text-xs text-blue-500">View →</span>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -3123,7 +3282,7 @@ const CompanionsView = ({ companionData }) => {
 };
 
 
-const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
+const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings }) => {
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState('pa');
     const [sortDir, setSortDir] = useState('desc');
@@ -3276,7 +3435,13 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
                 <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPlayer(null)}>
                     <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
-                            <h3 className="section-title font-bold">{selectedPlayer.name}</h3>
+                            <div className="flex items-center gap-3">
+                                <h3 className="section-title font-bold">{selectedPlayer.name}</h3>
+                                {ncaaCrossRef && ncaaCrossRef[selectedPlayer.id] && (
+                                    <button onClick={() => { setSelectedPlayer(null); if (window.__navigateTab) window.__navigateTab('players', 'college'); }}
+                                        className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-white">College Stats →</button>
+                                )}
+                            </div>
                             <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
                         </div>
                         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
@@ -3284,6 +3449,8 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
                                 playerId={selectedPlayer.id}
                                 playerName={selectedPlayer.name}
                                 playerGames={playerGames}
+                                careerMilestones={(careerFirstsByPlayer || {})[selectedPlayer.id] || []}
+                                allTimePassings={(allTimePassings || []).filter(p => p.player_id === selectedPlayer.id)}
                                 onGameClick={(gameId) => {
                                     window._pendingGameId = gameId;
                                     if (window.__navigateTab) window.__navigateTab('gamelog');
@@ -3297,7 +3464,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames }) => {
     );
 };
 
-const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
+const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings }) => {
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState('ip');
     const [sortDir, setSortDir] = useState('desc');
@@ -3443,7 +3610,13 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
                 <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPitcher(null)}>
                     <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
-                            <h3 className="section-title font-bold">{selectedPitcher.name}</h3>
+                            <div className="flex items-center gap-3">
+                                <h3 className="section-title font-bold">{selectedPitcher.name}</h3>
+                                {ncaaCrossRef && ncaaCrossRef[selectedPitcher.id] && (
+                                    <button onClick={() => { setSelectedPitcher(null); if (window.__navigateTab) window.__navigateTab('players', 'college'); }}
+                                        className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-white">College Stats →</button>
+                                )}
+                            </div>
                             <button onClick={() => setSelectedPitcher(null)} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
                         </div>
                         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
@@ -3451,6 +3624,8 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
                                 playerId={selectedPitcher.id}
                                 playerName={selectedPitcher.name}
                                 pitcherGames={pitcherGames}
+                                careerMilestones={(careerFirstsByPlayer || {})[selectedPitcher.id] || []}
+                                allTimePassings={(allTimePassings || []).filter(p => p.player_id === selectedPitcher.id)}
                                 onGameClick={(gameId) => {
                                     window._pendingGameId = gameId;
                                     if (window.__navigateTab) window.__navigateTab('gamelog');
@@ -3464,13 +3639,23 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames }) => {
     );
 };
 
-const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions = null, enableDateFilter = false, enableExport = true, paginate = true, onRowClick = null }) => {
-    const [search, setSearch] = useState('');
-    const [sortKey, setSortKey] = useState(defaultSortKey || columns[0]?.key);
-    const [sortDir, setSortDir] = useState('desc');
-    const [activeFilters, setActiveFilters] = useState({});
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
+const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions = null, enableDateFilter = false, enableExport = true, paginate = true, onRowClick = null, persistKey = null }) => {
+    const loadPersisted = (key, fallback) => {
+        if (!persistKey) return fallback;
+        try { const v = JSON.parse(localStorage.getItem(`dt_${persistKey}_${key}`)); return v !== null ? v : fallback; } catch { return fallback; }
+    };
+    const [search, setSearch] = useState(() => loadPersisted('search', ''));
+    const [sortKey, setSortKey] = useState(() => loadPersisted('sortKey', defaultSortKey || columns[0]?.key));
+    const [sortDir, setSortDir] = useState(() => loadPersisted('sortDir', 'desc'));
+    const [activeFilters, setActiveFilters] = useState(() => loadPersisted('filters', {}));
+    const [startDate, setStartDate] = useState(() => loadPersisted('startDate', ''));
+    const [endDate, setEndDate] = useState(() => loadPersisted('endDate', ''));
+
+    useEffect(() => {
+        if (!persistKey) return;
+        const state = { search, sortKey, sortDir, filters: activeFilters, startDate, endDate };
+        Object.entries(state).forEach(([k, v]) => localStorage.setItem(`dt_${persistKey}_${k}`, JSON.stringify(v)));
+    }, [search, sortKey, sortDir, activeFilters, startDate, endDate, persistKey]);
 
     // Normalize filterOptions to always be an array
     const filters = useMemo(() => {
@@ -3987,8 +4172,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                 // Sort event types by order
                                 const sortedEvents = Object.values(byEventType).sort((a, b) => a.order - b.order);
 
-                                // Shorten milestone for date view
-                                const shortenMilestone = (m) => (m || '').replace('First Career ', '1st Career ').replace('Home Run', 'HR').replace('Stolen Base', 'SB').replace('Run Scored', 'Run').replace('Strikeout', 'K').replace('Inning Pitched', 'IP').replace('Double', '2B').replace('Triple', '3B');
+                                // shortenMilestone is now global
 
                                 // DATE VIEW
                                 if (careerMilestoneSort === 'date') {
@@ -4038,24 +4222,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                                         byPlayer[name].items.push(m);
                                     });
                                     // Sort players alphabetically by last name
-                                    const sortedPlayers = Object.values(byPlayer).sort((a, b) => {
-                                        const getLastName = (name) => {
-                                            const parts = (name || '').trim().split(' ');
-                                            if (parts.length <= 1) return (name || '').toLowerCase();
-                                            // Handle compound surnames (De La Rosa, Van Der Berg, etc.)
-                                            // Find the first particle that starts the surname
-                                            const particles = ['de', 'la', 'del', 'van', 'von', 'der', 'den', 'el', 'al'];
-                                            for (let i = 1; i < parts.length; i++) {
-                                                if (particles.includes(parts[i].toLowerCase())) {
-                                                    // Return everything from this particle onwards
-                                                    return parts.slice(i).join(' ').toLowerCase();
-                                                }
-                                            }
-                                            // Default: return just the last word
-                                            return parts[parts.length - 1].toLowerCase();
-                                        };
-                                        return getLastName(a.name).localeCompare(getLastName(b.name));
-                                    });
+                                    const sortedPlayers = Object.values(byPlayer).sort((a, b) => getLastName(a.name).toLowerCase().localeCompare(getLastName(b.name).toLowerCase()));
                                     return (
                                         <div className="space-y-3">
                                             {sortedPlayers.map((player, pIdx) => {
@@ -4177,11 +4344,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                     // Sort by game date from gameMap, falling back to gameId parsing
                     const gameA = gameMap[a.gameId];
                     const gameB = gameMap[b.gameId];
-                    const parseDate = (d) => {
-                        if (!d) return '';
-                        if (d.includes('/')) { const [m, dd, y] = d.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; }
-                        return d;
-                    };
+                    const parseDate = toSortableDate;
                     const da = gameA ? parseDate(gameA.date) : '';
                     const db = gameB ? parseDate(gameB.date) : '';
                     return db.localeCompare(da);
@@ -4236,10 +4399,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
 
                     // Special sorting for Multi-HR Games: by HR count (descending) then date (descending)
                     if (type === 'Multi-HR Games') {
-                        const getHrCount = (detail) => {
-                            const match = detail?.match(/(\d+)\s*HR/);
-                            return match ? parseInt(match[1], 10) : 0;
-                        };
+                        // getHrCount is now global
                         filteredItems.sort((a, b) => {
                             const hrDiff = getHrCount(b.detail) - getHrCount(a.detail);
                             if (hrDiff !== 0) return hrDiff;
@@ -4417,7 +4577,10 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
 
 const CollegePlayersView = ({ data, onViewPlayer }) => {
     const ncaaRef = data.ncaaCrossRef || {};
-    const allPlayers = [...(data.players || []), ...(data.pitchers || [])];
+    const allPlayers = useMemo(() => {
+        const seen = new Set();
+        return [...(data.players || []), ...(data.pitchers || [])].filter(p => { if (seen.has(p.playerId)) return false; seen.add(p.playerId); return true; });
+    }, [data.players, data.pitchers]);
     const { seenPlayers, notSeenPlayers } = useMemo(() => {
         const matched = [];
         const seen = new Set();
@@ -4568,7 +4731,7 @@ const NoStatsPlayers = ({ data }) => {
             const gameIds = (p.gameIds || '').split(',').map(id => id.trim()).filter(Boolean);
             const gameList = gameIds.map(id => gameMap[id]).filter(Boolean);
             const regGames = gameList.filter(g => (g.gameType || 'regular') === 'regular');
-            return { ...p, gameList, regGameCount: regGames.length };
+            return { ...p, gameList: regGames, regGameCount: regGames.length };
         }).filter(p => p.regGameCount > 0);
     }, [data]);
 
@@ -4577,12 +4740,12 @@ const NoStatsPlayers = ({ data }) => {
             <DataTable
                 title={`👻 Players Without Regular Season Stats (${allNoStats.length})`}
                 data={allNoStats}
-                defaultSortKey="games"
+                defaultSortKey="regGameCount"
                 onRowClick={(row) => setSelectedPlayer(selectedPlayer?.playerId === row.playerId ? null : row)}
                 columns={[
                     { key: 'name', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
                     { key: 'teams', label: 'Team(s)' },
-                    { key: 'games', label: 'Games' },
+                    { key: 'regGameCount', label: 'Games' },
                     { key: 'positions', label: 'Position(s)' },
                 ]}
             />
@@ -4888,6 +5051,111 @@ const GamesPerYearChart = ({ games }) => {
     );
 };
 
+const SeasonTrendsChart = ({ games, playerGames, pitcherGames }) => {
+    const canvasRef = useRef(null);
+    const [metric, setMetric] = useState('avgSeen');
+
+    const seasonData = useMemo(() => {
+        const springIds = new Set((games || []).filter(g => g.gameType === 'spring').map(g => g.gameId));
+        const byYear = {};
+        const regGames = (games || []).filter(g => !springIds.has(g.gameId));
+        regGames.forEach(g => {
+            const d = g.date || '';
+            const year = d.includes('/') ? d.split('/')[2] : d.substring(0, 4);
+            if (!year || year.length !== 4) return;
+            if (!byYear[year]) byYear[year] = { games: 0, h: 0, hr: 0, r: 0, rbi: 0, so: 0, bb: 0, sb: 0, ab: 0 };
+            byYear[year].games++;
+        });
+        (playerGames || []).forEach(pg => {
+            if (springIds.has(pg.gameId)) return;
+            const d = pg.date || '';
+            const year = d.includes('/') ? d.split('/')[2] : d.substring(0, 4);
+            if (!year || !byYear[year]) return;
+            byYear[year].h += (pg.h || 0); byYear[year].hr += (pg.hr || 0);
+            byYear[year].r += (pg.r || 0); byYear[year].rbi += (pg.rbi || 0);
+            byYear[year].bb += (pg.bb || 0); byYear[year].sb += (pg.sb || 0);
+            byYear[year].ab += (pg.ab || 0);
+        });
+        (pitcherGames || []).forEach(pg => {
+            if (springIds.has(pg.gameId)) return;
+            const d = pg.date || '';
+            const year = d.includes('/') ? d.split('/')[2] : d.substring(0, 4);
+            if (!year || !byYear[year]) return;
+            byYear[year].so += (pg.so || 0);
+        });
+        return Object.entries(byYear).sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([year, s]) => ({ year, ...s, avgSeen: s.ab > 0 ? (s.h / s.ab) : 0, hrPerGame: s.games > 0 ? s.hr / s.games : 0, kPerGame: s.games > 0 ? s.so / s.games : 0 }));
+    }, [games, playerGames, pitcherGames]);
+
+    const metrics = [
+        { key: 'avgSeen', label: 'AVG Seen', fmt: v => v.toFixed(3), color: '#2563eb' },
+        { key: 'hrPerGame', label: 'HR/Game', fmt: v => v.toFixed(2), color: '#dc2626' },
+        { key: 'kPerGame', label: 'K/Game', fmt: v => v.toFixed(1), color: '#9333ea' },
+        { key: 'hr', label: 'Total HR', fmt: v => v, color: '#ea580c' },
+        { key: 'games', label: 'Games', fmt: v => v, color: '#16a34a' },
+    ];
+
+    useEffect(() => {
+        if (!canvasRef.current || seasonData.length < 2) return;
+        const ctx = canvasRef.current.getContext('2d');
+        const cc = chartColors();
+        const m = metrics.find(x => x.key === metric);
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: seasonData.map(s => s.year),
+                datasets: [{
+                    label: m.label,
+                    data: seasonData.map(s => s[metric]),
+                    borderColor: m.color,
+                    backgroundColor: m.color + '20',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: cc.tooltip.bg, titleColor: cc.tooltip.text, bodyColor: cc.tooltip.text,
+                        borderColor: cc.tooltip.border, borderWidth: 1,
+                        callbacks: { label: (ctx) => `${m.label}: ${m.fmt(ctx.parsed.y)}` }
+                    }
+                },
+                scales: {
+                    x: { ticks: { font: { size: 11 }, color: cc.text }, grid: { color: cc.grid } },
+                    y: { beginAtZero: metric !== 'avgSeen', ticks: { font: { size: 11 }, color: cc.text, callback: (v) => m.fmt(v) }, grid: { color: cc.grid } }
+                }
+            }
+        });
+        return () => chart.destroy();
+    }, [seasonData, metric]);
+
+    if (seasonData.length < 2) return null;
+
+    return (
+        <div className="bg-white rounded-lg border border-slate-200">
+            <div className="p-4 border-b flex flex-wrap items-center justify-between gap-2">
+                <h2 className="subsection-title font-bold">Season Trends</h2>
+                <div className="flex flex-wrap gap-1.5">
+                    {metrics.map(m => (
+                        <button key={m.key} onClick={() => setMetric(m.key)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${metric === m.key ? 'text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                            style={metric === m.key ? { backgroundColor: m.color } : {}}>
+                            {m.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <div className="p-4"><canvas ref={canvasRef} className="w-full" style={{ height: '260px' }} /></div>
+        </div>
+    );
+};
+
 const CumulativeStatsChart = ({ games, playerGames, pitcherGames }) => {
     const [activeStat, setActiveStat] = useState('H');
 
@@ -4903,11 +5171,7 @@ const CumulativeStatsChart = ({ games, playerGames, pitcherGames }) => {
 
     const chartData = useMemo(() => {
         const springIds = new Set((games || []).filter(g => g.gameType === 'spring').map(g => g.gameId));
-        const parseDate = (d) => {
-            if (!d) return '';
-            if (d.includes('/')) { const [m, dd, y] = d.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; }
-            return d;
-        };
+        const parseDate = toSortableDate;
 
         const pgByGame = {};
         (playerGames || []).forEach(pg => { if (!springIds.has(pg.gameId)) { if (!pgByGame[pg.gameId]) pgByGame[pg.gameId] = []; pgByGame[pg.gameId].push(pg); }});
@@ -4965,8 +5229,8 @@ const CumulativeStatsChart = ({ games, playerGames, pitcherGames }) => {
                 <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
                     {yLabels.map((l, i) => (
                         <g key={i}>
-                            <line x1={pad.left} y1={l.y} x2={width - pad.right} y2={l.y} stroke="#e5e7eb" strokeWidth="1" />
-                            <text x={pad.left - 8} y={l.y + 4} textAnchor="end" fill="#6b7280" fontSize="10">{l.val.toLocaleString()}</text>
+                            <line x1={pad.left} y1={l.y} x2={width - pad.right} y2={l.y} stroke={isDark() ? '#334155' : '#e5e7eb'} strokeWidth="1" />
+                            <text x={pad.left - 8} y={l.y + 4} textAnchor="end" fill={isDark() ? '#94a3b8' : '#6b7280'} fontSize="10">{l.val.toLocaleString()}</text>
                         </g>
                     ))}
                     <polygon points={`${pad.left},${pad.top + chartH} ${points} ${width - pad.right},${pad.top + chartH}`} fill={activeColor} fillOpacity="0.1" />
@@ -5058,7 +5322,7 @@ const AttendancePatterns = ({ games }) => {
 
 const Dashboard = ({ data, onTabChange }) => {
     // Get recent highlights for the dashboard
-    const toSortDate = (d) => { const p = (d || '').split('/'); return p.length === 3 ? `${p[2]}${p[0]}${p[1]}` : d || ''; };
+    const toSortDate = toSortableDate;
     const recentDebuts = useMemo(() => [...(data.debuts || [])].sort((a, b) => toSortDate(b.date).localeCompare(toSortDate(a.date))).slice(0, 5), [data.debuts]);
     const recentFinalGames = useMemo(() => [...(data.finalGames || [])].sort((a, b) => toSortDate(b.date).localeCompare(toSortDate(a.date))).slice(0, 5), [data.finalGames]);
 
@@ -5104,7 +5368,10 @@ const Dashboard = ({ data, onTabChange }) => {
                 <GamesPerYearChart games={data.games} />
                 <AttendancePatterns games={data.games} />
             </div>
-            <CumulativeStatsChart games={data.games} playerGames={data.playerGames} pitcherGames={data.pitcherGames} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <SeasonTrendsChart games={data.games} playerGames={data.playerGames} pitcherGames={data.pitcherGames} />
+                <CumulativeStatsChart games={data.games} playerGames={data.playerGames} pitcherGames={data.pitcherGames} />
+            </div>
 
             {/* Recent Highlights */}
             {(recentDebuts.length > 0 || recentFinalGames.length > 0) && (
@@ -5223,9 +5490,10 @@ const Dashboard = ({ data, onTabChange }) => {
 // Expandable badge cell component
 const BadgeCell = ({ badges, badgeColors }) => {
     if (!badges || badges.length === 0) return null;
+    const MAX_INLINE = 3;
     return (
-        <div className="group relative flex flex-wrap gap-1 max-w-xs">
-            {badges.slice(0, 3).map((badge, i) => (
+        <div className="group relative flex flex-wrap gap-1 max-w-sm">
+            {badges.slice(0, MAX_INLINE).map((badge, i) => (
                 <span
                     key={`${badge.type}-${badge.text}-${i}`}
                     className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`}
@@ -5234,13 +5502,13 @@ const BadgeCell = ({ badges, badgeColors }) => {
                     {badge.text}
                 </span>
             ))}
-            {badges.length > 3 && (
+            {badges.length > MAX_INLINE && (
                 <span className="px-1.5 py-0.5 rounded text-xs bg-slate-200 text-slate-600">
-                    +{badges.length - 3}
+                    +{badges.length - MAX_INLINE}
                 </span>
             )}
-            {badges.length > 3 && (
-                <div className="hidden group-hover:block absolute top-full left-0 mt-1 z-20 bg-white rounded-lg shadow-lg border p-2 max-w-sm" onClick={(e) => e.stopPropagation()}>
+            {badges.length > MAX_INLINE && (
+                <div className="hidden group-hover:block absolute top-full left-0 mt-1 z-20 bg-white rounded-lg shadow-lg border p-2 max-w-md" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-wrap gap-1">
                         {badges.map((badge, i) => (
                             <span key={`full-${badge.type}-${badge.text}-${i}`} className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`} title={badge.title}>
@@ -5271,11 +5539,7 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
         pitByGame[gid].push(pg);
     });
 
-    const parseDate = (d) => {
-        if (!d) return '';
-        if (d.includes('/')) { const [m, dd, y] = d.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; }
-        return d;
-    };
+    const parseDate = toSortableDate;
     const springGameIds = new Set((games || []).filter(g => g.gameType === 'spring').map(g => g.gameId));
     const sorted = [...games].filter(g => !springGameIds.has(g.gameId)).sort((a, b) => parseDate(a.date).localeCompare(parseDate(b.date)));
 
@@ -5447,8 +5711,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
     // Precompute all badges per game for filtering
     const allBadgesByGame = useMemo(() => {
         const result = {};
-        const shortenMilestone = (m) => (m || '').replace('First Career ', '1st Career ').replace('Home Run', 'HR').replace('Stolen Base', 'SB').replace('Run Scored', 'Run').replace('Strikeout', 'K').replace('Inning Pitched', 'IP').replace('Double', '2B').replace('Triple', '3B');
-        const getLastName = (name) => { const parts = (name || '').split(' '); return parts[parts.length - 1] || name || '?'; };
+        // shortenMilestone is now global
+        // getLastName is now global
         games.forEach(game => {
             const gid = game.gameId;
             if (!gid) return;
@@ -5459,7 +5723,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                 text: `⭐ ${getLastName(f.player_name)}: ${shortenMilestone(f.milestone)}`,
                 title: `${f.player_name || 'Unknown'}'s ${f.milestone || 'milestone'}`
             }));
-            result[gid] = [...regularBadges, ...careerFirstBadges, ...(cumulativeBadges[gid] || [])];
+            result[gid] = [...regularBadges, ...careerFirstBadges, ...(cumulativeBadges[gid] || [])].filter(b => b.text && b.text.trim());
         });
         return result;
     }, [games, gameMilestones, careerFirstsByGame, cumulativeBadges]);
@@ -5519,6 +5783,9 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         return { ...stats, pitK, gameCount: countedGames.size };
     }, [games, playerGames, pitcherGames, badgeFilteredGames, hasBadgeFilter]);
 
+    const searchableGames = useMemo(() => badgeFilteredGames.map(g => ({
+        ...g, _searchTeams: (TEAM_CODE_TO_NAME[g.awayTeam] || '') + ' ' + (TEAM_CODE_TO_NAME[g.homeTeam] || '')
+    })), [badgeFilteredGames]);
 
     return (
         <>
@@ -5581,7 +5848,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
             </div>
             <DataTable
                 title="📋 Game Log"
-                data={badgeFilteredGames}
+                data={searchableGames}
                 defaultSortKey="date"
                 enableDateFilter={true}
                 onRowClick={(row) => setSelectedGame(row)}
@@ -5593,15 +5860,15 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                 columns={[
                     { key: 'date', label: 'Date', render: (v, row) => (
                         <div className="flex items-center gap-1.5">
-                            <span>{v}</span>
+                            <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('venues', 'calendar'); }}>{v}</button>
                             {row.gameType === 'spring' && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">ST</span>}
                             {row.gameType === 'postseason' && <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-semibold rounded">PS</span>}
                         </div>
                     )},
-                    { key: 'awayTeam', label: 'Away' },
-                    { key: 'homeTeam', label: 'Home' },
+                    { key: 'awayTeam', label: 'Away', render: (v) => <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('progress', 'matchups'); }}>{v}</button> },
+                    { key: 'homeTeam', label: 'Home', render: (v) => <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('progress', 'matchups'); }}>{v}</button> },
                     { key: 'score', label: 'Score' },
-                    { key: 'venue', label: 'Venue' },
+                    { key: 'venue', label: 'Venue', render: (v) => <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('venues'); }}>{v}</button> },
                     {
                         key: 'badges',
                         label: 'Badges',
@@ -5631,7 +5898,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
             />
             
             {selectedGame && (() => {
-                const toSort = (d) => { if (!d) return ''; if (d.includes('/')) { const [m,dd,y] = d.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; } return d; };
+                const toSort = toSortableDate;
                 const sortedGames = [...(games || [])].sort((a, b) => toSort(b.date).localeCompare(toSort(a.date)));
                 const idx = sortedGames.findIndex(g => g.gameId === selectedGame.gameId);
                 const prevGame = idx > 0 ? sortedGames[idx - 1] : null;
@@ -6317,14 +6584,7 @@ const computeGameMilestones = (games) => {
     const sortedGames = [...games].sort((a, b) => {
         const dateA = a.date || '';
         const dateB = b.date || '';
-        const parseDate = (d) => {
-            if (!d) return '';
-            if (d.includes('/')) {
-                const [m, dd, y] = d.split('/');
-                return `${y}${(m || '').padStart(2, '0')}${(dd || '').padStart(2, '0')}`;
-            }
-            return d;
-        };
+        const parseDate = toSortableDate;
         return parseDate(dateA).localeCompare(parseDate(dateB));
     });
 
@@ -6629,15 +6889,21 @@ const DivisionChecklist = ({ divisionChecklist, games }) => {
                         return (
                             <div
                                 key={team.teamCode}
-                                className={`flex items-center gap-3 p-3 rounded-lg border ${
+                                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:shadow-sm transition-all ${
                                     isSeen
-                                        ? 'bg-green-50 border-green-200'
-                                        : 'bg-slate-50 border-slate-200'
+                                        ? 'bg-green-50 border-green-200 hover:border-green-300'
+                                        : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                                 }`}
+                                onClick={() => {
+                                    if (isSeen) {
+                                        if (viewMode === 'teams') window.__navigateTab('progress', 'matchups');
+                                        else window.__navigateTab('venues');
+                                    }
+                                }}
                             >
                                 <span className="text-2xl">{isSeen ? '✅' : '⬜'}</span>
                                 <div className="flex-1 min-w-0">
-                                    <div className={`font-medium truncate ${!isSeen && 'text-slate-400'}`}>
+                                    <div className={`font-medium truncate ${!isSeen ? 'text-slate-400' : 'text-blue-700'}`}>
                                         {displayName || 'Unknown'}
                                     </div>
                                     <div className="text-xs text-slate-500">
@@ -6704,17 +6970,7 @@ const BadgesDisplay = ({ games }) => {
     // Collect all badges
     const allBadges = useMemo(() => {
         const badges = [];
-        const sortedGames = [...(games || [])].sort((a, b) => {
-            const parseDate = (d) => {
-                if (!d) return '';
-                if (d.includes('/')) {
-                    const [m, dd, y] = d.split('/');
-                    return `${y}${(m || '').padStart(2, '0')}${(dd || '').padStart(2, '0')}`;
-                }
-                return d;
-            };
-            return parseDate(b.date).localeCompare(parseDate(a.date));
-        });
+        const sortedGames = [...(games || [])].sort((a, b) => toSortableDate(b.date).localeCompare(toSortableDate(a.date)));
 
         sortedGames.forEach(game => {
             const gameBadges = milestoneData.milestones?.[game.gameId]?.badges || [];
@@ -6833,6 +7089,7 @@ const BadgesDisplay = ({ games }) => {
                                 key={`${badge.gameId}-${badge.type}-${idx}`}
                                 className={`p-3 rounded-lg border ${getBadgeColor(badge.type)} cursor-pointer hover:shadow-md transition-all`}
                                 title={badge.title}
+                                onClick={() => { window._pendingGameId = badge.gameId; if (window.__navigateTab) window.__navigateTab('gamelog'); }}
                             >
                                 <div className="flex items-start gap-3">
                                     <span className="text-2xl">{getBadgeIcon(badge.type)}</span>
@@ -6880,19 +7137,56 @@ class ErrorBoundary extends React.Component {
     }
 }
 
-const UmpireTracker = ({ umpireLog }) => {
+const UmpireTracker = ({ umpireLog, games }) => {
     const [search, setSearch] = useState('');
+    const [expandedUmpire, setExpandedUmpire] = useState(null);
+    const [sortKey, setSortKey] = useState('games');
+    const [sortDir, setSortDir] = useState('desc');
+
+    const gameMap = useMemo(() => {
+        const map = {};
+        (games || []).forEach(g => { if (g.gameId) map[g.gameId] = g; });
+        return map;
+    }, [games]);
+
+    useEffect(() => {
+        if (window._pendingUmpireSearch) {
+            setSearch(window._pendingUmpireSearch);
+            window._pendingUmpireSearch = null;
+        }
+    }, []);
+
+    const toSortDate = toSortableDate;
+    const handleSort = (key) => { if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc'); else { setSortKey(key); setSortDir(key === 'name' ? 'asc' : 'desc'); } };
 
     const filtered = useMemo(() => {
-        if (!search) return umpireLog;
-        const q = search.toLowerCase();
-        return umpireLog.filter(u => u.name.toLowerCase().includes(q));
-    }, [umpireLog, search]);
+        let list = umpireLog;
+        if (search) {
+            const q = search.toLowerCase();
+            list = list.filter(u => u.name.toLowerCase().includes(q));
+        }
+        return [...list].sort((a, b) => {
+            let aVal, bVal;
+            if (sortKey === 'name') { aVal = a.name; bVal = b.name; }
+            else if (sortKey === 'games') { aVal = a.games; bVal = b.games; }
+            else if (sortKey === 'absChallenges') { aVal = a.absChallenges || 0; bVal = b.absChallenges || 0; }
+            else if (sortKey === 'firstSeen') { aVal = toSortDate(a.firstSeen); bVal = toSortDate(b.firstSeen); }
+            else if (sortKey === 'lastSeen') { aVal = toSortDate(a.lastSeen); bVal = toSortDate(b.lastSeen); }
+            else { aVal = a[sortKey]; bVal = b[sortKey]; }
+            let result = typeof aVal === 'number' ? aVal - bVal : String(aVal || '').localeCompare(String(bVal || ''));
+            return sortDir === 'asc' ? result : -result;
+        });
+    }, [umpireLog, search, sortKey, sortDir]);
 
     const totalUmpires = umpireLog.length;
     const multipleGames = umpireLog.filter(u => u.games > 1).length;
     const totalChallenges = umpireLog.reduce((sum, u) => sum + (u.absChallenges || 0), 0);
     const totalOverturned = umpireLog.reduce((sum, u) => sum + (u.absOverturned || 0), 0);
+    const SortHeader = ({ k, label, align }) => (
+        <th className={`px-3 py-2 ${align || 'text-left'} cursor-pointer hover:bg-slate-100`} onClick={() => handleSort(k)}>
+            {label} {sortKey === k && (sortDir === 'asc' ? '↑' : '↓')}
+        </th>
+    );
 
     return (
         <div className="space-y-4">
@@ -6934,17 +7228,22 @@ const UmpireTracker = ({ umpireLog }) => {
                     <table className="w-full">
                         <thead className="bg-slate-50 sticky top-0">
                             <tr>
-                                <th className="px-3 py-2 text-left">Umpire</th>
-                                <th className="px-3 py-2 text-center">Games</th>
+                                <SortHeader k="name" label="Umpire" />
+                                <SortHeader k="games" label="Games" align="text-center" />
                                 <th className="px-3 py-2 text-left">Positions</th>
-                                {totalChallenges > 0 && <th className="px-3 py-2 text-center">ABS Challenges</th>}
-                                <th className="px-3 py-2 text-left">First Seen</th>
-                                <th className="px-3 py-2 text-left">Last Seen</th>
+                                {totalChallenges > 0 && <SortHeader k="absChallenges" label="ABS Challenges" align="text-center" />}
+                                <SortHeader k="firstSeen" label="First Seen" />
+                                <SortHeader k="lastSeen" label="Last Seen" />
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filtered.map((u, idx) => (
-                                <tr key={u.name} className={`hover:bg-blue-50/50 ${idx % 2 === 1 ? 'bg-slate-50/50' : ''}`}>
+                            {filtered.map((u, idx) => {
+                                const isExpanded = expandedUmpire === u.name;
+                                const umpGames = (u.gameIds || []).map(id => gameMap[id]).filter(Boolean);
+                                return (
+                                <React.Fragment key={u.name}>
+                                <tr className={`hover:bg-blue-50/50 cursor-pointer ${idx % 2 === 1 ? 'bg-slate-50/50' : ''} ${isExpanded ? 'bg-blue-50' : ''}`}
+                                    onClick={() => setExpandedUmpire(isExpanded ? null : u.name)}>
                                     <td className="px-3 py-2 body-text font-semibold text-slate-800">{u.name}</td>
                                     <td className="px-3 py-2 body-text font-bold text-blue-600 text-center">{u.games}</td>
                                     <td className="px-3 py-2">
@@ -6960,8 +7259,8 @@ const UmpireTracker = ({ umpireLog }) => {
                                         <td className="px-3 py-2 text-center">
                                             {u.absChallenges > 0 ? (
                                                 <div className="flex items-center justify-center gap-2 text-xs">
-                                                    <span className="text-green-600 font-medium">{u.absOverturned}✓</span>
-                                                    <span className="text-red-600 font-medium">{u.absUpheld}✗</span>
+                                                    <span className="text-green-600 font-medium" title="Overturned">{u.absOverturned} OVT</span>
+                                                    <span className="text-red-600 font-medium" title="Upheld">{u.absUpheld} UPH</span>
                                                     <span className="text-slate-400">/ {u.absChallenges}</span>
                                                 </div>
                                             ) : (
@@ -6972,7 +7271,23 @@ const UmpireTracker = ({ umpireLog }) => {
                                     <td className="px-3 py-2 body-text text-slate-500">{u.firstSeen}</td>
                                     <td className="px-3 py-2 body-text text-slate-500">{u.lastSeen}</td>
                                 </tr>
-                            ))}
+                                {isExpanded && umpGames.length > 0 && (
+                                    <tr>
+                                        <td colSpan={totalChallenges > 0 ? 6 : 5} className="px-3 py-2 bg-blue-50/50">
+                                            <div className="flex flex-wrap gap-1">
+                                                {umpGames.map((g, gi) => (
+                                                    <button key={gi} onClick={(e) => { e.stopPropagation(); window._pendingGameId = g.gameId; if (window.__navigateTab) window.__navigateTab('gamelog'); }}
+                                                        className="text-[10px] px-2 py-0.5 bg-white text-blue-700 rounded border border-blue-200 hover:bg-blue-100">
+                                                        {g.date} {g.awayTeam}@{g.homeTeam}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                                </React.Fragment>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -6984,6 +7299,7 @@ const UmpireTracker = ({ umpireLog }) => {
 const JerseyCollection = ({ jerseyLog }) => {
     const [selectedNumber, setSelectedNumber] = useState(null);
     const [includeSpring, setIncludeSpring] = useState(false);
+    const [search, setSearch] = useState('');
 
     // Build grid of numbers 00-99, filtering spring training if needed
     const numbers = useMemo(() => {
@@ -7003,6 +7319,18 @@ const JerseyCollection = ({ jerseyLog }) => {
     const collected = numbers.filter(n => n.players.length > 0).length;
     const total = numbers.length;
 
+    // Search: find jersey numbers that have a matching player
+    const matchingNumbers = useMemo(() => {
+        if (!search) return new Set();
+        const q = search.toLowerCase();
+        const matches = new Set();
+        numbers.forEach(({ num, players }) => {
+            if (players.some(p => (p.name || '').toLowerCase().includes(q) || (p.team || '').toLowerCase().includes(q)))
+                matches.add(num);
+        });
+        return matches;
+    }, [search, numbers]);
+
     return (
         <div className="space-y-4">
             <div className="bg-white rounded-lg border border-slate-200 p-6">
@@ -7014,10 +7342,14 @@ const JerseyCollection = ({ jerseyLog }) => {
                                 {collected} of {total} numbers collected ({Math.round(collected / total * 100)}%)
                             </p>
                         </div>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={includeSpring} onChange={(e) => setIncludeSpring(e.target.checked)} className="rounded" />
-                            <span className="body-text text-slate-600">Include Spring Training</span>
-                        </label>
+                        <div className="flex items-center gap-3">
+                            <input type="text" placeholder="Search players..." value={search} onChange={(e) => setSearch(e.target.value)}
+                                className="px-3 py-1.5 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none w-40" />
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" checked={includeSpring} onChange={(e) => setIncludeSpring(e.target.checked)} className="rounded" />
+                                <span className="body-text text-slate-600">Include ST</span>
+                            </label>
+                        </div>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-3 mt-2">
                         <div className="bg-blue-600 h-3 rounded-full transition-all" style={{ width: `${(collected / total * 100)}%` }}></div>
@@ -7027,16 +7359,19 @@ const JerseyCollection = ({ jerseyLog }) => {
                 <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(10, 1fr)' }}>
                     {numbers.map(({ num, players }) => {
                         const hasPlayers = players.length > 0;
+                        const isSearchMatch = search && matchingNumbers.has(num);
                         return (
                             <button
                                 key={num}
                                 onClick={() => hasPlayers && setSelectedNumber(selectedNumber === num ? null : num)}
                                 className={`aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
-                                    hasPlayers
+                                    isSearchMatch
+                                        ? 'bg-amber-400 text-amber-900 ring-2 ring-amber-300 cursor-pointer'
+                                        : hasPlayers
                                         ? selectedNumber === num
                                             ? 'bg-blue-600 text-white ring-2 ring-blue-400'
                                             : 'bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer'
-                                        : 'bg-slate-100 text-slate-400'
+                                        : search ? 'bg-slate-50 text-slate-300' : 'bg-slate-100 text-slate-400'
                                 }`}
                                 title={hasPlayers ? `#${num}: ${players.length} player${players.length > 1 ? 's' : ''}` : `#${num}: not seen yet`}
                             >
@@ -7098,11 +7433,17 @@ const STATE_NAME_TO_ABBR = Object.fromEntries(Object.entries(STATE_ABBR_TO_NAME)
 const COUNTRY_NAME_MAP = {
     'USA': 'United States of America', 'Dominican Republic': 'Dominican Republic',
     'Venezuela': 'Venezuela', 'Cuba': 'Cuba', 'Mexico': 'Mexico', 'Canada': 'Canada',
-    'Japan': 'Japan', 'South Korea': 'South Korea', 'Colombia': 'Colombia',
-    'Panama': 'Panama', 'Nicaragua': 'Nicaragua', 'Taiwan': 'Taiwan',
-    'Australia': 'Australia', 'Brazil': 'Brazil', 'Germany': 'Germany',
-    'Honduras': 'Honduras', 'Netherlands': 'Netherlands', 'Italy': 'Italy',
-    'Jamaica': 'Jamaica', 'Peru': 'Peru', 'Saudi Arabia': 'Saudi Arabia',
+    'Japan': 'Japan', 'South Korea': 'South Korea', 'Republic of Korea': 'South Korea',
+    'Colombia': 'Colombia', 'Panama': 'Panama', 'Nicaragua': 'Nicaragua',
+    'Taiwan': 'Taiwan', 'Australia': 'Australia', 'Brazil': 'Brazil',
+    'Germany': 'Germany', 'Honduras': 'Honduras', 'Netherlands': 'Netherlands',
+    'Italy': 'Italy', 'Jamaica': 'Jamaica', 'Peru': 'Peru', 'Saudi Arabia': 'Saudi Arabia',
+    'Puerto Rico': 'Puerto Rico', 'Curacao': 'Curacao', 'Aruba': 'Aruba',
+    'Bahamas': 'The Bahamas', 'South Africa': 'South Africa',
+    // Abbreviation fallbacks
+    'VEN': 'Venezuela', 'DOM': 'Dominican Republic', 'CUB': 'Cuba',
+    'MEX': 'Mexico', 'CAN': 'Canada', 'JPN': 'Japan', 'COL': 'Colombia',
+    'PAN': 'Panama', 'NIC': 'Nicaragua', 'AUS': 'Australia', 'BRA': 'Brazil',
 };
 
 const GEOJSON_URLS = {
@@ -7180,11 +7521,94 @@ const ChoroplethMap = ({ geoData, dataByPlace, nameMapper, center, zoom, onSelec
     return <div ref={mapRef} style={{ height: '500px', borderRadius: '8px' }} className="border"></div>;
 };
 
+const OriginsMap = ({ countriesGeo, statesGeo, countryData, stateData, selectedPlace, onSelect }) => {
+    const mapRef = useRef(null);
+    const mapInstanceRef = useRef(null);
+    const countryLayerRef = useRef(null);
+    const stateLayerRef = useRef(null);
+
+    const getColor = (count) => {
+        if (!count) return '#e5e7eb';
+        if (count >= 100) return '#1e40af';
+        if (count >= 50) return '#2563eb';
+        if (count >= 20) return '#3b82f6';
+        if (count >= 10) return '#60a5fa';
+        if (count >= 5) return '#93c5fd';
+        return '#bfdbfe';
+    };
+
+    useEffect(() => {
+        if (!mapRef.current || typeof L === 'undefined') return;
+
+        if (!mapInstanceRef.current) {
+            mapInstanceRef.current = L.map(mapRef.current, { scrollWheelZoom: true, worldCopyJump: true }).setView([25, -40], 3);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(mapInstanceRef.current);
+        }
+
+        const map = mapInstanceRef.current;
+
+        // Remove old layers
+        if (countryLayerRef.current) map.removeLayer(countryLayerRef.current);
+        if (stateLayerRef.current) map.removeLayer(stateLayerRef.current);
+
+        // Add countries layer (bottom)
+        if (countriesGeo) {
+            countryLayerRef.current = L.geoJSON(countriesGeo, {
+                filter: (feature) => feature.properties.name !== 'United States of America',
+                style: (feature) => {
+                    const name = feature.properties.name;
+                    const count = (countryData[name] || []).length;
+                    const isSelected = name === selectedPlace;
+                    return { fillColor: getColor(count), weight: isSelected ? 3 : 1, opacity: 1,
+                        color: isSelected ? '#1e3a8a' : '#9ca3af', fillOpacity: count > 0 ? 0.8 : 0.2 };
+                },
+                onEachFeature: (feature, layer) => {
+                    const name = feature.properties.name;
+                    const players = countryData[name] || [];
+                    layer.bindTooltip(`<b>${name}</b>: ${players.length} player${players.length !== 1 ? 's' : ''}`, { sticky: true });
+                    layer.on('click', () => { if (players.length > 0) onSelect(name, false); });
+                }
+            }).addTo(map);
+        }
+
+        // Add US states layer (top, over USA country shape)
+        // Exclude territories that are tracked as countries in our data
+        const STATE_EXCLUSIONS = new Set(['Puerto Rico', 'Guam', 'American Samoa', 'U.S. Virgin Islands', 'Northern Mariana Islands']);
+        if (statesGeo) {
+            stateLayerRef.current = L.geoJSON(statesGeo, {
+                filter: (feature) => !STATE_EXCLUSIONS.has(feature.properties.name),
+                style: (feature) => {
+                    const name = feature.properties.name;
+                    const count = (stateData[name] || []).length;
+                    const isSelected = name === selectedPlace;
+                    return { fillColor: getColor(count), weight: isSelected ? 3 : 1, opacity: 1,
+                        color: isSelected ? '#1e3a8a' : '#6b7280', fillOpacity: count > 0 ? 0.8 : 0.3 };
+                },
+                onEachFeature: (feature, layer) => {
+                    const name = feature.properties.name;
+                    const players = stateData[name] || [];
+                    layer.bindTooltip(`<b>${name}</b>: ${players.length} player${players.length !== 1 ? 's' : ''}`, { sticky: true });
+                    layer.on('click', () => { if (players.length > 0) onSelect(name, true); });
+                }
+            }).addTo(map);
+        }
+    }, [countriesGeo, statesGeo, countryData, stateData, selectedPlace]);
+
+    useEffect(() => {
+        if (mapInstanceRef.current) setTimeout(() => mapInstanceRef.current.invalidateSize(), 100);
+    });
+
+    return <div ref={mapRef} style={{ height: '500px', borderRadius: '8px' }} className="border"></div>;
+};
+
 const PlayerOrigins = ({ playerBios, allPlayers }) => {
-    const [viewMode, setViewMode] = useState('statesMap');
+    const [viewMode, setViewMode] = useState('maps');
     const [selectedPlace, setSelectedPlace] = useState(null);
     const [statesGeo, setStatesGeo] = useState(null);
     const [countriesGeo, setCountriesGeo] = useState(null);
+    const [search, setSearch] = useState('');
 
     // Fetch GeoJSON
     useEffect(() => {
@@ -7245,39 +7669,74 @@ const PlayerOrigins = ({ playerBios, allPlayers }) => {
                     <h2 className="section-title font-bold">Player Origins</h2>
                     <p className="body-text text-slate-500 mt-1">{data.total} players from {Object.keys(data.byCountry).length} countries, {Object.keys(data.byState).length} US states</p>
                 </div>
-                <div className="flex rounded-lg overflow-hidden border">
-                    <button onClick={() => { setViewMode('statesMap'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'statesMap' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>US States</button>
-                    <button onClick={() => { setViewMode('countriesMap'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'countriesMap' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>World</button>
-                    <button onClick={() => { setViewMode('list'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>List</button>
+                <div className="flex items-center gap-3">
+                    <input type="text" placeholder="Search players..." value={search} onChange={(e) => setSearch(e.target.value)}
+                        className="px-3 py-1.5 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none w-40" />
+                    <div className="flex rounded-lg overflow-hidden border">
+                        <button onClick={() => { setViewMode('maps'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'maps' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>Maps</button>
+                        <button onClick={() => { setViewMode('list'); setSelectedPlace(null); }} className={`px-4 py-2 text-sm font-medium ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>List</button>
+                    </div>
                 </div>
             </div>
 
-            {viewMode === 'statesMap' && statesGeo && (
-                <ChoroplethMap
-                    geoData={statesGeo}
-                    dataByPlace={data.byStateName}
-                    nameMapper={(name) => name}
-                    center={[39.8, -98.6]}
-                    zoom={4}
-                    onSelect={(name) => setSelectedPlace(STATE_NAME_TO_ABBR[name] || name)}
-                    selectedPlace={selectedPlace ? (STATE_ABBR_TO_NAME[selectedPlace] || selectedPlace) : null}
-                />
-            )}
+            {search && (() => {
+                const q = search.toLowerCase();
+                const matches = allPlayers.map(p => ({ ...p, ...(playerBios[p.playerId] || {}) }))
+                    .filter(p => (p.name || '').toLowerCase().includes(q) || (p.birthCity || '').toLowerCase().includes(q))
+                    .slice(0, 20);
+                return matches.length > 0 ? (
+                    <div className="bg-blue-50 rounded-lg p-3 mb-4">
+                        <div className="flex flex-wrap gap-2">
+                            {matches.map(p => {
+                                const place = p.birthCountry === 'USA' && p.birthState
+                                    ? p.birthState : p.birthCountry;
+                                return (
+                                <button key={p.playerId} className="px-2 py-1 bg-white rounded text-sm hover:bg-blue-100 text-left"
+                                    onClick={() => place && setSelectedPlace(place)}>
+                                    <PlayerLink playerId={p.playerId} name={p.name} />
+                                    <span className="text-slate-400 text-xs ml-1">
+                                        {[p.birthCity, p.birthState, p.birthCountry].filter(Boolean).join(', ')}
+                                    </span>
+                                </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ) : null;
+            })()}
 
-            {viewMode === 'countriesMap' && countriesGeo && (
-                <ChoroplethMap
-                    key="countries"
-                    geoData={countriesGeo}
-                    dataByPlace={Object.fromEntries(
-                        Object.entries(data.byCountry).map(([mlb, players]) => [COUNTRY_NAME_MAP[mlb] || mlb, players])
-                    )}
-                    nameMapper={(name) => name}
-                    center={[20, -40]}
-                    zoom={2}
-                    onSelect={(geoName) => { const mlb = countryGeoToMlb(geoName); setSelectedPlace(prev => prev === mlb ? null : mlb); }}
-                    selectedPlace={selectedPlace ? (COUNTRY_NAME_MAP[selectedPlace] || selectedPlace) : null}
-                />
-            )}
+            {viewMode === 'maps' && (() => {
+                // Merge country data (excluding USA which is shown by state) with state data
+                const countryData = Object.fromEntries(
+                    Object.entries(data.byCountry)
+                        .filter(([k]) => k !== 'USA')
+                        .map(([mlb, players]) => [COUNTRY_NAME_MAP[mlb] || mlb, players])
+                );
+                const stateData = data.byStateName;
+                // Combined handler: states use abbreviation lookup, countries use reverse name mapping
+                const handleSelect = (name, isState) => {
+                    if (isState) {
+                        setSelectedPlace(STATE_NAME_TO_ABBR[name] || name);
+                    } else {
+                        const mlb = countryGeoToMlb(name);
+                        setSelectedPlace(prev => prev === mlb ? null : mlb);
+                    }
+                };
+                const resolvedSelected = selectedPlace
+                    ? (STATE_ABBR_TO_NAME[selectedPlace] || COUNTRY_NAME_MAP[selectedPlace] || selectedPlace)
+                    : null;
+
+                return (
+                    <OriginsMap
+                        countriesGeo={countriesGeo}
+                        statesGeo={statesGeo}
+                        countryData={countryData}
+                        stateData={stateData}
+                        selectedPlace={resolvedSelected}
+                        onSelect={handleSelect}
+                    />
+                );
+            })()}
 
             {selectedPlace && selectedPlayers.length > 0 && viewMode !== 'list' && (
                 <div className="mt-4 bg-blue-50 rounded-lg p-4">
@@ -7295,22 +7754,55 @@ const PlayerOrigins = ({ playerBios, allPlayers }) => {
 
             {viewMode === 'list' && (
                 <div className="space-y-2">
-                    {Object.entries(data.byCountry).sort((a, b) => b[1].length - a[1].length).map(([place, players]) => (
+                    {Object.entries(data.byCountry).sort((a, b) => b[1].length - a[1].length).map(([place, players]) => {
+                        const isUSA = place === 'USA';
+                        // Group USA players by state
+                        const byState = isUSA ? {} : null;
+                        if (isUSA) {
+                            players.forEach(p => {
+                                const st = p.birthState || 'Unknown';
+                                if (!byState[st]) byState[st] = [];
+                                byState[st].push(p);
+                            });
+                        }
+                        return (
                         <details key={place} className="bg-slate-50 rounded-lg">
                             <summary className="px-4 py-3 cursor-pointer hover:bg-slate-100 flex items-center justify-between">
                                 <span className="font-semibold body-text">{place}</span>
                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold">{players.length}</span>
                             </summary>
-                            <div className="px-4 pb-3 flex flex-wrap gap-2">
-                                {players.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(p => (
-                                    <span key={p.playerId} className="px-2 py-1 bg-white rounded text-sm">
-                                        <PlayerLink playerId={p.playerId} name={p.name} />
-                                        {p.birthCity && <span className="text-slate-400 text-xs ml-1">({p.birthCity})</span>}
-                                    </span>
-                                ))}
-                            </div>
+                            {isUSA && byState ? (
+                                <div className="px-4 pb-3 space-y-1">
+                                    {Object.entries(byState).sort((a, b) => b[1].length - a[1].length).map(([state, stPlayers]) => (
+                                        <details key={state} className="bg-white rounded-lg">
+                                            <summary className="px-3 py-2 cursor-pointer hover:bg-slate-50 flex items-center justify-between text-sm">
+                                                <span className="font-medium">{state}</span>
+                                                <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-bold">{stPlayers.length}</span>
+                                            </summary>
+                                            <div className="px-3 pb-2 flex flex-wrap gap-2">
+                                                {stPlayers.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(p => (
+                                                    <span key={p.playerId} className="px-2 py-1 bg-slate-50 rounded text-sm">
+                                                        <PlayerLink playerId={p.playerId} name={p.name} />
+                                                        {p.birthCity && <span className="text-slate-400 text-xs ml-1">({p.birthCity})</span>}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </details>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="px-4 pb-3 flex flex-wrap gap-2">
+                                    {players.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(p => (
+                                        <span key={p.playerId} className="px-2 py-1 bg-white rounded text-sm">
+                                            <PlayerLink playerId={p.playerId} name={p.name} />
+                                            {p.birthCity && <span className="text-slate-400 text-xs ml-1">({p.birthCity})</span>}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </details>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>
@@ -7319,6 +7811,7 @@ const PlayerOrigins = ({ playerBios, allPlayers }) => {
 
 const PlayerBirthdays = ({ playerBios, allPlayers }) => {
     const [selectedDay, setSelectedDay] = useState(null);
+    const [search, setSearch] = useState('');
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
@@ -7345,20 +7838,54 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-6">
             <div className="mb-4">
-                <h2 className="section-title font-bold">Birthday Calendar</h2>
-                <p className="body-text text-slate-500 mt-1">
-                    {data.collected} of {data.totalDays} days collected ({Math.round(data.collected / data.totalDays * 100)}%)
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h2 className="section-title font-bold">Birthday Calendar</h2>
+                        <p className="body-text text-slate-500 mt-1">
+                            {data.collected} of {data.totalDays} days collected ({Math.round(data.collected / data.totalDays * 100)}%)
+                        </p>
+                    </div>
+                    <input type="text" placeholder="Search players..." value={search} onChange={(e) => setSearch(e.target.value)}
+                        className="px-3 py-1.5 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none w-40" />
+                </div>
                 <div className="w-full bg-slate-200 rounded-full h-3 mt-2">
                     <div className="bg-purple-600 h-3 rounded-full transition-all" style={{ width: `${(data.collected / data.totalDays * 100)}%` }}></div>
                 </div>
             </div>
 
+            {(() => {
+                const q = search ? search.toLowerCase() : '';
+                const matches = q ? allPlayers.map(p => ({ ...p, ...(playerBios[p.playerId] || {}) }))
+                    .filter(p => (p.name || '').toLowerCase().includes(q) && p.birthDate).slice(0, 20) : [];
+                // Build set of highlighted day keys from search matches
+                const highlightDays = new Set();
+                matches.forEach(p => {
+                    if (p.birthDate) {
+                        const d = new Date(p.birthDate + 'T00:00:00');
+                        const key = String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                        highlightDays.add(key);
+                    }
+                });
+                return <>
+                {matches.length > 0 && (
+                    <div className="bg-purple-50 rounded-lg p-3 mb-4">
+                        <div className="flex flex-wrap gap-2">
+                            {matches.map(p => (
+                                <span key={p.playerId} className="px-2 py-1 bg-white rounded text-sm">
+                                    <PlayerLink playerId={p.playerId} name={p.name} />
+                                    <span className="text-slate-400 text-xs ml-1">
+                                        {p.birthDate ? new Date(p.birthDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                                    </span>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {monthNames.map((month, mi) => {
                     const monthNum = String(mi + 1).padStart(2, '0');
                     const days = daysInMonth[mi];
-                    // Get day of week for first day of month (use 2024 as a leap year reference)
                     const firstDow = new Date(2024, mi, 1).getDay();
                     const collected = Array.from({ length: days }, (_, di) => {
                         const key = `${monthNum}-${String(di + 1).padStart(2, '0')}`;
@@ -7387,6 +7914,7 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
                                     const players = data.byDay[key] || [];
                                     const isToday = key === data.todayKey;
                                     const isSelected = selectedDay === key;
+                                    const isHighlighted = highlightDays.has(key);
                                     const hasPlayers = players.length > 0;
                                     const count = players.length;
                                     return (
@@ -7396,6 +7924,7 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
                                             className={`aspect-square flex items-center justify-center rounded text-xs font-medium transition-all ${
                                                 isToday ? 'ring-2 ring-yellow-400 ' : ''
                                             }${
+                                                isHighlighted ? 'bg-amber-400 text-amber-900 ring-2 ring-amber-300 cursor-pointer' :
                                                 isSelected ? 'bg-purple-600 text-white' :
                                                 count >= 10 ? 'bg-purple-500 text-white cursor-pointer' :
                                                 count >= 5 ? 'bg-purple-300 text-purple-900 cursor-pointer' :
@@ -7437,6 +7966,8 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
                     </div>
                 </div>
             )}
+            </>;
+            })()}
         </div>
     );
 };
@@ -7456,8 +7987,8 @@ const DebutPerformance = ({ r }) => {
 };
 
 const PersonalRecords = ({ data }) => {
-    const [activeCategory, setActiveCategory] = useState('all');
     const [expandedRecord, setExpandedRecord] = useState(null);
+    const [indivTab, setIndivTab] = useState('hitting');
 
     const gameMap = useMemo(() => {
         const map = {};
@@ -7465,34 +7996,6 @@ const PersonalRecords = ({ data }) => {
         return map;
     }, [data.games]);
 
-    const categoryConfig = {
-        'Game Format': { icon: '🎮', color: 'emerald' },
-        'Hitting': { icon: '🏏', color: 'orange' },
-        'Pitching': { icon: '⚾', color: 'blue' },
-        'Home Runs': { icon: '💣', color: 'red' },
-        'Runs Scored': { icon: '🏃', color: 'purple' },
-        'Defense': { icon: '🧤', color: 'teal' },
-        'Baserunning': { icon: '👟', color: 'lime' },
-        'Other': { icon: '📌', color: 'gray' }
-    };
-
-    const categories = useMemo(() => {
-        const cats = { 'Game Format': [], 'Hitting': [], 'Pitching': [], 'Home Runs': [], 'Runs Scored': [], 'Defense': [], 'Baserunning': [], 'Other': [] };
-        (data.summary || []).forEach(row => {
-            const r = row.record.toLowerCase();
-            if (r.includes('extra inning') || r.includes('doubleheader') || r.includes('game length') || r.includes('attendance') || r.includes('longest') || r.includes('shortest') || r.includes('1-run game') || r.includes('1-0 game') || r.includes('temperature') || r.includes('coldest') || r.includes('hottest') || r.includes('wind') || r.includes('precipitation') || r.includes('start time') || r.includes('day game') || r.includes('weekend') || r.includes('biggest victory') || r.includes('comeback') || r.includes('matchup')) cats['Game Format'].push(row);
-            else if (r.includes('hr') || r.includes('home run') || r.includes('grand slam') || r.includes('multi-hr') || r.includes('inside-the-park') || r.includes('back-to-back')) cats['Home Runs'].push(row);
-            else if ((r.includes('hit') && !r.includes('pitcher') && !r.includes('shutout')) || r.includes('batting') || r.includes('cycle') || r.includes('average leader') || r.includes('obp leader') || r.includes('ops leader') || r.includes('unique player') || r.includes('risp') || r.includes('bases loaded') || r.includes('wpa') || r.includes('clutch') || r.includes('rbi')) cats['Hitting'].push(row);
-            else if (r.includes('pitch') || r.includes('strikeout') || r.includes('combined strikeout') || r.includes(' k ') || r.includes('shutout') || r.includes('complete game') || r.includes('quality start') || r.includes('earned run') || r.includes('no-hit') || r.includes('walk') || r.includes('era leader') || r.includes('unique pitcher') || r.includes('win') || r.includes('loss') || r.includes('save')) cats['Pitching'].push(row);
-            else if (r.includes('run') || r.includes('10+ run')) cats['Runs Scored'].push(row);
-            else if (r.includes('fewest') || r.includes('error') || r.includes('defense')) cats['Defense'].push(row);
-            else if (r.includes('steal') || r.includes(' sb') || r.includes('caught') || r.includes('baserun')) cats['Baserunning'].push(row);
-            else cats['Other'].push(row);
-        });
-        return cats;
-    }, [data.summary]);
-
-    // Filter out leaderboard records (redundant with Leaderboards subtab) and empty records
     const HIDDEN_RECORDS = new Set(['Hits Leaders', 'Runs Leaders', 'Home Run Leaders', 'RBI Leaders',
         'Doubles Leaders', 'Triples Leaders', 'Stolen Base Leaders', 'Walks Leaders (Hitting)',
         'Batting Average Leaders (min. 10 AB)', 'On-Base Percentage Leaders (min. 10 AB)',
@@ -7501,117 +8004,429 @@ const PersonalRecords = ({ data }) => {
         'Career WPA Leaders (Top 3)', 'Day Games vs Night Games', 'Weekend vs Weekday Games',
         'Percent of Possible Matchups Seen']);
 
-    // Flatten all records with category tags for filtering
-    const allRecords = useMemo(() => {
-        const result = [];
-        Object.entries(categories).forEach(([name, records]) => {
-            records.forEach((record, i) => {
-                if (!HIDDEN_RECORDS.has(record.record)) {
-                    result.push({ ...record, category: name, key: `${name}-${i}` });
-                }
-            });
+    // Section classification
+    const SECTION_MAP = {
+        'Total Hits Across All Games': 'cumulative',
+        'Total Home Runs Across All Games': 'cumulative',
+        'Total Runs Across All Games': 'cumulative',
+        'Total Strikeouts Across All Games': 'cumulative',
+        'Total Stolen Bases Across All Games': 'cumulative',
+        'Back-to-Back HR Events': 'rare',
+        'Back-to-Back-to-Back HR Events': 'rare',
+        'Back-to-Back-to-Back-to-Back HR Events': 'rare',
+        'Inside-the-Park Home Runs': 'rare',
+        'Cycles': 'rare',
+        'No-Hitters': 'rare',
+        'Biggest Victory': 'extremes',
+        'Biggest Comeback': 'extremes',
+        'Most Combined Runs': 'extremes',
+        'Most Runs by One Team': 'extremes',
+        'Most Runs in a Single Inning': 'extremes',
+        'Longest Game by Innings': 'environment',
+        'Longest Game by Time': 'environment',
+        'Shortest Game by Time': 'environment',
+        'Most Combined HRs': 'extremes',
+        'Most HRs by One Team': 'extremes',
+        'Both Teams 10+ Runs': 'extremes',
+        'Coldest Game': 'environment',
+        'Hottest Game': 'environment',
+        'Average Temperature': 'environment',
+        'Highest Attendance': 'environment',
+        'Lowest Attendance': 'environment',
+        'Average Attendance': 'environment',
+        'Earliest Start Time': 'environment',
+        'Latest Start Time': 'environment',
+        'Highest Wind Speed': 'environment',
+        'Average Wind Speed': 'environment',
+        'Games with Precipitation': 'environment',
+        'Most Hits by One Team': 'individual-hitting',
+        'Most Combined Hits': 'individual-hitting',
+        'Fewest Hits by One Team': 'individual-hitting',
+        'Fewest Combined Hits': 'individual-hitting',
+        'Most RBIs in a Game': 'individual-hitting',
+        'Most SBs by One Player': 'individual-hitting',
+        'Most SBs by One Team': 'individual-hitting',
+        'Most Combined SBs in a Game': 'individual-hitting',
+        'Most Walks by One Team': 'individual-hitting',
+        'Most Combined Walks': 'individual-hitting',
+        'Fewest Combined Walks': 'individual-hitting',
+        '20+ Hit Games by One Team': 'individual-hitting',
+        '4+ Hit Games': 'hidden',
+        '5+ RBI Games': 'hidden',
+        'Multi-HR Games': 'hidden',
+        'Most Clutch Single Game (WPA)': 'individual-hitting',
+        'Most Pitching Strikeouts by One Team': 'individual-pitching',
+        'Most Combined Pitching Strikeouts': 'individual-pitching',
+        'Fewest Combined Strikeouts': 'individual-pitching',
+        'Most Pitches by One Pitcher': 'individual-pitching',
+        'Most Pitchers Used': 'individual-pitching',
+        'Fewest Pitchers Used': 'individual-pitching',
+        '10+ K Games': 'hidden',
+        'Complete Games': 'hidden',
+        'Shutouts': 'hidden',
+        'Quality Starts': 'hidden',
+        '1-Run Games': 'frequency',
+        '1-0 Games': 'frequency',
+        'Extra Inning Games': 'frequency',
+        '10+ Run Innings': 'frequency',
+        'Unique Players with a Hit': 'frequency',
+        'Unique Players with a Home Run': 'frequency',
+        'Unique Pitchers with a Win': 'frequency',
+        'Unique Pitchers with a Loss': 'frequency',
+        'Unique Pitchers with a Save': 'frequency',
+        'Most Teams Seen for a Player': 'frequency',
+        'Players with RISP Opportunities': 'hidden',
+        'Players with Bases Loaded Opportunities': 'hidden',
+    };
+
+    const sections = useMemo(() => {
+        const result = { cumulative: [], rare: [], extremes: [], environment: [],
+            'individual-hitting': [], 'individual-pitching': [], frequency: [] };
+        (data.summary || []).forEach(row => {
+            if (HIDDEN_RECORDS.has(row.record)) return;
+            const section = SECTION_MAP[row.record];
+            if (section && result[section]) result[section].push(row);
+            else if (!HIDDEN_RECORDS.has(row.record)) result.frequency.push(row);
         });
         return result;
-    }, [categories]);
+    }, [data.summary]);
 
-    const filtered = activeCategory === 'all' ? allRecords : allRecords.filter(r => r.category === activeCategory);
-    const activeCats = Object.entries(categories).filter(([_, records]) => records.length > 0);
+    // Helper: navigate to game
+    const goToGame = (gameId) => {
+        window._pendingGameId = gameId;
+        if (window.__navigateTab) window.__navigateTab('gamelog');
+    };
 
-    return (
-        <div className="space-y-4">
-            {/* Category filter pills */}
-            <div className="bg-white rounded-lg border border-slate-200 p-3">
-                <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setActiveCategory('all')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${activeCategory === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                        All ({allRecords.length})
-                    </button>
-                    {activeCats.map(([name, records]) => (
-                        <button key={name} onClick={() => setActiveCategory(name)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${activeCategory === name ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                            {categoryConfig[name]?.icon} {name} ({records.length})
-                        </button>
-                    ))}
+    // Helper: parse detail/score/gameIds from a record
+    const parseRecord = (record) => {
+        const gameIds = (record.gameIds || '').split(',').map(id => id.trim()).filter(Boolean);
+        const games = gameIds.map(id => gameMap[id]).filter(Boolean);
+        const detailParts = (record.detail || '').split(';').map(d => d.trim()).filter(Boolean);
+        const scoreParts = (record.score || '').split(';').map(s => s.trim()).filter(Boolean);
+        return { gameIds, games, detailParts, scoreParts };
+    };
+
+    // Helper: render game buttons
+    const GameButtons = ({ games, max = 8 }) => games.length > 0 ? (
+        <div className="flex flex-wrap gap-1 mt-1.5">
+            {games.slice(0, max).map((g, gi) => (
+                <button key={gi} onClick={(e) => { e.stopPropagation(); goToGame(g.gameId); }}
+                    className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
+                    {g.date} {g.awayTeam}@{g.homeTeam}
+                </button>
+            ))}
+            {games.length > max && <span className="text-[10px] text-slate-400 self-center">+{games.length - max} more</span>}
+        </div>
+    ) : null;
+
+    // Helper: expandable record card (used in extremes and individual sections)
+    const RecordCard = ({ record, compact }) => {
+        const key = record.record;
+        const isExpanded = expandedRecord === key;
+        const { games, detailParts, scoreParts } = parseRecord(record);
+        const hasDetail = detailParts.length > 0 || games.length > 0;
+        // For single-game records, show full detail (both teams); for multi-game, show first entry
+        const previewText = detailParts.length > 0
+            ? (scoreParts.length <= 1 ? detailParts.join(' / ') : detailParts[0])
+            : games.length > 0 && games.length <= 3 ? games.map(g => `${g.awayTeam}@${g.homeTeam} ${g.date}`).join(', ')
+            : games.length > 3 ? `${games.length} games` : '';
+
+        return (
+            <div className={`bg-white rounded-lg border hover:shadow-sm transition-all ${isExpanded ? 'border-blue-300 shadow-sm' : 'border-slate-200'}`}>
+                <div className={`${compact ? 'p-2.5' : 'p-3'} ${hasDetail ? 'cursor-pointer' : ''}`}
+                    onClick={() => hasDetail && setExpandedRecord(isExpanded ? null : key)}>
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                            <div className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-slate-900`}>{record.record}</div>
+                            {!isExpanded && previewText && (
+                                <div className="text-[11px] text-slate-500 mt-0.5 truncate">{previewText}</div>
+                            )}
+                        </div>
+                        <div className="text-lg font-bold text-blue-600 flex-shrink-0">{record.value}</div>
+                    </div>
                 </div>
-            </div>
-
-            {/* Records grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {filtered.map((record) => {
-                    const isExpanded = expandedRecord === record.key;
-                    const gameIds = (record.gameIds || '').split(',').map(id => id.trim()).filter(Boolean);
-                    const games = gameIds.map(id => gameMap[id]).filter(Boolean);
-                    const detailParts = (record.detail || '').split(';').map(d => d.trim()).filter(Boolean);
-                    const scoreParts = (record.score || '').split(';').map(s => s.trim()).filter(Boolean);
-                    const hasDetail = detailParts.length > 0 || games.length > 0;
-                    // For records with games but no detail, build a preview from game data
-                    const previewText = detailParts.length > 0 ? detailParts[0]
-                        : games.length > 0 && games.length <= 3 ? games.map(g => `${g.awayTeam}@${g.homeTeam} ${g.date}`).join(', ')
-                        : games.length > 3 ? `${games.length} games`
-                        : '';
-
-                    return (
-                        <div key={record.key} className={`bg-white rounded-lg shadow-sm border hover:shadow transition-all ${isExpanded ? 'md:col-span-2 border-blue-300' : ''}`}>
-                            <div className="p-3 cursor-pointer" onClick={() => hasDetail && setExpandedRecord(isExpanded ? null : record.key)}>
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-semibold text-slate-900">{record.record}</div>
-                                        {!isExpanded && previewText && (
-                                            <div className="text-xs text-slate-500 mt-0.5 truncate">{previewText}</div>
-                                        )}
-                                    </div>
-                                    <div className="text-right flex-shrink-0">
-                                        <div className="text-xl font-bold text-blue-600">{record.value}</div>
-                                        {activeCategory === 'all' && (
-                                            <div className="text-[10px] text-slate-400">{record.category}</div>
-                                        )}
+                {isExpanded && hasDetail && (
+                    <div className="px-3 pb-3 space-y-1.5 border-t pt-2">
+                        {(() => {
+                            const grouped = [];
+                            detailParts.forEach((detail, di) => {
+                                const score = scoreParts[di] || '';
+                                const last = grouped[grouped.length - 1];
+                                if (last && last.score === score && score) last.details.push(detail);
+                                else grouped.push({ details: [detail], score });
+                            });
+                            return grouped.map((group, gi) => (
+                                <div key={gi} className="bg-slate-50 rounded p-2 text-xs">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="space-y-0.5 flex-1">
+                                            {group.details.map((d, di) => (
+                                                <div key={di} className="text-slate-700">{d}</div>
+                                            ))}
+                                        </div>
+                                        {group.score && <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{group.score}</span>}
                                     </div>
                                 </div>
-                            </div>
-                            {isExpanded && hasDetail && (
-                                <div className="px-3 pb-3 space-y-2 border-t pt-2">
-                                    {(() => {
-                                        // Group detail entries by score (same score = same game)
-                                        const grouped = [];
-                                        detailParts.forEach((detail, di) => {
-                                            const score = scoreParts[di] || '';
-                                            const last = grouped[grouped.length - 1];
-                                            if (last && last.score === score && score) {
-                                                last.details.push(detail);
-                                            } else {
-                                                grouped.push({ details: [detail], score });
-                                            }
-                                        });
-                                        return grouped.map((group, gi) => (
-                                            <div key={gi} className="bg-slate-50 rounded p-2 text-xs">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div className="space-y-0.5 flex-1">
-                                                        {group.details.map((d, di) => (
-                                                            <div key={di} className="text-slate-700">{d}</div>
-                                                        ))}
-                                                    </div>
-                                                    {group.score && <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{group.score}</span>}
-                                                </div>
+                            ));
+                        })()}
+                        <GameButtons games={games} />
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    // Cumulative short labels
+    const cumulativeLabels = {
+        'Total Hits Across All Games': { label: 'Hits', icon: 'H' },
+        'Total Home Runs Across All Games': { label: 'Home Runs', icon: 'HR' },
+        'Total Runs Across All Games': { label: 'Runs', icon: 'R' },
+        'Total Strikeouts Across All Games': { label: 'Strikeouts', icon: 'K' },
+        'Total Stolen Bases Across All Games': { label: 'Stolen Bases', icon: 'SB' },
+    };
+
+    // Environment record lookup
+    const envLookup = useMemo(() => {
+        const map = {};
+        sections.environment.forEach(r => { map[r.record] = r; });
+        return map;
+    }, [sections.environment]);
+
+    const envVal = (name) => {
+        const r = envLookup[name];
+        return r ? r.value : '--';
+    };
+    const envGame = (name) => {
+        const r = envLookup[name];
+        if (!r) return null;
+        const { games } = parseRecord(r);
+        return games[0] || null;
+    };
+
+    return (
+        <div className="space-y-5">
+            {/* Section 1: Cumulative Totals */}
+            {sections.cumulative.length > 0 && (
+                <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl p-4 shadow-md">
+                    <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Across All Games</div>
+                    <div className="grid grid-cols-5 gap-3">
+                        {sections.cumulative.map(r => {
+                            const info = cumulativeLabels[r.record] || { label: r.record, icon: '?' };
+                            return (
+                                <div key={r.record} className="text-center">
+                                    <div className="text-2xl font-bold text-white">{parseInt(r.value).toLocaleString()}</div>
+                                    <div className="text-[11px] text-slate-400 mt-0.5">{info.label}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Section 2: Rare Moments */}
+            {sections.rare.filter(r => parseInt(r.value) > 0).length > 0 && (
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="text-sm font-semibold text-slate-900">Rare Moments</div>
+                        <div className="flex-1 h-px bg-slate-200"></div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {sections.rare.filter(r => parseInt(r.value) > 0).map(record => {
+                            const { games, detailParts, scoreParts } = parseRecord(record);
+                            const isExpanded = expandedRecord === record.record;
+                            return (
+                                <div key={record.record}
+                                    className={`bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl overflow-hidden transition-all ${isExpanded ? 'md:col-span-2 lg:col-span-3' : ''}`}>
+                                    <div className="p-4 cursor-pointer" onClick={() => setExpandedRecord(isExpanded ? null : record.record)}>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <div className="text-sm font-bold text-amber-900">{record.record}</div>
+                                                {!isExpanded && detailParts.length > 0 && (
+                                                    <div className="text-xs text-amber-700 mt-1 truncate max-w-[300px]">{detailParts[0]}</div>
+                                                )}
                                             </div>
-                                        ));
-                                    })()}
-                                    {games.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                            {games.slice(0, 12).map((g, gi) => (
-                                                <button key={gi} onClick={(e) => { e.stopPropagation(); window._pendingGameId = g.gameId; if (window.__navigateTab) window.__navigateTab('gamelog'); }}
-                                                    className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
-                                                    {g.date} {g.awayTeam}@{g.homeTeam} {g.score ? `(${g.score})` : ''}
-                                                </button>
+                                            <div className="text-3xl font-black text-amber-600">{record.value}</div>
+                                        </div>
+                                    </div>
+                                    {isExpanded && (detailParts.length > 0 || games.length > 0) && (
+                                        <div className="px-4 pb-4 space-y-2 border-t border-amber-200 pt-3">
+                                            {detailParts.map((d, di) => (
+                                                <div key={di} className="flex items-start justify-between gap-2 bg-white bg-opacity-60 rounded-lg p-2.5 text-xs">
+                                                    <span className="text-amber-900">{d}</span>
+                                                    {scoreParts[di] && <span className="text-amber-600 whitespace-nowrap font-medium">{scoreParts[di]}</span>}
+                                                </div>
                                             ))}
-                                            {games.length > 12 && <span className="text-[10px] text-slate-400">+{games.length - 12} more</span>}
+                                            <GameButtons games={games} />
                                         </div>
                                     )}
                                 </div>
-                            )}
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Section 3: Game Extremes */}
+            {sections.extremes.length > 0 && (
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="text-sm font-semibold text-slate-900">Game Extremes</div>
+                        <div className="flex-1 h-px bg-slate-200"></div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {sections.extremes.map(record => <RecordCard key={record.record} record={record} />)}
+                    </div>
+                </div>
+            )}
+
+            {/* Section 4: Environment Dashboard */}
+            {sections.environment.length > 0 && (
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="text-sm font-semibold text-slate-900">Game Environment</div>
+                        <div className="flex-1 h-px bg-slate-200"></div>
+                    </div>
+                    <div className="bg-white rounded-xl border border-slate-200 p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {/* Temperature */}
+                            <div>
+                                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Temperature</div>
+                                <div className="flex items-end gap-3">
+                                    {[{ label: 'Cold', name: 'Coldest Game', color: 'text-blue-600' },
+                                      { label: 'Avg', name: 'Average Temperature', color: 'text-slate-600' },
+                                      { label: 'Hot', name: 'Hottest Game', color: 'text-red-600' }].map(t => {
+                                        const game = envGame(t.name);
+                                        return (
+                                            <div key={t.label} className="text-center flex-1">
+                                                <div className={`text-lg font-bold ${t.color}`}>{envVal(t.name)}</div>
+                                                <div className="text-[10px] text-slate-400">{t.label}</div>
+                                                {game && <button onClick={() => goToGame(game.gameId)}
+                                                    className="text-[9px] text-blue-500 hover:underline mt-0.5 block mx-auto">{game.date}</button>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="mt-2 h-1.5 rounded-full bg-gradient-to-r from-blue-400 via-slate-300 to-red-400 opacity-60"></div>
+                            </div>
+
+                            {/* Attendance */}
+                            <div>
+                                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Attendance</div>
+                                <div className="flex items-end gap-3">
+                                    {[{ label: 'Low', name: 'Lowest Attendance' },
+                                      { label: 'Avg', name: 'Average Attendance' },
+                                      { label: 'High', name: 'Highest Attendance' }].map(a => {
+                                        const game = envGame(a.name);
+                                        return (
+                                            <div key={a.label} className="text-center flex-1">
+                                                <div className="text-lg font-bold text-slate-800">{envVal(a.name)}</div>
+                                                <div className="text-[10px] text-slate-400">{a.label}</div>
+                                                {game && <button onClick={() => goToGame(game.gameId)}
+                                                    className="text-[9px] text-blue-500 hover:underline mt-0.5 block mx-auto">{game.date}</button>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Game Duration */}
+                            <div>
+                                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Game Duration</div>
+                                <div className="flex items-end gap-3">
+                                    {[{ label: 'Shortest', name: 'Shortest Game by Time', color: 'text-green-600' },
+                                      { label: 'Longest', name: 'Longest Game by Time', color: 'text-orange-600' },
+                                      { label: 'Most Inn.', name: 'Longest Game by Innings', color: 'text-purple-600' }].map(d => {
+                                        const game = envGame(d.name);
+                                        return (
+                                            <div key={d.label} className="text-center flex-1">
+                                                <div className={`text-lg font-bold ${d.color}`}>{envVal(d.name)}</div>
+                                                <div className="text-[10px] text-slate-400">{d.label}</div>
+                                                {game && <button onClick={() => goToGame(game.gameId)}
+                                                    className="text-[9px] text-blue-500 hover:underline mt-0.5 block mx-auto">{game.date}</button>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Timing & Weather */}
+                            <div>
+                                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Timing & Weather</div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[{ label: 'Earliest Start', name: 'Earliest Start Time' },
+                                      { label: 'Latest Start', name: 'Latest Start Time' },
+                                      { label: 'Max Wind', name: 'Highest Wind Speed' },
+                                      { label: 'Rain Games', name: 'Games with Precipitation' }].map(item => (
+                                        <div key={item.label} className="bg-slate-50 rounded-lg p-2 text-center">
+                                            <div className="text-sm font-bold text-slate-800">{envVal(item.name)}</div>
+                                            <div className="text-[9px] text-slate-400">{item.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
-                    );
-                })}
-            </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Section 5: Individual Records (tabbed: Hitting | Pitching) */}
+            {(sections['individual-hitting'].length > 0 || sections['individual-pitching'].length > 0) && (
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="text-sm font-semibold text-slate-900">Team & Individual Records</div>
+                        <div className="flex-1 h-px bg-slate-200"></div>
+                        <div className="flex gap-1">
+                            {['hitting', 'pitching'].map(tab => (
+                                <button key={tab} onClick={() => setIndivTab(tab)}
+                                    className={`px-3 py-1 rounded-full text-xs font-medium ${indivTab === tab ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                                    {tab === 'hitting' ? 'Hitting' : 'Pitching'} ({sections[`individual-${tab}`].length})
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {sections[`individual-${indivTab}`].map(record => (
+                            <RecordCard key={record.record} record={record} compact />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Section 6: Frequency Counts */}
+            {sections.frequency.length > 0 && (
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="text-sm font-semibold text-slate-900">Counts & Tallies</div>
+                        <div className="flex-1 h-px bg-slate-200"></div>
+                    </div>
+                    {expandedRecord && sections.frequency.some(r => r.record === expandedRecord) && (
+                        <div className="fixed inset-0 z-[5]" onClick={() => setExpandedRecord(null)} />
+                    )}
+                    <div className="flex flex-wrap gap-2 relative z-10">
+                        {sections.frequency.map(record => {
+                            const { games } = parseRecord(record);
+                            const hasContent = games.length > 0 || (record.detail && record.detail.trim());
+                            const isExpanded = expandedRecord === record.record;
+                            return (
+                                <div key={record.record} className="relative">
+                                    <button onClick={() => hasContent && setExpandedRecord(isExpanded ? null : record.record)}
+                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border transition-all ${isExpanded ? 'bg-blue-50 border-blue-300 text-blue-800' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'} ${hasContent ? 'cursor-pointer' : 'cursor-default'}`}>
+                                        <span className="font-medium">{record.record}</span>
+                                        <span className={`font-bold ${isExpanded ? 'text-blue-600' : 'text-slate-900'}`}>{record.value}</span>
+                                    </button>
+                                    {isExpanded && hasContent && (
+                                        <div className="absolute top-full left-0 mt-1 z-10 bg-white rounded-lg shadow-lg border border-slate-200 p-2 min-w-[200px] max-w-[400px]">
+                                            {record.detail && (
+                                                <div className="text-[11px] text-slate-600 mb-1.5 px-1">{record.detail}</div>
+                                            )}
+                                            {games.length > 0 && <GameButtons games={games} max={6} />}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -7628,7 +8443,7 @@ const SpecialTab = ({ data, initialSubtab, onSubtabChange }) => {
             ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'records' && <PersonalRecords data={data} />}
             {view === 'debuts' && (
-                <DataTable title="🌟 MLB Debuts" data={data.debuts || []} defaultSortKey="date" enableDateFilter={true} columns={[
+                <DataTable title="🌟 MLB Debuts" data={data.debuts || []} defaultSortKey="date" enableDateFilter={true} persistKey="debuts" columns={[
                     { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
                     { key: 'team', label: 'Team' }, { key: 'opponent', label: 'vs' }, { key: 'position', label: 'Pos' },
                     { key: 'stats', label: 'Debut Performance', render: (v, r) => <DebutPerformance r={r} /> },
@@ -7636,7 +8451,7 @@ const SpecialTab = ({ data, initialSubtab, onSubtabChange }) => {
                 ]} />
             )}
             {view === 'finals' && (
-                <DataTable title="👋 Final MLB Games" data={data.finalGames || []} defaultSortKey="date" enableDateFilter={true} columns={[
+                <DataTable title="👋 Final MLB Games" data={data.finalGames || []} defaultSortKey="date" enableDateFilter={true} persistKey="finals" columns={[
                     { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
                     { key: 'team', label: 'Team' }, { key: 'position', label: 'Pos' },
                     { key: 'stats', label: 'Final Performance', render: (v, r) => <DebutPerformance r={r} /> },
@@ -7644,7 +8459,7 @@ const SpecialTab = ({ data, initialSubtab, onSubtabChange }) => {
                 ]} />
             )}
             {view === 'splash' && (
-                <DataTable title="💦 Signature HRs" data={data.signatureHRs || []} defaultSortKey="date" enableDateFilter={true} columns={[
+                <DataTable title="💦 Signature HRs" data={data.signatureHRs || []} defaultSortKey="date" enableDateFilter={true} persistKey="sigHRs" columns={[
                     { key: 'date', label: 'Date' }, { key: 'player', label: 'Player' }, { key: 'team', label: 'Team' },
                     { key: 'opponent', label: 'Opponent' }, { key: 'pitcher', label: 'Pitcher' }, { key: 'signatureNumber', label: 'Type' },
                     { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
@@ -7763,7 +8578,8 @@ const ScorigamiChart = ({ games }) => {
                         </div>
                         <div className="p-3 space-y-2">
                             {data.scoreGames[selectedCell].map((g, i) => (
-                                <div key={i} className="bg-slate-50 rounded p-3">
+                                <div key={i} className="bg-slate-50 rounded p-3 cursor-pointer hover:bg-blue-50 transition-colors"
+                                    onClick={() => { window._pendingGameId = g.gameId; setSelectedCell(null); if (window.__navigateTab) window.__navigateTab('gamelog'); }}>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <span className="font-bold text-green-700">{g.winnerTeam} {g.winnerScore}</span>
@@ -7785,7 +8601,10 @@ const ScorigamiChart = ({ games }) => {
 
 const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games, initialSubtab, onSubtabChange }) => {
     const [view, setView] = useState(initialSubtab || 'jerseys');
-    const allPlayers = useMemo(() => [...(players || []), ...(pitchers || [])], [players, pitchers]);
+    const allPlayers = useMemo(() => {
+        const seen = new Set();
+        return [...(players || []), ...(pitchers || [])].filter(p => { if (seen.has(p.playerId)) return false; seen.add(p.playerId); return true; });
+    }, [players, pitchers]);
     return (
         <div>
             <SubNav tabs={[
@@ -7799,7 +8618,7 @@ const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games,
             {view === 'origins' && <PlayerOrigins playerBios={playerBios} allPlayers={allPlayers} />}
             {view === 'birthdays' && <PlayerBirthdays playerBios={playerBios} allPlayers={allPlayers} />}
             {view === 'scorigami' && <ScorigamiChart games={games} />}
-            {view === 'umpires' && <UmpireTracker umpireLog={umpireLog} />}
+            {view === 'umpires' && <UmpireTracker umpireLog={umpireLog} games={games} />}
         </div>
     );
 };
@@ -7850,8 +8669,8 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
     return (
         <div>
             <SubNav tabs={subtabs} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
-            {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} />}
-            {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} />}
+            {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} />}
+            {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} />}
             {view === 'nostats' && <NoStatsPlayers data={data} />}
             {view === 'college' && <CollegePlayersView data={data} onViewPlayer={handleViewPlayer} />}
             {view === 'leaders' && (data.players?.length ? <Leaderboards data={data} /> : <EmptyState icon="🏅" title="No Player Data" message="No player statistics available." />)}
@@ -7886,13 +8705,13 @@ const VenuesTab = ({ data, initialSubtab, onSubtabChange }) => {
             {view === 'map' && ((data.stadiums?.length || data.teams?.length) ? (
                 <div className="space-y-6">
                     <StadiumMap stadiums={data.stadiums || []} games={data.games || []} orioles={data.orioles || []} />
-                    <DataTable title="Teams" data={data.teams || []} defaultSortKey="games" columns={[
+                    <DataTable title="Teams" data={data.teams || []} defaultSortKey="games" persistKey="teams" columns={[
                         { key: 'team', label: 'Team' }, { key: 'games', label: 'G' }, { key: 'record', label: 'Record' },
                         { key: 'runs', label: 'R' }, { key: 'runsAllowed', label: 'RA' }, { key: 'diff', label: 'Diff' },
                         { key: 'homeRecord', label: 'Home' }, { key: 'awayRecord', label: 'Away' },
                         { key: 'oneRunGames', label: '1-Run' }, { key: 'blowouts', label: 'Blowouts' }
                     ]} />
-                    <DataTable title="Stadiums" data={data.stadiums || []} defaultSortKey="games" columns={[
+                    <DataTable title="Stadiums" data={data.stadiums || []} defaultSortKey="games" persistKey="stadiums" columns={[
                         { key: 'stadium', label: 'Stadium' }, { key: 'games', label: 'G' }, { key: 'firstVisit', label: 'First' },
                         { key: 'lastVisit', label: 'Last' }, { key: 'span', label: 'Span' }, { key: 'avgAttendance', label: 'Avg Att.' },
                         { key: 'homeRunsSeen', label: 'HRs' }, { key: 'hitsSeen', label: 'Hits' }, { key: 'strikeoutsSeen', label: 'SOs' },
@@ -7965,7 +8784,10 @@ const App = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchOpen, setSearchOpen] = useState(false);
     const [showScrollTop, setShowScrollTop] = useState(false);
+    const [navCanScrollLeft, setNavCanScrollLeft] = useState(false);
+    const [navCanScrollRight, setNavCanScrollRight] = useState(true);
     const searchRef = useRef(null);
+    const navScrollRef = useRef(null);
 
     useEffect(() => {
         if (!data && !loadError) {
@@ -8017,6 +8839,19 @@ const App = () => {
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
+    // Nav scroll indicator initialization
+    useEffect(() => {
+        const el = navScrollRef.current;
+        if (!el) return;
+        const check = () => {
+            setNavCanScrollLeft(el.scrollLeft > 4);
+            setNavCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+        };
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, [data]);
+
     // Keyboard shortcuts
     useEffect(() => {
         const tabIds = [...VALID_TABS];
@@ -8046,49 +8881,53 @@ const App = () => {
     }, [tab, searchOpen]);
 
     const searchResults = useMemo(() => {
-        if (!data || !searchQuery || searchQuery.length < 2) return [];
+        if (!data || !searchQuery || searchQuery.length < 2) return { items: [], totalPlayers: 0 };
         const q = searchQuery.toLowerCase();
-        const results = [];
-        const limit = 8;
+        const items = [];
+        let totalPlayers = 0;
 
         // Search players (with stats context)
         const seenPlayers = new Set();
         (data.players || []).forEach(p => {
-            if (results.length >= limit) return;
             if (p.name && p.name.toLowerCase().includes(q) && !seenPlayers.has(p.playerId)) {
                 seenPlayers.add(p.playerId);
-                results.push({ type: 'player', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.avg || ''} AVG, ${p.hr || 0} HR`, tab: 'players', id: p.playerId });
+                totalPlayers++;
+                if (items.filter(r => r.type === 'player' || r.type === 'pitcher').length < 6) {
+                    items.push({ type: 'player', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.avg || ''} AVG, ${p.hr || 0} HR`, tab: 'players', id: p.playerId });
+                }
             }
         });
         (data.pitchers || []).forEach(p => {
-            if (results.length >= limit) return;
             if (p.name && p.name.toLowerCase().includes(q) && !seenPlayers.has(p.playerId)) {
                 seenPlayers.add(p.playerId);
-                results.push({ type: 'pitcher', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.era || ''} ERA, ${p.so || 0} K`, tab: 'players', id: p.playerId });
+                totalPlayers++;
+                if (items.filter(r => r.type === 'player' || r.type === 'pitcher').length < 6) {
+                    items.push({ type: 'pitcher', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.era || ''} ERA, ${p.so || 0} K`, tab: 'players', id: p.playerId });
+                }
             }
         });
 
         // Search games (by team name or date)
         const seenGames = new Set();
         (data.games || []).forEach(g => {
-            if (results.length >= limit) return;
+            if (items.filter(r => r.type === 'game').length >= 4) return;
             const text = `${g.awayTeam || ''} ${g.homeTeam || ''} ${g.date || ''} ${g.venue || ''}`.toLowerCase();
             if (text.includes(q) && !seenGames.has(g.gameId)) {
                 seenGames.add(g.gameId);
-                results.push({ type: 'game', label: `${g.awayTeam} @ ${g.homeTeam}`, sub: g.date || '', tab: 'gamelog', id: g.gameId });
+                items.push({ type: 'game', label: `${g.awayTeam} @ ${g.homeTeam}`, sub: g.date || '', tab: 'gamelog', id: g.gameId });
             }
         });
 
         // Search milestones
-        (data.milestones || []).slice(0, 200).forEach(m => {
-            if (results.length >= limit) return;
+        (data.milestones || []).forEach(m => {
+            if (items.filter(r => r.type === 'milestone').length >= 4) return;
             const text = `${m.player || ''} ${m.type || ''} ${m.description || ''}`.toLowerCase();
             if (text.includes(q)) {
-                results.push({ type: 'milestone', label: m.player || m.type, sub: m.description || m.type || '', tab: 'milestones' });
+                items.push({ type: 'milestone', label: m.player || m.type, sub: m.description || m.type || '', tab: 'milestones' });
             }
         });
 
-        return results;
+        return { items, totalPlayers };
     }, [data, searchQuery]);
 
     useEffect(() => {
@@ -8150,7 +8989,7 @@ const App = () => {
                 <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <div>
                         <h1 className={`text-base sm:text-lg font-bold tracking-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>Baseball Statistics Portal</h1>
-                        <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{data.games?.length || 0} games attended • {(data.players?.length || 0) + (data.pitchers?.length || 0)} players seen</p>
+                        <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{data.games?.length || 0} games attended • {new Set([...(data.players || []).map(p => p.playerId), ...(data.pitchers || []).map(p => p.playerId), ...(data.playersWithoutStats || []).map(p => p.playerId)]).size} players seen</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <div ref={searchRef} role="search" className="relative flex-1 sm:flex-none">
@@ -8163,18 +9002,33 @@ const App = () => {
                                 onFocus={() => setSearchOpen(true)}
                                 className={`w-full sm:w-48 md:w-64 px-3 py-2 rounded-lg text-sm transition-colors border ${darkMode ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:border-blue-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-500'} outline-none`}
                             />
-                            {searchOpen && searchResults.length > 0 && (
-                                <div className={`absolute top-full right-0 mt-1 w-80 rounded-lg shadow-md border z-[60] max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                    {searchResults.map((r, i) => (
-                                        <button key={`search-${r.type}-${r.id || r.label}-${i}`} onClick={() => { setTab(r.tab); setSearchQuery(''); setSearchOpen(false); }}
-                                            className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${darkMode ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-blue-50 text-slate-800'}`}>
-                                            <span className="text-xs font-medium uppercase opacity-50 w-14 shrink-0">{r.type}</span>
-                                            <div className="min-w-0">
-                                                <div className="text-sm font-medium truncate">{r.label}</div>
-                                                {r.sub && <div className={`text-xs truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{r.sub}</div>}
-                                            </div>
-                                        </button>
-                                    ))}
+                            {searchOpen && searchQuery.length >= 2 && (
+                                <div className={`absolute top-full right-0 mt-1 w-80 sm:w-96 rounded-lg shadow-md border z-[60] max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                    {searchResults.items.length === 0 ? (
+                                        <div className={`px-4 py-6 text-center text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>No results for "{searchQuery}"</div>
+                                    ) : (<>
+                                        {searchResults.items.map((r, i) => {
+                                            const q = searchQuery.toLowerCase();
+                                            const idx = r.label.toLowerCase().indexOf(q);
+                                            const highlighted = idx >= 0 ? <>{r.label.slice(0, idx)}<span className="bg-yellow-200 text-yellow-900 rounded px-0.5">{r.label.slice(idx, idx + searchQuery.length)}</span>{r.label.slice(idx + searchQuery.length)}</> : r.label;
+                                            return (
+                                                <button key={`search-${r.type}-${r.id || r.label}-${i}`} onClick={() => { setTab(r.tab); if (r.id && r.type !== 'game') { window._pendingPlayerSelect = r.id; } if (r.type === 'game') { window._pendingGameId = r.id; } setSearchQuery(''); setSearchOpen(false); }}
+                                                    className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${darkMode ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-blue-50 text-slate-800'}`}>
+                                                    <span className="text-xs font-medium uppercase opacity-50 w-14 shrink-0">{r.type}</span>
+                                                    <div className="min-w-0">
+                                                        <div className="text-sm font-medium truncate">{highlighted}</div>
+                                                        {r.sub && <div className={`text-xs truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{r.sub}</div>}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                        {searchResults.totalPlayers > 6 && (
+                                            <button onClick={() => { window._pendingPlayerSearch = searchQuery; setTab('players'); setSearchQuery(''); setSearchOpen(false); }}
+                                                className={`w-full text-center px-4 py-2 text-xs font-medium border-t transition-colors ${darkMode ? 'text-blue-400 border-slate-700 hover:bg-slate-700' : 'text-blue-600 border-slate-100 hover:bg-blue-50'}`}>
+                                                View all {searchResults.totalPlayers} player matches
+                                            </button>
+                                        )}
+                                    </>)}
                                 </div>
                             )}
                         </div>
@@ -8190,16 +9044,25 @@ const App = () => {
             </header>
             <nav className={`sticky top-0 z-50 ${darkMode ? 'bg-slate-900 border-b border-slate-800' : 'bg-white border-b border-slate-200'}`} style={{ boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.04)' }}>
                 <div className="max-w-7xl mx-auto px-2 sm:px-4">
-                    <div className="flex overflow-x-auto" role="tablist" aria-label="Main navigation" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
-                        {tabs.map(t => (
-                            <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={`px-3 sm:px-4 py-2.5 text-xs sm:text-[13px] whitespace-nowrap flex-shrink-0 border-b-2 transition-colors ${
-                                tab === t.id
-                                    ? (darkMode ? 'text-blue-400 border-blue-400 font-semibold' : 'text-blue-700 border-blue-700 font-semibold')
-                                    : (darkMode ? 'text-slate-400 hover:text-slate-200 border-transparent' : 'text-slate-500 hover:text-slate-800 border-transparent')
-                            }`}>
-                                {t.label}
-                            </button>
-                        ))}
+                    <div className="relative">
+                        <div ref={navScrollRef} className="flex overflow-x-auto" role="tablist" aria-label="Main navigation" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+                            onScroll={(e) => {
+                                const el = e.target;
+                                setNavCanScrollLeft(el.scrollLeft > 4);
+                                setNavCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+                            }}>
+                            {tabs.map(t => (
+                                <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={`px-3 sm:px-4 py-2.5 text-xs sm:text-[13px] whitespace-nowrap flex-shrink-0 border-b-2 transition-colors ${
+                                    tab === t.id
+                                        ? (darkMode ? 'text-blue-400 border-blue-400 font-semibold' : 'text-blue-700 border-blue-700 font-semibold')
+                                        : (darkMode ? 'text-slate-400 hover:text-slate-200 border-transparent' : 'text-slate-500 hover:text-slate-800 border-transparent')
+                                }`}>
+                                    {t.label}
+                                </button>
+                            ))}
+                        </div>
+                        {navCanScrollLeft && <div className="absolute left-0 top-0 bottom-0 w-8 pointer-events-none" style={{ background: `linear-gradient(to right, ${darkMode ? '#0f172a' : '#ffffff'}, transparent)` }} />}
+                        {navCanScrollRight && <div className="absolute right-0 top-0 bottom-0 w-8 pointer-events-none" style={{ background: `linear-gradient(to left, ${darkMode ? '#0f172a' : '#ffffff'}, transparent)` }} />}
                     </div>
                 </div>
             </nav>

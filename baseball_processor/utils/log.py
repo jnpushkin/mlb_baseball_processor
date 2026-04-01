@@ -208,24 +208,3 @@ def error(msg: str, exc_info: bool = False) -> None:
         exc_info: If True, include exception traceback in the log
     """
     _get_logger().error(_format(msg), exc_info=exc_info)
-
-
-def get_log_file_path() -> Optional[Path]:
-    """Get the current log file path, if file logging is enabled."""
-    if _file_handler is not None:
-        return Path(_file_handler.baseFilename)
-    return None
-
-
-# Convenience function for logging with context
-def log_game_processing(game_id: str, message: str, level: str = "info") -> None:
-    """Log a message with game context.
-
-    Args:
-        game_id: The game ID being processed
-        message: The log message
-        level: Log level (debug, info, warn, error)
-    """
-    formatted_msg = f"[{game_id}] {message}"
-    log_func = {"debug": debug, "info": info, "warn": warn, "error": error}.get(level, info)
-    log_func(formatted_msg)

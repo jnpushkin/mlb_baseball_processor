@@ -459,8 +459,6 @@ class MilestoneEngine:
                 elif is_seven_inning_cg:
                     if runs == 0:
                         ms['seven_inning_shutouts'].append(dict(milestone_common))
-                    else:
-                        ms['complete_games'].append(dict(milestone_common))
                 else:
                     debug(f"✗ NOT a complete game")
 

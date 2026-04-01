@@ -24,33 +24,45 @@ def extract_play_by_play(soup, away_team, home_team):
         t = (text or '').strip()
         out = {"raw": t, "type": "substitution"}
 
-        # Pitching change: "A replaces B pitching"
-        m = re.match(r'^(.+?)\s+replaces\s+(.+?)\s+pitching\s*$', t, flags=re.IGNORECASE)
+        # Strip trailing batting order info: "batting 9th", "batting 1st", etc.
+        clean = re.sub(r'\s+batting\s+\d+\w*\s*$', '', t, flags=re.IGNORECASE).strip()
+
+        # Position move: "A moves from X to Y"
+        m = re.match(r'^(.+?)\s+moves from\s+(.+?)\s+to\s+(.+?)\s*$', clean, flags=re.IGNORECASE)
+        if m:
+            out.update({"type": "position_change", "player_in": m.group(1).strip(), "player_out": "",
+                        "pos": m.group(3).strip(), "pos_from": m.group(2).strip()})
+            return out
+
+        # Pitching change: "A replaces B pitching" or "A replaces B (POS) pitching and ..."
+        m = re.match(r'^(.+?)\s+replaces\s+(.+?)\s+pitching(?:\s+and\s+.*)?$', clean, flags=re.IGNORECASE)
         if m:
             out.update({"type": "pitching_change", "player_in": m.group(1).strip(), "player_out": m.group(2).strip()})
             return out
 
-        # Pinch hit: "A pinch hits for B"
-        m = re.match(r'^(.+?)\s+pinch hits for\s+(.+?)\s*$', t, flags=re.IGNORECASE)
+        # Defensive sub: "A replaces B (POS) playing CF" or "A replaces B at SS"
+        m = re.match(r'^(.+?)\s+replaces\s+(.+?)\s+(?:at|playing)\s+(.+?)$', clean, flags=re.IGNORECASE)
+        if m:
+            out.update({"type": "defensive_sub", "player_in": m.group(1).strip(),
+                        "player_out": m.group(2).strip(), "pos": m.group(3).strip()})
+            return out
+
+        # Generic replaces: "A replaces B"
+        m = re.match(r'^(.+?)\s+replaces\s+(.+?)$', clean, flags=re.IGNORECASE)
+        if m:
+            out.update({"type": "substitution", "player_in": m.group(1).strip(), "player_out": m.group(2).strip()})
+            return out
+
+        # Pinch hit: "A pinch hits for B (POS)"
+        m = re.match(r'^(.+?)\s+pinch hits for\s+(.+?)$', clean, flags=re.IGNORECASE)
         if m:
             out.update({"type": "pinch_hit", "player_in": m.group(1).strip(), "player_out": m.group(2).strip()})
             return out
 
         # Pinch run: "A pinch runs for B"
-        m = re.match(r'^(.+?)\s+pinch runs for\s+(.+?)\s*$', t, flags=re.IGNORECASE)
+        m = re.match(r'^(.+?)\s+pinch runs for\s+(.+?)$', clean, flags=re.IGNORECASE)
         if m:
             out.update({"type": "pinch_run", "player_in": m.group(1).strip(), "player_out": m.group(2).strip()})
-            return out
-
-        # Defensive replacement / position change often shows as "A replaces B at <POS>" or "A replaces B playing <POS>"
-        m = re.match(r'^(.+?)\s+replaces\s+(.+?)\s+(?:at|playing)\s+(.+?)\s*$', t, flags=re.IGNORECASE)
-        if m:
-            out.update({
-                "type": "defensive_sub",
-                "player_in": m.group(1).strip(),
-                "player_out": m.group(2).strip(),
-                "pos": m.group(3).strip(),
-            })
             return out
 
         return out
@@ -91,14 +103,22 @@ def extract_play_by_play(soup, away_team, home_team):
         # Example: <tr class="ingame_substitution"> ... "X replaces Y pitching" ...
         if 'ingame_substitution' in (row.get('class') or []):
             cells = row.find_all(['th', 'td'])
-            sub_text = ""
+            sub_texts = []
             for cell in reversed(cells):
-                t = cell.get_text(' ', strip=True)
-                if t:
-                    sub_text = t
+                # Check for multiple <div> children (each is a separate sub)
+                divs = cell.find_all('div')
+                if divs:
+                    sub_texts = [d.get_text(' ', strip=True) for d in divs if d.get_text(strip=True)]
+                else:
+                    t = cell.get_text(' ', strip=True)
+                    if t:
+                        sub_texts = [t]
+                if sub_texts:
                     break
 
-            if sub_text:
+            for sub_text in sub_texts:
+                if not sub_text:
+                    continue
                 sub = _parse_substitution_text(sub_text)
                 sub.update({
                     "inning": current_inning,

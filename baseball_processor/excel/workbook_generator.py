@@ -1553,14 +1553,14 @@ def check_final_mlb_games(all_players, games, final_game_dates, bbref_to_retro):
             if game["game_id"] in info["game_ids"] and game_date.date() == final_date.date():
                 home_team = game["basic_info"].get("home_team", "")
                 away_team = game["basic_info"].get("away_team", "")
-                
+
                 # Find player's actual position and stats
                 player_team = None
                 opponent_team = None
                 player_position = None
                 batting_stats = {}
                 pitching_stats = {}
-                
+
                 # Check batting section
                 for side in ("home", "away"):
                     for player in game.get("batting", {}).get(side, []):
@@ -1570,7 +1570,7 @@ def check_final_mlb_games(all_players, games, final_game_dates, bbref_to_retro):
                             position_from_batting = player.get("position", "").strip()
                             if position_from_batting:
                                 player_position = position_from_batting
-                            
+
                             ab = player.get("AB", 0)
                             pa = player.get("PA", 0)
                             if ab > 0 or pa > 0:
@@ -1587,19 +1587,19 @@ def check_final_mlb_games(all_players, games, final_game_dates, bbref_to_retro):
                     for player in game.get("pitching", {}).get(side, []):
                         if player.get("player_id") == player_id:
                             ip = player.get("IP", "0")
-                            
+
                             try:
                                 ip_outs = StatUtils.ip_to_outs(ip)
                                 if ip_outs and ip_outs > 0:
                                     if not player_team:
                                         player_team = home_team if side == "home" else away_team
                                         opponent_team = away_team if side == "home" else home_team
-                                    
+
                                     if not player_position:
                                         player_position = "P"
                                     elif player_position and player_position != "P":
                                         player_position = f"{player_position}/P"
-                                    
+
                                     pitching_stats = {
                                         "IP": f"{float(ip):.1f}",
                                         "H_P": player.get("H", 0), "R_P": player.get("R", 0),
@@ -1619,14 +1619,14 @@ def check_final_mlb_games(all_players, games, final_game_dates, bbref_to_retro):
                         "Position": player_position or "UNK",
                         "GameID": game["game_id"]
                     }
-                    
+
                     if batting_stats:
                         final_match.update(batting_stats)
                     if pitching_stats:
                         final_match.update(pitching_stats)
                     if not batting_stats and not pitching_stats and player_position:
                         final_match["Notes"] = "Defensive role only"
-                    
+
                     final_game_rows.append(final_match)
                 break
     

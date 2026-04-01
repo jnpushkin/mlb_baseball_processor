@@ -7,9 +7,44 @@ from ..utils.stat_utils import StatUtils
 from .base_processor import BaseProcessor
 
 class MilestonesProcessor(BaseProcessor):
+    # Shared keyword lists for play classification
+    NON_K_OUT_KEYWORDS = ["flyball", "groundout", "lineout", "popfly", "double play", "triple play"]
+    K_KEYWORDS_SWINGING = ["swinging", "swing", "missed", "whiff", "swung"]
+    K_KEYWORDS_LOOKING = ["looking", "called", "watched", "took", "frozen"]
+
     def __init__(self, games):
         super().__init__(games)
-        
+
+    @staticmethod
+    def _build_name_to_id(game):
+        """Build a name→player_id lookup from a game's batting and pitching rosters."""
+        name_to_id = {}
+        for side in ('home', 'away'):
+            for roster_key in ('batting', 'pitching'):
+                for p in game.get(roster_key, {}).get(side, []):
+                    n, pid = p.get('name', '').strip(), p.get('player_id', '')
+                    if n and pid:
+                        name_to_id[n] = pid
+                        name_to_id[n.replace('\xa0', ' ')] = pid
+        return name_to_id
+
+    @staticmethod
+    def _resolve_name(name, name_to_id):
+        """Resolve a player name to ID, handling non-breaking space variants."""
+        if not name:
+            return ""
+        return name_to_id.get(name, '') or name_to_id.get(name.replace('\xa0', ' '), '')
+
+    @staticmethod
+    def _categorize_strikeout(description):
+        """Return ('swinging', 'looking', or 'unknown') for a strikeout play description."""
+        desc = description.lower() if description else ""
+        if any(kw in desc for kw in MilestonesProcessor.K_KEYWORDS_SWINGING):
+            return 'swinging'
+        elif any(kw in desc for kw in MilestonesProcessor.K_KEYWORDS_LOOKING):
+            return 'looking'
+        return 'swinging'  # default assumption
+
     def process_all_milestones(self):
         """Process all milestones and special events."""
         print("🏆 Processing milestones and special events...")
@@ -50,7 +85,7 @@ class MilestonesProcessor(BaseProcessor):
                     sh_df["SHO"] = True
 
                 # Updated merge keys for enhanced DataFrames (no "Score" column)
-                merge_keys = ["Date", "Player", "Team", "Opponent", "GameID"]
+                merge_keys = ["Date", "Player", "Player ID", "Team", "Opponent", "GameID"]
                 
                 # Get all pitching stat columns that exist in both DataFrames
                 common_pitching_cols = []
@@ -122,7 +157,7 @@ class MilestonesProcessor(BaseProcessor):
 
         return milestone_dfs, b2b_game_ids, b2b2b_game_ids, b2b2b2b_game_ids, b2b_data[1], b2b_data[2], b2b_data[3], triple_play_df
     
-    def _process_inside_park_hrs(self, game, milestone_tabs, basic_info, max_innings):
+    def _process_inside_park_hrs(self, game, milestone_tabs, basic_info, max_innings, resolve_name=None):
         """Process inside-the-park home runs from play-by-play data."""
         try:
             for play in game.get("play_by_play", []):
@@ -133,17 +168,21 @@ class MilestonesProcessor(BaseProcessor):
                     inning = play.get("inning", "")
                     half = play.get("half", "").title()
                     pitcher = play.get("pitcher", "Unknown")
-                    rbi = play.get("rbi", 1)  # Get the corrected RBI count
-                    
-                    # Build detail string
+                    rbi = play.get("rbi", 1)
+
                     detail = f"{half} {inning}"
                     if rbi > 1:
                         detail += f" ({rbi} RBI)"
                     if pitcher != "Unknown":
                         detail += f" off {pitcher}"
-                    
+
+                    batter_id = play.get("batter_id", "")
+                    if not batter_id and resolve_name:
+                        batter_id = resolve_name(batter)
+
                     inside_park_item = {
                         "player": batter,
+                        "batter_id": batter_id,
                         "team_code": team,
                         "opponent_code": opponent,
                         "game_id": game.get("game_id", ""),
@@ -220,9 +259,25 @@ class MilestonesProcessor(BaseProcessor):
         milestones = game.get("milestone_stats", {})
         special_events = game.get("special_events", {})
         linescore = game.get("linescore", {})
-        
+
         # Calculate max innings for score display
         max_innings = self._calculate_max_innings(linescore)
+
+        # Build name→ID lookup to backfill missing IDs in special events (cached data may lack them)
+        name_to_id = self._build_name_to_id(game)
+        resolve = lambda name: self._resolve_name(name, name_to_id)
+
+        # Backfill missing player IDs in special events from roster
+        if special_events:
+            wo = special_events.get('walkoff')
+            if wo and not wo.get('batter_id'):
+                wo['batter_id'] = resolve(wo.get('batter', ''))
+            for lh in special_events.get('leadoff_hrs', []):
+                if not lh.get('batter_id'):
+                    lh['batter_id'] = resolve(lh.get('batter', ''))
+            for gs in special_events.get('grand_slams', []):
+                if not gs.get('player_id'):
+                    gs['player_id'] = resolve(gs.get('player', ''))
         
         # Process milestone stats from MilestoneEngine
         # Helper functions for detail formatting
@@ -315,7 +370,7 @@ class MilestonesProcessor(BaseProcessor):
         self._process_special_events(special_events, milestone_tabs, basic_info, max_innings)
     
         # Process inside-the-park home runs from play-by-play
-        self._process_inside_park_hrs(game, milestone_tabs, basic_info, max_innings)
+        self._process_inside_park_hrs(game, milestone_tabs, basic_info, max_innings, resolve)
 
     def _process_special_events(self, special_events, milestone_tabs, basic_info, max_innings):
         """Process special events from SpecialEventsEngine."""
@@ -391,6 +446,7 @@ class MilestonesProcessor(BaseProcessor):
                 milestone_tabs["Pinch Hit HRs"].append({
                     "Date": safe_get_str(basic_info, "date_yyyymmdd", ""),
                     "Player": player,
+                    "Player ID": pinch_hr.get("player_id", "") or pinch_hr.get("batter_id", ""),
                     "Team": team_code,
                     "Opponent": opponent_code,
                     "Score": score,
@@ -460,6 +516,7 @@ class MilestonesProcessor(BaseProcessor):
             milestone_record = {
                 "Date": safe_get_str(basic_info, "date_yyyymmdd", ""),
                 "Player": player,
+                "Player ID": item.get("player_id", "") or item.get("batter_id", "") or item.get("pitcher_id", ""),
                 "Team": team_code,
                 "Opponent": opponent_code,
                 "Score": score,
@@ -587,8 +644,7 @@ class MilestonesProcessor(BaseProcessor):
                         half_inning_tracker[key]["pitches"] += pitch_count
 
                     description = safe_get_str(play, "description", "").lower()
-                    if any(keyword in description for keyword in 
-                           ["flyball", "groundout", "lineout", "popfly", "strikeout", "double play", "triple play"]):
+                    if any(keyword in description for keyword in self.NON_K_OUT_KEYWORDS + ["strikeout"]):
                         half_inning_tracker[key]["outs"] += 1
 
                     cleaned_desc = self._clean_play_description(description)
@@ -598,9 +654,12 @@ class MilestonesProcessor(BaseProcessor):
                 # Check for 3-pitch innings
                 for (inning, half, team), result in half_inning_tracker.items():
                     if result["pitches"] == 3 and result["outs"] == 3:
+                        name_to_id = self._build_name_to_id(game)
+                        pitcher_id = self._resolve_name(result["pitcher"], name_to_id)
                         three_pitch_innings.append({
                             "Date": date,
                             "Player": result["pitcher"],
+                            "Player ID": pitcher_id,
                             "Team": unify_team_code(standardize_team_code(result["team"])),
                             "Opponent": unify_team_code(standardize_team_code(result["opponent"])),
                             "Inning": f"{half.capitalize()} {inning}",
@@ -678,22 +737,10 @@ class MilestonesProcessor(BaseProcessor):
                     
                     if play.get("strikeout", False) or "struck out" in description or "strikeout" in description:
                         pitcher_tracker[key]["strikeouts"] += 1
-                        pitcher_tracker[key]["batters_struck_out"].append(batter_name)  # ADD: Track batter name
-                        
-                        # ✅ ADD: Categorize swinging vs looking strikeouts
-                        if any(keyword in description for keyword in [
-                            "swinging", "swing", "missed", "whiff", "swung"
-                        ]):
-                            pitcher_tracker[key]["swinging_strikeouts"] += 1
-                        elif any(keyword in description for keyword in [
-                            "looking", "called", "watched", "took", "frozen"
-                        ]):
-                            pitcher_tracker[key]["looking_strikeouts"] += 1
-                        else:
-                            # If we can't determine, assume swinging (most common)
-                            pitcher_tracker[key]["swinging_strikeouts"] += 1
-                    elif any(keyword in description for keyword in 
-                            ["flyball", "groundout", "lineout", "popfly", "double play", "triple play"]):
+                        pitcher_tracker[key]["batters_struck_out"].append(batter_name)
+                        k_type = self._categorize_strikeout(description)
+                        pitcher_tracker[key]["swinging_strikeouts" if k_type == 'swinging' else "looking_strikeouts"] += 1
+                    elif any(keyword in description for keyword in self.NON_K_OUT_KEYWORDS):
                         # This pitcher allowed a non-strikeout out - disqualifies the inning
                         if "double play" in description:
                             pitcher_tracker[key]["non_strikeout_outs"] += 2
@@ -717,9 +764,14 @@ class MilestonesProcessor(BaseProcessor):
                         batters_formatted = " | ".join(result["batters_struck_out"][:3])
                         ko_breakdown = f"Swinging: {result['swinging_strikeouts']}, Looking: {result['looking_strikeouts']}"
                         
+                        # Resolve pitcher ID from game roster
+                        name_to_id = self._build_name_to_id(game)
+                        pitcher_id = self._resolve_name(result["pitcher"], name_to_id)
+
                         three_strikeout_innings.append({
                             "Date": date,
                             "Player": result["pitcher"],
+                            "Player ID": pitcher_id,
                             "Team": unify_team_code(standardize_team_code(result["team"])),
                             "Opponent": unify_team_code(standardize_team_code(result["opponent"])),
                             "Inning": f"{half.capitalize()} {inning}",
@@ -889,22 +941,10 @@ class MilestonesProcessor(BaseProcessor):
                     
                     if play.get("strikeout", False) or "struck out" in description or "strikeout" in description:
                         pitcher_tracker[key]["strikeouts"] += 1
-                        pitcher_tracker[key]["batters_struck_out"].append(batter_name)  # ADD: Track batter name
-                        
-                        # ADD: Categorize swinging vs looking strikeouts
-                        if any(keyword in description for keyword in [
-                            "swinging", "swing", "missed", "whiff", "swung"
-                        ]):
-                            pitcher_tracker[key]["swinging_strikeouts"] += 1
-                        elif any(keyword in description for keyword in [
-                            "looking", "called", "watched", "took", "frozen"
-                        ]):
-                            pitcher_tracker[key]["looking_strikeouts"] += 1
-                        else:
-                            # If we can't determine, assume swinging (most common)
-                            pitcher_tracker[key]["swinging_strikeouts"] += 1
-                    elif any(keyword in description for keyword in 
-                            ["flyball", "groundout", "lineout", "popfly", "double play", "triple play"]):
+                        pitcher_tracker[key]["batters_struck_out"].append(batter_name)
+                        k_type = self._categorize_strikeout(description)
+                        pitcher_tracker[key]["swinging_strikeouts" if k_type == 'swinging' else "looking_strikeouts"] += 1
+                    elif any(keyword in description for keyword in self.NON_K_OUT_KEYWORDS):
                         pitcher_tracker[key]["non_strikeout_outs"] += 1
 
                     cleaned_desc = self._clean_play_description(description)
@@ -920,9 +960,12 @@ class MilestonesProcessor(BaseProcessor):
                         # ADD: Format batter names
                         batters_formatted = " | ".join(result["batters_struck_out"][:3])
                         
+                        name_to_id = self._build_name_to_id(game)
+                        pitcher_id = self._resolve_name(result["pitcher"], name_to_id)
                         immaculate_innings.append({
                             "Date": date,
                             "Player": result["pitcher"],
+                            "Player ID": pitcher_id,
                             "Team": unify_team_code(standardize_team_code(result["team"])),
                             "Opponent": unify_team_code(standardize_team_code(result["opponent"])),
                             "Inning": f"{half.capitalize()} {inning}",
@@ -1415,301 +1458,99 @@ class MilestonesProcessor(BaseProcessor):
 
 class PracticalMilestoneEnhancer:
     """Enhance milestone tabs with useful information without over-complication."""
-    
+
+    HITTING_STAT_KEYS = ["AB", "H", "R", "RBI", "HR", "2B", "3B", "BB", "SO"]
+
     def __init__(self, games):
         self.games = games
-    
-    def enhance_quality_starts(self, basic_qs_data):
-        """Add complete pitching line to Quality Starts, removing Detail column."""
-        if basic_qs_data is None or basic_qs_data.empty:
+
+    def _base_record(self, record, game, team_code, game_id):
+        """Build the base enhanced dict shared by all enhancers."""
+        return {
+            "Date": record.get("Date"),
+            "Player": record.get("Player", ""),
+            "Player ID": record.get("Player ID", ""),
+            "Team": team_code,
+            "Opponent": record.get("Opponent"),
+            "Home/Away": self._determine_home_away(game, team_code),
+            "GameID": game_id
+        }
+
+    def _get_hitting_stats_with_fallback(self, record, game, player_name):
+        """Get hitting stats: prefer preserved record stats, fallback to box score."""
+        if any(stat in record and record[stat] > 0 for stat in ["HR", "2B", "3B", "H", "RBI"]):
+            return {k: record.get(k, 0) for k in self.HITTING_STAT_KEYS}
+        hitting = self._get_hitter_stats(game, player_name)
+        return {k: hitting.get(k, 0) for k in self.HITTING_STAT_KEYS}
+
+    def _enhance_hitting(self, basic_data, extra_stats_fn=None):
+        """Generic enhancer for hitting milestones."""
+        if basic_data is None or basic_data.empty:
             return pd.DataFrame()
-        
         enhanced_records = []
-        
-        for _, record in basic_qs_data.iterrows():
+        for _, record in basic_data.iterrows():
             game_id = record.get("GameID", "")
             player_name = record.get("Player", "")
             team_code = record.get("Team", "")
-            
             game = self._get_game_by_id(game_id)
             if not game:
                 enhanced_records.append(record.to_dict())
                 continue
-            
+            enhanced = self._base_record(record, game, team_code, game_id)
+            stats = self._get_hitting_stats_with_fallback(record, game, player_name)
+            enhanced.update(stats)
+            if extra_stats_fn:
+                enhanced.update(extra_stats_fn(stats))
+            enhanced_records.append(enhanced)
+        return pd.DataFrame(enhanced_records)
+
+    def enhance_quality_starts(self, basic_qs_data):
+        """Add complete pitching line to pitching milestones."""
+        if basic_qs_data is None or basic_qs_data.empty:
+            return pd.DataFrame()
+        enhanced_records = []
+        for _, record in basic_qs_data.iterrows():
+            game_id = record.get("GameID", "")
+            player_name = record.get("Player", "")
+            team_code = record.get("Team", "")
+            game = self._get_game_by_id(game_id)
+            if not game:
+                enhanced_records.append(record.to_dict())
+                continue
             pitching_stats = self._get_pitcher_stats(game, player_name)
-            
-            enhanced = {
-                "Date": record.get("Date"),
-                "Player": player_name,
-                "Team": team_code,
-                "Opponent": record.get("Opponent"),
-                "Home/Away": self._determine_home_away(game, team_code),
+            enhanced = self._base_record(record, game, team_code, game_id)
+            enhanced.update({
                 "IP": self._format_ip_with_decimal(pitching_stats.get("IP", "6.0")),
                 "H": pitching_stats.get("H", 0),
-                "R": pitching_stats.get("R", 0), 
+                "R": pitching_stats.get("R", 0),
                 "ER": pitching_stats.get("ER", 0),
                 "BB": pitching_stats.get("BB", 0),
                 "SO": pitching_stats.get("SO", 0),
                 "Pitches": pitching_stats.get("Pit", 0) or 0,
                 "WHIP": self._calculate_whip(pitching_stats),
                 "Decision": pitching_stats.get("decision", "ND"),
-                "GameID": game_id
-            }
-            
+            })
             enhanced_records.append(enhanced)
-        
         return pd.DataFrame(enhanced_records)
     
     def enhance_multi_hr_games(self, basic_data):
-        """Add complete hitting line to Multi-HR games, removing Detail column."""
-        if basic_data is None or basic_data.empty:
-            return pd.DataFrame()
-        
-        enhanced_records = []
-        
-        for _, record in basic_data.iterrows():
-            game_id = record.get("GameID", "")
-            player_name = record.get("Player", "")
-            team_code = record.get("Team", "")
-            
-            game = self._get_game_by_id(game_id)
-            if not game:
-                enhanced_records.append(record.to_dict())
-                continue
-            
-            # Start with base info (no Detail column)
-            enhanced = {
-                "Date": record.get("Date"),
-                "Player": player_name,
-                "Team": team_code,
-                "Opponent": record.get("Opponent"),
-                "Home/Away": self._determine_home_away(game, team_code),
-                "GameID": game_id
-            }
-            
-            # Get complete hitting stats - prefer preserved footer stats, fallback to box score
-            if any(stat in record and record[stat] > 0 for stat in ["HR", "2B", "3B"]):
-                enhanced.update({
-                    "AB": record.get("AB", 0),
-                    "H": record.get("H", 0), 
-                    "R": record.get("R", 0),
-                    "RBI": record.get("RBI", 0),
-                    "HR": record.get("HR", 0),
-                    "2B": record.get("2B", 0),
-                    "3B": record.get("3B", 0),
-                    "BB": record.get("BB", 0),
-                    "SO": record.get("SO", 0)
-                })
-            else:
-                # Fallback to box score lookup
-                print(f"   ⚠️ Using box score lookup for {player_name}")
-                hitting_stats = self._get_hitter_stats(game, player_name)
-                enhanced.update({
-                    "AB": hitting_stats.get("AB", 0),
-                    "H": hitting_stats.get("H", 0),
-                    "R": hitting_stats.get("R", 0),
-                    "RBI": hitting_stats.get("RBI", 0),
-                    "HR": hitting_stats.get("HR", 0),
-                    "2B": hitting_stats.get("2B", 0),
-                    "3B": hitting_stats.get("3B", 0),
-                    "BB": hitting_stats.get("BB", 0),
-                    "SO": hitting_stats.get("SO", 0)
-                })
-            
-            enhanced_records.append(enhanced)
-        
-        return pd.DataFrame(enhanced_records)
+        """Add complete hitting line to Multi-HR games."""
+        return self._enhance_hitting(basic_data)
 
     def enhance_four_hit_games(self, basic_data):
-        """Add complete hitting line to 4+ Hit games, removing Detail column."""
-        if basic_data is None or basic_data.empty:
-            return pd.DataFrame()
-        
-        enhanced_records = []
-        
-        for _, record in basic_data.iterrows():
-            game_id = record.get("GameID", "")
-            player_name = record.get("Player", "")
-            team_code = record.get("Team", "")
-            
-            game = self._get_game_by_id(game_id)
-            if not game:
-                enhanced_records.append(record.to_dict())
-                continue
-            
-            enhanced = {
-                "Date": record.get("Date"),
-                "Player": player_name,
-                "Team": team_code,
-                "Opponent": record.get("Opponent"),
-                "Home/Away": self._determine_home_away(game, team_code),
-                "GameID": game_id
-            }
-            
-            # Get complete hitting stats
-            if any(stat in record and record[stat] > 0 for stat in ["HR", "2B", "3B", "H"]):
-                # Use preserved stats
-                enhanced.update({
-                    "AB": record.get("AB", 0),
-                    "H": record.get("H", 0),
-                    "R": record.get("R", 0),
-                    "RBI": record.get("RBI", 0),
-                    "HR": record.get("HR", 0),
-                    "2B": record.get("2B", 0),
-                    "3B": record.get("3B", 0),
-                    "BB": record.get("BB", 0),
-                    "SO": record.get("SO", 0)
-                })
-            else:
-                # Box score lookup
-                hitting_stats = self._get_hitter_stats(game, player_name)
-                enhanced.update({
-                    "AB": hitting_stats.get("AB", 0),
-                    "H": hitting_stats.get("H", 0),
-                    "R": hitting_stats.get("R", 0),
-                    "RBI": hitting_stats.get("RBI", 0),
-                    "HR": hitting_stats.get("HR", 0),
-                    "2B": hitting_stats.get("2B", 0),
-                    "3B": hitting_stats.get("3B", 0),
-                    "BB": hitting_stats.get("BB", 0),
-                    "SO": hitting_stats.get("SO", 0)
-                })
-            
-            enhanced_records.append(enhanced)
-        
-        return pd.DataFrame(enhanced_records)
+        """Add complete hitting line to hit games."""
+        return self._enhance_hitting(basic_data)
 
     def enhance_five_rbi_games(self, basic_data):
-        """Add complete hitting line to 5+ RBI games, removing Detail column."""
-        if basic_data is None or basic_data.empty:
-            return pd.DataFrame()
-        
-        enhanced_records = []
-        
-        for _, record in basic_data.iterrows():
-            game_id = record.get("GameID", "")
-            player_name = record.get("Player", "")
-            team_code = record.get("Team", "")
-            
-            game = self._get_game_by_id(game_id)
-            if not game:
-                enhanced_records.append(record.to_dict())
-                continue
-            
-            enhanced = {
-                "Date": record.get("Date"),
-                "Player": player_name,
-                "Team": team_code,
-                "Opponent": record.get("Opponent"),
-                "Home/Away": self._determine_home_away(game, team_code),
-                "GameID": game_id
-            }
-            
-            # Get complete hitting stats
-            if any(stat in record and record[stat] > 0 for stat in ["HR", "2B", "3B", "RBI"]):
-                # Use preserved stats
-                enhanced.update({
-                    "AB": record.get("AB", 0),
-                    "H": record.get("H", 0),
-                    "R": record.get("R", 0),
-                    "RBI": record.get("RBI", 0),
-                    "HR": record.get("HR", 0),
-                    "2B": record.get("2B", 0),
-                    "3B": record.get("3B", 0),
-                    "BB": record.get("BB", 0),
-                    "SO": record.get("SO", 0)
-                })
-            else:
-                # Box score lookup
-                hitting_stats = self._get_hitter_stats(game, player_name)
-                enhanced.update({
-                    "AB": hitting_stats.get("AB", 0),
-                    "H": hitting_stats.get("H", 0),
-                    "R": hitting_stats.get("R", 0),
-                    "RBI": hitting_stats.get("RBI", 0),
-                    "HR": hitting_stats.get("HR", 0),
-                    "2B": hitting_stats.get("2B", 0),
-                    "3B": hitting_stats.get("3B", 0),
-                    "BB": hitting_stats.get("BB", 0),
-                    "SO": hitting_stats.get("SO", 0)
-                })
-            
-            enhanced_records.append(enhanced)
-        
-        return pd.DataFrame(enhanced_records)
+        """Add complete hitting line to RBI games."""
+        return self._enhance_hitting(basic_data)
 
     def enhance_cycles(self, basic_data):
-        """Add complete hitting line to Cycles, removing Detail column."""
-        if basic_data is None or basic_data.empty:
-            return pd.DataFrame()
-        
-        enhanced_records = []
-        
-        for _, record in basic_data.iterrows():
-            game_id = record.get("GameID", "")
-            player_name = record.get("Player", "")
-            team_code = record.get("Team", "")
-            
-            game = self._get_game_by_id(game_id)
-            if not game:
-                enhanced_records.append(record.to_dict())
-                continue
-            
-            enhanced = {
-                "Date": record.get("Date"),
-                "Player": player_name,
-                "Team": team_code,
-                "Opponent": record.get("Opponent"),
-                "Home/Away": self._determine_home_away(game, team_code),
-                "GameID": game_id
-            }
-            
-            # Always show complete cycle breakdown
-            if any(stat in record and record[stat] > 0 for stat in ["HR", "2B", "3B"]):
-                # Use preserved stats
-                hits = record.get("H", 0)
-                doubles = record.get("2B", 0)
-                triples = record.get("3B", 0)
-                home_runs = record.get("HR", 0)
-                singles = hits - doubles - triples - home_runs
-                
-                enhanced.update({
-                    "AB": record.get("AB", 0),
-                    "H": hits,
-                    "Singles": singles,
-                    "2B": doubles,
-                    "3B": triples, 
-                    "HR": home_runs,
-                    "R": record.get("R", 0),
-                    "RBI": record.get("RBI", 0),
-                    "BB": record.get("BB", 0),
-                    "SO": record.get("SO", 0)
-                })
-            else:
-                # Box score lookup
-                hitting_stats = self._get_hitter_stats(game, player_name)
-                hits = hitting_stats.get("H", 0)
-                doubles = hitting_stats.get("2B", 0)
-                triples = hitting_stats.get("3B", 0)
-                home_runs = hitting_stats.get("HR", 0)
-                singles = hits - doubles - triples - home_runs
-                
-                enhanced.update({
-                    "AB": hitting_stats.get("AB", 0),
-                    "H": hits,
-                    "Singles": singles,
-                    "2B": doubles,
-                    "3B": triples,
-                    "HR": home_runs,
-                    "R": hitting_stats.get("R", 0),
-                    "RBI": hitting_stats.get("RBI", 0),
-                    "BB": hitting_stats.get("BB", 0),
-                    "SO": hitting_stats.get("SO", 0)
-                })
-            
-            enhanced_records.append(enhanced)
-        
-        return pd.DataFrame(enhanced_records)
+        """Add complete hitting line to Cycles with singles breakdown."""
+        def add_singles(stats):
+            singles = stats.get("H", 0) - stats.get("2B", 0) - stats.get("3B", 0) - stats.get("HR", 0)
+            return {"Singles": singles}
+        return self._enhance_hitting(basic_data, extra_stats_fn=add_singles)
     
     def enhance_ten_k_games(self, basic_data):
         """Add complete pitching line to 10+ K games, removing Detail column."""
@@ -1728,56 +1569,24 @@ class PracticalMilestoneEnhancer:
         return self.enhance_quality_starts(basic_data)  # Same format
     
     def enhance_grand_slams(self, basic_data):
-        """Add hitting context to Grand Slams, keeping some Detail info."""
+        """Add hitting context to Grand Slams with inning/pitcher detail."""
         if basic_data is None or basic_data.empty:
             return pd.DataFrame()
-        
         enhanced_records = []
-        
         for _, record in basic_data.iterrows():
             game_id = record.get("GameID", "")
             player_name = record.get("Player", "")
             team_code = record.get("Team", "")
-            
-            # Get game for home/away context
             game = self._get_game_by_id(game_id)
-            
-            # Extract inning and pitcher from Detail field if available
+            if not game:
+                enhanced_records.append(record.to_dict())
+                continue
             detail = record.get("Detail", "")
-            inning_info = self._extract_inning_from_detail(detail)
-            pitcher_info = self._extract_pitcher_from_detail(detail)
-            
-            enhanced = {
-                "Date": record.get("Date"),
-                "Player": player_name,
-                "Team": team_code,
-                "Opponent": record.get("Opponent"),
-                "Home/Away": self._determine_home_away(game, team_code),
-                "Inning": inning_info,
-                "Pitcher": pitcher_info,
-                "GameID": game_id
-            }
-            
-            # Check if we have preserved stats from _add_milestone (using standardized keys)
-            if any(stat in record and record[stat] > 0 for stat in ["HR", "2B", "3B", "H", "RBI"]):
-                # Use preserved footer stats
-                enhanced.update({
-                    "AB": record.get("AB", 0) if record.get("AB", 0) > 0 else 0,
-                    "H": record.get("H", 0) if record.get("H", 0) > 0 else 0,
-                    "R": record.get("R", 0) if record.get("R", 0) > 0 else 0,
-                    "RBI": record.get("RBI", 0),
-                    "HR": record.get("HR", 0)
-                })
-            else:
-                # Fallback to box score lookup
-                hitting_stats = self._get_hitter_stats(game, player_name) if game else {}
-                enhanced.update({
-                    "AB": hitting_stats.get("AB", 0) if hitting_stats.get("AB", 0) > 0 else 0,
-                    "H": hitting_stats.get("H", 0) if hitting_stats.get("H", 0) > 0 else 0,
-                    "R": hitting_stats.get("R", 0) if hitting_stats.get("R", 0) > 0 else 0,
-                    "RBI": hitting_stats.get("RBI", 0),
-                    "HR": hitting_stats.get("HR", 0)
-                })
+            enhanced = self._base_record(record, game, team_code, game_id)
+            enhanced["Inning"] = self._extract_inning_from_detail(detail)
+            enhanced["Pitcher"] = self._extract_pitcher_from_detail(detail)
+            stats = self._get_hitting_stats_with_fallback(record, game, player_name)
+            enhanced.update({"AB": stats["AB"], "H": stats["H"], "R": stats["R"], "RBI": stats["RBI"], "HR": stats["HR"]})
             
             enhanced_records.append(enhanced)
         
