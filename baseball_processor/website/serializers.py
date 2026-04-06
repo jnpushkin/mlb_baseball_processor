@@ -416,6 +416,7 @@ class DataSerializer:
             "allTimePassingsByGame": passings_by_game,
             "gameTypeCounts": game_type_counts,
             "ncaaCrossRef": ncaa_cross_ref,
+            "absPlayerStats": self._serialize_abs_player_stats(raw_games),
             "umpireLog": self._serialize_umpire_log(raw_games),
             "jerseyLog": self._serialize_jersey_log(raw_games),
             "playerBios": self._load_player_bios(),
@@ -455,10 +456,14 @@ class DataSerializer:
     
     # Milestone types to exclude from website (trivial/removed)
     EXCLUDED_MILESTONE_TYPES = {
-        '3+ Hit Games', '8+ K Games', '4+ Walk Games', 'Perfect Batting Games',
+        # Batting - too common or low tier
+        '3+ Hit Games', '4+ Walk Games', 'Perfect Batting Games',
         '3+ Run Games', '4+ Run Games', '2+ XBH Games', '8+ Total Bases',
-        'Multi-2B Games', 'Saves', 'Wins', 'Efficient Starts',
+        'Multi-2B Games',
+        # Pitching - routine occurrences
+        '8+ K Games', 'Saves', 'Wins', 'Efficient Starts',
         'No-Walk Starts', 'Scoreless Relief', 'High K Low BB',
+        '7-Inning Shutouts', 'Dominant Starts', '3 Pitch Innings',
     }
 
     def _serialize_milestones(self, milestones_dict):
@@ -902,7 +907,7 @@ class DataSerializer:
                     team = basic_info.get(f'{side}_team_code', '')
                     opponent = basic_info.get('away_team_code' if side == 'home' else 'home_team_code', '')
                     
-                    for pitcher in game.get('pitching', {}).get(side, []):
+                    for p_idx, pitcher in enumerate(game.get('pitching', {}).get(side, [])):
                         player_id = pitcher.get('player_id', '')
                         if not player_id:
                             continue
@@ -933,6 +938,7 @@ class DataSerializer:
                             'opponent': opponent,
                             'gameId': game_id,
                             'gameType': basic_info.get('game_type', 'regular'),
+                            'order': p_idx,
                             'outs': outs,
                             'h': int(pitcher.get('H', 0)),
                             'r': int(pitcher.get('R', 0)),
@@ -1812,6 +1818,95 @@ class DataSerializer:
                 pass
         return {}
 
+    def _serialize_abs_player_stats(self, raw_games):
+        """Build player-level ABS challenge statistics from all games."""
+        player_stats = {}  # name -> {challenges, overturned, upheld, asBatter, asCatcher, games, edgeDistances}
+
+        # Build MLB API ID -> name lookup from player bios
+        bios = self._load_player_bios()
+        mlb_id_to_name = {}
+        for bref_id, bio in bios.items():
+            if bio.get('mlbApiId'):
+                mlb_id_to_name[str(bio['mlbApiId'])] = bio.get('name', '')
+
+        for game in raw_games:
+            abs_data = game.get('abs_challenges') or {}
+            reviews = abs_data.get('reviews', [])
+            if not reviews:
+                continue
+            game_id = game.get('game_id', '')
+            bi = game.get('basic_info', {})
+            date = bi.get('date_yyyymmdd', '')
+
+            for review in reviews:
+                # Track the challenger
+                challenger_type = review.get('challengerType', '')
+                if not challenger_type:
+                    challenger_type = 'batter' if review.get('isBatterChallenge', review.get('is_batter', False)) else 'catcher'
+                challenger_name = review.get('challengePlayer', '')
+                if not challenger_name:
+                    cpid = review.get('challengingPlayerId', '')
+                    challenger_name = mlb_id_to_name.get(cpid, '')
+                if not challenger_name:
+                    if challenger_type == 'batter':
+                        challenger_name = review.get('batter', '')
+                    elif challenger_type == 'pitcher':
+                        challenger_name = review.get('pitcher', '')
+                    else:
+                        challenger_name = review.get('batter', '') + ' (catcher)'
+
+                if not challenger_name:
+                    continue
+
+                if challenger_name not in player_stats:
+                    player_stats[challenger_name] = {
+                        'name': challenger_name,
+                        'challenges': 0,
+                        'overturned': 0,
+                        'upheld': 0,
+                        'asBatter': 0,
+                        'asCatcher': 0,
+                        'asPitcher': 0,
+                        'edgeDistances': [],
+                        'gameIds': set(),
+                    }
+                ps = player_stats[challenger_name]
+                ps['challenges'] += 1
+                if review.get('overturned'):
+                    ps['overturned'] += 1
+                else:
+                    ps['upheld'] += 1
+                if challenger_type == 'batter':
+                    ps['asBatter'] += 1
+                elif challenger_type == 'pitcher':
+                    ps['asPitcher'] += 1
+                else:
+                    ps['asCatcher'] += 1
+                if review.get('edgeDistance') is not None:
+                    ps['edgeDistances'].append(review['edgeDistance'])
+                if game_id:
+                    ps['gameIds'].add(game_id)
+
+        # Convert to list and compute derived stats
+        result = []
+        for ps in player_stats.values():
+            avg_edge = round(sum(ps['edgeDistances']) / len(ps['edgeDistances']), 3) if ps['edgeDistances'] else None
+            result.append({
+                'name': ps['name'],
+                'challenges': ps['challenges'],
+                'overturned': ps['overturned'],
+                'upheld': ps['upheld'],
+                'successRate': round(ps['overturned'] / ps['challenges'] * 100) if ps['challenges'] > 0 else 0,
+                'asBatter': ps['asBatter'],
+                'asCatcher': ps['asCatcher'],
+                'asPitcher': ps['asPitcher'],
+                'avgEdgeDistance': avg_edge,
+                'games': len(ps['gameIds']),
+            })
+
+        result.sort(key=lambda x: x['challenges'], reverse=True)
+        return result
+
     def _serialize_umpire_log(self, raw_games):
         """Build umpire tracking data: how many times each umpire has been seen."""
         umpire_stats = {}  # name -> {games, positions, firstSeen, lastSeen, gameIds}
@@ -1840,8 +1935,9 @@ class DataSerializer:
                         'absUpheld': 0,
                     }
                 umpire_stats[name]['games'] += 1
-                if game_id and game_id not in umpire_stats[name]['gameIds']:
-                    umpire_stats[name]['gameIds'].append(game_id)
+                existing_ids = {g['gameId'] if isinstance(g, dict) else g for g in umpire_stats[name]['gameIds']}
+                if game_id and game_id not in existing_ids:
+                    umpire_stats[name]['gameIds'].append({'gameId': game_id, 'position': pos})
                 umpire_stats[name]['positions'][pos] = umpire_stats[name]['positions'].get(pos, 0) + 1
                 if date and date < umpire_stats[name]['firstSeen']:
                     umpire_stats[name]['firstSeen'] = date
@@ -1852,12 +1948,21 @@ class DataSerializer:
             hp_umpire = umpires.get('HP', '')
             abs_data = game.get('abs_challenges', {})
             if hp_umpire and abs_data and hp_umpire in umpire_stats:
-                for review in abs_data.get('reviews', []):
-                    umpire_stats[hp_umpire]['absChallenges'] += 1
-                    if review.get('overturned'):
-                        umpire_stats[hp_umpire]['absOverturned'] += 1
-                    else:
-                        umpire_stats[hp_umpire]['absUpheld'] += 1
+                reviews = abs_data.get('reviews', [])
+                if reviews:
+                    # Savant-sourced reviews are authoritative
+                    umpire_stats[hp_umpire]['absChallenges'] += len(reviews)
+                    umpire_stats[hp_umpire]['absOverturned'] += sum(1 for r in reviews if r.get('overturned'))
+                    umpire_stats[hp_umpire]['absUpheld'] += sum(1 for r in reviews if not r.get('overturned'))
+                else:
+                    # Fallback for old cached data: use summary totals
+                    for side in ('away', 'home'):
+                        sd = abs_data.get(side, {})
+                        successful = sd.get('usedSuccessful', 0) or 0
+                        failed = sd.get('usedFailed', 0) or 0
+                        umpire_stats[hp_umpire]['absChallenges'] += successful + failed
+                        umpire_stats[hp_umpire]['absOverturned'] += successful
+                        umpire_stats[hp_umpire]['absUpheld'] += failed
 
         # Format dates
         for u in umpire_stats.values():

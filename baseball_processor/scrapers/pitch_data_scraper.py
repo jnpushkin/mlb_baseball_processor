@@ -26,6 +26,80 @@ CODE_TO_MLB_ID['OAK'] = 133  # Historical Oakland code (ATH is the current one)
 
 CACHE_DIR = Path(__file__).parent.parent.parent / 'cache'
 MLB_API_BASE = "https://statsapi.mlb.com/api/v1"
+SAVANT_GF_BASE = "https://baseballsavant.mlb.com/gf"
+
+
+def fetch_savant_abs(session, game_pk, delay=0.5):
+    """Fetch ABS challenge data from Baseball Savant gamefeed API.
+
+    Returns list of challenge dicts, or None on failure.
+    """
+    try:
+        resp = get_with_retry(session, f"{SAVANT_GF_BASE}?game_pk={game_pk}", timeout=20)
+        if resp.status_code != 200:
+            return None
+        savant = resp.json()
+
+        home_team_id = savant.get('team_home_id')
+        away_team_id = savant.get('team_away_id')
+
+        challenges = []
+        seen = set()
+        for group_key in ['home_pitchers', 'away_pitchers']:
+            group = savant.get(group_key, {})
+            if not isinstance(group, dict):
+                continue
+            for player_id, pitches in group.items():
+                if not isinstance(pitches, list):
+                    continue
+                for pitch in pitches:
+                    if not pitch.get('is_abs_challenge'):
+                        continue
+                    abs_info = pitch.get('abs_challenge', {})
+                    # Dedup by play_id (each pitch has a unique UUID, appears in both pitcher and batter groups)
+                    key = pitch.get('play_id')
+                    if not key:
+                        continue
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    is_home_pitcher = group_key == 'home_pitchers'
+                    half = 'top' if is_home_pitcher else 'bottom'
+                    # Resolve challenger name and type
+                    challenger_type = abs_info.get('challenging_player_type', '')
+                    if not challenger_type:
+                        challenger_type = 'batter' if abs_info.get('is_batter', False) else 'catcher'
+                    challenger_name = ''
+                    if challenger_type == 'batter':
+                        challenger_name = pitch.get('batter_name', '')
+                    elif challenger_type == 'pitcher':
+                        challenger_name = pitch.get('pitcher_name', '')
+                    else:
+                        challenger_name = pitch.get('catcher_name', '') or ''
+
+                    challenge_tid = abs_info.get('challenge_team_id')
+                    challenge_side = 'home' if challenge_tid == home_team_id else 'away'
+
+                    challenges.append({
+                        'overturned': abs_info.get('is_overturned', False),
+                        'batter': pitch.get('batter_name', ''),
+                        'batterId': str(pitch.get('batter', '')),
+                        'pitcher': pitch.get('pitcher_name', ''),
+                        'pitcherId': str(pitch.get('pitcher', '')),
+                        'challengerType': challenger_type,
+                        'challengePlayer': challenger_name,
+                        'challengeTeam': challenge_side,
+                        'challengeTeamId': challenge_tid,
+                        'challengingPlayerId': str(abs_info.get('challenging_player_id', '')),
+                        'edgeDistance': abs_info.get('edge_distance'),
+                        'pitchType': pitch.get('pitch_name', ''),
+                        'count': f"{pitch.get('balls', 0)}-{pitch.get('strikes', 0)}",
+                        'inning': pitch.get('inning', 0),
+                        'half': half,
+                    })
+        return challenges
+    except Exception:
+        return None
 
 
 def find_game_pk(schedule_games, home_code, away_code, doubleheader='0'):
@@ -97,6 +171,7 @@ def main():
     parser.add_argument('--delay', type=float, default=0.5, help='Delay between API requests (seconds)')
     parser.add_argument('--dry-run', action='store_true', help='Preview without fetching')
     parser.add_argument('--force', action='store_true', help='Re-fetch even if pitch_data exists')
+    parser.add_argument('--savant-abs', action='store_true', help='Backfill ABS challenge data from Baseball Savant')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
     args = parser.parse_args()
 
@@ -115,21 +190,28 @@ def main():
         except (json.JSONDecodeError, IOError):
             continue
 
-        # Skip MLB API games (already have pitch data)
+        # Skip MLB API games for pitch enrichment (already have pitch data)
+        # But still process them for Savant ABS backfill
         source = game.get('source') or game.get('basic_info', {}).get('source', 'bref')
-        if source == 'mlb':
+        if source == 'mlb' and not args.savant_abs:
             continue
 
-        # Skip if already has pitch_data
-        if not args.force and game.get('pitch_data'):
-            continue
-
+        # Skip based on mode
         basic_info = game.get('basic_info', {})
-        date = basic_info.get('date_yyyymmdd', '')
-        if not date or len(date) != 8:
+        date_str = basic_info.get('date_yyyymmdd', '')
+        if args.savant_abs:
+            abs_data = game.get('abs_challenges') or {}
+            reviews = abs_data.get('reviews', [])
+            has_savant_abs = any(r.get('edgeDistance') is not None for r in reviews)
+            if not args.force and has_savant_abs:
+                continue
+        elif not args.force and game.get('pitch_data'):
             continue
 
-        games_by_date.setdefault(date, []).append((cache_file, game))
+        if not date_str or len(date_str) != 8:
+            continue
+
+        games_by_date.setdefault(date_str, []).append((cache_file, game))
 
     total_games = sum(len(v) for v in games_by_date.values())
     print(f"Found {total_games} games across {len(games_by_date)} dates to process")
@@ -187,14 +269,37 @@ def main():
                 print(f"  [{processed}/{total_games}] {away_code}@{home_code} {formatted_date} -> gamePk={game_pk}")
                 continue
 
-            game_pk = find_game_pk(schedule_games, home_code, away_code, dh)
+            # Use existing game_pk if available, otherwise look up
+            game_pk = game.get('mlb_game_pk') or find_game_pk(schedule_games, home_code, away_code, dh)
             if not game_pk:
                 no_match += 1
                 if args.verbose:
                     print(f"  [{processed}/{total_games}] No match: {away_code}@{home_code} {formatted_date}")
                 continue
 
-            # Fetch live feed
+            # Store game_pk
+            game['mlb_game_pk'] = game_pk
+
+            if args.savant_abs:
+                # Savant-only ABS backfill mode
+                try:
+                    challenges = fetch_savant_abs(session, game_pk, args.delay)
+                    time.sleep(args.delay)
+                    if challenges is not None:
+                        game['abs_challenges'] = {'reviews': challenges}
+                        with open(cache_file, 'w') as f:
+                            json.dump(game, f, indent=2)
+                        enriched += 1
+                        print(f"  [{processed}/{total_games}] {game_id}: {len(challenges)} ABS challenges")
+                    else:
+                        if args.verbose:
+                            print(f"  [{processed}/{total_games}] {game_id}: Savant fetch failed")
+                except Exception as e:
+                    failed += 1
+                    print(f"  [{processed}/{total_games}] {game_id}: ERROR: {e}")
+                continue
+
+            # Full enrichment mode
             try:
                 feed_url = f"https://statsapi.mlb.com/api/v1.1/game/{game_pk}/feed/live"
                 feed_resp = get_with_retry(session, feed_url, timeout=30)
@@ -211,33 +316,38 @@ def main():
                     hit_data = _remap_hit_data_keys(hit_data, game)
                     game['hit_data'] = hit_data
 
-                # ABS challenges
-                abs_raw = feed_data.get('gameData', {}).get('absChallenges', {})
-                if abs_raw.get('hasChallenges'):
-                    abs_challenges = {'away': abs_raw.get('away', {}), 'home': abs_raw.get('home', {}), 'reviews': []}
-                    away_id = feed_data.get('gameData', {}).get('teams', {}).get('away', {}).get('id')
-                    for play in feed_data.get('liveData', {}).get('plays', {}).get('allPlays', []):
-                        matchup = play.get('matchup', {})
-                        for ev in play.get('playEvents', []):
-                            r = ev.get('reviewDetails')
-                            if r:
-                                details = ev.get('details', {})
-                                call = details.get('call', {})
-                                pitch_type = details.get('type', {})
-                                count = ev.get('count', {})
-                                abs_challenges['reviews'].append({
-                                    'overturned': r.get('isOverturned', False),
-                                    'batter': matchup.get('batter', {}).get('fullName', ''),
-                                    'pitcher': matchup.get('pitcher', {}).get('fullName', ''),
-                                    'challengePlayer': r.get('player', {}).get('fullName', ''),
-                                    'challengeTeam': 'away' if r.get('challengeTeamId') == away_id else 'home',
-                                    'originalCall': call.get('description', ''),
-                                    'pitchType': pitch_type.get('description', '') if isinstance(pitch_type, dict) else '',
-                                    'count': f"{count.get('balls', 0)}-{count.get('strikes', 0)}",
-                                    'inning': play.get('about', {}).get('inning', 0),
-                                    'half': play.get('about', {}).get('halfInning', ''),
-                                })
-                    game['abs_challenges'] = abs_challenges
+                # ABS challenges from Savant (more complete than Stats API)
+                challenges = fetch_savant_abs(session, game_pk, args.delay)
+                if challenges is not None and len(challenges) > 0:
+                    game['abs_challenges'] = {'reviews': challenges}
+                elif challenges is None:
+                    # Fallback to Stats API
+                    abs_raw = feed_data.get('gameData', {}).get('absChallenges', {})
+                    if abs_raw.get('hasChallenges'):
+                        abs_challenges = {'away': abs_raw.get('away', {}), 'home': abs_raw.get('home', {}), 'reviews': []}
+                        away_id = feed_data.get('gameData', {}).get('teams', {}).get('away', {}).get('id')
+                        for play in feed_data.get('liveData', {}).get('plays', {}).get('allPlays', []):
+                            matchup = play.get('matchup', {})
+                            for ev in play.get('playEvents', []):
+                                r = ev.get('reviewDetails')
+                                if r:
+                                    details = ev.get('details', {})
+                                    call = details.get('call', {})
+                                    pitch_type = details.get('type', {})
+                                    count = ev.get('count', {})
+                                    abs_challenges['reviews'].append({
+                                        'overturned': r.get('isOverturned', False),
+                                        'batter': matchup.get('batter', {}).get('fullName', ''),
+                                        'pitcher': matchup.get('pitcher', {}).get('fullName', ''),
+                                        'challengePlayer': r.get('player', {}).get('fullName', ''),
+                                        'challengeTeam': 'away' if r.get('challengeTeamId') == away_id else 'home',
+                                        'originalCall': call.get('description', ''),
+                                        'pitchType': pitch_type.get('description', '') if isinstance(pitch_type, dict) else '',
+                                        'count': f"{count.get('balls', 0)}-{count.get('strikes', 0)}",
+                                        'inning': play.get('about', {}).get('inning', 0),
+                                        'half': play.get('about', {}).get('halfInning', ''),
+                                    })
+                        game['abs_challenges'] = abs_challenges
 
                 if pitch_data:
                     # Remap mlb_* keys to BREF IDs
@@ -258,7 +368,9 @@ def main():
                     enriched += 1
                     pitchers = len(pitch_data)
                     max_velo = max((pd.get('maxSpeed', 0) or 0 for pd in pitch_data.values()), default=0)
-                    print(f"  [{processed}/{total_games}] {game_id}: {pitchers} pitchers, max velo {max_velo} mph")
+                    abs_count = len(game.get('abs_challenges', {}).get('reviews', []))
+                    abs_str = f", {abs_count} ABS" if abs_count else ""
+                    print(f"  [{processed}/{total_games}] {game_id}: {pitchers} pitchers, max velo {max_velo} mph{abs_str}")
                 else:
                     if args.verbose:
                         print(f"  [{processed}/{total_games}] {game_id}: no pitch data available")

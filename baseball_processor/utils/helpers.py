@@ -94,6 +94,12 @@ _TEAM_CODE_ALIASES = {
     # Only include non-standard codes that should always be converted
     "Tampa Bay Devil Rays": "TB",  # This is a name, not a code
     "ATH": "OAK",  # Athletics (renamed/relocated) -> Oakland Athletics
+    # Common abbreviations -> consistent codes (match BREF/Retrosheet where they differ)
+    "WSH": "WAS",  # Washington Nationals
+    "WSN": "WAS",  # Washington Nationals alternate
+    "FLA": "MIA",  # Florida Marlins -> Miami Marlins
+    "FLO": "MIA",  # Florida Marlins alternate
+    "MON": "MON",  # Montreal Expos (keep as-is, historical)
 }
 
 _TEAM_NAME_TO_CODE = {
@@ -105,7 +111,7 @@ _TEAM_NAME_TO_CODE = {
     'Toronto Blue Jays': 'TOR', 'Arizona Diamondbacks': 'ARI', 'Atlanta Braves': 'ATL',
     'Chicago Cubs': 'CHC', 'Cincinnati Reds': 'CIN', 'Colorado Rockies': 'COL',
     'Miami Marlins': 'MIA', 'Los Angeles Dodgers': 'LAD', 'Milwaukee Brewers': 'MIL',
-    'Washington Nationals': 'WSH', 'New York Mets': 'NYM', 'Philadelphia Phillies': 'PHI',
+    'Washington Nationals': 'WAS', 'New York Mets': 'NYM', 'Philadelphia Phillies': 'PHI',
     'Pittsburgh Pirates': 'PIT', 'San Diego Padres': 'SD', 'San Francisco Giants': 'SF',
     'St. Louis Cardinals': 'STL', 'Florida Marlins': 'MIA', 'Tampa Bay Devil Rays': 'TB',
     'Athletics': 'ATH'

@@ -1337,12 +1337,13 @@ class MilestonesProcessor(BaseProcessor):
         print(f"\nTotal milestone events: {grand_total}")
         print(f"Categories with data: {len(categories_with_data)}")
         
-        # Section 3: 2025 Events (moved to end)
-        cutoff_date = datetime(2025, 1, 1)  # All events from 2025
-        
-        print(f"\n\nEVENTS FROM 2025:")
+        # Section 3: Current year events (moved to end)
+        current_year = datetime.now().year
+        cutoff_date = datetime(current_year, 1, 1)
+
+        print(f"\n\nEVENTS FROM {current_year}:")
         print("-" * 30)
-        
+
         total_2025 = 0
         events_2025_by_category = {}
         
@@ -1363,7 +1364,7 @@ class MilestonesProcessor(BaseProcessor):
         
         if events_2025_by_category:
             for category, events_2025 in events_2025_by_category.items():
-                print(f"\n{category} ({len(events_2025)} in 2025):")
+                print(f"\n{category} ({len(events_2025)} in {current_year}):")
                 
                 for _, row in events_2025.iterrows():
                     # Handle both 'Player' (singular) and 'Players' (plural, for consecutive HRs)
@@ -1385,9 +1386,9 @@ class MilestonesProcessor(BaseProcessor):
                     else:
                         print(f"   • {player} ({team}) - {date}")
             
-            print(f"\nTotal 2025 events: {total_2025}")
+            print(f"\nTotal {current_year} events: {total_2025}")
         else:
-            print("No events found in 2025")
+            print(f"No events found in {current_year}")
         
         print("="*60)
 

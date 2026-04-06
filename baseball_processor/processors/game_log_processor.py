@@ -31,9 +31,11 @@ class GameLogProcessor(BaseProcessor):
             
             # Calculate innings
             linescore = g.get("linescore", {})
-            innings_home = len(linescore.get('home', {}).get('innings', []))
-            innings_away = len(linescore.get('away', {}).get('innings', []))
-            max_innings = max(innings_home, innings_away)
+            home_ls = linescore.get('home', {})
+            away_ls = linescore.get('away', {})
+            innings_home = len(home_ls.get('innings', home_ls.get('runs_by_inning', [])))
+            innings_away = len(away_ls.get('innings', away_ls.get('runs_by_inning', [])))
+            max_innings = max(innings_home, innings_away) or linescore.get('innings', 9)
             
             # Create score string
             away_code_raw = b.get('away_team_code', '')

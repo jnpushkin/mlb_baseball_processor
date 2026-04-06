@@ -175,12 +175,12 @@ def _refresh_all_time_leaders_if_stale(max_age_days=7):
     try:
         result = subprocess.run(
             ['python3', '-m', 'baseball_processor.scrapers.all_time_leaders_scraper', '--delay', '3.1'],
-            capture_output=True, text=True, timeout=600
+            timeout=600
         )
         if result.returncode == 0:
             info("  ✅ All-time leaders updated")
         else:
-            warn(f"  ⚠️ All-time leaders update failed: {result.stderr[:200]}")
+            warn(f"  ⚠️ All-time leaders update failed (exit code {result.returncode})")
     except subprocess.TimeoutExpired:
         warn("  ⚠️ All-time leaders update timed out")
     except Exception as e:
@@ -235,7 +235,9 @@ def _update_gamelogs_for_game(cache_path):
         scraper = create_scraper()
         updated = 0
 
-        for pid in stale:
+        for idx, pid in enumerate(stale, 1):
+            pname = all_time_players[pid].get('name', pid)
+            info(f"       [{idx}/{len(stale)}] {pname}...")
             try:
                 existing = gc.get(pid, {}).get('gamelogs', {})
                 stat_type = all_time_players[pid].get('type', 'batting')
@@ -243,7 +245,7 @@ def _update_gamelogs_for_game(cache_path):
                 # If no existing gamelogs, need full career scrape
                 if not existing:
                     from .scrapers.career_firsts_scraper import find_career_firsts as _find_firsts
-                    info(f"       Full scrape for new player: {all_time_players[pid].get('name', pid)}")
+                    info(f"       Full scrape for new player: {pname}")
                     firsts = _find_firsts(pid, scraper, verbose=False, store_gamelogs=True)
                     if firsts.get('gamelogs'):
                         gc[pid] = {'name': all_time_players[pid].get('name', pid), 'gamelogs': firsts['gamelogs']}
@@ -403,11 +405,23 @@ def _scrape_career_firsts_for_game(cache_path):
         valid_ids,
         refresh=True,  # Always refresh to pick up new milestones
         delay=3.1,
-        verbose=False,
+        verbose=True,
         player_names=player_names
     )
     if cache:
         info(f"  ✅ Updated career milestones ({len(cache)} players in cache)")
+
+
+def _fetch_abs_from_savant(game_data, game_pk, session):
+    """Fetch ABS challenge data from Baseball Savant gamefeed API."""
+    try:
+        from .scrapers.pitch_data_scraper import fetch_savant_abs
+        challenges = fetch_savant_abs(session, game_pk)
+        if challenges is not None and len(challenges) > 0:
+            game_data['abs_challenges'] = {'reviews': challenges}
+            info(f"     ⚖️ ABS challenges: {len(challenges)} (from Savant)")
+    except Exception:
+        pass
 
 
 def _enrich_with_api_data(game_data):
@@ -438,6 +452,8 @@ def _enrich_with_api_data(game_data):
     if not game_pk:
         return
 
+    game_data['mlb_game_pk'] = game_pk
+
     # Fetch live feed for pitch data
     feed_resp = get_with_retry(session, f"https://statsapi.mlb.com/api/v1.1/game/{game_pk}/feed/live", timeout=30)
     if feed_resp.status_code == 200:
@@ -466,36 +482,8 @@ def _enrich_with_api_data(game_data):
             game_data['hit_data'] = remapped_hits
             info(f"     🏏 Hit data: {len(remapped_hits)} batters")
 
-        # ABS challenges
-        abs_raw = feed_data.get('gameData', {}).get('absChallenges', {})
-        if abs_raw.get('hasChallenges'):
-            abs_challenges = {'away': abs_raw.get('away', {}), 'home': abs_raw.get('home', {}), 'reviews': []}
-            away_id = feed_data.get('gameData', {}).get('teams', {}).get('away', {}).get('id')
-            for play in feed_data.get('liveData', {}).get('plays', {}).get('allPlays', []):
-                matchup = play.get('matchup', {})
-                for ev in play.get('playEvents', []):
-                    r = ev.get('reviewDetails')
-                    if r:
-                        details = ev.get('details', {})
-                        call = details.get('call', {})
-                        pitch_type = details.get('type', {})
-                        count = ev.get('count', {})
-                        abs_challenges['reviews'].append({
-                            'overturned': r.get('isOverturned', False),
-                            'batter': matchup.get('batter', {}).get('fullName', ''),
-                            'pitcher': matchup.get('pitcher', {}).get('fullName', ''),
-                            'challengePlayer': r.get('player', {}).get('fullName', ''),
-                            'challengeTeam': 'away' if r.get('challengeTeamId') == away_id else 'home',
-                            'originalCall': call.get('description', ''),
-                            'pitchType': pitch_type.get('description', '') if isinstance(pitch_type, dict) else '',
-                            'count': f"{count.get('balls', 0)}-{count.get('strikes', 0)}",
-                            'inning': play.get('about', {}).get('inning', 0),
-                            'half': play.get('about', {}).get('halfInning', ''),
-                        })
-            game_data['abs_challenges'] = abs_challenges
-            total_challenges = sum(v.get('usedSuccessful', 0) + v.get('usedFailed', 0) for v in [abs_challenges.get('away', {}), abs_challenges.get('home', {})])
-            if total_challenges > 0:
-                info(f"     ⚖️ ABS challenges: {total_challenges}")
+        # ABS challenges - fetch from Baseball Savant gamefeed (most complete source)
+        _fetch_abs_from_savant(game_data, game_pk, session)
 
     # Fetch boxscore for jersey numbers
     box_resp = get_with_retry(session, f"https://statsapi.mlb.com/api/v1/game/{game_pk}/boxscore", timeout=15)
@@ -1188,6 +1176,8 @@ def main():
                 info("   You can run it separately: python -m baseball_processor.scrapers.career_firsts_scraper")
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         error(f"❌ Error during processing: {str(e)}", exc_info=True)
 
 

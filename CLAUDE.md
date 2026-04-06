@@ -51,8 +51,10 @@ Auto-refreshed when >7 days old during processor runs.
 python3 -m baseball_processor.scrapers.pitch_data_scraper              # Enrich all cached games
 python3 -m baseball_processor.scrapers.pitch_data_scraper --force      # Re-fetch all
 python3 -m baseball_processor.scrapers.pitch_data_scraper --dry-run    # Preview
+python3 -m baseball_processor.scrapers.pitch_data_scraper --savant-abs # Backfill ABS data from Savant (2025+)
 ```
-Fetches from MLB Stats API: pitch velocity/spin/type, exit velocity/launch angle/distance, ABS challenge details, jersey numbers.
+Fetches from MLB Stats API: pitch velocity/spin/type, exit velocity/launch angle/distance, jersey numbers.
+ABS challenge data sourced from Baseball Savant gamefeed API (more complete than Stats API).
 
 **Important:** Baseball Reference rate limits aggressively. Use 3.1+ second delays between requests. On 429 errors, wait 15 minutes before retrying. MLB Stats API has no rate limit.
 

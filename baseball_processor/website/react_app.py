@@ -6,7 +6,7 @@ class ReactComponents:
     @staticmethod
     def get_app_code():
         """Get the complete React app code with enhanced interactive insights."""
-        return """const { useState, useMemo, useEffect, useRef } = React;
+        return r"""const { useState, useMemo, useEffect, useRef } = React;
 
 // ── Global utilities (shared across all components) ──
 const toSortableDate = (d) => {
@@ -16,12 +16,13 @@ const toSortableDate = (d) => {
 };
 const shortenMilestone = (m) => (m || '').replace('First Career ', '1st Career ').replace('Home Run', 'HR').replace('Stolen Base', 'SB').replace('Run Scored', 'Run').replace('Strikeout', 'K').replace('Inning Pitched', 'IP').replace('Double', '2B').replace('Triple', '3B');
 const getLastName = (name) => {
-    const parts = (name || '').split(' ');
+    const suffixes = ['jr.', 'jr', 'sr.', 'sr', 'ii', 'iii', 'iv'];
+    const parts = (name || '').split(' ').filter(p => !suffixes.includes(p.toLowerCase()));
     const particles = ['de', 'la', 'del', 'van', 'von', 'di', 'el', 'al', 'dos', 'das', 'le', 'da'];
     if (parts.length >= 3 && particles.includes(parts[parts.length - 2].toLowerCase())) return parts.slice(-2).join(' ');
     return parts[parts.length - 1] || name || '?';
 };
-const getHrCount = (detail) => { const match = detail?.match(/(\\d+)\\s*HR/); return match ? parseInt(match[1], 10) : 0; };
+const getHrCount = (detail) => { const match = detail?.match(/(\d+)\s*HR/); return match ? parseInt(match[1], 10) : 0; };
 
 // Aggregation utilities
 const aggregateHitterStats = (playerGames) => {
@@ -450,10 +451,10 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
         const gamePitchers = pitcherGames.filter(pg => pg.gameId === game.gameId);
         
         // Separate by team
-        const homeHitters = gamePlayers.filter(p => p.team === game.homeTeam).sort((a, b) => b.pa - a.pa);
-        const awayHitters = gamePlayers.filter(p => p.team === game.awayTeam).sort((a, b) => b.pa - a.pa);
-        const homePitchers = gamePitchers.filter(p => p.team === game.homeTeam).sort((a, b) => b.outs - a.outs);
-        const awayPitchers = gamePitchers.filter(p => p.team === game.awayTeam).sort((a, b) => b.outs - a.outs);
+        const homeHitters = gamePlayers.filter(p => p.team === game.homeTeam && (p.pa > 0 || p.ab > 0)).sort((a, b) => b.pa - a.pa);
+        const awayHitters = gamePlayers.filter(p => p.team === game.awayTeam && (p.pa > 0 || p.ab > 0)).sort((a, b) => b.pa - a.pa);
+        const homePitchers = gamePitchers.filter(p => p.team === game.homeTeam).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const awayPitchers = gamePitchers.filter(p => p.team === game.awayTeam).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         
         // Calculate team totals
         const homeHittingTotals = homeHitters.reduce((acc, p) => ({
@@ -1269,50 +1270,61 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                                 </div>
                             )}
 
-                            {game.absChallenges && (game.absChallenges.reviews?.length > 0 || (game.absChallenges.away?.usedSuccessful + game.absChallenges.away?.usedFailed + game.absChallenges.home?.usedSuccessful + game.absChallenges.home?.usedFailed) > 0) && (
+                            {game.absChallenges?.reviews?.length > 0 && (() => {
+                                const reviews = game.absChallenges.reviews;
+                                // Derive team summaries from challengeTeam field
+                                const awayChallenges = reviews.filter(r => r.challengeTeam === 'away');
+                                const homeChallenges = reviews.filter(r => r.challengeTeam === 'home');
+                                const awayOvt = awayChallenges.filter(r => r.overturned).length;
+                                const homeOvt = homeChallenges.filter(r => r.overturned).length;
+                                const awayFailed = awayChallenges.length - awayOvt;
+                                const homeFailed = homeChallenges.length - homeOvt;
+                                // Remaining: start with 2, lose 1 per failed challenge
+                                const awayLeft = Math.max(0, 2 - awayFailed);
+                                const homeLeft = Math.max(0, 2 - homeFailed);
+                                return (
                                 <div>
                                     <h4 className="subsection-title font-bold mb-3">⚖️ ABS Challenges</h4>
                                     <div className="grid grid-cols-2 gap-3 mb-3">
                                         <div className="bg-slate-50 rounded-lg p-3 text-sm">
                                             <div className="font-semibold mb-1">{game.awayTeam}</div>
                                             <div className="flex gap-3">
-                                                <span className="text-green-600">✓ {game.absChallenges.away?.usedSuccessful || 0}</span>
-                                                <span className="text-red-600">✗ {game.absChallenges.away?.usedFailed || 0}</span>
-                                                <span className="text-slate-500">{game.absChallenges.away?.remaining || 0} left</span>
+                                                <span className="text-green-600">✓ {awayOvt}</span>
+                                                <span className="text-red-600">✗ {awayFailed}</span>
+                                                <span className="text-slate-500">{awayLeft} left</span>
                                             </div>
                                         </div>
                                         <div className="bg-slate-50 rounded-lg p-3 text-sm">
                                             <div className="font-semibold mb-1">{game.homeTeam}</div>
                                             <div className="flex gap-3">
-                                                <span className="text-green-600">✓ {game.absChallenges.home?.usedSuccessful || 0}</span>
-                                                <span className="text-red-600">✗ {game.absChallenges.home?.usedFailed || 0}</span>
-                                                <span className="text-slate-500">{game.absChallenges.home?.remaining || 0} left</span>
+                                                <span className="text-green-600">✓ {homeOvt}</span>
+                                                <span className="text-red-600">✗ {homeFailed}</span>
+                                                <span className="text-slate-500">{homeLeft} left</span>
                                             </div>
                                         </div>
                                     </div>
-                                    {game.absChallenges.reviews?.length > 0 && (
-                                        <div className="space-y-2">
-                                            {game.absChallenges.reviews.map((r, i) => (
-                                                <div key={`abs-${i}`} className={`text-sm p-3 rounded-lg ${r.overturned ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className={`font-bold ${r.overturned ? 'text-green-700' : 'text-red-700'}`}>
-                                                            {r.overturned ? '✓ Overturned' : '✗ Upheld'}
-                                                        </span>
-                                                        <span className="text-xs text-slate-500">{r.half === 'top' ? 'Top' : 'Bot'} {r.inning} • {r.count} count</span>
-                                                    </div>
-                                                    <div className="mt-1">
-                                                        <span className="font-medium">{r.challengePlayer || (r.challengeTeam === 'away' ? game.awayTeam : game.homeTeam)}</span>
-                                                        {' challenged '}
-                                                        <span className="font-medium">{r.originalCall || 'call'}</span>
-                                                        {r.pitchType && <span className="text-slate-500"> ({r.pitchType})</span>}
-                                                    </div>
-                                                    <div className="text-xs text-slate-500 mt-0.5">{r.batter} batting vs {r.pitcher}</div>
+                                    <div className="space-y-2">
+                                        {reviews.sort((a, b) => a.inning - b.inning || (a.half === 'top' ? 0 : 1) - (b.half === 'top' ? 0 : 1)).map((r, i) => (
+                                            <div key={`abs-${i}`} className={`text-sm p-3 rounded-lg ${r.overturned ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`font-bold ${r.overturned ? 'text-green-700' : 'text-red-700'}`}>
+                                                        {r.overturned ? '✓ Overturned' : '✗ Upheld'}
+                                                    </span>
+                                                    <span className="text-xs text-slate-500">{r.half === 'top' ? 'Top' : 'Bot'} {r.inning} • {r.count} count</span>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                                <div className="mt-1">
+                                                    <span className="font-medium">{r.challengePlayer || r.batter}</span>
+                                                    {' challenged call'}
+                                                    {r.pitchType && <span className="text-slate-500"> ({r.pitchType})</span>}
+                                                    {r.edgeDistance != null && <span className="text-xs text-slate-400 ml-2">edge: {r.edgeDistance.toFixed(3)}</span>}
+                                                </div>
+                                                <div className="text-xs text-slate-500 mt-0.5">{r.batter} batting vs {r.pitcher}</div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            )}
+                                );
+                            })()}
 
                             {badges && badges.length > 0 && (
                                 <div>
@@ -1391,11 +1403,12 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
     );
 };
 
-const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick, careerMilestones, allTimePassings }) => {
-    const [activeView, setActiveView] = useState('timeline');
+const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick, careerMilestones, allTimePassings, gameMilestones, debuts, finalGames }) => {
+    const [showGameLog, setShowGameLog] = useState(false);
     const [sortKey, setSortKey] = useState('dateSort');
     const [sortDir, setSortDir] = useState('desc');
     const [opponentFilter, setOpponentFilter] = useState(null);
+    const [showSeasons, setShowSeasons] = useState(false);
 
     // Get all games for this player
     const gamesForPlayer = useMemo(() => {
@@ -1404,29 +1417,88 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick, career
 
     const timelineData = useMemo(() => {
         if (gamesForPlayer.length === 0) return [];
-
-        // Group by year and game type (separate spring training)
         const byYearType = {};
         gamesForPlayer.forEach(game => {
             const year = game.dateSort.substring(0, 4);
             const isSpring = game.gameType === 'spring' || game.gameType === 'exhibition';
             const key = isSpring ? `${year}_spring` : year;
-            if (!byYearType[key]) {
-                byYearType[key] = { year, isSpring, games: [] };
-            }
+            if (!byYearType[key]) byYearType[key] = { year, isSpring, games: [] };
             byYearType[key].games.push(game);
         });
-
-        // Aggregate stats per year/type
-        const yearlyStats = Object.values(byYearType).map(({ year, isSpring, games }) => {
+        return Object.values(byYearType).map(({ year, isSpring, games }) => {
             const aggregated = aggregateHitterStats(games)[0] || {};
             return { year, isSpring, ...aggregated };
         }).sort((a, b) => a.year !== b.year ? a.year - b.year : (a.isSpring ? -1 : 0) - (b.isSpring ? -1 : 0));
-
-        return yearlyStats;
     }, [gamesForPlayer]);
 
-    // Sorted game log (with optional opponent filter)
+    // Totals for stat cards
+    const totals = useMemo(() => {
+        const regGames = gamesForPlayer.filter(g => g.gameType === 'regular' || (!g.gameType));
+        const agg = aggregateHitterStats(regGames)[0] || {};
+        const multiHitGames = regGames.filter(g => g.h >= 3).length;
+        const hrGames = regGames.filter(g => (g.hr || 0) >= 1).length;
+        const multiHrGames = regGames.filter(g => (g.hr || 0) >= 2).length;
+        return { ...agg, multiHitGames, hrGames, multiHrGames };
+    }, [gamesForPlayer]);
+
+    // Notable games: multi-HR, 3+ hits, HR+multi-hit, 3+ RBI, 2+ SB, 4+ R
+    const notableGames = useMemo(() => {
+        return gamesForPlayer.filter(g => {
+            const isSpring = g.gameType === 'spring' || g.gameType === 'exhibition';
+            if (isSpring) return false;
+            const hr = g.hr || 0, h = g.h || 0, rbi = g.rbi || 0, sb = g.sb || 0, r = g.r || 0;
+            return hr >= 2 || h >= 3 || (hr >= 1 && h >= 2) || (hr >= 1 && rbi >= 3) || rbi >= 4 || sb >= 2 || r >= 4;
+        }).map(g => {
+            const hr = g.hr || 0, h = g.h || 0, rbi = g.rbi || 0, sb = g.sb || 0, r = g.r || 0, bb = g.bb || 0;
+            // Build compact batting line
+            const parts = [`${h}-${g.ab}`];
+            if (hr > 0) parts.push(`${hr} HR`);
+            if (rbi > 0) parts.push(`${rbi} RBI`);
+            if (r > 0) parts.push(`${r} R`);
+            if (bb > 0) parts.push(`${bb} BB`);
+            if (sb > 0) parts.push(`${sb} SB`);
+            const line = parts.join(', ');
+            // Highlight tag for the best thing about this game
+            let highlight = null;
+            if (hr >= 3) highlight = { label: `${hr}-HR game`, color: 'bg-red-200 text-red-800' };
+            else if (hr >= 2) highlight = { label: 'Multi-HR', color: 'bg-red-100 text-red-700' };
+            else if (h >= 5) highlight = { label: `${h}-hit game`, color: 'bg-emerald-100 text-emerald-700' };
+            else if (h >= 4) highlight = { label: `${h}-hit game`, color: 'bg-emerald-100 text-emerald-700' };
+            else if (h >= 3 && hr >= 1) highlight = { label: `${h}-hit, HR`, color: 'bg-orange-100 text-orange-700' };
+            else if (h >= 3) highlight = { label: `${h}-hit game`, color: 'bg-green-100 text-green-700' };
+            else if (rbi >= 5) highlight = { label: `${rbi} RBI`, color: 'bg-blue-100 text-blue-700' };
+            else if (rbi >= 4) highlight = { label: `${rbi} RBI`, color: 'bg-blue-100 text-blue-700' };
+            else if (hr >= 1 && rbi >= 3) highlight = { label: `HR, ${rbi} RBI`, color: 'bg-orange-100 text-orange-700' };
+            else if (hr >= 1 && h >= 2) highlight = { label: `${h}-hit, HR`, color: 'bg-orange-100 text-orange-700' };
+            else if (r >= 4) highlight = { label: `${r} runs`, color: 'bg-sky-100 text-sky-700' };
+            else if (sb >= 2) highlight = { label: `${sb} SB`, color: 'bg-violet-100 text-violet-700' };
+            else if (rbi >= 4) highlight = { label: `${rbi} RBI`, color: 'bg-blue-100 text-blue-700' };
+            // Score for sorting (best games first)
+            const score = hr * 4 + h * 1.5 + rbi * 2 + r + sb * 2;
+            return { ...g, line, highlight, score };
+        }).sort((a, b) => b.score - a.score);
+    }, [gamesForPlayer]);
+
+    // Combined milestones list
+    const allMilestones = useMemo(() => {
+        const toSort = (d) => { if (!d) return ''; const p = d.split('/'); return p.length === 3 ? `${p[2]}-${p[0].padStart(2,'0')}-${p[1].padStart(2,'0')}` : d; };
+        const items = [];
+        (debuts || []).forEach(d => items.push({ sort: toSort(d.date), badgeClass: 'bg-green-100 text-green-700', badgeText: 'DEBUT', text: `MLB Debut (${d.team})`, sub: `vs ${d.opponent || ''}`, date: d.date, gameId: d.gameId }));
+        (finalGames || []).forEach(f => items.push({ sort: toSort(f.date), badgeClass: 'bg-slate-200 text-slate-700', badgeText: 'FINAL', text: `Final MLB Game (${f.team})`, date: f.date, gameId: f.gameId }));
+        (gameMilestones || []).forEach(m => items.push({ sort: m._dateSort || m.date || '', badgeClass: 'bg-orange-100 text-orange-700', badgeText: m.type, text: m.detail, sub: `vs ${m.opponent}`, date: m.date, gameId: m.gameId }));
+        (careerMilestones || []).forEach(m => items.push({ sort: m.date || '', badgeClass: m.category === 'first' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700', badgeText: m.category === 'first' ? 'FIRST' : 'MILESTONE', text: m.milestone, date: m.date_display || m.date, gameId: m.game_id }));
+        (allTimePassings || []).forEach(p => {
+            const passed = (p.passed_players || []).filter(pp => !pp.tied).map(pp => pp.name);
+            const tied = (p.passed_players || []).filter(pp => pp.tied).map(pp => pp.name);
+            const parts = [];
+            if (passed.length) parts.push('passed ' + passed.join(', '));
+            if (tied.length) parts.push('tied ' + tied.join(', '));
+            items.push({ sort: p.date || '', badgeClass: 'bg-purple-100 text-purple-700', badgeText: `#${p.new_rank}`, text: parts.join(' and ') || p.milestone, sub: p.stat_name, date: p.date_display || p.date, gameId: p.game_id });
+        });
+        return items.sort((a, b) => (b.sort).localeCompare(a.sort));
+    }, [gameMilestones, careerMilestones, allTimePassings, debuts, finalGames]);
+
+    // Sorted game log
     const sortedGameLog = useMemo(() => {
         const filtered = opponentFilter ? gamesForPlayer.filter(g => g.opponent === opponentFilter) : gamesForPlayer;
         return [...filtered].sort((a, b) => {
@@ -1453,259 +1525,178 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick, career
     }
 
     return (
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <h3 className="subsection-title font-bold">📊 {playerName}</h3>
-                <div className="flex rounded-lg overflow-hidden border">
-                    <button
-                        onClick={() => setActiveView('timeline')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${
-                            activeView === 'timeline' ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'
-                        }`}
-                    >
-                        📅 Timeline
-                    </button>
-                    <button
-                        onClick={() => setActiveView('gamelog')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${
-                            activeView === 'gamelog' ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'
-                        }`}
-                    >
-                        📋 Game Log
-                    </button>
-                </div>
+        <div className="space-y-4">
+            {/* Stat Cards */}
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                {[
+                    { label: 'G', value: totals.games, bold: true },
+                    { label: 'AVG', value: totals.avg, bold: true },
+                    { label: 'H', value: totals.h },
+                    { label: 'HR', value: totals.hr, color: totals.hr > 0 ? 'text-orange-600' : '' },
+                    { label: 'RBI', value: totals.rbi },
+                    { label: 'SB', value: totals.sb },
+                    { label: 'OPS', value: totals.ops, bold: true, color: parseFloat(totals.ops) >= 0.800 ? 'text-purple-600' : '' },
+                    { label: 'BB', value: totals.bb },
+                ].map(s => (
+                    <div key={s.label} className="bg-slate-50 rounded-lg px-3 py-2 text-center">
+                        <div className={`text-lg font-bold ${s.color || 'text-slate-800'}`}>{s.value}</div>
+                        <div className="text-[10px] uppercase font-semibold text-slate-400">{s.label}</div>
+                    </div>
+                ))}
             </div>
 
-            {/* Game Log View */}
-            {activeView === 'gamelog' && (
+            {/* Notable Games */}
+            {notableGames.length > 0 && (
                 <div>
-                    <div className="text-sm text-slate-500 mb-3 flex items-center gap-2">
-                        <span>{sortedGameLog.length} game{sortedGameLog.length !== 1 ? 's' : ''}</span>
-                        {opponentFilter && (
-                            <button onClick={() => setOpponentFilter(null)} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium hover:bg-blue-200">
-                                vs {opponentFilter} <span className="ml-0.5">&times;</span>
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">Notable Games ({notableGames.length})</h4>
+                    <div className="space-y-0.5">
+                        {notableGames.map((g, i) => (
+                            <button key={i} onClick={() => onGameClick && onGameClick(g.gameId)} className="w-full flex items-center gap-2 text-sm px-3 py-1.5 rounded hover:bg-slate-50 text-left transition-colors">
+                                {g.highlight && <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${g.highlight.color}`}>{g.highlight.label}</span>}
+                                <span className="text-slate-600 text-xs">{g.line}</span>
+                                <span className="text-slate-400 text-xs ml-auto shrink-0">vs {g.opponent} · {g.date}</span>
                             </button>
-                        )}
-                    </div>
-                    <div className="overflow-x-auto border rounded-lg" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 sticky top-0">
-                                <tr>
-                                    {[
-                                        { key: 'dateSort', label: 'Date' },
-                                        { key: 'team', label: 'Team' },
-                                        { key: 'opponent', label: 'vs' },
-                                        { key: 'ab', label: 'AB' },
-                                        { key: 'h', label: 'H' },
-                                        { key: 'r', label: 'R' },
-                                        { key: 'rbi', label: 'RBI' },
-                                        { key: 'hr', label: 'HR' },
-                                        { key: 'bb', label: 'BB' },
-                                        { key: 'so', label: 'SO' },
-                                        { key: 'sb', label: 'SB' },
-                                    ].map(col => (
-                                        <th
-                                            key={col.key}
-                                            onClick={() => handleSort(col.key)}
-                                            className="px-3 py-2 text-left font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap"
-                                        >
-                                            {col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                                {sortedGameLog.map((game) => {
-                                    const isMultiHit = game.h >= 2;
-                                    const isHR = game.hr > 0;
-                                    return (
-                                        <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 cursor-pointer ${isHR ? 'bg-orange-50' : isMultiHit ? 'bg-green-50' : ''}`} onClick={() => onGameClick && onGameClick(game.gameId)}>
-                                            <td className="px-3 py-2 whitespace-nowrap font-medium">{game.date}</td>
-                                            <td className="px-3 py-2">{game.team}</td>
-                                            <td className="px-3 py-2"><button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); setOpponentFilter(opponentFilter === game.opponent ? null : game.opponent); }}>{game.opponent}</button></td>
-                                            <td className="px-3 py-2">{game.ab}</td>
-                                            <td className={`px-3 py-2 ${isMultiHit ? 'font-bold text-green-600' : ''}`}>{game.h}</td>
-                                            <td className="px-3 py-2">{game.r}</td>
-                                            <td className="px-3 py-2">{game.rbi}</td>
-                                            <td className={`px-3 py-2 ${isHR ? 'font-bold text-orange-600' : ''}`}>{game.hr || 0}</td>
-                                            <td className="px-3 py-2">{game.bb}</td>
-                                            <td className="px-3 py-2">{game.so}</td>
-                                            <td className="px-3 py-2">{game.sb || 0}</td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                        <span className="px-2 py-1 bg-orange-50 rounded">HR games highlighted orange</span>
-                        <span className="px-2 py-1 bg-green-50 rounded">Multi-hit games highlighted green</span>
+                        ))}
                     </div>
                 </div>
             )}
 
-            {/* Timeline View */}
-            {activeView === 'timeline' && (
+            {/* Milestones */}
+            {allMilestones.length > 0 && (
                 <div>
-            
-            {/* Career summary stats (regular season only) */}
-            {(() => {
-                const regSeasons = timelineData.filter(s => !s.isSpring);
-                const springSeasons = timelineData.filter(s => s.isSpring);
-                const t = regSeasons.reduce((acc, s) => ({
-                    games: acc.games + (s.games || 0), ab: acc.ab + (s.ab || 0), pa: acc.pa + (s.pa || 0),
-                    h: acc.h + (s.h || 0), r: acc.r + (s.r || 0), rbi: acc.rbi + (s.rbi || 0),
-                    hr: acc.hr + (s.hr || 0), doubles: acc.doubles + (s.doubles || 0), triples: acc.triples + (s.triples || 0),
-                    sb: acc.sb + (s.sb || 0), bb: acc.bb + (s.bb || 0), so: acc.so + (s.so || 0), hbp: acc.hbp + (s.hbp || 0),
-                }), { games:0, ab:0, pa:0, h:0, r:0, rbi:0, hr:0, doubles:0, triples:0, sb:0, bb:0, so:0, hbp:0 });
-                const avg = t.ab > 0 ? (t.h / t.ab).toFixed(3) : '.000';
-                const obp = t.pa > 0 ? ((t.h + t.bb + t.hbp) / t.pa).toFixed(3) : '.000';
-                const singles = t.h - t.doubles - t.triples - t.hr;
-                const tb = singles + t.doubles * 2 + t.triples * 3 + t.hr * 4;
-                const slg = t.ab > 0 ? (tb / t.ab).toFixed(3) : '.000';
-                const ops = (parseFloat(obp) + parseFloat(slg)).toFixed(3);
-                const springTotals = springSeasons.reduce((acc, s) => ({
-                    games: acc.games + (s.games || 0), pa: acc.pa + (s.pa || 0), h: acc.h + (s.h || 0)
-                }), { games: 0, pa: 0, h: 0 });
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">Milestones ({allMilestones.length})</h4>
+                    <div className="space-y-1">
+                        {allMilestones.map((m, i) => (
+                            <button key={i} onClick={() => onGameClick && onGameClick(m.gameId)} className="w-full flex items-center gap-2 text-sm px-3 py-1.5 rounded hover:bg-slate-50 text-left transition-colors">
+                                <span className="text-slate-400 text-xs w-20 shrink-0">{m.date}</span>
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${m.badgeClass}`}>{m.badgeText}</span>
+                                <span className="font-medium truncate">{m.text}</span>
+                                {m.sub && <span className="text-slate-400 text-xs ml-auto shrink-0">{m.sub}</span>}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
-                return (
-                    <>
-                        <div className="mb-4 bg-blue-50 rounded-lg overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-blue-200">
-                                            {['G','AB','PA','H','R','RBI','HR','2B','3B','SB','BB','SO','AVG','OBP','SLG','OPS'].map(col => (
-                                                <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-blue-600">{col}</th>
-                                            ))}
+            {/* Season Breakdown (collapsible) */}
+            {timelineData.length > 0 && (
+                <div>
+                    <button onClick={() => setShowSeasons(!showSeasons)} className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-slate-900">
+                        <span className={`transition-transform ${showSeasons ? 'rotate-90' : ''}`}>&#9656;</span>
+                        Season Breakdown ({timelineData.filter(s => !s.isSpring).length} season{timelineData.filter(s => !s.isSpring).length !== 1 ? 's' : ''})
+                    </button>
+                    {showSeasons && (
+                        <div className="mt-2 overflow-x-auto border rounded-lg">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 border-b">
+                                    <tr>
+                                        {['Year','Team','G','AB','H','R','RBI','HR','2B','3B','SB','BB','SO','AVG','OPS'].map(col => (
+                                            <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-slate-500">{col}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {timelineData.map((s) => (
+                                        <tr key={`${s.year}${s.isSpring ? '-st' : ''}`} className={s.isSpring ? 'bg-green-50' : 'hover:bg-blue-50'}>
+                                            <td className="px-2 py-2 text-center font-bold text-blue-600 whitespace-nowrap">
+                                                {s.year}{s.isSpring ? <span className="ml-1 text-[10px] text-green-600 font-normal">ST</span> : ''}
+                                            </td>
+                                            <td className="px-2 py-2 text-center text-xs">{s.team || '-'}</td>
+                                            <td className="px-2 py-2 text-center font-semibold">{s.games}</td>
+                                            <td className="px-2 py-2 text-center">{s.ab}</td>
+                                            <td className="px-2 py-2 text-center font-semibold">{s.h}</td>
+                                            <td className="px-2 py-2 text-center">{s.r}</td>
+                                            <td className="px-2 py-2 text-center">{s.rbi}</td>
+                                            <td className={`px-2 py-2 text-center ${s.hr > 0 ? 'font-bold text-orange-600' : ''}`}>{s.hr}</td>
+                                            <td className="px-2 py-2 text-center">{s.doubles || 0}</td>
+                                            <td className="px-2 py-2 text-center">{s.triples || 0}</td>
+                                            <td className="px-2 py-2 text-center">{s.sb || 0}</td>
+                                            <td className="px-2 py-2 text-center">{s.bb}</td>
+                                            <td className="px-2 py-2 text-center">{s.so}</td>
+                                            <td className="px-2 py-2 text-center font-bold">{s.avg}</td>
+                                            <td className="px-2 py-2 text-center font-bold text-purple-600">{s.ops}</td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td className="px-2 py-2 text-center font-bold">{t.games}</td>
-                                            <td className="px-2 py-2 text-center">{t.ab}</td>
-                                            <td className="px-2 py-2 text-center">{t.pa}</td>
-                                            <td className="px-2 py-2 text-center font-semibold">{t.h}</td>
-                                            <td className="px-2 py-2 text-center">{t.r}</td>
-                                            <td className="px-2 py-2 text-center">{t.rbi}</td>
-                                            <td className="px-2 py-2 text-center font-bold text-blue-700">{t.hr}</td>
-                                            <td className="px-2 py-2 text-center">{t.doubles}</td>
-                                            <td className="px-2 py-2 text-center">{t.triples}</td>
-                                            <td className="px-2 py-2 text-center">{t.sb}</td>
-                                            <td className="px-2 py-2 text-center">{t.bb}</td>
-                                            <td className="px-2 py-2 text-center">{t.so}</td>
-                                            <td className="px-2 py-2 text-center font-bold">{avg}</td>
-                                            <td className="px-2 py-2 text-center font-bold text-blue-600">{obp}</td>
-                                            <td className="px-2 py-2 text-center font-bold">{slg}</td>
-                                            <td className="px-2 py-2 text-center font-bold text-purple-600">{ops}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                        {springTotals.games > 0 && (
-                            <div className="mb-6 px-4 py-2 bg-green-50 rounded-lg text-sm text-green-700">
-                                🌴 Spring Training: {springTotals.games} games, {springTotals.pa} PA, {springTotals.h} H
-                            </div>
-                        )}
-                    </>
-                );
-            })()}
-            
-            {/* Year-by-year table */}
-            <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-sm">
-                    <thead className="bg-slate-50 border-b">
-                        <tr>
-                            {['Year','Team','G','AB','PA','H','R','RBI','HR','2B','3B','SB','BB','SO','AVG','OBP','SLG','OPS'].map(col => (
-                                <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-slate-500">{col}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                        {timelineData.map((s) => (
-                            <tr key={`${s.year}${s.isSpring ? '-st' : ''}`} className={s.isSpring ? 'bg-green-50' : 'hover:bg-blue-50'}>
-                                <td className="px-2 py-2 text-center font-bold text-blue-600 whitespace-nowrap">
-                                    {s.year}{s.isSpring ? <span className="ml-1 text-[10px] text-green-600 font-normal">ST</span> : ''}
-                                </td>
-                                <td className="px-2 py-2 text-center text-xs">{s.team || '-'}</td>
-                                <td className="px-2 py-2 text-center font-semibold">{s.games}</td>
-                                <td className="px-2 py-2 text-center">{s.ab}</td>
-                                <td className="px-2 py-2 text-center">{s.pa}</td>
-                                <td className="px-2 py-2 text-center font-semibold">{s.h}</td>
-                                <td className="px-2 py-2 text-center">{s.r}</td>
-                                <td className="px-2 py-2 text-center">{s.rbi}</td>
-                                <td className={`px-2 py-2 text-center ${s.hr > 0 ? 'font-bold text-blue-700' : ''}`}>{s.hr}</td>
-                                <td className="px-2 py-2 text-center">{s.doubles || 0}</td>
-                                <td className="px-2 py-2 text-center">{s.triples || 0}</td>
-                                <td className="px-2 py-2 text-center">{s.sb || 0}</td>
-                                <td className="px-2 py-2 text-center">{s.bb}</td>
-                                <td className="px-2 py-2 text-center">{s.so}</td>
-                                <td className="px-2 py-2 text-center font-bold">{s.avg}</td>
-                                <td className="px-2 py-2 text-center font-bold text-blue-600">{s.obp}</td>
-                                <td className="px-2 py-2 text-center font-bold">{s.slg}</td>
-                                <td className="px-2 py-2 text-center font-bold text-purple-600">{s.ops}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                    )}
+                </div>
+            )}
+
+            {/* Full Game Log (collapsible) */}
+            <div>
+                <button onClick={() => setShowGameLog(!showGameLog)} className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-slate-900">
+                    <span className={`transition-transform ${showGameLog ? 'rotate-90' : ''}`}>&#9656;</span>
+                    Full Game Log ({gamesForPlayer.length} game{gamesForPlayer.length !== 1 ? 's' : ''})
+                </button>
+                {showGameLog && (
+                    <div className="mt-2">
+                        <div className="text-sm text-slate-500 mb-2 flex items-center gap-2">
+                            {opponentFilter && (
+                                <button onClick={() => setOpponentFilter(null)} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium hover:bg-blue-200">
+                                    vs {opponentFilter} <span className="ml-0.5">&times;</span>
+                                </button>
+                            )}
+                        </div>
+                        <div className="overflow-x-auto border rounded-lg" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 sticky top-0">
+                                    <tr>
+                                        {[
+                                            { key: 'dateSort', label: 'Date' },
+                                            { key: 'opponent', label: 'vs' },
+                                            { key: 'ab', label: 'AB' },
+                                            { key: 'h', label: 'H' },
+                                            { key: 'r', label: 'R' },
+                                            { key: 'rbi', label: 'RBI' },
+                                            { key: 'hr', label: 'HR' },
+                                            { key: 'bb', label: 'BB' },
+                                            { key: 'so', label: 'SO' },
+                                            { key: 'sb', label: 'SB' },
+                                        ].map(col => (
+                                            <th key={col.key} onClick={() => handleSort(col.key)}
+                                                className="px-3 py-2 text-left font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap text-xs">
+                                                {col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {sortedGameLog.map((game) => {
+                                        const isMultiHit = game.h >= 2;
+                                        const isHR = game.hr > 0;
+                                        return (
+                                            <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 cursor-pointer ${isHR ? 'bg-orange-50' : isMultiHit ? 'bg-green-50' : ''}`} onClick={() => onGameClick && onGameClick(game.gameId)}>
+                                                <td className="px-3 py-1.5 whitespace-nowrap font-medium text-xs">{game.date}</td>
+                                                <td className="px-3 py-1.5"><button className="text-blue-600 hover:underline text-xs" onClick={(e) => { e.stopPropagation(); setOpponentFilter(opponentFilter === game.opponent ? null : game.opponent); }}>{game.opponent}</button></td>
+                                                <td className="px-3 py-1.5">{game.ab}</td>
+                                                <td className={`px-3 py-1.5 ${isMultiHit ? 'font-bold text-green-600' : ''}`}>{game.h}</td>
+                                                <td className="px-3 py-1.5">{game.r}</td>
+                                                <td className="px-3 py-1.5">{game.rbi}</td>
+                                                <td className={`px-3 py-1.5 ${isHR ? 'font-bold text-orange-600' : ''}`}>{game.hr || 0}</td>
+                                                <td className="px-3 py-1.5">{game.bb}</td>
+                                                <td className="px-3 py-1.5">{game.so}</td>
+                                                <td className="px-3 py-1.5">{game.sb || 0}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </div>
-                </div>
-            )}
-
-            {/* Career Milestones Witnessed */}
-            {careerMilestones && careerMilestones.length > 0 && (
-                <div className="mt-6">
-                    <h4 className="text-sm font-bold text-slate-700 mb-2">⭐ Career Milestones Witnessed</h4>
-                    <div className="space-y-1">
-                        {careerMilestones.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((m, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${m.category === 'first' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                                    {m.category === 'first' ? 'FIRST' : 'MILESTONE'}
-                                </span>
-                                <span className="font-medium">{m.milestone}</span>
-                                <span className="text-slate-400">—</span>
-                                <button onClick={() => onGameClick && onGameClick(m.game_id)} className="text-blue-600 hover:underline text-xs">{m.date_display || m.date}</button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* All-Time Passings */}
-            {allTimePassings && allTimePassings.length > 0 && (
-                <div className="mt-4">
-                    <h4 className="text-sm font-bold text-slate-700 mb-2">🏆 All-Time List Movements</h4>
-                    <div className="space-y-1">
-                        {allTimePassings.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((p, i) => {
-                            const passed = (p.passed_players || []).filter(pp => !pp.tied).map(pp => pp.name);
-                            const tied = (p.passed_players || []).filter(pp => pp.tied).map(pp => pp.name);
-                            const parts = [];
-                            if (passed.length) parts.push('passed ' + passed.join(', '));
-                            if (tied.length) parts.push('tied ' + tied.join(', '));
-                            const desc = parts.join(' and ') || p.milestone;
-                            return (
-                                <div key={i} className="flex items-center gap-2 text-sm">
-                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700">#{p.new_rank}</span>
-                                    <span className="font-medium">{desc}</span>
-                                    <span className="text-xs text-slate-400">({p.stat_name})</span>
-                                    <span className="text-slate-400">—</span>
-                                    <button onClick={() => onGameClick && onGameClick(p.game_id)} className="text-blue-600 hover:underline text-xs">{p.date_display || p.date}</button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
 
-const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, careerMilestones, allTimePassings }) => {
-    const [activeView, setActiveView] = useState('timeline');
+const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, careerMilestones, allTimePassings, gameMilestones, debuts, finalGames }) => {
+    const [showGameLog, setShowGameLog] = useState(false);
     const [sortKey, setSortKey] = useState('dateSort');
     const [sortDir, setSortDir] = useState('desc');
     const [opponentFilter, setOpponentFilter] = useState(null);
+    const [showSeasons, setShowSeasons] = useState(false);
 
     // Get all games for this pitcher with derived fields
     const gamesForPitcher = useMemo(() => {
@@ -1718,29 +1709,74 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, care
 
     const timelineData = useMemo(() => {
         if (gamesForPitcher.length === 0) return [];
-
-        // Group by year and game type (separate spring training)
         const byYearType = {};
         gamesForPitcher.forEach(game => {
             const year = game.dateSort.substring(0, 4);
             const isSpring = game.gameType === 'spring' || game.gameType === 'exhibition';
             const key = isSpring ? `${year}_spring` : year;
-            if (!byYearType[key]) {
-                byYearType[key] = { year, isSpring, games: [] };
-            }
+            if (!byYearType[key]) byYearType[key] = { year, isSpring, games: [] };
             byYearType[key].games.push(game);
         });
-
-        // Aggregate stats per year/type
-        const yearlyStats = Object.values(byYearType).map(({ year, isSpring, games }) => {
+        return Object.values(byYearType).map(({ year, isSpring, games }) => {
             const aggregated = aggregatePitcherStats(games)[0] || {};
             return { year, isSpring, ...aggregated };
         }).sort((a, b) => a.year !== b.year ? a.year - b.year : (a.isSpring ? -1 : 0) - (b.isSpring ? -1 : 0));
-
-        return yearlyStats;
     }, [gamesForPitcher]);
 
-    // Sorted game log (with optional opponent filter)
+    // Totals for stat cards (regular season only, matching the table default)
+    const totals = useMemo(() => {
+        const regGames = gamesForPitcher.filter(g => g.gameType === 'regular' || (!g.gameType));
+        const agg = aggregatePitcherStats(regGames)[0] || {};
+        const totalOuts = regGames.reduce((s, g) => s + (g.outs || 0), 0);
+        const innings = totalOuts / 3;
+        const totalER = regGames.reduce((s, g) => s + (g.er || 0), 0);
+        const totalH = regGames.reduce((s, g) => s + (g.h || 0), 0);
+        const totalBB = regGames.reduce((s, g) => s + (g.bb || 0), 0);
+        const era = innings > 0 ? ((totalER * 9) / innings).toFixed(2) : '-';
+        const whip = innings > 0 ? ((totalH + totalBB) / innings).toFixed(3) : '-';
+        const ip = `${Math.floor(innings)}.${totalOuts % 3}`;
+        return { ...agg, era, whip, ip };
+    }, [gamesForPitcher]);
+
+    // Notable games: 6+ K, QS, W, SV, low-hit games
+    const notableGames = useMemo(() => {
+        return gamesForPitcher.filter(g => {
+            const isSpring = g.gameType === 'spring' || g.gameType === 'exhibition';
+            const ipNum = parseFloat(g.ip);
+            return !isSpring && (g.so >= 6 || (ipNum >= 6 && g.er <= 3) || g.decision === 'W' || g.decision === 'S' || (ipNum >= 5 && g.h <= 2));
+        }).map(g => {
+            const tags = [];
+            const ipNum = parseFloat(g.ip);
+            if (g.so >= 10) tags.push({ label: `${g.so} K`, color: 'bg-red-100 text-red-700' });
+            else if (g.so >= 6) tags.push({ label: `${g.so} K`, color: 'bg-orange-100 text-orange-700' });
+            if (ipNum >= 6 && g.er <= 3) tags.push({ label: 'QS', color: 'bg-blue-100 text-blue-700' });
+            if (g.decision === 'W') tags.push({ label: 'W', color: 'bg-green-100 text-green-700' });
+            if (g.decision === 'S') tags.push({ label: 'SV', color: 'bg-sky-100 text-sky-700' });
+            if (ipNum >= 5 && g.h <= 2) tags.push({ label: `${g.h}H`, color: 'bg-violet-100 text-violet-700' });
+            return { ...g, tags };
+        });
+    }, [gamesForPitcher]);
+
+    // Combined milestones list
+    const allMilestones = useMemo(() => {
+        const toSort = (d) => { if (!d) return ''; const p = d.split('/'); return p.length === 3 ? `${p[2]}-${p[0].padStart(2,'0')}-${p[1].padStart(2,'0')}` : d; };
+        const items = [];
+        (debuts || []).forEach(d => items.push({ sort: toSort(d.date), badgeClass: 'bg-green-100 text-green-700', badgeText: 'DEBUT', text: `MLB Debut (${d.team})`, sub: `vs ${d.opponent || ''}`, date: d.date, gameId: d.gameId }));
+        (finalGames || []).forEach(f => items.push({ sort: toSort(f.date), badgeClass: 'bg-slate-200 text-slate-700', badgeText: 'FINAL', text: `Final MLB Game (${f.team})`, date: f.date, gameId: f.gameId }));
+        (gameMilestones || []).forEach(m => items.push({ sort: m._dateSort || m.date || '', badgeClass: 'bg-orange-100 text-orange-700', badgeText: m.type, text: m.detail, sub: `vs ${m.opponent}`, date: m.date, gameId: m.gameId }));
+        (careerMilestones || []).forEach(m => items.push({ sort: m.date || '', badgeClass: m.category === 'first' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700', badgeText: m.category === 'first' ? 'FIRST' : 'MILESTONE', text: m.milestone, date: m.date_display || m.date, gameId: m.game_id }));
+        (allTimePassings || []).forEach(p => {
+            const passed = (p.passed_players || []).filter(pp => !pp.tied).map(pp => pp.name);
+            const tied = (p.passed_players || []).filter(pp => pp.tied).map(pp => pp.name);
+            const parts = [];
+            if (passed.length) parts.push('passed ' + passed.join(', '));
+            if (tied.length) parts.push('tied ' + tied.join(', '));
+            items.push({ sort: p.date || '', badgeClass: 'bg-purple-100 text-purple-700', badgeText: `#${p.new_rank}`, text: parts.join(' and ') || p.milestone, sub: p.stat_name, date: p.date_display || p.date, gameId: p.game_id });
+        });
+        return items.sort((a, b) => (b.sort).localeCompare(a.sort));
+    }, [gameMilestones, careerMilestones, allTimePassings, debuts, finalGames]);
+
+    // Sorted game log
     const sortedGameLog = useMemo(() => {
         const filtered = opponentFilter ? gamesForPitcher.filter(g => g.opponent === opponentFilter) : gamesForPitcher;
         return [...filtered].sort((a, b) => {
@@ -1767,232 +1803,171 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, care
     }
 
     return (
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <h3 className="subsection-title font-bold">📊 {playerName}</h3>
-                <div className="flex rounded-lg overflow-hidden border">
-                    <button
-                        onClick={() => setActiveView('timeline')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${
-                            activeView === 'timeline' ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'
-                        }`}
-                    >
-                        📅 Timeline
-                    </button>
-                    <button
-                        onClick={() => setActiveView('gamelog')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${
-                            activeView === 'gamelog' ? 'bg-purple-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'
-                        }`}
-                    >
-                        📋 Game Log
-                    </button>
-                </div>
+        <div className="space-y-4">
+            {/* Stat Cards */}
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                {[
+                    { label: 'G', value: totals.games, bold: true },
+                    { label: 'W-L', value: `${totals.wins || 0}-${totals.losses || 0}`, color: (totals.wins || 0) > (totals.losses || 0) ? 'text-green-600' : '' },
+                    { label: 'ERA', value: totals.era, bold: true, color: totals.era !== '-' && parseFloat(totals.era) <= 3.00 ? 'text-purple-600' : '' },
+                    { label: 'IP', value: totals.ip },
+                    { label: 'SO', value: totals.so, bold: true },
+                    { label: 'WHIP', value: totals.whip },
+                    { label: 'SV', value: totals.saves || 0 },
+                    { label: 'BB', value: totals.bb },
+                ].map(s => (
+                    <div key={s.label} className="bg-slate-50 rounded-lg px-3 py-2 text-center">
+                        <div className={`text-lg font-bold ${s.color || 'text-slate-800'}`}>{s.value}</div>
+                        <div className="text-[10px] uppercase font-semibold text-slate-400">{s.label}</div>
+                    </div>
+                ))}
             </div>
 
-            {/* Game Log View */}
-            {activeView === 'gamelog' && (
+            {/* Notable Games */}
+            {notableGames.length > 0 && (
                 <div>
-                    <div className="text-sm text-slate-500 mb-3 flex items-center gap-2">
-                        <span>{sortedGameLog.length} game{sortedGameLog.length !== 1 ? 's' : ''}</span>
-                        {opponentFilter && (
-                            <button onClick={() => setOpponentFilter(null)} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium hover:bg-blue-200">
-                                vs {opponentFilter} <span className="ml-0.5">&times;</span>
-                            </button>
-                        )}
-                    </div>
-                    <div className="overflow-x-auto border rounded-lg" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 sticky top-0">
-                                <tr>
-                                    {[
-                                        { key: 'dateSort', label: 'Date' },
-                                        { key: 'team', label: 'Team' },
-                                        { key: 'opponent', label: 'vs' },
-                                        { key: 'ip', label: 'IP' },
-                                        { key: 'h', label: 'H' },
-                                        { key: 'r', label: 'R' },
-                                        { key: 'er', label: 'ER' },
-                                        { key: 'bb', label: 'BB' },
-                                        { key: 'so', label: 'SO' },
-                                        { key: 'decision', label: 'Dec' },
-                                    ].map(col => (
-                                        <th
-                                            key={col.key}
-                                            onClick={() => handleSort(col.key)}
-                                            className="px-3 py-2 text-left font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap"
-                                        >
-                                            {col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}
-                                        </th>
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">Notable Games ({notableGames.length})</h4>
+                    <div className="space-y-1">
+                        {notableGames.map((g, i) => (
+                            <button key={i} onClick={() => onGameClick && onGameClick(g.gameId)} className="w-full flex items-center gap-2 text-sm px-3 py-1.5 rounded hover:bg-slate-50 text-left transition-colors">
+                                <span className="text-slate-400 text-xs w-20 shrink-0">{g.date}</span>
+                                <span className="text-slate-500 w-8 shrink-0 text-xs">vs</span>
+                                <span className="font-medium w-12 shrink-0">{g.opponent}</span>
+                                <span className="flex gap-1 flex-wrap">
+                                    {g.tags.map((t, j) => (
+                                        <span key={j} className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${t.color}`}>{t.label}</span>
                                     ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                                {sortedGameLog.map((game) => {
-                                    const isWin = game.decision === 'W';
-                                    const isQS = parseFloat(game.ip) >= 6 && game.er <= 3;
-                                    const isHighSO = game.so >= 8;
-                                    return (
-                                        <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 cursor-pointer ${isWin ? 'bg-green-50' : ''} ${isQS ? 'bg-blue-50' : ''}`} onClick={() => onGameClick && onGameClick(game.gameId)}>
-                                            <td className="px-3 py-2 whitespace-nowrap font-medium">{game.date}</td>
-                                            <td className="px-3 py-2">{game.team}</td>
-                                            <td className="px-3 py-2"><button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); setOpponentFilter(opponentFilter === game.opponent ? null : game.opponent); }}>{game.opponent}</button></td>
-                                            <td className="px-3 py-2 font-medium">{game.ip}</td>
-                                            <td className="px-3 py-2">{game.h}</td>
-                                            <td className="px-3 py-2">{game.r}</td>
-                                            <td className="px-3 py-2">{game.er}</td>
-                                            <td className="px-3 py-2">{game.bb}</td>
-                                            <td className={`px-3 py-2 ${isHighSO ? 'font-bold text-orange-600' : ''}`}>{game.so}</td>
-                                            <td className={`px-3 py-2 font-bold ${isWin ? 'text-green-600' : game.decision === 'L' ? 'text-red-600' : game.decision === 'S' ? 'text-blue-600' : ''}`}>
-                                                {game.decision || '-'}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                        <span className="px-2 py-1 bg-green-50 rounded">Wins highlighted green</span>
-                        <span className="px-2 py-1 bg-blue-50 rounded">Quality starts highlighted blue</span>
+                                </span>
+                                <span className="text-slate-400 text-xs ml-auto">{g.ip} IP, {g.er} ER</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
             )}
 
-            {/* Timeline View */}
-            {activeView === 'timeline' && (
+            {/* Milestones */}
+            {allMilestones.length > 0 && (
                 <div>
-            {/* Career summary stats */}
-            {(() => {
-                const regSeasons = timelineData.filter(s => !s.isSpring);
-                const t = regSeasons.reduce((acc, s) => ({
-                    games: acc.games + (s.games || 0), gameStarts: acc.gameStarts + (s.gameStarts || 0),
-                    wins: acc.wins + (s.wins || 0), losses: acc.losses + (s.losses || 0), saves: acc.saves + (s.saves || 0),
-                    outs: acc.outs + (s.outs || 0), h: acc.h + (s.h || 0), r: acc.r + (s.r || 0),
-                    er: acc.er + (s.er || 0), bb: acc.bb + (s.bb || 0), so: acc.so + (s.so || 0), hr: acc.hr + (s.hr || 0),
-                }), { games:0, gameStarts:0, wins:0, losses:0, saves:0, outs:0, h:0, r:0, er:0, bb:0, so:0, hr:0 });
-                const innings = t.outs / 3;
-                const ip = `${Math.floor(innings)}.${t.outs % 3}`;
-                const era = innings > 0 ? ((t.er * 9) / innings).toFixed(2) : '-';
-                const whip = innings > 0 ? ((t.h + t.bb) / innings).toFixed(3) : '-';
-                return (
-                    <div className="mb-4 bg-purple-50 rounded-lg overflow-hidden">
-                        <div className="overflow-x-auto">
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">Milestones ({allMilestones.length})</h4>
+                    <div className="space-y-1">
+                        {allMilestones.map((m, i) => (
+                            <button key={i} onClick={() => onGameClick && onGameClick(m.gameId)} className="w-full flex items-center gap-2 text-sm px-3 py-1.5 rounded hover:bg-slate-50 text-left transition-colors">
+                                <span className="text-slate-400 text-xs w-20 shrink-0">{m.date}</span>
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${m.badgeClass}`}>{m.badgeText}</span>
+                                <span className="font-medium truncate">{m.text}</span>
+                                {m.sub && <span className="text-slate-400 text-xs ml-auto shrink-0">{m.sub}</span>}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Season Breakdown (collapsible) */}
+            {timelineData.length > 0 && (
+                <div>
+                    <button onClick={() => setShowSeasons(!showSeasons)} className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-slate-900">
+                        <span className={`transition-transform ${showSeasons ? 'rotate-90' : ''}`}>&#9656;</span>
+                        Season Breakdown ({timelineData.filter(s => !s.isSpring).length} season{timelineData.filter(s => !s.isSpring).length !== 1 ? 's' : ''})
+                    </button>
+                    {showSeasons && (
+                        <div className="mt-2 overflow-x-auto border rounded-lg">
                             <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b border-purple-200">
-                                        {['G','GS','W','L','SV','IP','H','R','ER','BB','SO','HR','ERA','WHIP'].map(col => (
-                                            <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-purple-600">{col}</th>
+                                <thead className="bg-slate-50 border-b">
+                                    <tr>
+                                        {['Year','Team','G','GS','W','L','SV','IP','H','ER','BB','SO','ERA','WHIP'].map(col => (
+                                            <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-slate-500">{col}</th>
                                         ))}
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y">
+                                    {timelineData.map((s) => (
+                                        <tr key={`${s.year}${s.isSpring ? '-st' : ''}`} className={s.isSpring ? 'bg-green-50' : 'hover:bg-purple-50'}>
+                                            <td className="px-2 py-2 text-center font-bold text-purple-600 whitespace-nowrap">
+                                                {s.year}{s.isSpring ? <span className="ml-1 text-[10px] text-green-600 font-normal">ST</span> : ''}
+                                            </td>
+                                            <td className="px-2 py-2 text-center text-xs">{s.team || '-'}</td>
+                                            <td className="px-2 py-2 text-center font-semibold">{s.games}</td>
+                                            <td className="px-2 py-2 text-center">{s.gameStarts || 0}</td>
+                                            <td className="px-2 py-2 text-center font-bold text-green-600">{s.wins}</td>
+                                            <td className="px-2 py-2 text-center text-red-600">{s.losses}</td>
+                                            <td className="px-2 py-2 text-center">{s.saves || 0}</td>
+                                            <td className="px-2 py-2 text-center font-semibold">{s.ip}</td>
+                                            <td className="px-2 py-2 text-center">{s.h}</td>
+                                            <td className="px-2 py-2 text-center">{s.er}</td>
+                                            <td className="px-2 py-2 text-center">{s.bb}</td>
+                                            <td className="px-2 py-2 text-center font-semibold">{s.so}</td>
+                                            <td className="px-2 py-2 text-center font-bold text-purple-700">{s.era}</td>
+                                            <td className="px-2 py-2 text-center font-bold">{s.whip}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Full Game Log (collapsible) */}
+            <div>
+                <button onClick={() => setShowGameLog(!showGameLog)} className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-slate-900">
+                    <span className={`transition-transform ${showGameLog ? 'rotate-90' : ''}`}>&#9656;</span>
+                    Full Game Log ({gamesForPitcher.length} game{gamesForPitcher.length !== 1 ? 's' : ''})
+                </button>
+                {showGameLog && (
+                    <div className="mt-2">
+                        <div className="text-sm text-slate-500 mb-2 flex items-center gap-2">
+                            {opponentFilter && (
+                                <button onClick={() => setOpponentFilter(null)} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium hover:bg-blue-200">
+                                    vs {opponentFilter} <span className="ml-0.5">&times;</span>
+                                </button>
+                            )}
+                        </div>
+                        <div className="overflow-x-auto border rounded-lg" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 sticky top-0">
                                     <tr>
-                                        <td className="px-2 py-2 text-center font-bold">{t.games}</td>
-                                        <td className="px-2 py-2 text-center">{t.gameStarts}</td>
-                                        <td className="px-2 py-2 text-center font-bold text-green-600">{t.wins}</td>
-                                        <td className="px-2 py-2 text-center text-red-600">{t.losses}</td>
-                                        <td className="px-2 py-2 text-center">{t.saves}</td>
-                                        <td className="px-2 py-2 text-center font-semibold">{ip}</td>
-                                        <td className="px-2 py-2 text-center">{t.h}</td>
-                                        <td className="px-2 py-2 text-center">{t.r}</td>
-                                        <td className="px-2 py-2 text-center">{t.er}</td>
-                                        <td className="px-2 py-2 text-center">{t.bb}</td>
-                                        <td className="px-2 py-2 text-center font-semibold">{t.so}</td>
-                                        <td className="px-2 py-2 text-center">{t.hr}</td>
-                                        <td className="px-2 py-2 text-center font-bold text-purple-700">{era}</td>
-                                        <td className="px-2 py-2 text-center font-bold">{whip}</td>
+                                        {[
+                                            { key: 'dateSort', label: 'Date' },
+                                            { key: 'opponent', label: 'vs' },
+                                            { key: 'ip', label: 'IP' },
+                                            { key: 'h', label: 'H' },
+                                            { key: 'er', label: 'ER' },
+                                            { key: 'bb', label: 'BB' },
+                                            { key: 'so', label: 'SO' },
+                                            { key: 'decision', label: 'Dec' },
+                                        ].map(col => (
+                                            <th key={col.key} onClick={() => handleSort(col.key)}
+                                                className="px-3 py-2 text-left font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100 whitespace-nowrap text-xs">
+                                                {col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}
+                                            </th>
+                                        ))}
                                     </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {sortedGameLog.map((game) => {
+                                        const isWin = game.decision === 'W';
+                                        const isQS = parseFloat(game.ip) >= 6 && game.er <= 3;
+                                        return (
+                                            <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 cursor-pointer ${isWin ? 'bg-green-50' : isQS ? 'bg-blue-50' : ''}`} onClick={() => onGameClick && onGameClick(game.gameId)}>
+                                                <td className="px-3 py-1.5 whitespace-nowrap font-medium text-xs">{game.date}</td>
+                                                <td className="px-3 py-1.5"><button className="text-blue-600 hover:underline text-xs" onClick={(e) => { e.stopPropagation(); setOpponentFilter(opponentFilter === game.opponent ? null : game.opponent); }}>{game.opponent}</button></td>
+                                                <td className="px-3 py-1.5 font-medium">{game.ip}</td>
+                                                <td className="px-3 py-1.5">{game.h}</td>
+                                                <td className="px-3 py-1.5">{game.er}</td>
+                                                <td className="px-3 py-1.5">{game.bb}</td>
+                                                <td className={`px-3 py-1.5 ${game.so >= 8 ? 'font-bold text-orange-600' : ''}`}>{game.so}</td>
+                                                <td className={`px-3 py-1.5 font-bold ${isWin ? 'text-green-600' : game.decision === 'L' ? 'text-red-600' : game.decision === 'S' ? 'text-blue-600' : ''}`}>
+                                                    {game.decision || '-'}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                );
-            })()}
-            
-            {/* Year-by-year table */}
-            <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-sm">
-                    <thead className="bg-slate-50 border-b">
-                        <tr>
-                            {['Year','Team','G','GS','W','L','SV','IP','H','R','ER','BB','SO','HR','ERA','WHIP'].map(col => (
-                                <th key={col} className="px-2 py-2 text-center text-xs font-semibold text-slate-500">{col}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                        {timelineData.map((s) => (
-                            <tr key={`${s.year}${s.isSpring ? '-st' : ''}`} className={s.isSpring ? 'bg-green-50' : 'hover:bg-purple-50'}>
-                                <td className="px-2 py-2 text-center font-bold text-purple-600 whitespace-nowrap">
-                                    {s.year}{s.isSpring ? <span className="ml-1 text-[10px] text-green-600 font-normal">ST</span> : ''}
-                                </td>
-                                <td className="px-2 py-2 text-center text-xs">{s.team || '-'}</td>
-                                <td className="px-2 py-2 text-center font-semibold">{s.games}</td>
-                                <td className="px-2 py-2 text-center">{s.gameStarts || 0}</td>
-                                <td className="px-2 py-2 text-center font-bold text-green-600">{s.wins}</td>
-                                <td className="px-2 py-2 text-center text-red-600">{s.losses}</td>
-                                <td className="px-2 py-2 text-center">{s.saves || 0}</td>
-                                <td className="px-2 py-2 text-center font-semibold">{s.ip}</td>
-                                <td className="px-2 py-2 text-center">{s.h}</td>
-                                <td className="px-2 py-2 text-center">{s.r}</td>
-                                <td className="px-2 py-2 text-center">{s.er}</td>
-                                <td className="px-2 py-2 text-center">{s.bb}</td>
-                                <td className="px-2 py-2 text-center font-semibold">{s.so}</td>
-                                <td className="px-2 py-2 text-center">{s.hr || 0}</td>
-                                <td className="px-2 py-2 text-center font-bold text-purple-700">{s.era}</td>
-                                <td className="px-2 py-2 text-center font-bold">{s.whip}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                )}
             </div>
-                </div>
-            )}
-
-            {/* Career Milestones Witnessed */}
-            {careerMilestones && careerMilestones.length > 0 && (
-                <div className="mt-6">
-                    <h4 className="text-sm font-bold text-slate-700 mb-2">⭐ Career Milestones Witnessed</h4>
-                    <div className="space-y-1">
-                        {careerMilestones.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((m, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${m.category === 'first' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                                    {m.category === 'first' ? 'FIRST' : 'MILESTONE'}
-                                </span>
-                                <span className="font-medium">{m.milestone}</span>
-                                <span className="text-slate-400">—</span>
-                                <button onClick={() => onGameClick && onGameClick(m.game_id)} className="text-blue-600 hover:underline text-xs">{m.date_display || m.date}</button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* All-Time Passings */}
-            {allTimePassings && allTimePassings.length > 0 && (
-                <div className="mt-4">
-                    <h4 className="text-sm font-bold text-slate-700 mb-2">🏆 All-Time List Movements</h4>
-                    <div className="space-y-1">
-                        {allTimePassings.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((p, i) => {
-                            const passed = (p.passed_players || []).filter(pp => !pp.tied).map(pp => pp.name);
-                            const tied = (p.passed_players || []).filter(pp => pp.tied).map(pp => pp.name);
-                            const parts = [];
-                            if (passed.length) parts.push('passed ' + passed.join(', '));
-                            if (tied.length) parts.push('tied ' + tied.join(', '));
-                            const desc = parts.join(' and ') || p.milestone;
-                            return (
-                                <div key={i} className="flex items-center gap-2 text-sm">
-                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700">#{p.new_rank}</span>
-                                    <span className="font-medium">{desc}</span>
-                                    <span className="text-xs text-slate-400">({p.stat_name})</span>
-                                    <span className="text-slate-400">—</span>
-                                    <button onClick={() => onGameClick && onGameClick(p.game_id)} className="text-blue-600 hover:underline text-xs">{p.date_display || p.date}</button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
@@ -2244,11 +2219,13 @@ const MatchupMatrix = ({ matchupData, games }) => {
 
     const handleCellClick = (team, opponent, count) => {
         if (count === 'X' || count === 0) return;
+        const nTeam = normalizeCode(team);
+        const nOpp = normalizeCode(opponent);
         const matchupGames = games.filter(game => {
             const home = normalizeCode(game.homeTeam);
             const away = normalizeCode(game.awayTeam);
-            return (home === team && away === opponent) ||
-                   (home === opponent && away === team);
+            return (home === nTeam && away === nOpp) ||
+                   (home === nOpp && away === nTeam);
         }).sort((a, b) => new Date(b.date) - new Date(a.date));
         setSelectedMatchup({ team, opponent, games: matchupGames, count });
         setShowModal(true);
@@ -2565,7 +2542,7 @@ const OriolesDashboard = ({ orioles, games }) => {
     const parseScore = (scoreStr, homeTeam, awayTeam) => {
         if (!scoreStr) return null;
         // Try format: "AWAY # - # HOME" (e.g., "BOS 6 - 5 BAL")
-        const match1 = scoreStr.match(/(\\w+)\\s+(\\d+)\\s*-\\s*(\\d+)\\s+(\\w+)/);
+        const match1 = scoreStr.match(/(\w+)\s+(\d+)\s*-\s*(\d+)\s+(\w+)/);
         if (match1) {
             const [_, team1, score1, score2, team2] = match1;
             // Determine which score belongs to home/away
@@ -2576,7 +2553,7 @@ const OriolesDashboard = ({ orioles, games }) => {
             }
         }
         // Try simple format: "#-#"
-        const match2 = scoreStr.match(/(\\d+)\\s*-\\s*(\\d+)/);
+        const match2 = scoreStr.match(/(\d+)\s*-\s*(\d+)/);
         if (match2) {
             return { awayScore: parseInt(match2[1]), homeScore: parseInt(match2[2]) };
         }
@@ -3282,18 +3259,21 @@ const CompanionsView = ({ companionData }) => {
 };
 
 
-const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings }) => {
+const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings, milestones, debuts, finalGames }) => {
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState('pa');
     const [sortDir, setSortDir] = useState('desc');
     const [activeFilter, setActiveFilter] = useState('all');
     const [gameTypeFilter, setGameTypeFilter] = useState('regular');
 
-    // Check for pending player selection (from College tab)
+    // Check for pending player selection (from search/College tab)
     useEffect(() => {
         if (window._pendingPlayerSelect) {
-            setSelectedPlayer(window._pendingPlayerSelect);
-            window._pendingPlayerSelect = null;
+            const pid = window._pendingPlayerSelect.id;
+            if (allPlayers.some(p => p.playerId === pid)) {
+                setSelectedPlayer(window._pendingPlayerSelect);
+                window._pendingPlayerSelect = null;
+            }
         }
     });
     const [startDate, setStartDate] = useState('');
@@ -3451,6 +3431,9 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
                                 playerGames={playerGames}
                                 careerMilestones={(careerFirstsByPlayer || {})[selectedPlayer.id] || []}
                                 allTimePassings={(allTimePassings || []).filter(p => p.player_id === selectedPlayer.id)}
+                                gameMilestones={(milestones || []).filter(m => m.playerId === selectedPlayer.id)}
+                                debuts={(debuts || []).filter(d => d.playerId === selectedPlayer.id)}
+                                finalGames={(finalGames || []).filter(f => f.playerId === selectedPlayer.id)}
                                 onGameClick={(gameId) => {
                                     window._pendingGameId = gameId;
                                     if (window.__navigateTab) window.__navigateTab('gamelog');
@@ -3464,7 +3447,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
     );
 };
 
-const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings }) => {
+const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings, milestones, debuts, finalGames }) => {
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState('ip');
     const [sortDir, setSortDir] = useState('desc');
@@ -3474,6 +3457,17 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
     const [endDate, setEndDate] = useState('');
     const [useFiltered, setUseFiltered] = useState(false);
     const [selectedPitcher, setSelectedPitcher] = useState(null);
+
+    // Check for pending player selection (from search)
+    useEffect(() => {
+        if (window._pendingPlayerSelect) {
+            const pid = window._pendingPlayerSelect.id;
+            if (allPitchers.some(p => p.playerId === pid)) {
+                setSelectedPitcher(window._pendingPlayerSelect);
+                window._pendingPlayerSelect = null;
+            }
+        }
+    });
 
     useEffect(() => { setUseFiltered(!!(startDate || endDate)); }, [startDate, endDate]);
 
@@ -3554,8 +3548,9 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
         },
         { key: 'team', label: 'Team' }, { key: 'games', label: 'G' }, { key: 'gameStarts', label: 'GS' },
         { key: 'wins', label: 'W' }, { key: 'losses', label: 'L' }, { key: 'saves', label: 'SV' },
-        { key: 'ip', label: 'IP' }, { key: 'era', label: 'ERA' }, { key: 'whip', label: 'WHIP' },
-        { key: 'so', label: 'SO' }, { key: 'bb', label: 'BB' },
+        { key: 'ip', label: 'IP' }, { key: 'h', label: 'H' }, { key: 'r', label: 'R' }, { key: 'er', label: 'ER' },
+        { key: 'bb', label: 'BB' }, { key: 'so', label: 'SO' }, { key: 'hr', label: 'HR' },
+        { key: 'era', label: 'ERA' }, { key: 'whip', label: 'WHIP' },
         { key: 'maxSpeed', label: 'Max Velo', render: (v) => v ? `${v}` : '-' },
         { key: 'avgSpeed', label: 'Avg Velo', render: (v) => v ? `${v}` : '-' },
         { key: 'avgSpinRate', label: 'Avg Spin', render: (v) => v ? `${v}` : '-' },
@@ -3626,6 +3621,9 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
                                 pitcherGames={pitcherGames}
                                 careerMilestones={(careerFirstsByPlayer || {})[selectedPitcher.id] || []}
                                 allTimePassings={(allTimePassings || []).filter(p => p.player_id === selectedPitcher.id)}
+                                gameMilestones={(milestones || []).filter(m => m.playerId === selectedPitcher.id)}
+                                debuts={(debuts || []).filter(d => d.playerId === selectedPitcher.id)}
+                                finalGames={(finalGames || []).filter(f => f.playerId === selectedPitcher.id)}
                                 onGameClick={(gameId) => {
                                     window._pendingGameId = gameId;
                                     if (window.__navigateTab) window.__navigateTab('gamelog');
@@ -5320,6 +5318,88 @@ const AttendancePatterns = ({ games }) => {
     );
 };
 
+const GameConditions = ({ games }) => {
+    const stats = useMemo(() => {
+        const withTemp = (games || []).filter(g => g.temperature && g.temperature > 0);
+        const withLength = (games || []).filter(g => g.gameLength);
+        const withAttendance = (games || []).filter(g => g.attendance && g.attendance > 0);
+
+        const parseLen = (s) => { if (!s) return 0; const p = s.split(':'); return (parseInt(p[0]) || 0) * 60 + (parseInt(p[1]) || 0); };
+        const fmtLen = (m) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+
+        const tempVals = withTemp.map(g => g.temperature);
+        const lenVals = withLength.map(g => ({ mins: parseLen(g.gameLength), game: g }));
+        const attVals = withAttendance.map(g => g.attendance);
+
+        const coldest = withTemp.length ? withTemp.reduce((a, b) => a.temperature < b.temperature ? a : b) : null;
+        const hottest = withTemp.length ? withTemp.reduce((a, b) => a.temperature > b.temperature ? a : b) : null;
+        const avgTemp = tempVals.length ? Math.round(tempVals.reduce((a, b) => a + b, 0) / tempVals.length) : null;
+
+        const shortest = lenVals.length ? lenVals.reduce((a, b) => a.mins < b.mins ? a : b) : null;
+        const longest = lenVals.length ? lenVals.reduce((a, b) => a.mins > b.mins ? a : b) : null;
+        const avgLen = lenVals.length ? Math.round(lenVals.reduce((a, b) => a + b.mins, 0) / lenVals.length) : null;
+
+        const lowAtt = withAttendance.length ? withAttendance.reduce((a, b) => a.attendance < b.attendance ? a : b) : null;
+        const highAtt = withAttendance.length ? withAttendance.reduce((a, b) => a.attendance > b.attendance ? a : b) : null;
+        const avgAtt = attVals.length ? Math.round(attVals.reduce((a, b) => a + b, 0) / attVals.length) : null;
+
+        return { coldest, hottest, avgTemp, shortest, longest, avgLen, fmtLen, lowAtt, highAtt, avgAtt, hasTemp: withTemp.length > 0, hasLen: withLength.length > 0, hasAtt: withAttendance.length > 0 };
+    }, [games]);
+
+    if (!stats.hasTemp && !stats.hasLen && !stats.hasAtt) return null;
+
+    const ConditionRow = ({ label, low, avg, high, lowLabel, highLabel, lowColor, highColor, unit }) => (
+        <div className="flex items-center gap-3 py-2">
+            <div className="w-24 text-xs font-semibold text-slate-500 shrink-0">{label}</div>
+            <div className="flex-1 flex items-center gap-1">
+                <div className="text-center flex-1">
+                    <div className={`text-sm font-bold ${lowColor || 'text-blue-600'}`}>{low}{unit}</div>
+                    <div className="text-[9px] text-slate-400">{lowLabel || 'Low'}</div>
+                </div>
+                <div className="text-center flex-1">
+                    <div className="text-sm font-bold text-slate-600">{avg}{unit}</div>
+                    <div className="text-[9px] text-slate-400">Avg</div>
+                </div>
+                <div className="text-center flex-1">
+                    <div className={`text-sm font-bold ${highColor || 'text-red-600'}`}>{high}{unit}</div>
+                    <div className="text-[9px] text-slate-400">{highLabel || 'High'}</div>
+                </div>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <h3 className="subsection-title font-bold text-slate-900 mb-3">Game Conditions</h3>
+            <div className="divide-y divide-slate-100">
+                {stats.hasTemp && (
+                    <ConditionRow label="Temperature" unit={String.fromCharCode(176) + 'F'}
+                        low={stats.coldest?.temperature} avg={stats.avgTemp} high={stats.hottest?.temperature}
+                        lowLabel={stats.coldest ? `${stats.coldest.date}` : 'Low'}
+                        highLabel={stats.hottest ? `${stats.hottest.date}` : 'High'}
+                        lowColor="text-blue-600" highColor="text-red-600" />
+                )}
+                {stats.hasLen && (
+                    <ConditionRow label="Duration" unit=""
+                        low={stats.shortest ? stats.fmtLen(stats.shortest.mins) : '-'}
+                        avg={stats.avgLen ? stats.fmtLen(stats.avgLen) : '-'}
+                        high={stats.longest ? stats.fmtLen(stats.longest.mins) : '-'}
+                        lowLabel={stats.shortest ? `${stats.shortest.game.date}` : 'Short'}
+                        highLabel={stats.longest ? `${stats.longest.game.date}` : 'Long'}
+                        lowColor="text-green-600" highColor="text-orange-600" />
+                )}
+                {stats.hasAtt && (
+                    <ConditionRow label="Attendance" unit=""
+                        low={stats.lowAtt?.attendance?.toLocaleString()} avg={stats.avgAtt?.toLocaleString()} high={stats.highAtt?.attendance?.toLocaleString()}
+                        lowLabel={stats.lowAtt ? `${stats.lowAtt.date}` : 'Low'}
+                        highLabel={stats.highAtt ? `${stats.highAtt.date}` : 'High'}
+                        lowColor="text-slate-500" highColor="text-slate-800" />
+                )}
+            </div>
+        </div>
+    );
+};
+
 const Dashboard = ({ data, onTabChange }) => {
     // Get recent highlights for the dashboard
     const toSortDate = toSortableDate;
@@ -5330,7 +5410,7 @@ const Dashboard = ({ data, onTabChange }) => {
     const notableCareerMilestones = useMemo(() => {
         return [...(data.careerFirsts || [])]
             .filter(f => {
-                const match = f.milestone?.match(/#?(\\d+)/);
+                const match = f.milestone?.match(/#?(\d+)/);
                 if (match) {
                     const num = parseInt(match[1]);
                     return num >= 100 && num % 100 === 0;
@@ -5338,8 +5418,8 @@ const Dashboard = ({ data, onTabChange }) => {
                 return false;
             })
             .sort((a, b) => {
-                const numA = parseInt((a.milestone?.match(/#?(\\d+)/) || [])[1] || 0);
-                const numB = parseInt((b.milestone?.match(/#?(\\d+)/) || [])[1] || 0);
+                const numA = parseInt((a.milestone?.match(/#?(\d+)/) || [])[1] || 0);
+                const numB = parseInt((b.milestone?.match(/#?(\d+)/) || [])[1] || 0);
                 return numB - numA;
             })
             .slice(0, 8);
@@ -5366,7 +5446,7 @@ const Dashboard = ({ data, onTabChange }) => {
             {/* Trends & Patterns */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <GamesPerYearChart games={data.games} />
-                <AttendancePatterns games={data.games} />
+                <GameConditions games={data.games} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <SeasonTrendsChart games={data.games} playerGames={data.playerGames} pitcherGames={data.pitcherGames} />
@@ -5428,13 +5508,13 @@ const Dashboard = ({ data, onTabChange }) => {
                             </div>
                             <div className="space-y-3">
                                 {notableCareerMilestones.map((m, i) => {
-                                    const num = (m.milestone?.match(/#?(\\d+)/) || [])[1] || '';
+                                    const num = (m.milestone?.match(/#?(\d+)/) || [])[1] || '';
                                     return (
                                         <div key={`cm-${i}`} className="flex items-center gap-3 py-2 border-b last:border-0">
                                             <span className="inline-flex items-center justify-center min-w-[48px] h-8 bg-gradient-to-r from-amber-400 to-yellow-500 text-white text-sm font-bold rounded-full px-2">#{num}</span>
                                             <div className="flex-1">
                                                 <PlayerLink playerId={m.player_id} name={m.player_name} />
-                                                <span className="small-text text-slate-500 ml-1">{m.milestone?.replace(/#?\\d+\\w*\\s*/, '').trim()}</span>
+                                                <span className="small-text text-slate-500 ml-1">{m.milestone?.replace(/#?\d+\w*\s*/, '').trim()}</span>
                                             </div>
                                             <span className="small-text text-slate-400">{m.date_display || m.date}</span>
                                         </div>
@@ -7172,6 +7252,7 @@ const UmpireTracker = ({ umpireLog, games }) => {
             else if (sortKey === 'absChallenges') { aVal = a.absChallenges || 0; bVal = b.absChallenges || 0; }
             else if (sortKey === 'firstSeen') { aVal = toSortDate(a.firstSeen); bVal = toSortDate(b.firstSeen); }
             else if (sortKey === 'lastSeen') { aVal = toSortDate(a.lastSeen); bVal = toSortDate(b.lastSeen); }
+            else if (['HP','1B','2B','3B','LF','RF'].includes(sortKey)) { aVal = (a.positions || {})[sortKey] || 0; bVal = (b.positions || {})[sortKey] || 0; }
             else { aVal = a[sortKey]; bVal = b[sortKey]; }
             let result = typeof aVal === 'number' ? aVal - bVal : String(aVal || '').localeCompare(String(bVal || ''));
             return sortDir === 'asc' ? result : -result;
@@ -7230,7 +7311,12 @@ const UmpireTracker = ({ umpireLog, games }) => {
                             <tr>
                                 <SortHeader k="name" label="Umpire" />
                                 <SortHeader k="games" label="Games" align="text-center" />
-                                <th className="px-3 py-2 text-left">Positions</th>
+                                <SortHeader k="HP" label="HP" align="text-center" />
+                                <SortHeader k="1B" label="1B" align="text-center" />
+                                <SortHeader k="2B" label="2B" align="text-center" />
+                                <SortHeader k="3B" label="3B" align="text-center" />
+                                <SortHeader k="LF" label="LF" align="text-center" />
+                                <SortHeader k="RF" label="RF" align="text-center" />
                                 {totalChallenges > 0 && <SortHeader k="absChallenges" label="ABS Challenges" align="text-center" />}
                                 <SortHeader k="firstSeen" label="First Seen" />
                                 <SortHeader k="lastSeen" label="Last Seen" />
@@ -7239,22 +7325,22 @@ const UmpireTracker = ({ umpireLog, games }) => {
                         <tbody className="divide-y divide-slate-100">
                             {filtered.map((u, idx) => {
                                 const isExpanded = expandedUmpire === u.name;
-                                const umpGames = (u.gameIds || []).map(id => gameMap[id]).filter(Boolean);
+                                const posOrder = {'HP': 0, '1B': 1, '2B': 2, '3B': 3, 'LF': 4, 'RF': 5};
+                                const umpGamesWithPos = (u.gameIds || []).map(entry => {
+                                    const gid = typeof entry === 'string' ? entry : entry.gameId;
+                                    const pos = typeof entry === 'string' ? '' : (entry.position || '');
+                                    const game = gameMap[gid];
+                                    return game ? { ...game, umpPosition: pos } : null;
+                                }).filter(Boolean).sort((a, b) => (posOrder[a.umpPosition] ?? 9) - (posOrder[b.umpPosition] ?? 9));
                                 return (
                                 <React.Fragment key={u.name}>
                                 <tr className={`hover:bg-blue-50/50 cursor-pointer ${idx % 2 === 1 ? 'bg-slate-50/50' : ''} ${isExpanded ? 'bg-blue-50' : ''}`}
                                     onClick={() => setExpandedUmpire(isExpanded ? null : u.name)}>
                                     <td className="px-3 py-2 body-text font-semibold text-slate-800">{u.name}</td>
                                     <td className="px-3 py-2 body-text font-bold text-blue-600 text-center">{u.games}</td>
-                                    <td className="px-3 py-2">
-                                        <div className="flex gap-1">
-                                            {Object.entries(u.positions || {}).sort((a, b) => b[1] - a[1]).map(([pos, count]) => (
-                                                <span key={pos} className="px-1.5 py-0.5 bg-slate-100 rounded text-xs font-medium text-slate-600">
-                                                    {pos}: {count}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </td>
+                                    {['HP','1B','2B','3B','LF','RF'].map(pos => (
+                                        <td key={pos} className="px-3 py-2 text-center body-text text-slate-600">{(u.positions || {})[pos] || '-'}</td>
+                                    ))}
                                     {totalChallenges > 0 && (
                                         <td className="px-3 py-2 text-center">
                                             {u.absChallenges > 0 ? (
@@ -7271,16 +7357,20 @@ const UmpireTracker = ({ umpireLog, games }) => {
                                     <td className="px-3 py-2 body-text text-slate-500">{u.firstSeen}</td>
                                     <td className="px-3 py-2 body-text text-slate-500">{u.lastSeen}</td>
                                 </tr>
-                                {isExpanded && umpGames.length > 0 && (
+                                {isExpanded && umpGamesWithPos.length > 0 && (
                                     <tr>
-                                        <td colSpan={totalChallenges > 0 ? 6 : 5} className="px-3 py-2 bg-blue-50/50">
+                                        <td colSpan={totalChallenges > 0 ? 10 : 9} className="px-3 py-2 bg-blue-50/50">
                                             <div className="flex flex-wrap gap-1">
-                                                {umpGames.map((g, gi) => (
-                                                    <button key={gi} onClick={(e) => { e.stopPropagation(); window._pendingGameId = g.gameId; if (window.__navigateTab) window.__navigateTab('gamelog'); }}
-                                                        className="text-[10px] px-2 py-0.5 bg-white text-blue-700 rounded border border-blue-200 hover:bg-blue-100">
-                                                        {g.date} {g.awayTeam}@{g.homeTeam}
-                                                    </button>
-                                                ))}
+                                                {umpGamesWithPos.map((g, gi) => {
+                                                    const posColors = {'HP': 'bg-purple-50 border-purple-200 text-purple-700', '1B': 'bg-blue-50 border-blue-200 text-blue-700', '2B': 'bg-sky-50 border-sky-200 text-sky-700', '3B': 'bg-teal-50 border-teal-200 text-teal-700', 'LF': 'bg-green-50 border-green-200 text-green-700', 'RF': 'bg-emerald-50 border-emerald-200 text-emerald-700'};
+                                                    const cls = posColors[g.umpPosition] || 'bg-white border-blue-200 text-blue-700';
+                                                    return (
+                                                        <button key={gi} onClick={(e) => { e.stopPropagation(); window._pendingGameId = g.gameId; if (window.__navigateTab) window.__navigateTab('gamelog'); }}
+                                                            className={`text-[10px] px-2 py-0.5 rounded border hover:opacity-80 ${cls}`}>
+                                                            {g.umpPosition ? <span className="font-bold mr-1">{g.umpPosition}</span> : ''}{g.date} {g.awayTeam}@{g.homeTeam}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </td>
                                     </tr>
@@ -8091,6 +8181,44 @@ const PersonalRecords = ({ data }) => {
         return result;
     }, [data.summary]);
 
+    // ABS challenge records
+    const absRecords = useMemo(() => {
+        const countAbs = (abs) => {
+            // Savant-sourced reviews are authoritative when available
+            const reviews = abs.reviews || [];
+            if (reviews.length > 0) return { total: reviews.length, overturned: reviews.filter(r => r.overturned).length };
+            // Fallback for old cached data: summary totals
+            const total = ['away','home'].reduce((s, side) => s + (abs[side]?.usedSuccessful || 0) + (abs[side]?.usedFailed || 0), 0);
+            const overturned = ['away','home'].reduce((s, side) => s + (abs[side]?.usedSuccessful || 0), 0);
+            return { total, overturned };
+        };
+        const gamesWithAbs = (data.games || []).filter(g => {
+            const abs = g.absChallenges;
+            if (!abs) return false;
+            return countAbs(abs).total > 0;
+        }).map(g => {
+            const { total, overturned } = countAbs(g.absChallenges);
+            return { ...g, absTotal: total, absOverturned: overturned };
+        }).sort((a, b) => b.absTotal - a.absTotal);
+
+        const umpires = (data.umpireLog || []).filter(u => (u.absChallenges || 0) > 0);
+        const umpsWithRate = umpires.map(u => ({
+            ...u, overturnRate: Math.round((u.absOverturned || 0) / u.absChallenges * 100)
+        }));
+        const highestRate = [...umpsWithRate].sort((a, b) => b.overturnRate - a.overturnRate);
+        const lowestRate = [...umpsWithRate].sort((a, b) => a.overturnRate - b.overturnRate);
+
+        return {
+            totalGames: gamesWithAbs.length,
+            totalChallenges: gamesWithAbs.reduce((s, g) => s + g.absTotal, 0),
+            topByTotal: gamesWithAbs.slice(0, 5),
+            topByOverturned: [...gamesWithAbs].sort((a, b) => b.absOverturned - a.absOverturned).slice(0, 5),
+            highestRate: highestRate.slice(0, 5),
+            lowestRate: lowestRate.slice(0, 5),
+            umpiresByTotal: [...umpires].sort((a, b) => (b.absChallenges || 0) - (a.absChallenges || 0)).slice(0, 5),
+        };
+    }, [data.games, data.umpireLog]);
+
     // Helper: navigate to game
     const goToGame = (gameId) => {
         window._pendingGameId = gameId;
@@ -8148,27 +8276,38 @@ const PersonalRecords = ({ data }) => {
                 {isExpanded && hasDetail && (
                     <div className="px-3 pb-3 space-y-1.5 border-t pt-2">
                         {(() => {
+                            // Group details + scores into per-game blocks
                             const grouped = [];
                             detailParts.forEach((detail, di) => {
                                 const score = scoreParts[di] || '';
+                                const game = games[di] || null;
+                                const gameId = game?.gameId || score || di;
                                 const last = grouped[grouped.length - 1];
-                                if (last && last.score === score && score) last.details.push(detail);
-                                else grouped.push({ details: [detail], score });
+                                if (last && last.gameId === gameId) last.details.push(detail);
+                                else grouped.push({ details: [detail], score, game, gameId });
                             });
                             return grouped.map((group, gi) => (
                                 <div key={gi} className="bg-slate-50 rounded p-2 text-xs">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="space-y-0.5 flex-1">
-                                            {group.details.map((d, di) => (
-                                                <div key={di} className="text-slate-700">{d}</div>
-                                            ))}
+                                    {(group.score || group.game) && (
+                                        <div className="flex items-center justify-between mb-1">
+                                            {group.game && (
+                                                <button onClick={() => goToGame(group.game.gameId)}
+                                                    className="font-semibold text-blue-600 hover:underline">
+                                                    {group.game.awayTeam} @ {group.game.homeTeam} — {group.game.date}
+                                                </button>
+                                            )}
+                                            {group.score && <span className="text-slate-400 whitespace-nowrap">{group.score}</span>}
                                         </div>
-                                        {group.score && <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{group.score}</span>}
+                                    )}
+                                    <div className="space-y-0.5">
+                                        {group.details.map((d, di) => (
+                                            <div key={di} className="text-slate-700">{d}</div>
+                                        ))}
                                     </div>
                                 </div>
                             ));
                         })()}
-                        <GameButtons games={games} />
+                        {games.length > 0 && detailParts.length === 0 && <GameButtons games={games} />}
                     </div>
                 )}
             </div>
@@ -8427,6 +8566,156 @@ const PersonalRecords = ({ data }) => {
                     </div>
                 </div>
             )}
+
+            {/* Section 7: ABS Challenge Records */}
+            {absRecords.totalGames > 0 && (
+                <div>
+                    <div className="flex items-center gap-2 mb-2 mt-4">
+                        <div className="text-sm font-semibold text-slate-900">ABS Challenge Records</div>
+                        <div className="flex-1 h-px bg-slate-200"></div>
+                        <span className="text-xs text-slate-400">{absRecords.totalChallenges} challenges in {absRecords.totalGames} games</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {absRecords.topByTotal.length > 0 && (
+                            <div className="bg-white border border-slate-200 rounded-lg p-4">
+                                <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Most Challenges in a Game</div>
+                                <div className="space-y-1.5">
+                                    {absRecords.topByTotal.map((g, i) => (
+                                        <div key={g.gameId} className="flex items-center gap-2 text-sm">
+                                            <span className="text-slate-400 w-4 text-right">{i + 1}.</span>
+                                            <span className="font-bold text-slate-800 w-6">{g.absTotal}</span>
+                                            <button onClick={() => goToGame(g.gameId)} className="text-blue-600 hover:underline">{g.awayTeam} @ {g.homeTeam}</button>
+                                            <span className="text-slate-400 ml-auto text-xs">{g.absOverturned} ovt · {g.date}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {absRecords.topByOverturned.length > 0 && (
+                            <div className="bg-white border border-slate-200 rounded-lg p-4">
+                                <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Most Overturned in a Game</div>
+                                <div className="space-y-1.5">
+                                    {absRecords.topByOverturned.map((g, i) => (
+                                        <div key={g.gameId} className="flex items-center gap-2 text-sm">
+                                            <span className="text-slate-400 w-4 text-right">{i + 1}.</span>
+                                            <span className="font-bold text-green-600 w-6">{g.absOverturned}</span>
+                                            <button onClick={() => goToGame(g.gameId)} className="text-blue-600 hover:underline">{g.awayTeam} @ {g.homeTeam}</button>
+                                            <span className="text-slate-400 ml-auto text-xs">{g.absTotal} total · {g.date}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {absRecords.umpiresByTotal.length > 0 && (
+                            <div className="bg-white border border-slate-200 rounded-lg p-4">
+                                <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Most Challenges Faced (HP Umpire)</div>
+                                <div className="space-y-1.5">
+                                    {absRecords.umpiresByTotal.map((u, i) => (
+                                        <div key={u.name} className="flex items-center gap-2 text-sm">
+                                            <span className="text-slate-400 w-4 text-right">{i + 1}.</span>
+                                            <span className="font-medium text-slate-800">{u.name}</span>
+                                            <span className="text-slate-400 ml-auto">{u.absChallenges} challenges, {u.absOverturned || 0} overturned</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {absRecords.highestRate.length > 0 && (
+                            <div className="bg-white border border-slate-200 rounded-lg p-4">
+                                <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Highest Overturn Rate</div>
+                                <div className="space-y-1.5">
+                                    {absRecords.highestRate.map((u, i) => (
+                                        <div key={u.name} className="flex items-center gap-2 text-sm">
+                                            <span className="text-slate-400 w-4 text-right">{i + 1}.</span>
+                                            <span className="font-medium text-slate-800">{u.name}</span>
+                                            <span className="text-green-600 font-bold ml-auto">{u.overturnRate}%</span>
+                                            <span className="text-slate-400 text-xs">({u.absOverturned || 0}/{u.absChallenges})</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {absRecords.lowestRate.length > 0 && (
+                            <div className="bg-white border border-slate-200 rounded-lg p-4">
+                                <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Lowest Overturn Rate</div>
+                                <div className="space-y-1.5">
+                                    {absRecords.lowestRate.map((u, i) => (
+                                        <div key={u.name} className="flex items-center gap-2 text-sm">
+                                            <span className="text-slate-400 w-4 text-right">{i + 1}.</span>
+                                            <span className="font-medium text-slate-800">{u.name}</span>
+                                            <span className="text-red-600 font-bold ml-auto">{u.overturnRate}%</span>
+                                            <span className="text-slate-400 text-xs">({u.absOverturned || 0}/{u.absChallenges})</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    {/* Player Challenge Leaderboard */}
+                    {(data.absPlayerStats || []).length > 0 && (() => {
+                        const [absSortKey, setAbsSortKey] = React.useState('challenges');
+                        const [absSortDir, setAbsSortDir] = React.useState('desc');
+                        const handleAbsSort = (key) => {
+                            if (absSortKey === key) setAbsSortDir(absSortDir === 'asc' ? 'desc' : 'asc');
+                            else { setAbsSortKey(key); setAbsSortDir('desc'); }
+                        };
+                        const sorted = [...(data.absPlayerStats || [])].sort((a, b) => {
+                            let aVal = a[absSortKey], bVal = b[absSortKey];
+                            if (absSortKey === 'name') { const r = String(aVal || '').localeCompare(String(bVal || '')); return absSortDir === 'asc' ? r : -r; }
+                            if (absSortKey === 'avgEdgeDistance') { aVal = aVal ?? 999; bVal = bVal ?? 999; }
+                            const r = (aVal || 0) - (bVal || 0);
+                            return absSortDir === 'asc' ? r : -r;
+                        });
+                        const AbsHeader = ({ k, label }) => (
+                            <th className={`px-2 py-2 text-center font-medium text-slate-500 cursor-pointer hover:bg-slate-100 ${k === 'name' ? 'text-left px-3' : ''}`}
+                                onClick={() => handleAbsSort(k)}>
+                                {label} {absSortKey === k && (absSortDir === 'asc' ? '↑' : '↓')}
+                            </th>
+                        );
+                        return (
+                        <div className="mt-3 bg-white border border-slate-200 rounded-lg p-4">
+                            <div className="text-xs font-semibold text-slate-400 uppercase mb-3">Player Challenge Leaderboard</div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 border-b">
+                                        <tr>
+                                            <AbsHeader k="name" label="Player" />
+                                            <AbsHeader k="challenges" label="Challenges" />
+                                            <AbsHeader k="overturned" label="Overturned" />
+                                            <AbsHeader k="upheld" label="Upheld" />
+                                            <AbsHeader k="successRate" label="Success %" />
+                                            <AbsHeader k="asBatter" label="Batter" />
+                                            <AbsHeader k="asCatcher" label="Catcher" />
+                                            <AbsHeader k="asPitcher" label="Pitcher" />
+                                            <AbsHeader k="avgEdgeDistance" label="Avg Edge" />
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {sorted.map((p) => (
+                                            <tr key={p.name} className="hover:bg-blue-50">
+                                                <td className="px-3 py-2 font-medium text-slate-800">{p.name}</td>
+                                                <td className="px-2 py-2 text-center font-bold">{p.challenges}</td>
+                                                <td className="px-2 py-2 text-center text-green-600 font-medium">{p.overturned}</td>
+                                                <td className="px-2 py-2 text-center text-red-600 font-medium">{p.upheld}</td>
+                                                <td className="px-2 py-2 text-center">
+                                                    <span className={`font-bold ${p.successRate >= 75 ? 'text-green-600' : p.successRate >= 50 ? 'text-slate-700' : 'text-red-600'}`}>
+                                                        {p.successRate}%
+                                                    </span>
+                                                </td>
+                                                <td className="px-2 py-2 text-center text-slate-600">{p.asBatter || '-'}</td>
+                                                <td className="px-2 py-2 text-center text-slate-600">{p.asCatcher || '-'}</td>
+                                                <td className="px-2 py-2 text-center text-slate-600">{p.asPitcher || '-'}</td>
+                                                <td className="px-2 py-2 text-center text-slate-500">{p.avgEdgeDistance != null ? p.avgEdgeDistance.toFixed(3) : '-'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        );
+                    })()}
+                </div>
+            )}
         </div>
     );
 };
@@ -8480,7 +8769,7 @@ const ScorigamiChart = ({ games }) => {
 
         (games || []).forEach(game => {
             const score = game.score || '';
-            const nums = score.match(/\\d+/g);
+            const nums = score.match(/\d+/g);
             if (!nums || nums.length < 2) return;
             const a = parseInt(nums[0]);
             const b = parseInt(nums[1]);
@@ -8669,8 +8958,8 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
     return (
         <div>
             <SubNav tabs={subtabs} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
-            {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} />}
-            {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} />}
+            {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} milestones={data.milestones || []} debuts={data.debuts || []} finalGames={data.finalGames || []} />}
+            {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} milestones={data.milestones || []} debuts={data.debuts || []} finalGames={data.finalGames || []} />}
             {view === 'nostats' && <NoStatsPlayers data={data} />}
             {view === 'college' && <CollegePlayersView data={data} onViewPlayer={handleViewPlayer} />}
             {view === 'leaders' && (data.players?.length ? <Leaderboards data={data} /> : <EmptyState icon="🏅" title="No Player Data" message="No player statistics available." />)}
@@ -9012,7 +9301,7 @@ const App = () => {
                                             const idx = r.label.toLowerCase().indexOf(q);
                                             const highlighted = idx >= 0 ? <>{r.label.slice(0, idx)}<span className="bg-yellow-200 text-yellow-900 rounded px-0.5">{r.label.slice(idx, idx + searchQuery.length)}</span>{r.label.slice(idx + searchQuery.length)}</> : r.label;
                                             return (
-                                                <button key={`search-${r.type}-${r.id || r.label}-${i}`} onClick={() => { setTab(r.tab); if (r.id && r.type !== 'game') { window._pendingPlayerSelect = r.id; } if (r.type === 'game') { window._pendingGameId = r.id; } setSearchQuery(''); setSearchOpen(false); }}
+                                                <button key={`search-${r.type}-${r.id || r.label}-${i}`} onClick={() => { setTab(r.tab); if (r.id && r.type !== 'game') { window._pendingPlayerSelect = { id: r.id, name: r.label }; } if (r.type === 'game') { window._pendingGameId = r.id; } setSearchQuery(''); setSearchOpen(false); }}
                                                     className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${darkMode ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-blue-50 text-slate-800'}`}>
                                                     <span className="text-xs font-medium uppercase opacity-50 w-14 shrink-0">{r.type}</span>
                                                     <div className="min-w-0">

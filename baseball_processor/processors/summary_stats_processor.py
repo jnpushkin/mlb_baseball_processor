@@ -2199,7 +2199,7 @@ class SummaryStatsProcessor(BaseProcessor):
             'LAA', 'BAL', 'BOS', 'CWS', 'CLE', 'DET', 'HOU', 'KC',
             'MIN', 'NYY', 'OAK', 'SEA', 'TB', 'TEX', 'TOR',
             'ARI', 'ATL', 'CHC', 'CIN', 'COL', 'MIA', 'LAD', 'MIL',
-            'WSH', 'NYM', 'PHI', 'PIT', 'SD', 'SF', 'STL',
+            'WAS', 'NYM', 'PHI', 'PIT', 'SD', 'SF', 'STL',
             'ATH',  # Athletics alternate code
         }
         all_codes = {standardize_team_code(name) for name in normalized_teams}

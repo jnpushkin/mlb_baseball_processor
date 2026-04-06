@@ -1276,12 +1276,116 @@ def find_witnessed_firsts(career_firsts_cache: dict, attended_games: dict) -> li
     return witnessed
 
 
+def _incremental_update(player_id, existing, scraper, years, verbose=False):
+    """Update career data by only scraping specific years.
+
+    Args:
+        player_id: BREF player ID
+        existing: Existing cached career data (modified in place)
+        scraper: HTTP scraper
+        years: List of years to scrape
+        verbose: Print details
+
+    Modifies `existing` in place with updated totals and any new milestones.
+    """
+    # Reconstruct totals from cached career_totals
+    ct = existing.get('career_totals', {})
+    # Handle both flat and nested {'batting': {...}, 'pitching': {...}} formats
+    bat_ct = ct.get('batting', ct) if isinstance(ct.get('batting'), dict) else ct
+    pit_ct = ct.get('pitching', ct) if isinstance(ct.get('pitching'), dict) else ct
+    batting_totals = {stat: (bat_ct.get(stat) or 0) for stat in BATTING_MILESTONES.keys()}
+    pitching_totals = {stat: (pit_ct.get(stat) or 0) for stat in PITCHING_MILESTONES.keys()}
+
+    # Track already-reached milestones so we don't duplicate
+    batting_milestones_reached = {stat: set() for stat in BATTING_MILESTONES.keys()}
+    for stat, milestones in existing.get('batting_milestones', {}).items():
+        for m in milestones:
+            batting_milestones_reached.setdefault(stat, set()).add(m.get('number', 0))
+    pitching_milestones_reached = {stat: set() for stat in PITCHING_MILESTONES.keys()}
+    for stat, milestones in existing.get('pitching_milestones', {}).items():
+        for m in milestones:
+            pitching_milestones_reached.setdefault(stat, set()).add(m.get('number', 0))
+
+    new_milestones = 0
+
+    for year in years:
+        # Scrape batting for this year
+        time.sleep(3.05)
+        games = scrape_batting_game_log(player_id, year, scraper)
+
+        for game in games:
+            batting_totals['G'] = batting_totals.get('G', 0) + 1
+            for stat in BATTING_MILESTONES.keys():
+                game_value = 1 if stat == 'G' else game.get(stat, 0)
+                if game_value > 0:
+                    if stat != 'G':
+                        old_total = batting_totals[stat]
+                        batting_totals[stat] += game_value
+                        new_total = batting_totals[stat]
+                    else:
+                        old_total = batting_totals['G'] - 1
+                        new_total = batting_totals['G']
+                    for threshold in BATTING_MILESTONES[stat]:
+                        if old_total < threshold <= new_total and threshold not in batting_milestones_reached.get(stat, set()):
+                            batting_milestones_reached.setdefault(stat, set()).add(threshold)
+                            stat_name = STAT_NAMES.get(stat, stat)
+                            existing.setdefault('batting_milestones', {}).setdefault(stat, []).append({
+                                'number': threshold,
+                                'date': game.get('date_full', game.get('date', '')),
+                                'game_id': game.get('game_id', ''),
+                                'opponent': game.get('opponent', ''),
+                                'year': year,
+                                'milestone': f"Career {stat_name} #{threshold}",
+                            })
+                            new_milestones += 1
+                            if verbose:
+                                print(f"    New milestone: Career {stat_name} #{threshold}")
+
+        # Scrape pitching for this year
+        time.sleep(3.05)
+        pgames = scrape_pitching_game_log(player_id, year, scraper)
+        for game in pgames:
+            pitching_totals['G_P'] = pitching_totals.get('G_P', 0) + 1
+            for stat in PITCHING_MILESTONES.keys():
+                game_value = 1 if stat == 'G_P' else game.get(stat, 0)
+                if game_value > 0:
+                    if stat != 'G_P':
+                        old_total = pitching_totals[stat]
+                        pitching_totals[stat] += game_value
+                        new_total = pitching_totals[stat]
+                    else:
+                        old_total = pitching_totals['G_P'] - 1
+                        new_total = pitching_totals['G_P']
+                    for threshold in PITCHING_MILESTONES[stat]:
+                        if old_total < threshold <= new_total and threshold not in pitching_milestones_reached.get(stat, set()):
+                            pitching_milestones_reached.setdefault(stat, set()).add(threshold)
+                            stat_name = STAT_NAMES.get(stat, stat)
+                            existing.setdefault('pitching_milestones', {}).setdefault(stat, []).append({
+                                'number': threshold,
+                                'date': game.get('date_full', game.get('date', '')),
+                                'game_id': game.get('game_id', ''),
+                                'opponent': game.get('opponent', ''),
+                                'year': year,
+                                'milestone': f"Career {stat_name} #{threshold}",
+                            })
+                            new_milestones += 1
+
+    # Update career totals (same nested format as find_career_firsts)
+    existing['career_totals'] = {
+        'batting': {k: v for k, v in batting_totals.items() if v > 0},
+        'pitching': {k: v for k, v in pitching_totals.items() if v > 0},
+    }
+    if verbose and new_milestones:
+        print(f"    {new_milestones} new milestone(s) found")
+
+
 def scrape_career_firsts_for_players(
     player_ids: set[str],
     refresh: bool = False,
     delay: float = 3.05,
     verbose: bool = True,
-    player_names: dict[str, str] = None
+    player_names: dict[str, str] = None,
+    detail_verbose: bool = False
 ) -> dict:
     """
     Scrape career firsts for a set of players.
@@ -1304,6 +1408,8 @@ def scrape_career_firsts_for_players(
     consecutive_errors = 0
     max_consecutive_errors = 3  # Stop after 3 consecutive errors (likely rate limited)
 
+    current_year = datetime.now().year
+
     for i, player_id in enumerate(sorted(player_ids), 1):
         name = player_names.get(player_id, player_id)
         display_name = f"{name} ({player_id})" if name != player_id else player_id
@@ -1313,11 +1419,34 @@ def scrape_career_firsts_for_players(
                 print(f"[{i}/{total}] {display_name}: cached, skipping")
             continue
 
+        # Incremental update: if already cached, only scrape from last scraped year onward
+        existing = cache.get(player_id)
+        if refresh and existing and existing.get('career_totals'):
+            scraped_at = existing.get('scraped_at', '')
+            scraped_year = int(scraped_at[:4]) if scraped_at and len(scraped_at) >= 4 else 0
+            if scraped_year > 0:
+                # Scrape from scraped_year through current year (re-scrape scraped_year to catch full season)
+                years_to_scrape = list(range(scraped_year, current_year + 1))
+                if verbose:
+                    print(f"[{i}/{total}] {display_name}: incremental update ({scraped_year}-{current_year}, {len(years_to_scrape)} yr)...")
+                try:
+                    _incremental_update(player_id, existing, scraper, years_to_scrape, detail_verbose)
+                    existing['scraped_at'] = datetime.now().isoformat()
+                    cache[player_id] = existing
+                    save_career_firsts_cache(cache)
+                    consecutive_errors = 0
+                    if i < total:
+                        time.sleep(delay)
+                    continue
+                except Exception as e:
+                    if verbose:
+                        print(f"    Incremental failed ({e}), doing full scrape...")
+
         if verbose:
-            print(f"[{i}/{total}] Scraping {display_name}...")
+            print(f"[{i}/{total}] Scraping {display_name} (full)...")
 
         try:
-            firsts = find_career_firsts(player_id, scraper, verbose)
+            firsts = find_career_firsts(player_id, scraper, detail_verbose)
             cache[player_id] = firsts
 
             # Save after each player in case of interruption
