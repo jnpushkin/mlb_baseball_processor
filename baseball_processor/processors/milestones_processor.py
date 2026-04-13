@@ -222,6 +222,7 @@ class MilestonesProcessor(BaseProcessor):
             "Multi-SB Games": [],
             "4+ Walk Games": [],
             "Perfect Batting Games": [],
+            "Golden Sombreros": [],
             "4+ Run Games": [],
             "3+ Run Games": [],
             "2+ XBH Games": [],
@@ -327,6 +328,7 @@ class MilestonesProcessor(BaseProcessor):
             ("multi_steal_games", "Multi-SB Games", lambda x: f"{x.get('sb', 0)} SB - {batting_line(x)}"),
             ("four_walk_games", "4+ Walk Games", lambda x: f"{x.get('bb', 0)} BB - {batting_line(x)}"),
             ("perfect_batting_games", "Perfect Batting Games", lambda x: f"{x.get('hits', 0)} H, 0 K - {batting_line(x)}"),
+            ("golden_sombreros", "Golden Sombreros", lambda x: f"{x.get('hits', 0)}-{x.get('ab', 0)}, {x.get('so', 0)} K" + (f", {x.get('bb', 0)} BB" if x.get('bb', 0) else "")),
             ("four_run_games", "4+ Run Games", lambda x: f"{x.get('runs', 0)} R - {batting_line(x)}"),
             ("three_run_games", "3+ Run Games", lambda x: f"{x.get('runs', 0)} R - {batting_line(x)}"),
             ("hit_for_extra_bases", "2+ XBH Games", lambda x: f"{x.get('doubles', 0) + x.get('triples', 0) + x.get('home_runs', 0)} XBH - {batting_line(x)}"),
@@ -530,7 +532,7 @@ class MilestonesProcessor(BaseProcessor):
                 "5+ Hit Games", "4+ Hit Games", "3+ Hit Games",
                 "6+ RBI Games", "5+ RBI Games", "4+ RBI Games",
                 "Multi-2B Games", "Multi-3B Games", "Multi-SB Games",
-                "4+ Walk Games", "Perfect Batting Games",
+                "4+ Walk Games", "Perfect Batting Games", "Golden Sombreros",
                 "4+ Run Games", "3+ Run Games", "2+ XBH Games", "8+ Total Bases",
                 "Grand Slams"
             ]

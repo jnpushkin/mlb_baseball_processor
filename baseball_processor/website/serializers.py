@@ -500,7 +500,7 @@ class DataSerializer:
                     "5+ Hit Games", "4+ Hit Games", "3+ Hit Games",
                     "6+ RBI Games", "5+ RBI Games", "4+ RBI Games",
                     "Multi-2B Games", "Multi-3B Games", "Multi-SB Games",
-                    "4+ Walk Games", "Perfect Batting Games",
+                    "4+ Walk Games", "Perfect Batting Games", "Golden Sombreros",
                     "4+ Run Games", "3+ Run Games", "2+ XBH Games", "8+ Total Bases"
                 ]
 

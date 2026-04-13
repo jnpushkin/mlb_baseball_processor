@@ -3419,7 +3419,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
                                 <h3 className="section-title font-bold">{selectedPlayer.name}</h3>
                                 {ncaaCrossRef && ncaaCrossRef[selectedPlayer.id] && (
                                     <button onClick={() => { setSelectedPlayer(null); if (window.__navigateTab) window.__navigateTab('players', 'college'); }}
-                                        className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-white">College Stats →</button>
+                                        className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-white">Pre-MLB Stats →</button>
                                 )}
                             </div>
                             <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
@@ -3609,7 +3609,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
                                 <h3 className="section-title font-bold">{selectedPitcher.name}</h3>
                                 {ncaaCrossRef && ncaaCrossRef[selectedPitcher.id] && (
                                     <button onClick={() => { setSelectedPitcher(null); if (window.__navigateTab) window.__navigateTab('players', 'college'); }}
-                                        className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-white">College Stats →</button>
+                                        className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-white">Pre-MLB Stats →</button>
                                 )}
                             </div>
                             <button onClick={() => setSelectedPitcher(null)} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
@@ -3975,6 +3975,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
         'Leadoff HRs': { icon: '1️⃣', color: 'blue', category: 'batting' },
         'Inside-the-Park HRs': { icon: '🏃', color: 'emerald', category: 'batting' },
         'Pinch Hit HRs': { icon: '🎯', color: 'amber', category: 'batting' },
+        'Golden Sombreros': { icon: '🎩', color: 'slate', category: 'batting' },
         '10+ K Games': { icon: '🔥', color: 'indigo', category: 'pitching' },
         'Quality Starts': { icon: '✅', color: 'green', category: 'pitching' },
         '3 Strikeout Innings': { icon: '⚡', color: 'violet', category: 'pitching' },
@@ -4587,12 +4588,15 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
             const proStats = ncaa.pro_stats || {};
             const hasNCAA = (ncaaStats.G || 0) > 0;
             const stats = hasNCAA ? ncaaStats : proStats;
-            const college = (ncaa.ncaa_teams || []).join(', ');
-            const levels = (ncaa.levels || []);
-            const hasNCAALevel = levels.includes('NCAA');
+            const ncaaTeams = (ncaa.ncaa_teams || []).join(', ');
+            const proTeams = (ncaa.pro_teams || []).join(', ');
+            const rawLevels = (ncaa.levels || []);
+            const hasNCAALevel = rawLevels.includes('NCAA');
+            const levels = overrides.seenInMlb && !rawLevels.includes('MLB') ? [...rawLevels, 'MLB'] : rawLevels;
             const isPitcher = stats.is_pitcher || false;
             return {
-                college: college || (hasNCAALevel ? 'Unknown' : '—'),
+                college: ncaaTeams || (hasNCAALevel ? 'Unknown' : '—'),
+                proTeam: proTeams || '—',
                 levels: levels.join(', '),
                 source: hasNCAA ? 'NCAA' : 'MiLB',
                 G: stats.G || 0,
@@ -4615,12 +4619,15 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
             };
         };
 
-        // Players seen in both college and MLB games
+        // Players seen in both college/MiLB and MLB games
+        const usedEntries = new Set();
         allPlayers.forEach(p => {
             const pid = p.playerId;
-            if (pid && ncaaRef[pid] && !seen.has(pid)) {
+            const ncaa = pid && ncaaRef[pid];
+            if (ncaa && !seen.has(pid) && !usedEntries.has(ncaa)) {
                 seen.add(pid);
-                const ncaa = ncaaRef[pid];
+                usedEntries.add(ncaa);
+                if (ncaa.mlb_bref_id) seen.add(ncaa.mlb_bref_id);
                 matched.push(buildPlayerRow(ncaa, {
                     name: p.name,
                     playerId: pid,
@@ -4629,16 +4636,17 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
                 }));
             }
         });
-        // NCAA players who reached MLB but weren't at user's MLB games
+        // College/MiLB players who reached MLB but weren't at user's MLB games
         const notSeen = [];
         Object.entries(ncaaRef).forEach(([key, ncaa]) => {
-            if (seen.has(key)) return;
+            if (seen.has(key) || usedEntries.has(ncaa)) return;
             const levels = ncaa.levels || [];
-            if (!levels.includes('MLB') || !levels.includes('NCAA')) return;
+            if (!levels.includes('MLB') || (!levels.includes('NCAA') && !levels.includes('MiLB'))) return;
             if (ncaa.seen_in_mlb) return;
             const mlbBrefId = ncaa.mlb_bref_id || '';
             if (seen.has(mlbBrefId)) return;
             seen.add(key);
+            usedEntries.add(ncaa);
             if (mlbBrefId) seen.add(mlbBrefId);
             notSeen.push(buildPlayerRow(ncaa, {
                 name: ncaa.name || key,
@@ -4656,17 +4664,17 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
     }, [allPlayers, ncaaRef]);
 
     if (Object.keys(ncaaRef).length === 0) {
-        return <EmptyState icon="🎓" title="No College Data" message="Run the NCAA processor with --export-players to generate cross-reference data." />;
+        return <EmptyState icon="🎓" title="No College/MiLB Data" message="Run the NCAA processor with --export-players to generate cross-reference data." />;
     }
     if (seenPlayers.length === 0 && notSeenPlayers.length === 0) {
-        return <EmptyState icon="🎓" title="No College Matches" message="No players in your games were found in the NCAA processor data." />;
+        return <EmptyState icon="🎓" title="No Matches" message="No players in your games were found in the college/minor league data." />;
     }
 
     return (
         <div className="space-y-6">
             {seenPlayers.length > 0 && (
                 <DataTable
-                    title={`🎓 Seen in College & MLB (${seenPlayers.length} players)`}
+                    title={`🎓 Seen Pre-MLB & in MLB (${seenPlayers.length} players)`}
                     data={seenPlayers}
                     defaultSortKey="G"
                     columns={[
@@ -4682,12 +4690,13 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
                         )},
                         { key: 'mlbTeam', label: 'MLB Team' },
                         { key: 'college', label: 'College' },
+                        { key: 'proTeam', label: 'MiLB Team' },
                         { key: 'levels', label: 'Levels' },
                         { key: 'source', label: 'Stats From', render: (v) => (
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'NCAA' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>{v}</span>
                         )},
                         { key: 'G', label: 'G' },
-                        { key: 'statLine', label: 'College Stats', render: (v, r) => (
+                        { key: 'statLine', label: 'Pre-MLB Stats', render: (v, r) => (
                             <span className="font-mono text-sm">{v}</span>
                         )},
                         { key: 'websiteUrl', label: '', render: (v) => v ? <a href={v} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800 small-text font-medium">View on NCAA site →</a> : null },
@@ -4696,16 +4705,20 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
             )}
             {notSeenPlayers.length > 0 && (
                 <DataTable
-                    title={`🎓 Saw in College, Now in MLB (${notSeenPlayers.length} players)`}
+                    title={`🎓 Saw Pre-MLB, Now in MLB (${notSeenPlayers.length} players)`}
                     data={notSeenPlayers}
                     defaultSortKey="name"
                     defaultSortDirection="asc"
                     columns={[
                         { key: 'name', label: 'Player', render: (v, r) => r.playerId ? <PlayerLink playerId={r.playerId} name={v} /> : v },
                         { key: 'college', label: 'College' },
+                        { key: 'proTeam', label: 'MiLB Team' },
                         { key: 'levels', label: 'Levels' },
-                        { key: 'G', label: 'College G' },
-                        { key: 'statLine', label: 'College Stats', render: (v, r) => (
+                        { key: 'source', label: 'Stats From', render: (v) => (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'NCAA' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>{v}</span>
+                        )},
+                        { key: 'G', label: 'G' },
+                        { key: 'statLine', label: 'Pre-MLB Stats', render: (v, r) => (
                             <span className="font-mono text-sm">{v}</span>
                         )},
                         { key: 'websiteUrl', label: '', render: (v) => v ? <a href={v} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800 small-text font-medium">View on NCAA site →</a> : null },
@@ -5637,7 +5650,9 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
         const gid = game.gameId;
         if (!gid) return;
         badges[gid] = [];
-        const venue = game.venue || '';
+        const rawVenue = game.venue || '';
+        const matched = matchStadiumByName(rawVenue);
+        const venue = matched ? matched.name : rawVenue;
 
         // Initialize venue tracking
         if (venue && !venueTotals[venue]) {
@@ -8951,7 +8966,7 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
         { id: 'hitters', label: 'Hitters' },
         { id: 'pitchers', label: 'Pitchers' },
         ...((data.playersWithoutStats || []).length > 0 ? [{ id: 'nostats', label: 'No Stats' }] : []),
-        ...(hasCollegeData ? [{ id: 'college', label: 'College' }] : []),
+        ...(hasCollegeData ? [{ id: 'college', label: 'College & MiLB' }] : []),
         { id: 'leaders', label: 'Leaderboards' },
     ];
 

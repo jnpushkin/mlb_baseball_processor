@@ -367,6 +367,12 @@ def scrape_leaderboard(stat_key: str, config: dict, scraper=None, top_n: int = 2
         if '(' in player_name:
             player_name = player_name.split('(')[0].strip()
         player_name = player_name.rstrip('+*')
+        # Fix encoding issues (non-breaking spaces, mojibake from double-encoding)
+        player_name = player_name.replace('\xa0', ' ')
+        try:
+            player_name = player_name.encode('latin-1').decode('utf-8')
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            pass
 
         # Get stat value from third cell
         stat_text = cells[2].get_text(strip=True).replace(',', '')

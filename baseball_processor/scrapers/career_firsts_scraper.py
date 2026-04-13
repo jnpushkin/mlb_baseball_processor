@@ -852,8 +852,14 @@ def find_career_firsts(player_id: str, scraper=None, verbose: bool = True, store
 
     # Scan years from debut to present
     has_pitching_data = None  # Unknown until we check
+    pre_year_batting = {}
+    pre_year_pitching = {}
 
     for year in range(debut_year, current_year + 1):
+        # Snapshot totals before processing current year (for incremental baseline)
+        if year == current_year:
+            pre_year_batting = batting_totals.copy()
+            pre_year_pitching = pitching_totals.copy()
         # Batting game log
         time.sleep(3.05)  # BREF rate limit: 20 requests/minute = 3+ seconds between
         games = scrape_batting_game_log(player_id, year, scraper)
@@ -993,10 +999,16 @@ def find_career_firsts(player_id: str, scraper=None, verbose: bool = True, store
                 has_pitching_data = False
                 pitching_needed.clear()
 
-    # Store final career totals
+    # Store final career totals and prior-year baseline for incremental updates
     result['career_totals'] = {
         'batting': {k: v for k, v in batting_totals.items() if v > 0},
         'pitching': {k: v for k, v in pitching_totals.items() if v > 0},
+    }
+    # Baseline = totals at end of previous year (for incremental updates to start from)
+    result['last_full_year'] = current_year - 1
+    result['career_totals_baseline'] = {
+        'batting': {k: v for k, v in pre_year_batting.items() if v > 0},
+        'pitching': {k: v for k, v in pre_year_pitching.items() if v > 0},
     }
 
     # Clean up empty milestone lists
@@ -1288,11 +1300,22 @@ def _incremental_update(player_id, existing, scraper, years, verbose=False):
 
     Modifies `existing` in place with updated totals and any new milestones.
     """
-    # Reconstruct totals from cached career_totals
-    ct = existing.get('career_totals', {})
-    # Handle both flat and nested {'batting': {...}, 'pitching': {...}} formats
-    bat_ct = ct.get('batting', ct) if isinstance(ct.get('batting'), dict) else ct
-    pit_ct = ct.get('pitching', ct) if isinstance(ct.get('pitching'), dict) else ct
+    # Choose starting totals to avoid double-counting
+    baseline = existing.get('career_totals_baseline', {})
+    last_full_year = existing.get('last_full_year', 0)
+    first_scrape_year = years[0] if years else 0
+
+    if baseline and last_full_year and last_full_year >= first_scrape_year - 1:
+        # Baseline covers through year before our scrape range — use it
+        bat_ct = baseline.get('batting', {})
+        pit_ct = baseline.get('pitching', {})
+    else:
+        # No baseline — career_totals doesn't include any of the years we're scraping
+        # (caller verified this before calling us)
+        ct = existing.get('career_totals', {})
+        bat_ct = ct.get('batting', ct) if isinstance(ct.get('batting'), dict) else ct
+        pit_ct = ct.get('pitching', ct) if isinstance(ct.get('pitching'), dict) else ct
+
     batting_totals = {stat: (bat_ct.get(stat) or 0) for stat in BATTING_MILESTONES.keys()}
     pitching_totals = {stat: (pit_ct.get(stat) or 0) for stat in PITCHING_MILESTONES.keys()}
 
@@ -1375,6 +1398,11 @@ def _incremental_update(player_id, existing, scraper, years, verbose=False):
         'batting': {k: v for k, v in batting_totals.items() if v > 0},
         'pitching': {k: v for k, v in pitching_totals.items() if v > 0},
     }
+    # Preserve baseline for future incremental updates
+    # Baseline = totals at end of year before the first year we scraped
+    if baseline:
+        existing['career_totals_baseline'] = baseline
+        existing['last_full_year'] = last_full_year
     if verbose and new_milestones:
         print(f"    {new_milestones} new milestone(s) found")
 
@@ -1419,16 +1447,27 @@ def scrape_career_firsts_for_players(
                 print(f"[{i}/{total}] {display_name}: cached, skipping")
             continue
 
-        # Incremental update: if already cached, only scrape from last scraped year onward
+        # Incremental update: if already cached, only scrape years we don't have
         existing = cache.get(player_id)
         if refresh and existing and existing.get('career_totals'):
             scraped_at = existing.get('scraped_at', '')
             scraped_year = int(scraped_at[:4]) if scraped_at and len(scraped_at) >= 4 else 0
-            if scraped_year > 0:
-                # Scrape from scraped_year through current year (re-scrape scraped_year to catch full season)
-                years_to_scrape = list(range(scraped_year, current_year + 1))
+
+            if existing.get('career_totals_baseline') and existing.get('last_full_year'):
+                # Has baseline — use it (safe even if scraped in current year)
+                start_year = existing['last_full_year'] + 1
+            elif scraped_year > 0 and scraped_year < current_year:
+                # No baseline but scraped in a prior year — career_totals is safe to use
+                # Scrape from scraped_year (to catch rest of that season) through current year
+                start_year = scraped_year
+            else:
+                # Scraped in current year with no baseline — can't safely do incremental
+                start_year = 0
+
+            if start_year > 0:
+                years_to_scrape = list(range(start_year, current_year + 1))
                 if verbose:
-                    print(f"[{i}/{total}] {display_name}: incremental update ({scraped_year}-{current_year}, {len(years_to_scrape)} yr)...")
+                    print(f"[{i}/{total}] {display_name}: incremental update ({start_year}-{current_year}, {len(years_to_scrape)} yr)...")
                 try:
                     _incremental_update(player_id, existing, scraper, years_to_scrape, detail_verbose)
                     existing['scraped_at'] = datetime.now().isoformat()
@@ -1439,11 +1478,15 @@ def scrape_career_firsts_for_players(
                         time.sleep(delay)
                     continue
                 except Exception as e:
+                    import traceback
                     if verbose:
-                        print(f"    Incremental failed ({e}), doing full scrape...")
+                        print(f"    Incremental failed: {e}")
+                        traceback.print_exc()
+                        print(f"    Falling back to full scrape...")
 
         if verbose:
-            print(f"[{i}/{total}] Scraping {display_name} (full)...")
+            reason = "not in cache" if not existing else "no career_totals" if not existing.get('career_totals') else "scraped this year, no baseline"
+            print(f"[{i}/{total}] Scraping {display_name} (full — {reason})...")
 
         try:
             firsts = find_career_firsts(player_id, scraper, detail_verbose)

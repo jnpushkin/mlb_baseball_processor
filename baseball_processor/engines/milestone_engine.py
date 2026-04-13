@@ -30,7 +30,7 @@ class MilestoneEngine:
             'three_hit_games', 'eight_k_games', 'four_walk_games', 'perfect_batting_games',
             'three_run_games', 'four_run_games', 'hit_for_extra_bases', 'three_total_bases_games',
             'multi_double_games', 'save_games', 'win_games', 'efficient_starts',
-            'no_walk_starts', 'scoreless_relief', 'high_k_low_bb',
+            'no_walk_starts', 'scoreless_relief', 'high_k_low_bb', 'golden_sombreros',
         ]
         for key in ALL_DETECTION_KEYS:
             ms.setdefault(key, [])
@@ -109,6 +109,16 @@ class MilestoneEngine:
 
     def process_batting_milestones(self):
         ms = self.game_data['milestone_stats']
+        # Clear batting keys to avoid duplicates if called multiple times
+        batting_keys = [
+            'three_hr_games', 'multi_hr_games', 'cycles', 'five_hit_games',
+            'four_hit_games', 'three_hit_games', 'six_rbi_games', 'five_rbi_games',
+            'four_rbi_games', 'multi_double_games', 'multi_triple_games', 'multi_steal_games',
+            'four_walk_games', 'perfect_batting_games', 'golden_sombreros',
+            'four_run_games', 'three_run_games', 'hit_for_extra_bases', 'three_total_bases_games',
+        ]
+        for key in batting_keys:
+            ms[key] = []
         basic = self.game_data.get("basic_info", {})
         game_id = self.game_data.get("game_id", "")
         game_date = basic.get("date_yyyymmdd", "")
@@ -226,6 +236,10 @@ class MilestoneEngine:
         if bb >= 4:
             ms['four_walk_games'].append(stats)
 
+        # Golden sombrero (4+ K)
+        if so >= 4:
+            ms['golden_sombreros'].append(stats)
+
         # Perfect batting (3+ H, 0 K)
         if h >= 3 and so == 0 and ab > 0:
             ms['perfect_batting_games'].append(stats)
@@ -326,6 +340,17 @@ class MilestoneEngine:
 
     def process_pitching_milestones(self):
         ms = self.game_data['milestone_stats']
+        # Clear pitching keys to avoid duplicates if called multiple times
+        pitching_keys = [
+            'complete_games', 'shutouts', 'no_hitters', 'perfect_games',
+            'quality_starts', 'fifteen_k_games', 'twelve_k_games', 'ten_k_games',
+            'eight_k_games', 'maddux_games', 'seven_inning_shutouts', 'low_hit_cg',
+            'one_hitters', 'two_hitters', 'cgso_no_walks', 'immaculate_inning_pitchers',
+            'dominant_starts', 'save_games', 'win_games', 'efficient_starts',
+            'no_walk_starts', 'scoreless_relief', 'high_k_low_bb',
+        ]
+        for key in pitching_keys:
+            ms[key] = []
         linescore = self.game_data.get("linescore", {})
         basic = self.game_data.get("basic_info", {})
         game_id = self.game_data.get("game_id", "")
