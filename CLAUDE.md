@@ -58,6 +58,15 @@ ABS challenge data sourced from Baseball Savant gamefeed API (more complete than
 
 **Important:** Baseball Reference rate limits aggressively. Use 3.1+ second delays between requests. On 429 errors, wait 15 minutes before retrying. MLB Stats API has no rate limit.
 
+### Scoring Change Check
+```bash
+python3 -m baseball_processor.scrapers.scoring_check              # Check all games
+python3 -m baseball_processor.scrapers.scoring_check --recent 30  # Last 30 days only
+python3 -m baseball_processor.scrapers.scoring_check --game SFN202604070  # Specific game
+python3 -m baseball_processor.scrapers.scoring_check --verbose    # Show all comparisons
+```
+Compares cached BREF box scores against MLB API boxscores to detect scoring changes. Prints re-download URLs for games with mismatches. Note: older games (pre-2019) may show false positives due to name matching differences between BREF and MLB API.
+
 ## Key Files
 - `baseball_processor/main.py` - Main pipeline, auto-enrichment, career scraping triggers
 - `baseball_processor/engines/milestone_engine.py` - Milestone detection (26 types)
@@ -69,6 +78,7 @@ ABS challenge data sourced from Baseball Savant gamefeed API (more complete than
 - `baseball_processor/scrapers/career_firsts_scraper.py` - Career milestone scraper
 - `baseball_processor/scrapers/all_time_leaders_scraper.py` - All-time leaderboard scraper
 - `baseball_processor/scrapers/pitch_data_scraper.py` - MLB API enrichment scraper
+- `baseball_processor/scrapers/scoring_check.py` - BREF vs API scoring change detector
 
 ## Architecture Notes
 - Milestone detection uses tiered pattern (only highest tier reported per category)

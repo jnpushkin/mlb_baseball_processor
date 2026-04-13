@@ -5443,6 +5443,27 @@ const Dashboard = ({ data, onTabChange }) => {
         return [...(data.allTimePassings || [])].sort((a, b) => a.new_rank - b.new_rank).slice(0, 5);
     }, [data.allTimePassings]);
 
+    // Recent games
+    const recentGames = useMemo(() => {
+        return [...(data.games || [])].sort((a, b) => toSortDate(b.date).localeCompare(toSortDate(a.date))).slice(0, 5);
+    }, [data.games]);
+
+    // Statcast highlights
+    const statcastHighlights = useMemo(() => {
+        const pg = data.playerGames || [];
+        const pit = data.pitcherGames || [];
+        const hardest = pg.filter(p => p.maxExitVelo).sort((a, b) => b.maxExitVelo - a.maxExitVelo)[0];
+        const longest = pg.filter(p => p.maxDistance).sort((a, b) => b.maxDistance - a.maxDistance)[0];
+        const fastest = pit.filter(p => p.maxSpeed).sort((a, b) => b.maxSpeed - a.maxSpeed)[0];
+        const spinniest = pit.filter(p => p.avgSpinRate).sort((a, b) => b.avgSpinRate - a.avgSpinRate)[0];
+        return [
+            hardest && { label: 'Hardest Hit', value: `${hardest.maxExitVelo} mph`, player: hardest.name, playerId: hardest.playerId, sub: hardest.maxDistance ? `${hardest.maxDistance} ft` : null },
+            longest && { label: 'Longest Ball', value: `${longest.maxDistance} ft`, player: longest.name, playerId: longest.playerId, sub: longest.maxExitVelo ? `${longest.maxExitVelo} mph` : null },
+            fastest && { label: 'Fastest Pitch', value: `${fastest.maxSpeed} mph`, player: fastest.name, playerId: fastest.playerId },
+            spinniest && { label: 'Most Spin', value: `${spinniest.avgSpinRate.toLocaleString()} rpm`, player: spinniest.name, playerId: spinniest.playerId },
+        ].filter(Boolean);
+    }, [data.playerGames, data.pitcherGames]);
+
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -5451,6 +5472,50 @@ const Dashboard = ({ data, onTabChange }) => {
                 <StatCard title="Milestones" value={data.milestones?.length || 0} color="purple" onClick={() => onTabChange && onTabChange('milestones')} />
                 <StatCard title="Teams" value={data.teams?.length || 0} color="orange" onClick={() => onTabChange && onTabChange('venues')} />
             </div>
+
+            {/* Recent Games + Statcast Records */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {recentGames.length > 0 && (
+                    <div className="bg-white rounded-lg border border-slate-200 p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="subsection-title font-bold text-slate-900">Recent Games</h3>
+                            <button onClick={() => onTabChange && onTabChange('gamelog')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
+                        </div>
+                        <div className="space-y-3">
+                            {recentGames.map((g, i) => (
+                                <div key={`rg-${g.gameId || i}`} className="flex items-center justify-between py-2 border-b last:border-0">
+                                    <div>
+                                        <span className="body-text font-semibold text-slate-900">{g.score}</span>
+                                        <span className="small-text text-slate-500 ml-2">{g.venue}</span>
+                                    </div>
+                                    <span className="small-text text-slate-400">{g.date}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                {statcastHighlights.length > 0 && (
+                    <div className="bg-white rounded-lg border border-slate-200 p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="subsection-title font-bold text-slate-900">Statcast Records</h3>
+                            <button onClick={() => { if (window.__navigateTab) window.__navigateTab('players', 'statcast'); }} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {statcastHighlights.map((h, i) => (
+                                <div key={`sc-${i}`} className="bg-slate-50 rounded-lg p-3">
+                                    <div className="small-text text-slate-500 mb-1">{h.label}</div>
+                                    <div className="text-lg font-bold font-mono text-slate-900">{h.value}</div>
+                                    <div className="small-text text-slate-600 mt-1">
+                                        <PlayerLink playerId={h.playerId} name={h.player} />
+                                        {h.sub && <span className="text-slate-400 ml-1">({h.sub})</span>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-lg border border-slate-200 p-6"><MilestoneChart milestones={data.milestones} /></div>
                 <div className="bg-white rounded-lg border border-slate-200 p-6"><TeamChart teams={data.teams} /></div>
@@ -8968,6 +9033,7 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
         ...((data.playersWithoutStats || []).length > 0 ? [{ id: 'nostats', label: 'No Stats' }] : []),
         ...(hasCollegeData ? [{ id: 'college', label: 'College & MiLB' }] : []),
         { id: 'leaders', label: 'Leaderboards' },
+        { id: 'statcast', label: 'Statcast' },
     ];
 
     return (
@@ -8978,6 +9044,7 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
             {view === 'nostats' && <NoStatsPlayers data={data} />}
             {view === 'college' && <CollegePlayersView data={data} onViewPlayer={handleViewPlayer} />}
             {view === 'leaders' && (data.players?.length ? <Leaderboards data={data} /> : <EmptyState icon="🏅" title="No Player Data" message="No player statistics available." />)}
+            {view === 'statcast' && <StatcastView playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} games={data.games || []} />}
         </div>
     );
 };
@@ -8997,9 +9064,136 @@ const MilestonesTabV2 = ({ data, onTabChange, initialSubtab, onSubtabChange }) =
     );
 };
 
-// Venues tab: absorbs Calendar
+// Statcast leaderboards view
+const StatcastView = ({ playerGames, pitcherGames, games }) => {
+    const gameInfo = useMemo(() => {
+        const venueMap = {};
+        const dateMap = {};
+        (games || []).forEach(g => {
+            if (g.gameId) {
+                venueMap[g.gameId] = g.venue || '';
+                dateMap[g.gameId] = g.date || '';
+            }
+        });
+        return { venueMap, dateMap };
+    }, [games]);
+
+    const hardestHits = useMemo(() => {
+        return (playerGames || [])
+            .filter(pg => pg.maxExitVelo)
+            .map(pg => ({
+                name: pg.name, playerId: pg.playerId, team: pg.team,
+                maxExitVelo: pg.maxExitVelo, maxDistance: pg.maxDistance || 0,
+                date: pg.date || gameInfo.dateMap[pg.gameId] || '', venue: gameInfo.venueMap[pg.gameId] || '',
+            }))
+            .sort((a, b) => b.maxExitVelo - a.maxExitVelo);
+    }, [playerGames, gameInfo]);
+
+    const longestBalls = useMemo(() => {
+        return (playerGames || [])
+            .filter(pg => pg.maxDistance && pg.maxDistance > 0)
+            .map(pg => ({
+                name: pg.name, playerId: pg.playerId, team: pg.team,
+                maxDistance: pg.maxDistance, maxExitVelo: pg.maxExitVelo || 0,
+                date: pg.date || gameInfo.dateMap[pg.gameId] || '', venue: gameInfo.venueMap[pg.gameId] || '',
+            }))
+            .sort((a, b) => b.maxDistance - a.maxDistance);
+    }, [playerGames, gameInfo]);
+
+    const fastestPitches = useMemo(() => {
+        return (pitcherGames || [])
+            .filter(pg => pg.maxSpeed)
+            .map(pg => ({
+                name: pg.name, playerId: pg.playerId, team: pg.team,
+                maxSpeed: pg.maxSpeed, totalPitches: pg.totalPitches || 0,
+                date: pg.date || gameInfo.dateMap[pg.gameId] || '', venue: gameInfo.venueMap[pg.gameId] || '',
+            }))
+            .sort((a, b) => b.maxSpeed - a.maxSpeed);
+    }, [pitcherGames, gameInfo]);
+
+    const highestSpin = useMemo(() => {
+        return (pitcherGames || [])
+            .filter(pg => pg.avgSpinRate && pg.avgSpinRate > 0)
+            .map(pg => ({
+                name: pg.name, playerId: pg.playerId, team: pg.team,
+                avgSpinRate: pg.avgSpinRate, maxSpeed: pg.maxSpeed || 0, totalPitches: pg.totalPitches || 0,
+                date: pg.date || gameInfo.dateMap[pg.gameId] || '', venue: gameInfo.venueMap[pg.gameId] || '',
+            }))
+            .sort((a, b) => b.avgSpinRate - a.avgSpinRate);
+    }, [pitcherGames, gameInfo]);
+
+    const evCount = (playerGames || []).filter(pg => pg.maxExitVelo).length;
+    const pitchCount = (pitcherGames || []).filter(pg => pg.maxSpeed).length;
+    const playerCol = { key: 'name', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> };
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm text-slate-600">
+                Exit velo data available for <strong>{evCount.toLocaleString()}</strong> of {(playerGames || []).length.toLocaleString()} batter games.
+                {' '}Pitch data available for <strong>{pitchCount.toLocaleString()}</strong> of {(pitcherGames || []).length.toLocaleString()} pitcher games.
+            </div>
+            <DataTable title="Hardest Hit Balls" data={hardestHits} defaultSortKey="maxExitVelo" persistKey="statcast-ev" columns={[
+                playerCol, { key: 'team', label: 'Team' },
+                { key: 'maxExitVelo', label: 'Exit Velo', render: v => <span className="font-mono">{v} mph</span> },
+                { key: 'maxDistance', label: 'Distance', render: v => v ? <span className="font-mono">{v} ft</span> : '—' },
+                { key: 'date', label: 'Date' }, { key: 'venue', label: 'Venue' },
+            ]} />
+            <DataTable title="Longest Batted Balls" data={longestBalls} defaultSortKey="maxDistance" persistKey="statcast-dist" columns={[
+                playerCol, { key: 'team', label: 'Team' },
+                { key: 'maxDistance', label: 'Distance', render: v => <span className="font-mono">{v} ft</span> },
+                { key: 'maxExitVelo', label: 'Exit Velo', render: v => v ? <span className="font-mono">{v} mph</span> : '—' },
+                { key: 'date', label: 'Date' }, { key: 'venue', label: 'Venue' },
+            ]} />
+            <DataTable title="Fastest Pitches" data={fastestPitches} defaultSortKey="maxSpeed" persistKey="statcast-speed" columns={[
+                playerCol, { key: 'team', label: 'Team' },
+                { key: 'maxSpeed', label: 'Speed', render: v => <span className="font-mono">{v} mph</span> },
+                { key: 'totalPitches', label: 'Pitches' },
+                { key: 'date', label: 'Date' }, { key: 'venue', label: 'Venue' },
+            ]} />
+            <DataTable title="Highest Avg Spin Rates" data={highestSpin} defaultSortKey="avgSpinRate" persistKey="statcast-spin" columns={[
+                playerCol, { key: 'team', label: 'Team' },
+                { key: 'avgSpinRate', label: 'Spin Rate', render: v => <span className="font-mono">{v.toLocaleString()} rpm</span> },
+                { key: 'maxSpeed', label: 'Speed', render: v => v ? <span className="font-mono">{v} mph</span> : '—' },
+                { key: 'totalPitches', label: 'Pitches' },
+                { key: 'date', label: 'Date' }, { key: 'venue', label: 'Venue' },
+            ]} />
+        </div>
+    );
+};
+
+// Venues tab: absorbs Calendar + Statcast
 const VenuesTab = ({ data, initialSubtab, onSubtabChange }) => {
     const [view, setView] = useState(initialSubtab || 'map');
+
+    const enhancedStadiums = useMemo(() => {
+        const gamesByVenue = {};
+        (data.games || []).forEach(g => {
+            const v = g.venue;
+            if (!v) return;
+            if (!gamesByVenue[v]) gamesByVenue[v] = [];
+            gamesByVenue[v].push(g);
+        });
+        return (data.stadiums || []).map(s => {
+            const venueGames = gamesByVenue[s.stadium] || [];
+            let totalRuns = 0, totalMargin = 0, parsed = 0;
+            venueGames.forEach(g => {
+                const m = (g.score || '').match(/(\d+)\s*-\s*(\d+)/);
+                if (m) {
+                    const r1 = parseInt(m[1]), r2 = parseInt(m[2]);
+                    totalRuns += r1 + r2;
+                    totalMargin += Math.abs(r1 - r2);
+                    parsed++;
+                }
+            });
+            return {
+                ...s,
+                hrsPerGame: s.games > 0 ? Math.round(s.homeRunsSeen / s.games * 10) / 10 : 0,
+                runsPerGame: parsed > 0 ? Math.round(totalRuns / parsed * 10) / 10 : 0,
+                avgMargin: parsed > 0 ? Math.round(totalMargin / parsed * 10) / 10 : 0,
+            };
+        });
+    }, [data.stadiums, data.games]);
+
     return (
         <div>
             <SubNav tabs={[
@@ -9015,10 +9209,12 @@ const VenuesTab = ({ data, initialSubtab, onSubtabChange }) => {
                         { key: 'homeRecord', label: 'Home' }, { key: 'awayRecord', label: 'Away' },
                         { key: 'oneRunGames', label: '1-Run' }, { key: 'blowouts', label: 'Blowouts' }
                     ]} />
-                    <DataTable title="Stadiums" data={data.stadiums || []} defaultSortKey="games" persistKey="stadiums" columns={[
+                    <DataTable title="Stadiums" data={enhancedStadiums} defaultSortKey="games" persistKey="stadiums" columns={[
                         { key: 'stadium', label: 'Stadium' }, { key: 'games', label: 'G' }, { key: 'firstVisit', label: 'First' },
                         { key: 'lastVisit', label: 'Last' }, { key: 'span', label: 'Span' }, { key: 'avgAttendance', label: 'Avg Att.' },
-                        { key: 'homeRunsSeen', label: 'HRs' }, { key: 'hitsSeen', label: 'Hits' }, { key: 'strikeoutsSeen', label: 'SOs' },
+                        { key: 'homeRunsSeen', label: 'HRs' }, { key: 'hrsPerGame', label: 'HR/G' },
+                        { key: 'runsPerGame', label: 'R/G' }, { key: 'avgMargin', label: 'Avg Margin' },
+                        { key: 'hitsSeen', label: 'Hits' }, { key: 'strikeoutsSeen', label: 'SOs' },
                         { key: 'teamsSeen', label: 'Teams' }, { key: 'homeTeamRecord', label: 'Home Record' }
                     ]} />
                 </div>
