@@ -174,8 +174,8 @@ def _refresh_all_time_leaders_if_stale(max_age_days=7):
     info(f"🔄 Updating all-time leaders (last updated {age_days:.0f} days ago)...")
     try:
         result = subprocess.run(
-            ['python3', '-m', 'baseball_processor.scrapers.all_time_leaders_scraper', '--delay', '3.1'],
-            timeout=600
+            ['python3', '-m', 'baseball_processor.scrapers.all_time_leaders_scraper', '--source', 'api'],
+            timeout=120
         )
         if result.returncode == 0:
             info("  ✅ All-time leaders updated")

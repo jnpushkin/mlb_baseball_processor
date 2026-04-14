@@ -2,12 +2,12 @@
   "stat": "SO",
   "stat_name": "Strikeouts",
   "type": "pitching",
-  "last_updated": "2026-04-05",
+  "last_updated": "2026-04-13",
   "leaders": [
     {
       "rank": 1,
       "player_id": "ryanno01",
-      "name": "Nolan Ryan",
+      "name": "Nolan Ryan Jr.",
       "value": 5714
     },
     {
@@ -62,13 +62,13 @@
       "rank": 10,
       "player_id": "johnswa01",
       "name": "Walter Johnson",
-      "value": 3509
+      "value": 3508
     },
     {
       "rank": 11,
       "player_id": "scherma01",
       "name": "Max Scherzer",
-      "value": 3493
+      "value": 3498
     },
     {
       "rank": 12,
@@ -91,7 +91,7 @@
     {
       "rank": 15,
       "player_id": "martipe02",
-      "name": "Pedro Martínez",
+      "name": "Pedro Mart\u00ednez",
       "value": 3154
     },
     {
@@ -182,7 +182,7 @@
       "rank": 30,
       "player_id": "salech01",
       "name": "Chris Sale",
-      "value": 2588
+      "value": 2601
     },
     {
       "rank": 31,
@@ -217,19 +217,19 @@
     {
       "rank": 36,
       "player_id": "vazquja01",
-      "name": "Javier Vázquez",
+      "name": "Javier Vazquez",
       "value": 2536
     },
     {
       "rank": 37,
       "player_id": "colonba01",
-      "name": "Bartolo Colón",
+      "name": "Bartolo Colon",
       "value": 2535
     },
     {
       "rank": 38,
       "player_id": "hernafe02",
-      "name": "Félix Hernández",
+      "name": "F\u00e9lix Hern\u00e1ndez",
       "value": 2524
     },
     {
@@ -242,7 +242,7 @@
       "rank": 40,
       "player_id": "mathech01",
       "name": "Christy Mathewson",
-      "value": 2507
+      "value": 2502
     },
     {
       "rank": 41,
@@ -445,7 +445,7 @@
     {
       "rank": 74,
       "player_id": "martide01",
-      "name": "Dennis Martínez",
+      "name": "Dennis Martinez",
       "value": 2149
     },
     {
@@ -510,14 +510,14 @@
     },
     {
       "rank": 85,
-      "player_id": "lynnla01",
-      "name": "Lance Lynn",
+      "player_id": "reuscri01",
+      "name": "Rick Reuschel",
       "value": 2015
     },
     {
       "rank": 85,
-      "player_id": "reuscri01",
-      "name": "Rick Reuschel",
+      "player_id": "lynnla01",
+      "name": "Lance Lynn",
       "value": 2015
     },
     {
@@ -570,27 +570,27 @@
     },
     {
       "rank": 95,
+      "player_id": "gausmke01",
+      "name": "Kevin Gausman",
+      "value": 1980
+    },
+    {
+      "rank": 96,
       "player_id": "clarkjo01",
       "name": "John Clarkson",
       "value": 1978
     },
     {
-      "rank": 95,
+      "rank": 96,
       "player_id": "santaer01",
       "name": "Ervin Santana",
       "value": 1978
     },
     {
-      "rank": 97,
-      "player_id": "hernali01",
-      "name": "Liván Hernández",
-      "value": 1976
-    },
-    {
       "rank": 98,
-      "player_id": "gausmke01",
-      "name": "Kevin Gausman",
-      "value": 1975
+      "player_id": "hernali01",
+      "name": "Livan Hernandez",
+      "value": 1976
     },
     {
       "rank": 99,
@@ -638,7 +638,7 @@
       "rank": 106,
       "player_id": "grayso01",
       "name": "Sonny Gray",
-      "value": 1933
+      "value": 1935
     },
     {
       "rank": 107,
@@ -668,7 +668,7 @@
       "rank": 111,
       "player_id": "nolaaa01",
       "name": "Aaron Nola",
-      "value": 1892
+      "value": 1895
     },
     {
       "rank": 112,
@@ -680,31 +680,31 @@
       "rank": 113,
       "player_id": "nichoki01",
       "name": "Kid Nichols",
-      "value": 1881
+      "value": 1873
     },
     {
-      "rank": 114,
+      "rank": 113,
+      "player_id": "degroja01",
+      "name": "Jacob deGrom",
+      "value": 1873
+    },
+    {
+      "rank": 115,
       "player_id": "buehrma01",
       "name": "Mark Buehrle",
       "value": 1870
     },
     {
-      "rank": 115,
+      "rank": 116,
       "player_id": "corbipa01",
       "name": "Patrick Corbin",
-      "value": 1860
-    },
-    {
-      "rank": 115,
-      "player_id": "gonzagi01",
-      "name": "Gio Gonzalez",
-      "value": 1860
+      "value": 1863
     },
     {
       "rank": 117,
-      "player_id": "degroja01",
-      "name": "Jacob deGrom",
-      "value": 1858
+      "player_id": "gonzagi01",
+      "name": "Gio Gonzalez",
+      "value": 1860
     },
     {
       "rank": 118,
@@ -774,15 +774,15 @@
     },
     {
       "rank": 129,
-      "player_id": "galvipu01",
-      "name": "Pud Galvin",
-      "value": 1807
-    },
-    {
-      "rank": 130,
       "player_id": "mullato01",
       "name": "Tony Mullane",
       "value": 1803
+    },
+    {
+      "rank": 130,
+      "player_id": "galvipu01",
+      "name": "Pud Galvin",
+      "value": 1799
     },
     {
       "rank": 131,
@@ -805,7 +805,7 @@
     {
       "rank": 134,
       "player_id": "sanchan01",
-      "name": "Aníbal Sánchez",
+      "name": "An\u00edbal S\u00e1nchez",
       "value": 1774
     },
     {
@@ -828,15 +828,15 @@
     },
     {
       "rank": 138,
-      "player_id": "niekrjo01",
-      "name": "Joe Niekro",
-      "value": 1747
+      "player_id": "rayro02",
+      "name": "Robbie Ray",
+      "value": 1752
     },
     {
       "rank": 139,
-      "player_id": "rayro02",
-      "name": "Robbie Ray",
-      "value": 1745
+      "player_id": "niekrjo01",
+      "name": "Joe Niekro",
+      "value": 1747
     },
     {
       "rank": 140,
@@ -919,7 +919,7 @@
     {
       "rank": 153,
       "player_id": "jimenub01",
-      "name": "Ubaldo Jiménez",
+      "name": "Ubaldo Jim\u00e9nez",
       "value": 1720
     },
     {
@@ -937,7 +937,7 @@
     {
       "rank": 156,
       "player_id": "bendech01",
-      "name": "Charles Bender",
+      "name": "Chief Bender",
       "value": 1711
     },
     {
@@ -1049,10 +1049,10 @@
       "value": 1667
     },
     {
-      "rank": 174,
+      "rank": 175,
       "player_id": "weyhigu01",
       "name": "Gus Weyhing",
-      "value": 1667
+      "value": 1665
     },
     {
       "rank": 176,
@@ -1116,12 +1116,6 @@
     },
     {
       "rank": 186,
-      "player_id": "garcifr03",
-      "name": "Freddy García",
-      "value": 1621
-    },
-    {
-      "rank": 186,
       "player_id": "powelja01",
       "name": "Jack Powell",
       "value": 1621
@@ -1136,6 +1130,12 @@
       "rank": 186,
       "player_id": "weaveje02",
       "name": "Jered Weaver",
+      "value": 1621
+    },
+    {
+      "rank": 186,
+      "player_id": "garcifr03",
+      "name": "Freddy Garcia",
       "value": 1621
     },
     {
@@ -1177,7 +1177,7 @@
     {
       "rank": 196,
       "player_id": "rijojo01",
-      "name": "José Rijo",
+      "name": "Jose Rijo",
       "value": 1606
     },
     {
@@ -1195,7 +1195,7 @@
     {
       "rank": 199,
       "player_id": "deleojo01",
-      "name": "José DeLeón",
+      "name": "Jose DeLeon",
       "value": 1594
     },
     {

@@ -166,6 +166,34 @@ STAT_TO_FILENAME = {
 }
 
 
+# MLB API stat configurations for all-time leaders
+# Maps our stat key -> (api_group, api_sortStat, stat_name)
+API_STAT_CONFIG = {
+    # Batting
+    'H':       ('hitting',  'hits',          'Hits'),
+    'HR':      ('hitting',  'homeRuns',      'Home Runs'),
+    'RBI':     ('hitting',  'rbi',           'RBIs'),
+    'R':       ('hitting',  'runs',          'Runs'),
+    '2B':      ('hitting',  'doubles',       'Doubles'),
+    '3B':      ('hitting',  'triples',       'Triples'),
+    'SB':      ('hitting',  'stolenBases',   'Stolen Bases'),
+    'BB':      ('hitting',  'baseOnBalls',   'Walks'),
+    'TB':      ('hitting',  'totalBases',    'Total Bases'),
+    'G':       ('hitting',  'gamesPlayed',   'Games'),
+    # Pitching
+    'SV':      ('pitching', 'saves',         'Saves'),
+    'W':       ('pitching', 'wins',          'Wins'),
+    'SO':      ('pitching', 'strikeOuts',    'Strikeouts'),
+    'IP':      ('pitching', 'inningsPitched','Innings Pitched'),
+    'G_pitch': ('pitching', 'gamesPitched',  'Games (Pitching)'),
+    'GS':      ('pitching', 'gamesStarted',  'Games Started'),
+    'CG':      ('pitching', 'completeGames', 'Complete Games'),
+    'SHO':     ('pitching', 'shutouts',      'Shutouts'),
+}
+
+MLB_API_BASE = 'https://statsapi.mlb.com/api/v1'
+
+
 def get_project_root() -> Path:
     """Get the project root directory."""
     current = Path(__file__).resolve()
@@ -405,6 +433,160 @@ def scrape_leaderboard(stat_key: str, config: dict, scraper=None, top_n: int = 2
     }
 
 
+def _load_mlb_to_bref_map():
+    """Load Chadwick Register for MLB ID -> BREF ID mapping."""
+    import csv
+    mapping = {}
+    register_dir = get_project_root() / 'register-master' / 'data'
+    if not register_dir.exists():
+        return mapping
+    for csv_file in register_dir.glob('people-*.csv'):
+        try:
+            with open(csv_file, 'r', encoding='utf-8') as f:
+                for row in csv.DictReader(f):
+                    mlb_id = row.get('key_mlbam', '').strip()
+                    bref_id = row.get('key_bbref', '').strip()
+                    if mlb_id and bref_id:
+                        try:
+                            mapping[int(mlb_id)] = bref_id
+                        except ValueError:
+                            pass
+        except (IOError, csv.Error):
+            continue
+    return mapping
+
+
+def scrape_leaderboard_api(stat_key: str, top_n: int = 200, verbose: bool = True,
+                           bref_map: dict = None) -> Optional[dict]:
+    """Scrape a single all-time leaderboard from the MLB API.
+
+    Returns data in the same format as scrape_leaderboard() for compatibility.
+    """
+    config = API_STAT_CONFIG.get(stat_key)
+    if not config:
+        if verbose:
+            print(f"    No API config for stat: {stat_key}")
+        return None
+
+    group, sort_stat, stat_name = config
+    stat_type = 'batting' if group == 'hitting' else 'pitching'
+
+    url = f'{MLB_API_BASE}/stats?stats=career&group={group}&sortStat={sort_stat}&order=desc&limit={top_n}&sportId=1'
+    resp = get_with_retry(_session, url, timeout=30)
+    if resp.status_code != 200:
+        if verbose:
+            print(f"    API error: {resp.status_code}")
+        return None
+
+    data = resp.json()
+    stats = data.get('stats', [])
+    if not stats:
+        return None
+
+    splits = stats[0].get('splits', [])
+    if not splits:
+        return None
+
+    if bref_map is None:
+        bref_map = _load_mlb_to_bref_map()
+
+    leaders = []
+    rank = 0
+    prev_value = None
+    for split in splits:
+        player = split.get('player', {})
+        stat = split.get('stat', {})
+        mlb_id = player.get('id')
+        name = player.get('fullName', '')
+
+        value = stat.get(sort_stat)
+        if value is None:
+            continue
+
+        # Handle IP (stored as "1234.0" string in API)
+        if sort_stat == 'inningsPitched':
+            try:
+                value = int(float(value))
+            except (ValueError, TypeError):
+                continue
+        else:
+            try:
+                value = int(value)
+            except (ValueError, TypeError):
+                continue
+
+        # Compute rank (same value = same rank)
+        if value != prev_value:
+            rank = len(leaders) + 1
+        prev_value = value
+
+        bref_id = bref_map.get(mlb_id, f'mlb_{mlb_id}') if mlb_id else ''
+
+        leaders.append({
+            'rank': rank,
+            'player_id': bref_id,
+            'name': name,
+            'value': value,
+        })
+
+    if verbose:
+        print(f"    {len(leaders)} leaders from API")
+
+    return {
+        'stat': stat_key,
+        'stat_name': stat_name,
+        'type': stat_type,
+        'last_updated': datetime.now().strftime('%Y-%m-%d'),
+        'leaders': leaders,
+    }
+
+
+def scrape_all_leaderboards_api(
+    stat_type: str = 'all',
+    specific_stat: str = None,
+    top_n: int = 200,
+    verbose: bool = True,
+) -> dict:
+    """Scrape all leaderboards from MLB API (fast, no rate limits)."""
+    if verbose:
+        print("Loading Chadwick Register for player ID mapping...")
+    bref_map = _load_mlb_to_bref_map()
+    if verbose:
+        print(f"  {len(bref_map)} MLB -> BREF mappings loaded")
+
+    stats_to_scrape = []
+    all_stat_keys = list(API_STAT_CONFIG.keys())
+
+    if specific_stat:
+        if specific_stat in API_STAT_CONFIG:
+            stats_to_scrape = [specific_stat]
+        else:
+            print(f"Unknown stat: {specific_stat}")
+            return {}
+    else:
+        batting_keys = [k for k, v in API_STAT_CONFIG.items() if v[0] == 'hitting']
+        pitching_keys = [k for k, v in API_STAT_CONFIG.items() if v[0] == 'pitching']
+        if stat_type in ('all', 'batting'):
+            stats_to_scrape.extend(batting_keys)
+        if stat_type in ('all', 'pitching'):
+            stats_to_scrape.extend(pitching_keys)
+
+    results = {}
+    total = len(stats_to_scrape)
+
+    for i, stat_key in enumerate(stats_to_scrape, 1):
+        config = API_STAT_CONFIG[stat_key]
+        if verbose:
+            print(f"\n[{i}/{total}] {config[2]} ({config[0]})")
+
+        data = scrape_leaderboard_api(stat_key, top_n, verbose, bref_map)
+        if data and data.get('leaders'):
+            results[stat_key] = data
+            save_leaderboard(stat_key, data, verbose)
+
+    return results
+
+
 def save_leaderboard(stat_key: str, data: dict, verbose: bool = True):
     """Save leaderboard data to JSON file."""
     output_dir = get_output_dir()
@@ -555,24 +737,40 @@ Available stats:
         help="Suppress progress messages"
     )
 
+    parser.add_argument(
+        '--source',
+        choices=['api', 'bref'],
+        default='api',
+        help="Data source: 'api' (MLB API, fast, default) or 'bref' (Baseball Reference, slower)"
+    )
+
     args = parser.parse_args()
     verbose = not args.quiet
 
     if verbose:
         print("="*60)
-        print("MLB All-Time Leaders Scraper")
+        print(f"MLB All-Time Leaders Scraper (source: {args.source})")
         print("="*60)
         print(f"\nOutput directory: {get_output_dir()}")
-        print(f"Delay between requests: {args.delay}s")
+        if args.source == 'bref':
+            print(f"Delay between requests: {args.delay}s")
         print(f"Top N leaders: {args.top}")
 
-    results = scrape_all_leaderboards(
-        stat_type=args.type,
-        specific_stat=args.stat,
-        delay=args.delay,
-        top_n=args.top,
-        verbose=verbose
-    )
+    if args.source == 'api':
+        results = scrape_all_leaderboards_api(
+            stat_type=args.type,
+            specific_stat=args.stat,
+            top_n=args.top,
+            verbose=verbose,
+        )
+    else:
+        results = scrape_all_leaderboards(
+            stat_type=args.type,
+            specific_stat=args.stat,
+            delay=args.delay,
+            top_n=args.top,
+            verbose=verbose
+        )
 
     if verbose:
         print(f"\n{'='*60}")
