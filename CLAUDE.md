@@ -58,6 +58,13 @@ ABS challenge data sourced from Baseball Savant gamefeed API (more complete than
 
 **Important:** Baseball Reference rate limits aggressively. Use 3.1+ second delays between requests. On 429 errors, wait 15 minutes before retrying. MLB Stats API has no rate limit.
 
+### Web Server (Add Games from Browser/Phone)
+```bash
+python3 -m baseball_processor.server              # Start on port 5555
+python3 -m baseball_processor.server --port 8080   # Custom port
+```
+Opens a web UI at `http://localhost:5555` (or `http://<mac-ip>:5555` from phone on same wifi). Browse dates, tap a game to add it, auto-processes and deploys.
+
 ### Add Game via MLB API
 ```bash
 python3 -m baseball_processor.scrapers.add_game --date 2026-04-07 --teams PHI SF  # By date + teams
