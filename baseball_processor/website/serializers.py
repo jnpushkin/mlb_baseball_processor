@@ -715,6 +715,12 @@ class DataSerializer:
                 continue
         return pitchers
     
+    # Team code normalization (ATH->OAK, etc.)
+    TEAM_ALIASES = {'FLA': 'MIA', 'FLO': 'MIA', 'MON': 'WAS'}
+
+    def _normalize_team(self, code):
+        return self.TEAM_ALIASES.get(code, code) if code else code
+
     def _serialize_player_games(self, games):
         """Create game-by-game hitting records with footer stats merged in."""
         player_games = []
@@ -744,9 +750,9 @@ class DataSerializer:
                         sortable_date = f"{date_str[0:4]}-{date_str[4:6]}-{date_str[6:8]}"
                 
                 for side in ['home', 'away']:
-                    team = basic_info.get(f'{side}_team_code', '')
-                    opponent = basic_info.get('away_team_code' if side == 'home' else 'home_team_code', '')
-                    
+                    team = self._normalize_team(basic_info.get(f'{side}_team_code', ''))
+                    opponent = self._normalize_team(basic_info.get('away_team_code' if side == 'home' else 'home_team_code', ''))
+
                     for player in game.get('batting', {}).get(side, []):
                         player_id = player.get('player_id', '')
                         if not player_id:
@@ -907,9 +913,9 @@ class DataSerializer:
                         sortable_date = f"{date_str[0:4]}-{date_str[4:6]}-{date_str[6:8]}"
                 
                 for side in ['home', 'away']:
-                    team = basic_info.get(f'{side}_team_code', '')
-                    opponent = basic_info.get('away_team_code' if side == 'home' else 'home_team_code', '')
-                    
+                    team = self._normalize_team(basic_info.get(f'{side}_team_code', ''))
+                    opponent = self._normalize_team(basic_info.get('away_team_code' if side == 'home' else 'home_team_code', ''))
+
                     for p_idx, pitcher in enumerate(game.get('pitching', {}).get(side, [])):
                         player_id = pitcher.get('player_id', '')
                         if not player_id:
@@ -1079,6 +1085,16 @@ class DataSerializer:
                 raw_game = raw_games_by_id.get(game_id)
                 if raw_game:
                     game_obj.update(self._extract_game_details(raw_game))
+                    # Override team codes from raw data (more accurate than DataFrame)
+                    bi = raw_game.get('basic_info', {})
+                    if bi.get('away_team_code'):
+                        game_obj['awayTeam'] = bi['away_team_code']
+                        if bi['away_team_code'] == 'ATH' and 'OAK' in game_obj['score']:
+                            game_obj['score'] = game_obj['score'].replace('OAK', 'ATH')
+                    if bi.get('home_team_code'):
+                        game_obj['homeTeam'] = bi['home_team_code']
+                        if bi['home_team_code'] == 'ATH' and 'OAK' in game_obj['score']:
+                            game_obj['score'] = game_obj['score'].replace('OAK', 'ATH')
                 
                 games.append(game_obj)
             except (KeyError, TypeError, ValueError) as e:
@@ -1545,7 +1561,7 @@ class DataSerializer:
         # Team code aliases - map common abbreviations to Retrosheet codes
         TEAM_CODE_ALIASES = {
             # Relocated/renamed teams
-            'ATH': 'OAK',  # Athletics (Sacramento 2025) -> Oakland Athletics
+            # ATH is kept separate from OAK — different era/city
             'FLA': 'MIA',  # Florida Marlins -> Miami Marlins
             'FLO': 'MIA',  # Florida Marlins alternate code
             'MON': 'WAS',  # Montreal Expos -> Washington Nationals
@@ -1851,15 +1867,22 @@ class DataSerializer:
                 continue
 
             career = player_data.get('career_highs', {})
+            all_season_highs = player_data.get('season_highs', {})
             # Get season from date (MM/DD/YYYY)
             date = pg.get('date', '')
             season = date.split('/')[-1] if '/' in date else ''
-            season_data = player_data.get('season_highs', {}).get(season, {})
+            season_data = all_season_highs.get(season, {})
+
+            # Compute max of all OTHER seasons (for distinguishing new vs tied career high)
+            prior_seasons_max = {}
+            for s_year, s_data in all_season_highs.items():
+                if s_year == season or not s_data:
+                    continue
+                for stat_key, stat_val in s_data.items():
+                    if stat_val is not None:
+                        prior_seasons_max[stat_key] = max(prior_seasons_max.get(stat_key, 0), stat_val)
 
             career_high_stats = []
-            tied_career_stats = []
-            season_high_stats = []
-            tied_season_stats = []
 
             for field, api_key in hitting_map.items():
                 val = pg.get(field, 0) or 0
@@ -1868,45 +1891,23 @@ class DataSerializer:
                 display = hitting_display.get(api_key, api_key)
 
                 c_high = career.get(api_key)
-                if c_high is not None and val > 0:
-                    if val > c_high:
+                if c_high is not None and val >= c_high:
+                    prior_max = prior_seasons_max.get(api_key, 0)
+                    if val > prior_max:
                         career_high_stats.append(display)
-                    elif val == c_high:
-                        tied_career_stats.append(display)
-
-                s_high = season_data.get(api_key)
-                if s_high is not None and val > 0:
-                    if val > s_high:
-                        season_high_stats.append(display)
-                    elif val == s_high and val > 0:
-                        tied_season_stats.append(display)
 
             # Also compute totalBases for comparison
             tb = (pg.get('h', 0) - pg.get('doubles', 0) - pg.get('triples', 0) - pg.get('hr', 0)) + \
                  pg.get('doubles', 0) * 2 + pg.get('triples', 0) * 3 + pg.get('hr', 0) * 4
             if tb > 0:
                 c_tb = career.get('totalBases')
-                if c_tb is not None:
-                    if tb > c_tb:
+                if c_tb is not None and tb >= c_tb:
+                    prior_tb = prior_seasons_max.get('totalBases', 0)
+                    if tb > prior_tb:
                         career_high_stats.append('TB')
-                    elif tb == c_tb:
-                        tied_career_stats.append('TB')
-                s_tb = season_data.get('totalBases')
-                if s_tb is not None:
-                    if tb > s_tb:
-                        season_high_stats.append('TB')
-                    elif tb == s_tb and tb > 0:
-                        tied_season_stats.append('TB')
 
-            if career_high_stats or tied_career_stats or season_high_stats or tied_season_stats:
-                if career_high_stats:
-                    pg['careerHighs'] = career_high_stats
-                if tied_career_stats:
-                    pg['tiedCareerHighs'] = tied_career_stats
-                if season_high_stats:
-                    pg['seasonHighs'] = season_high_stats
-                if tied_season_stats:
-                    pg['tiedSeasonHighs'] = tied_season_stats
+            if career_high_stats:
+                pg['careerHighs'] = career_high_stats
                 annotated += 1
 
         # Pitching
@@ -1920,14 +1921,20 @@ class DataSerializer:
             if not career:
                 continue
 
+            all_pitch_seasons = player_data.get('season_highs_pitching', {})
             date = pg.get('date', '')
             season = date.split('/')[-1] if '/' in date else ''
-            season_data = player_data.get('season_highs_pitching', {}).get(season, {})
+
+            # Compute max of all OTHER seasons for pitching
+            prior_pitch_max = {}
+            for s_year, s_data in all_pitch_seasons.items():
+                if s_year == season or not s_data:
+                    continue
+                for stat_key, stat_val in s_data.items():
+                    if stat_val is not None and stat_key != 'inningsPitched':
+                        prior_pitch_max[stat_key] = max(prior_pitch_max.get(stat_key, 0), stat_val)
 
             career_high_stats = []
-            tied_career_stats = []
-            season_high_stats = []
-            tied_season_stats = []
 
             for field, api_key in pitching_map.items():
                 val = pg.get(field, 0) or 0
@@ -1935,26 +1942,16 @@ class DataSerializer:
                     continue
                 display = pitching_display.get(api_key, api_key)
 
-                # For pitching, only K is "higher = better" for career high detection
-                # H, ER, BB, HR are bad stats — skip career high for those
                 if api_key != 'strikeOuts':
                     continue
 
                 c_high = career.get(api_key)
-                if c_high is not None:
-                    if val > c_high:
+                if c_high is not None and val >= c_high:
+                    prior_max = prior_pitch_max.get(api_key, 0)
+                    if val > prior_max:
                         career_high_stats.append(display)
-                    elif val == c_high:
-                        tied_career_stats.append(display)
 
-                s_high = season_data.get(api_key)
-                if s_high is not None:
-                    if val > s_high:
-                        season_high_stats.append(display)
-                    elif val == s_high and val > 0:
-                        tied_season_stats.append(display)
-
-            # IP (outs -> IP comparison)
+            # IP
             outs = pg.get('outs', 0)
             if outs > 0:
                 ip_numeric = outs / 3
@@ -1962,28 +1959,21 @@ class DataSerializer:
                 if c_ip:
                     parts = str(c_ip).split('.')
                     c_ip_num = int(parts[0]) + (int(parts[1]) / 3 if len(parts) > 1 else 0)
-                    if ip_numeric > c_ip_num:
-                        career_high_stats.append('IP')
-                    elif abs(ip_numeric - c_ip_num) < 0.01:
-                        tied_career_stats.append('IP')
-                s_ip = season_data.get('inningsPitched')
-                if s_ip:
-                    parts = str(s_ip).split('.')
-                    s_ip_num = int(parts[0]) + (int(parts[1]) / 3 if len(parts) > 1 else 0)
-                    if ip_numeric > s_ip_num:
-                        season_high_stats.append('IP')
-                    elif abs(ip_numeric - s_ip_num) < 0.01:
-                        tied_season_stats.append('IP')
+                    if ip_numeric >= c_ip_num:
+                        prior_ip_max = 0
+                        for s_year, s_data in all_pitch_seasons.items():
+                            if s_year == season or not s_data:
+                                continue
+                            s_ip = s_data.get('inningsPitched')
+                            if s_ip:
+                                p = str(s_ip).split('.')
+                                s_ip_num = int(p[0]) + (int(p[1]) / 3 if len(p) > 1 else 0)
+                                prior_ip_max = max(prior_ip_max, s_ip_num)
+                        if ip_numeric > prior_ip_max:
+                            career_high_stats.append('IP')
 
-            if career_high_stats or tied_career_stats or season_high_stats or tied_season_stats:
-                if career_high_stats:
-                    pg['careerHighs'] = career_high_stats
-                if tied_career_stats:
-                    pg['tiedCareerHighs'] = tied_career_stats
-                if season_high_stats:
-                    pg['seasonHighs'] = season_high_stats
-                if tied_season_stats:
-                    pg['tiedSeasonHighs'] = tied_season_stats
+            if career_high_stats:
+                pg['careerHighs'] = career_high_stats
                 annotated += 1
 
         if annotated > 0:

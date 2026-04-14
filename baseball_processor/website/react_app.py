@@ -445,11 +445,11 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
 
     const gameData = useMemo(() => {
         if (!game) return null;
-        
+
         // Get all players/pitchers from this game
         const gamePlayers = playerGames.filter(pg => pg.gameId === game.gameId);
         const gamePitchers = pitcherGames.filter(pg => pg.gameId === game.gameId);
-        
+
         // Separate by team
         const homeHitters = gamePlayers.filter(p => p.team === game.homeTeam && (p.pa > 0 || p.ab > 0)).sort((a, b) => b.pa - a.pa);
         const awayHitters = gamePlayers.filter(p => p.team === game.awayTeam && (p.pa > 0 || p.ab > 0)).sort((a, b) => b.pa - a.pa);
@@ -520,16 +520,22 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
 
     if (!game || !gameData) return null;
 
+    const CareerHighBadges = ({ data }) => {
+        if (!data.careerHighs?.length) return null;
+        return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">Career-high {data.careerHighs.join(', ')}</span>;
+    };
+
     const HitterRow = ({ player }) => {
         const annotations = gameData.playerAnnotations[player.playerId] || [];
         const isHardestHit = gameData.hardestHit?.playerId === player.playerId;
         return (
         <tr className="hover:bg-slate-50">
             <td className="px-3 py-2">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap">
                     <PlayerLink playerId={player.playerId} name={player.name} />
                     {annotations.length > 0 && <span title={annotations.join(', ')} className="text-amber-500 text-xs">⭐</span>}
                     {isHardestHit && <span title={`Hardest hit: ${gameData.hardestHit.velo} mph`} className="text-red-500 text-xs">💪</span>}
+                    <CareerHighBadges data={player} />
                 </div>
             </td>
             <td className="px-2 py-2 text-center">{player.ab || 0}</td>
@@ -551,11 +557,11 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
         const annotations = gameData.playerAnnotations[pitcher.playerId] || [];
         const isFastest = gameData.fastestPitch?.playerId === pitcher.playerId;
         const isMostKs = gameData.mostKs?.playerId === pitcher.playerId && pitcher.so >= 6;
-        
+
         return (
             <tr className="hover:bg-slate-50">
                 <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <PlayerLink playerId={pitcher.playerId} name={pitcher.name} />
                         {decision && (
                             <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
@@ -569,6 +575,7 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
                         {annotations.length > 0 && <span title={annotations.join(', ')} className="text-amber-500 text-xs">⭐</span>}
                         {isFastest && <span title={`Fastest pitch: ${gameData.fastestPitch.speed} mph`} className="text-red-500 text-xs">🔥</span>}
                         {isMostKs && <span title={`Game-high ${pitcher.so} strikeouts`} className="text-orange-500 text-xs">🔥</span>}
+                        <CareerHighBadges data={pitcher} />
                     </div>
                 </td>
                 <td className="px-2 py-2 text-center font-semibold">{ip}</td>
@@ -1447,7 +1454,7 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick, career
             const isSpring = g.gameType === 'spring' || g.gameType === 'exhibition';
             if (isSpring) return false;
             const hr = g.hr || 0, h = g.h || 0, rbi = g.rbi || 0, sb = g.sb || 0, r = g.r || 0;
-            return hr >= 2 || h >= 3 || (hr >= 1 && h >= 2) || (hr >= 1 && rbi >= 3) || rbi >= 4 || sb >= 2 || r >= 4;
+            return hr >= 2 || h >= 3 || (hr >= 1 && h >= 2) || (hr >= 1 && rbi >= 3) || rbi >= 4 || sb >= 2 || r >= 4 || g.careerHighs?.length;
         }).map(g => {
             const hr = g.hr || 0, h = g.h || 0, rbi = g.rbi || 0, sb = g.sb || 0, r = g.r || 0, bb = g.bb || 0;
             // Build compact batting line
@@ -1470,11 +1477,12 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick, career
             else if (rbi >= 4) highlight = { label: `${rbi} RBI`, color: 'bg-blue-100 text-blue-700' };
             else if (hr >= 1 && rbi >= 3) highlight = { label: `HR, ${rbi} RBI`, color: 'bg-orange-100 text-orange-700' };
             else if (hr >= 1 && h >= 2) highlight = { label: `${h}-hit, HR`, color: 'bg-orange-100 text-orange-700' };
+            else if (g.careerHighs?.length) highlight = { label: `Career-high ${g.careerHighs.join(', ')}`, color: 'bg-purple-100 text-purple-700' };
             else if (r >= 4) highlight = { label: `${r} runs`, color: 'bg-sky-100 text-sky-700' };
             else if (sb >= 2) highlight = { label: `${sb} SB`, color: 'bg-violet-100 text-violet-700' };
             else if (rbi >= 4) highlight = { label: `${rbi} RBI`, color: 'bg-blue-100 text-blue-700' };
             // Score for sorting (best games first)
-            const score = hr * 4 + h * 1.5 + rbi * 2 + r + sb * 2;
+            const score = hr * 4 + h * 1.5 + rbi * 2 + r + sb * 2 + (g.careerHighs ? 5 : 0);
             return { ...g, line, highlight, score };
         }).sort((a, b) => b.score - a.score);
     }, [gamesForPlayer]);
@@ -1668,7 +1676,12 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick, career
                                         const isHR = game.hr > 0;
                                         return (
                                             <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 cursor-pointer ${isHR ? 'bg-orange-50' : isMultiHit ? 'bg-green-50' : ''}`} onClick={() => onGameClick && onGameClick(game.gameId)}>
-                                                <td className="px-3 py-1.5 whitespace-nowrap font-medium text-xs">{game.date}</td>
+                                                <td className="px-3 py-1.5 whitespace-nowrap font-medium text-xs">
+                                                    <div className="flex items-center gap-1">
+                                                        {game.date}
+                                                        {game.careerHighs?.length > 0 && <span className="px-1 py-0.5 rounded text-[9px] font-semibold bg-purple-100 text-purple-700" title={`Career-high ${game.careerHighs.join(', ')}`}>CH</span>}
+                                                    </div>
+                                                </td>
                                                 <td className="px-3 py-1.5"><button className="text-blue-600 hover:underline text-xs" onClick={(e) => { e.stopPropagation(); setOpponentFilter(opponentFilter === game.opponent ? null : game.opponent); }}>{game.opponent}</button></td>
                                                 <td className="px-3 py-1.5">{game.ab}</td>
                                                 <td className={`px-3 py-1.5 ${isMultiHit ? 'font-bold text-green-600' : ''}`}>{game.h}</td>
@@ -1949,7 +1962,12 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, care
                                         const isQS = parseFloat(game.ip) >= 6 && game.er <= 3;
                                         return (
                                             <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 cursor-pointer ${isWin ? 'bg-green-50' : isQS ? 'bg-blue-50' : ''}`} onClick={() => onGameClick && onGameClick(game.gameId)}>
-                                                <td className="px-3 py-1.5 whitespace-nowrap font-medium text-xs">{game.date}</td>
+                                                <td className="px-3 py-1.5 whitespace-nowrap font-medium text-xs">
+                                                    <div className="flex items-center gap-1">
+                                                        {game.date}
+                                                        {game.careerHighs?.length > 0 && <span className="px-1 py-0.5 rounded text-[9px] font-semibold bg-purple-100 text-purple-700" title={`Career-high ${game.careerHighs.join(', ')}`}>CH</span>}
+                                                    </div>
+                                                </td>
                                                 <td className="px-3 py-1.5"><button className="text-blue-600 hover:underline text-xs" onClick={(e) => { e.stopPropagation(); setOpponentFilter(opponentFilter === game.opponent ? null : game.opponent); }}>{game.opponent}</button></td>
                                                 <td className="px-3 py-1.5 font-medium">{game.ip}</td>
                                                 <td className="px-3 py-1.5">{game.h}</td>
@@ -6636,7 +6654,7 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
 const MLB_DIVISIONS = {
     'AL East': ['BAL', 'BOS', 'NYA', 'TBA', 'TOR'],
     'AL Central': ['CHA', 'CLE', 'DET', 'KCA', 'MIN'],
-    'AL West': ['ANA', 'HOU', 'OAK', 'SEA', 'TEX'],
+    'AL West': ['ANA', 'HOU', 'ATH', 'SEA', 'TEX'],
     'NL East': ['ATL', 'MIA', 'NYN', 'PHI', 'WAS'],
     'NL Central': ['CHN', 'CIN', 'MIL', 'PIT', 'SLN'],
     'NL West': ['ARI', 'COL', 'LAN', 'SDN', 'SFN'],
@@ -6649,7 +6667,7 @@ const STADIUM_TO_DIVISION_CODE = {
     'STL': 'SLN', 'CHC': 'CHN', 'WSH': 'WAS', 'WSN': 'WAS', 'FLA': 'MIA',
     // Pass through codes that already match
     'BAL': 'BAL', 'BOS': 'BOS', 'TOR': 'TOR', 'CLE': 'CLE', 'DET': 'DET',
-    'MIN': 'MIN', 'HOU': 'HOU', 'OAK': 'OAK', 'SEA': 'SEA', 'TEX': 'TEX',
+    'MIN': 'MIN', 'HOU': 'HOU', 'OAK': 'ATH', 'ATH': 'ATH', 'SEA': 'SEA', 'TEX': 'TEX',
     'ATL': 'ATL', 'MIA': 'MIA', 'PHI': 'PHI', 'CIN': 'CIN', 'MIL': 'MIL',
     'PIT': 'PIT', 'ARI': 'ARI', 'COL': 'COL',
 };
@@ -6660,7 +6678,7 @@ const TEAM_CODE_TO_NAME = {
     'TBA': 'Tampa Bay Rays', 'TOR': 'Toronto Blue Jays', 'CHA': 'Chicago White Sox',
     'CLE': 'Cleveland Guardians', 'DET': 'Detroit Tigers', 'KCA': 'Kansas City Royals',
     'MIN': 'Minnesota Twins', 'ANA': 'Los Angeles Angels', 'HOU': 'Houston Astros',
-    'OAK': 'Oakland Athletics', 'SEA': 'Seattle Mariners', 'TEX': 'Texas Rangers',
+    'OAK': 'Oakland Athletics', 'ATH': 'Athletics', 'SEA': 'Seattle Mariners', 'TEX': 'Texas Rangers',
     'ATL': 'Atlanta Braves', 'MIA': 'Miami Marlins', 'NYN': 'New York Mets',
     'PHI': 'Philadelphia Phillies', 'WAS': 'Washington Nationals', 'CHN': 'Chicago Cubs',
     'CIN': 'Cincinnati Reds', 'MIL': 'Milwaukee Brewers', 'PIT': 'Pittsburgh Pirates',
@@ -6677,7 +6695,7 @@ const TEAM_CODE_TO_NAME = {
 // Team code aliases - map common abbreviations to Retrosheet codes for tracking
 const TEAM_CODE_ALIASES = {
     // Relocated/renamed teams
-    'ATH': 'OAK',  // Athletics (Sacramento 2025) -> Oakland Athletics
+    'OAK': 'ATH',  // Oakland Athletics -> Athletics (Sacramento 2025+)
     'FLA': 'MIA',  // Florida Marlins -> Miami Marlins
     'FLO': 'MIA',  // Florida Marlins alternate code
     'MON': 'WAS',  // Montreal Expos -> Washington Nationals
