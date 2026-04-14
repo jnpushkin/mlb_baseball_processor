@@ -58,6 +58,23 @@ ABS challenge data sourced from Baseball Savant gamefeed API (more complete than
 
 **Important:** Baseball Reference rate limits aggressively. Use 3.1+ second delays between requests. On 429 errors, wait 15 minutes before retrying. MLB Stats API has no rate limit.
 
+### Add Game via MLB API
+```bash
+python3 -m baseball_processor.scrapers.add_game --date 2026-04-07 --teams PHI SF  # By date + teams
+python3 -m baseball_processor.scrapers.add_game --gamepk 823235                   # By game PK
+python3 -m baseball_processor.scrapers.add_game --date 2026-04-12                 # List all games on date
+python3 -m baseball_processor.scrapers.add_game --date 2026-04-12 --teams SF BAL --force  # Overwrite existing
+```
+Adds a game directly from the MLB API — no BREF HTML needed. Instant, no rate limits. Output is identical to BREF-parsed games. Run the processor afterward to include in website.
+
+### Download BREF HTML Backups
+```bash
+python3 -m baseball_processor.scrapers.download_bref           # Download missing HTMLs (last 30 days)
+python3 -m baseball_processor.scrapers.download_bref --all     # Check all API-sourced games
+python3 -m baseball_processor.scrapers.download_bref --dry-run # Preview without downloading
+```
+Automatically downloads BREF HTML box scores for API-sourced games that are >24 hours old and don't already have an HTML file. Respects BREF rate limits (3.2s between requests).
+
 ### Scoring Change Check
 ```bash
 python3 -m baseball_processor.scrapers.scoring_check              # Check all games
@@ -66,6 +83,14 @@ python3 -m baseball_processor.scrapers.scoring_check --game SFN202604070  # Spec
 python3 -m baseball_processor.scrapers.scoring_check --verbose    # Show all comparisons
 ```
 Compares cached BREF box scores against MLB API boxscores to detect scoring changes. Prints re-download URLs for games with mismatches. Note: older games (pre-2019) may show false positives due to name matching differences between BREF and MLB API.
+
+### Career Highs
+```bash
+python3 -m baseball_processor.scrapers.career_highs_scraper                # Scrape all players (~1.3 hr first run)
+python3 -m baseball_processor.scrapers.career_highs_scraper --player adamewi01  # One player
+python3 -m baseball_processor.scrapers.career_highs_scraper --refresh      # Re-scrape current season only
+```
+Fetches career game logs from MLB API to compute per-season and career highs for all players. Cached in `cache/career_highs.json`. Used by the serializer to annotate playerGames/pitcherGames with career/season high flags.
 
 ## Key Files
 - `baseball_processor/main.py` - Main pipeline, auto-enrichment, career scraping triggers
@@ -79,6 +104,9 @@ Compares cached BREF box scores against MLB API boxscores to detect scoring chan
 - `baseball_processor/scrapers/all_time_leaders_scraper.py` - All-time leaderboard scraper
 - `baseball_processor/scrapers/pitch_data_scraper.py` - MLB API enrichment scraper
 - `baseball_processor/scrapers/scoring_check.py` - BREF vs API scoring change detector
+- `baseball_processor/scrapers/career_highs_scraper.py` - Career/season high detection via MLB API game logs
+- `baseball_processor/scrapers/add_game.py` - Add games directly from MLB API (no BREF HTML needed)
+- `baseball_processor/scrapers/download_bref.py` - Auto-download BREF HTML backups for API-sourced games
 
 ## Architecture Notes
 - Milestone detection uses tiered pattern (only highest tier reported per category)

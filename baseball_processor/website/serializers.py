@@ -423,6 +423,9 @@ class DataSerializer:
             "generatedAt": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
         }
 
+        # Annotate player/pitcher games with career/season high flags
+        self._annotate_career_highs(json_data)
+
         counts = [
             f"Summary: {len(json_data['summary'])}",
             f"Milestones: {len(json_data['milestones'])}",
@@ -1805,6 +1808,186 @@ class DataSerializer:
             "companions": result,
             "gameCompanions": game_companions
         }
+
+    def _annotate_career_highs(self, json_data):
+        """Annotate playerGames and pitcherGames with career/season high flags."""
+        from pathlib import Path
+        cache_path = Path(__file__).parent.parent.parent / 'cache' / 'career_highs.json'
+        if not cache_path.exists():
+            return
+        try:
+            highs_cache = json.load(open(cache_path))
+        except (json.JSONDecodeError, IOError):
+            return
+        if not highs_cache:
+            return
+
+        # Mapping from serialized field names to API stat names
+        hitting_map = {
+            'h': 'hits', 'hr': 'homeRuns', 'rbi': 'rbi', 'r': 'runs',
+            'bb': 'baseOnBalls', 'sb': 'stolenBases', 'doubles': 'doubles',
+            'triples': 'triples', 'so': 'strikeOuts',
+        }
+        # Display names for the flags
+        hitting_display = {
+            'hits': 'H', 'homeRuns': 'HR', 'rbi': 'RBI', 'runs': 'R',
+            'baseOnBalls': 'BB', 'stolenBases': 'SB', 'doubles': '2B',
+            'triples': '3B', 'strikeOuts': 'K',
+        }
+        pitching_map = {
+            'so': 'strikeOuts', 'h': 'hits', 'er': 'earnedRuns',
+            'bb': 'baseOnBalls', 'hr': 'homeRuns',
+        }
+        pitching_display = {
+            'strikeOuts': 'K', 'hits': 'H', 'earnedRuns': 'ER',
+            'baseOnBalls': 'BB', 'homeRuns': 'HR',
+        }
+
+        annotated = 0
+        for pg in json_data.get('playerGames', []):
+            pid = pg.get('playerId', '')
+            player_data = highs_cache.get(pid)
+            if not player_data:
+                continue
+
+            career = player_data.get('career_highs', {})
+            # Get season from date (MM/DD/YYYY)
+            date = pg.get('date', '')
+            season = date.split('/')[-1] if '/' in date else ''
+            season_data = player_data.get('season_highs', {}).get(season, {})
+
+            career_high_stats = []
+            tied_career_stats = []
+            season_high_stats = []
+            tied_season_stats = []
+
+            for field, api_key in hitting_map.items():
+                val = pg.get(field, 0) or 0
+                if val <= 0:
+                    continue
+                display = hitting_display.get(api_key, api_key)
+
+                c_high = career.get(api_key)
+                if c_high is not None and val > 0:
+                    if val > c_high:
+                        career_high_stats.append(display)
+                    elif val == c_high:
+                        tied_career_stats.append(display)
+
+                s_high = season_data.get(api_key)
+                if s_high is not None and val > 0:
+                    if val > s_high:
+                        season_high_stats.append(display)
+                    elif val == s_high and val > 0:
+                        tied_season_stats.append(display)
+
+            # Also compute totalBases for comparison
+            tb = (pg.get('h', 0) - pg.get('doubles', 0) - pg.get('triples', 0) - pg.get('hr', 0)) + \
+                 pg.get('doubles', 0) * 2 + pg.get('triples', 0) * 3 + pg.get('hr', 0) * 4
+            if tb > 0:
+                c_tb = career.get('totalBases')
+                if c_tb is not None:
+                    if tb > c_tb:
+                        career_high_stats.append('TB')
+                    elif tb == c_tb:
+                        tied_career_stats.append('TB')
+                s_tb = season_data.get('totalBases')
+                if s_tb is not None:
+                    if tb > s_tb:
+                        season_high_stats.append('TB')
+                    elif tb == s_tb and tb > 0:
+                        tied_season_stats.append('TB')
+
+            if career_high_stats or tied_career_stats or season_high_stats or tied_season_stats:
+                if career_high_stats:
+                    pg['careerHighs'] = career_high_stats
+                if tied_career_stats:
+                    pg['tiedCareerHighs'] = tied_career_stats
+                if season_high_stats:
+                    pg['seasonHighs'] = season_high_stats
+                if tied_season_stats:
+                    pg['tiedSeasonHighs'] = tied_season_stats
+                annotated += 1
+
+        # Pitching
+        for pg in json_data.get('pitcherGames', []):
+            pid = pg.get('playerId', '')
+            player_data = highs_cache.get(pid)
+            if not player_data:
+                continue
+
+            career = player_data.get('career_highs_pitching', {})
+            if not career:
+                continue
+
+            date = pg.get('date', '')
+            season = date.split('/')[-1] if '/' in date else ''
+            season_data = player_data.get('season_highs_pitching', {}).get(season, {})
+
+            career_high_stats = []
+            tied_career_stats = []
+            season_high_stats = []
+            tied_season_stats = []
+
+            for field, api_key in pitching_map.items():
+                val = pg.get(field, 0) or 0
+                if val <= 0:
+                    continue
+                display = pitching_display.get(api_key, api_key)
+
+                # For pitching, only K is "higher = better" for career high detection
+                # H, ER, BB, HR are bad stats — skip career high for those
+                if api_key != 'strikeOuts':
+                    continue
+
+                c_high = career.get(api_key)
+                if c_high is not None:
+                    if val > c_high:
+                        career_high_stats.append(display)
+                    elif val == c_high:
+                        tied_career_stats.append(display)
+
+                s_high = season_data.get(api_key)
+                if s_high is not None:
+                    if val > s_high:
+                        season_high_stats.append(display)
+                    elif val == s_high and val > 0:
+                        tied_season_stats.append(display)
+
+            # IP (outs -> IP comparison)
+            outs = pg.get('outs', 0)
+            if outs > 0:
+                ip_numeric = outs / 3
+                c_ip = career.get('inningsPitched')
+                if c_ip:
+                    parts = str(c_ip).split('.')
+                    c_ip_num = int(parts[0]) + (int(parts[1]) / 3 if len(parts) > 1 else 0)
+                    if ip_numeric > c_ip_num:
+                        career_high_stats.append('IP')
+                    elif abs(ip_numeric - c_ip_num) < 0.01:
+                        tied_career_stats.append('IP')
+                s_ip = season_data.get('inningsPitched')
+                if s_ip:
+                    parts = str(s_ip).split('.')
+                    s_ip_num = int(parts[0]) + (int(parts[1]) / 3 if len(parts) > 1 else 0)
+                    if ip_numeric > s_ip_num:
+                        season_high_stats.append('IP')
+                    elif abs(ip_numeric - s_ip_num) < 0.01:
+                        tied_season_stats.append('IP')
+
+            if career_high_stats or tied_career_stats or season_high_stats or tied_season_stats:
+                if career_high_stats:
+                    pg['careerHighs'] = career_high_stats
+                if tied_career_stats:
+                    pg['tiedCareerHighs'] = tied_career_stats
+                if season_high_stats:
+                    pg['seasonHighs'] = season_high_stats
+                if tied_season_stats:
+                    pg['tiedSeasonHighs'] = tied_season_stats
+                annotated += 1
+
+        if annotated > 0:
+            print(f"      Career/season highs: annotated {annotated} player-games")
 
     def _load_player_bios(self):
         """Load cached player biographical data."""
