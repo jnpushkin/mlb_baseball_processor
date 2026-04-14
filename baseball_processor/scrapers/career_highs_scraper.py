@@ -387,19 +387,15 @@ def scrape_player(session, bref_id, mlb_id, name, cache, refresh=False, verbose=
         if gs.get('date'):
             existing_gs_seasons.add(gs['date'][:4])
 
-    # Get hitting seasons (already fetched above or from cache)
-    hitting_seasons = get_player_seasons(session, mlb_id, 'hitting') if fetched_any else []
+    # Get hitting seasons from cache (always available after highs are scraped)
+    hitting_seasons = [int(s) for s in existing.get('season_highs', {}).keys() if s.isdigit()]
     if not hitting_seasons:
-        # Use seasons from existing cache
-        hitting_seasons = [int(s) for s in existing.get('season_highs', {}).keys() if s.isdigit()]
+        hitting_seasons = get_player_seasons(session, mlb_id, 'hitting')
 
     gs_seasons_to_fetch = []
     for s in hitting_seasons:
         s_str = str(s)
-        if refresh:
-            if s == current_year:
-                gs_seasons_to_fetch.append(s)
-        elif s_str not in existing_gs_seasons:
+        if s_str not in existing_gs_seasons:
             gs_seasons_to_fetch.append(s)
         elif s == current_year:
             gs_seasons_to_fetch.append(s)
@@ -451,12 +447,30 @@ def scrape_player(session, bref_id, mlb_id, name, cache, refresh=False, verbose=
     return fetched_any
 
 
+def _scrape_one_player(args_tuple):
+    """Worker function for parallel scraping. Returns (bref_id, player_data) or None."""
+    bref_id, mlb_id, name, existing, refresh = args_tuple
+    session = create_retry_session()
+    # Work on a copy so we don't need locks
+    player_data = dict(existing) if existing else {}
+    try:
+        fetched = scrape_player(session, bref_id, mlb_id, name,
+                                {bref_id: player_data},  # Mini cache
+                                refresh=refresh, verbose=False)
+        if fetched:
+            return (bref_id, player_data)
+    except Exception as e:
+        return (bref_id, None, str(e))
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description='Scrape career highs from MLB API game logs')
     parser.add_argument('--player', type=str, metavar='BREF_ID', help='Scrape specific player')
     parser.add_argument('--refresh', action='store_true', help='Only re-scrape current season')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
     parser.add_argument('--save-every', type=int, default=50, help='Save cache every N players (default: 50)')
+    parser.add_argument('--workers', '-w', type=int, default=10, help='Parallel workers (default: 10)')
     args = parser.parse_args()
 
     # Load player list from data.json
@@ -491,52 +505,72 @@ def main():
     cache = load_cache()
     print(f"Existing cache: {len(cache)} players")
 
-    session = create_retry_session()
     total = len(players)
     scraped = 0
     skipped = 0
     no_mlb_id = 0
     errors = 0
 
-    print(f"\nProcessing {total} players...")
-
-    for i, (bref_id, name) in enumerate(players.items(), 1):
+    # Build work items
+    work_items = []
+    for bref_id, name in players.items():
         mlb_id = bref_to_mlb.get(bref_id)
         if not mlb_id:
             no_mlb_id += 1
-            if args.verbose:
-                print(f"[{i}/{total}] {name} ({bref_id}): no MLB API ID, skipping")
             continue
 
-        # Skip if fully cached and not refreshing
         existing = cache.get(bref_id, {})
         if not args.refresh and not args.player:
             if existing.get('last_scraped_season', 0) >= datetime.now().year:
                 skipped += 1
-                if args.verbose:
-                    print(f"[{i}/{total}] {name}: cached, skipping")
                 continue
 
-        if args.verbose or i % 100 == 0 or i == 1:
-            print(f"[{i}/{total}] {name} ({bref_id}, mlb={mlb_id})...")
+        work_items.append((bref_id, mlb_id, name, existing, args.refresh))
 
-        try:
-            fetched = scrape_player(session, bref_id, mlb_id, name, cache,
-                                    refresh=args.refresh, verbose=args.verbose)
-            if fetched:
-                scraped += 1
-            else:
-                skipped += 1
-        except Exception as e:
-            errors += 1
-            if args.verbose:
-                print(f"  Error: {e}")
+    print(f"\nProcessing {len(work_items)} players ({skipped} skipped, {no_mlb_id} no ID) with {args.workers} workers...")
 
-        # Periodic save
-        if i % args.save_every == 0:
-            save_cache(cache)
-            if not args.verbose:
-                print(f"  [{i}/{total}] saved checkpoint ({scraped} scraped, {skipped} skipped, {no_mlb_id} no ID, {errors} errors)")
+    if args.workers <= 1 or args.player:
+        # Sequential mode (for single player or debugging)
+        session = create_retry_session()
+        for i, (bref_id, mlb_id, name, existing, refresh) in enumerate(work_items, 1):
+            if args.verbose or i % 100 == 0 or i == 1:
+                print(f"[{i}/{len(work_items)}] {name} ({bref_id}, mlb={mlb_id})...")
+            try:
+                fetched = scrape_player(session, bref_id, mlb_id, name, cache,
+                                        refresh=refresh, verbose=args.verbose)
+                if fetched:
+                    scraped += 1
+                else:
+                    skipped += 1
+            except Exception as e:
+                errors += 1
+                if args.verbose:
+                    print(f"  Error: {e}")
+            if i % args.save_every == 0:
+                save_cache(cache)
+                print(f"  [{i}/{len(work_items)}] checkpoint ({scraped} scraped, {errors} errors)")
+    else:
+        # Parallel mode
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        completed = 0
+        with ThreadPoolExecutor(max_workers=args.workers) as executor:
+            futures = {executor.submit(_scrape_one_player, item): item[0] for item in work_items}
+            for future in as_completed(futures):
+                completed += 1
+                result = future.result()
+                if result is None:
+                    skipped += 1
+                elif len(result) == 3:
+                    # Error tuple
+                    errors += 1
+                else:
+                    bref_id, player_data = result
+                    cache[bref_id] = player_data
+                    scraped += 1
+
+                if completed % args.save_every == 0:
+                    save_cache(cache)
+                    print(f"  [{completed}/{len(work_items)}] checkpoint ({scraped} scraped, {errors} errors)")
 
     save_cache(cache)
     print(f"\nDone! {scraped} scraped, {skipped} skipped, {no_mlb_id} no MLB ID, {errors} errors")
