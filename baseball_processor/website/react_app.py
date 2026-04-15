@@ -3703,11 +3703,13 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
 
     const sorted = useMemo(() => {
         if (!sortKey) return filtered;
+        const dateToSort = (v) => { if (!v) return ''; const p = String(v).split('/'); return p.length === 3 ? `${p[2]}${p[0].padStart(2,'0')}${p[1].padStart(2,'0')}` : v; };
         return [...filtered].sort((a, b) => {
             const aVal = a[sortKey], bVal = b[sortKey];
-            if (sortKey === 'date') {
-                const aDate = new Date(aVal), bDate = new Date(bVal);
-                if (!isNaN(aDate) && !isNaN(bDate)) return sortDir === 'asc' ? aDate - bDate : bDate - aDate;
+            // Detect date columns (MM/DD/YYYY format)
+            if (String(aVal).match(/^\d{1,2}\/\d{1,2}\/\d{4}$/) || String(bVal).match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+                const result = dateToSort(aVal).localeCompare(dateToSort(bVal));
+                return sortDir === 'asc' ? result : -result;
             }
             const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
             const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
