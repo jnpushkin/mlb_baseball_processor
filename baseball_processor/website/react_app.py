@@ -488,6 +488,10 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
             playerAnnotations[f.player_id].push(f.milestone);
         });
 
+        // Players seen live for the first time in this game (precomputed
+        // by the serializer by walking attended games chronologically).
+        const firstSeenSet = new Set(game.firstSeenPlayerIds || []);
+
         // Find game superlatives from pitch/hit data
         let fastestPitch = null, hardestHit = null, mostKs = null;
         if (game.pitchData) {
@@ -514,7 +518,8 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
         return {
             homeHitters, awayHitters, homePitchers, awayPitchers,
             homeHittingTotals, awayHittingTotals,
-            playerAnnotations, fastestPitch, hardestHit, mostKs
+            playerAnnotations, fastestPitch, hardestHit, mostKs,
+            firstSeenSet
         };
     }, [game, playerGames, pitcherGames, careerFirsts]);
 
@@ -528,11 +533,13 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
     const HitterRow = ({ player }) => {
         const annotations = gameData.playerAnnotations[player.playerId] || [];
         const isHardestHit = gameData.hardestHit?.playerId === player.playerId;
+        const isFirstSeen = gameData.firstSeenSet?.has(player.playerId);
         return (
         <tr className="hover:bg-slate-50">
             <td className="px-3 py-2">
                 <div className="flex items-center gap-1 flex-wrap">
                     <PlayerLink playerId={player.playerId} name={player.name} />
+                    {isFirstSeen && <span title="First time seeing this player live" className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">1st seen</span>}
                     {annotations.length > 0 && <span title={annotations.join(', ')} className="text-amber-500 text-xs">⭐</span>}
                     {isHardestHit && <span title={`Hardest hit: ${gameData.hardestHit.velo} mph`} className="text-red-500 text-xs">💪</span>}
                     <CareerHighBadges data={player} />
@@ -557,12 +564,14 @@ const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTi
         const annotations = gameData.playerAnnotations[pitcher.playerId] || [];
         const isFastest = gameData.fastestPitch?.playerId === pitcher.playerId;
         const isMostKs = gameData.mostKs?.playerId === pitcher.playerId && pitcher.so >= 6;
+        const isFirstSeen = gameData.firstSeenSet?.has(pitcher.playerId);
 
         return (
             <tr className="hover:bg-slate-50">
                 <td className="px-3 py-2">
                     <div className="flex items-center gap-2 flex-wrap">
                         <PlayerLink playerId={pitcher.playerId} name={pitcher.name} />
+                        {isFirstSeen && <span title="First time seeing this player live" className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">1st seen</span>}
                         {decision && (
                             <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
                                 decision === 'W' ? 'bg-green-100 text-green-700' :

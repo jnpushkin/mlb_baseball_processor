@@ -122,48 +122,44 @@ def find_game_pk(schedule_games, home_code, away_code, doubleheader='0'):
 
 
 
-def _remap_hit_data_keys(hit_data, game):
-    """Replace mlb_* keys with BREF IDs by matching batter names."""
-    name_to_bref = {}
+def _remap_by_name(data: dict, game: dict, section: str) -> dict:
+    """Rekey hit_data/pitch_data to current player_ids by matching player name.
+
+    Handles three cases uniformly:
+      - Parse-time 'mlb_*' placeholder keys → resolve to BREF id
+      - Stale register-format keys (e.g. 'muraka000mun') frozen from a prior
+        scrape, after the game's player_id was canonicalized to 'murakmu01'
+      - Keys that are already canonical → kept as-is (no-op match)
+
+    Key rule: if the entry's name matches a current batting/pitching roster
+    row, use that row's current player_id. Otherwise keep the existing key.
+    """
+    name_to_current = {}
     for side in ('away', 'home'):
-        for p in game.get('batting', {}).get(side, []):
+        for p in game.get(section, {}).get(side, []):
             name = _normalize_name(p.get('name', ''))
             pid = p.get('player_id', '')
             if name and pid and not pid.startswith('mlb_'):
-                name_to_bref[name] = pid
+                name_to_current[name] = pid
 
     remapped = {}
-    for key, hdata in hit_data.items():
-        norm_name = _normalize_name(hdata.get('name', ''))
-        if key.startswith('mlb_') and norm_name in name_to_bref:
-            new_key = name_to_bref[norm_name]
-            hdata['player_id'] = new_key
-            remapped[new_key] = hdata
-        else:
-            remapped[key] = hdata
+    for key, entry in data.items():
+        norm_name = _normalize_name(entry.get('name', ''))
+        new_key = name_to_current.get(norm_name, key)
+        if new_key != key:
+            entry['player_id'] = new_key
+        remapped[new_key] = entry
     return remapped
+
+
+def _remap_hit_data_keys(hit_data, game):
+    """Rekey hit_data to current batter player_ids (by name match)."""
+    return _remap_by_name(hit_data, game, 'batting')
 
 
 def remap_pitch_data_keys(pitch_data, game):
-    """Replace mlb_* keys with BREF IDs by matching pitcher names."""
-    name_to_bref = {}
-    for side in ('away', 'home'):
-        for p in game.get('pitching', {}).get(side, []):
-            name = _normalize_name(p.get('name', ''))
-            pid = p.get('player_id', '')
-            if name and pid and not pid.startswith('mlb_'):
-                name_to_bref[name] = pid
-
-    remapped = {}
-    for key, pdata in pitch_data.items():
-        pitcher_name = _normalize_name(pdata.get('name', ''))
-        if key.startswith('mlb_') and pitcher_name in name_to_bref:
-            new_key = name_to_bref[pitcher_name]
-            pdata['player_id'] = new_key
-            remapped[new_key] = pdata
-        else:
-            remapped[key] = pdata
-    return remapped
+    """Rekey pitch_data to current pitcher player_ids (by name match)."""
+    return _remap_by_name(pitch_data, game, 'pitching')
 
 
 def main():

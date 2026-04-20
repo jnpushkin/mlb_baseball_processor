@@ -1047,12 +1047,55 @@ class DataSerializer:
         """Convert ALL games from game log with enhanced details."""
         if df is None or df.empty:
             return []
-        
+
         # Use provided raw_games or try to get from stored data
         if raw_games is None:
             raw_games = getattr(self, 'data', {}).get('_raw_games', [])
-        
+
         raw_games_by_id = {g.get('game_id', ''): g for g in raw_games}
+
+        # Compute first-time-seen players per game by walking attended games
+        # in chronological order. Includes batters, pitchers, and substitutions.
+        first_seen_by_game = {}  # game_id → set of player_ids seeing the user for the 1st time
+        seen_players = set()
+
+        def _players_in_game(g):
+            pids = set()
+            for side in ('home', 'away'):
+                for b in (g.get('batting', {}).get(side) or []):
+                    pid = b.get('player_id')
+                    if pid:
+                        pids.add(pid)
+                for p in (g.get('pitching', {}).get(side) or []):
+                    pid = p.get('player_id')
+                    if pid:
+                        pids.add(pid)
+            # Substitutions — cover any schema variant we've used
+            subs = g.get('substitutions') or []
+            if isinstance(subs, list):
+                for s in subs:
+                    pid = s.get('player_id') or s.get('in_player_id') or s.get('sub_player_id')
+                    if pid:
+                        pids.add(pid)
+            elif isinstance(subs, dict):
+                for side_subs in subs.values():
+                    for s in (side_subs or []):
+                        pid = s.get('player_id') or s.get('in_player_id')
+                        if pid:
+                            pids.add(pid)
+            return pids
+
+        def _game_date_key(g):
+            return g.get('basic_info', {}).get('date_yyyymmdd', '') or ''
+
+        for raw in sorted(raw_games, key=_game_date_key):
+            gid = raw.get('game_id', '')
+            if not gid:
+                continue
+            pids = _players_in_game(raw)
+            new_pids = pids - seen_players
+            first_seen_by_game[gid] = new_pids
+            seen_players |= pids
         
         games = []
         for _, row in df.iterrows():
@@ -1086,6 +1129,10 @@ class DataSerializer:
                 raw_game = raw_games_by_id.get(game_id)
                 if raw_game:
                     game_obj.update(self._extract_game_details(raw_game))
+                    # First-time-seen players (in chronological attended-game order)
+                    fs = first_seen_by_game.get(game_id, set())
+                    if fs:
+                        game_obj['firstSeenPlayerIds'] = sorted(fs)
                     # Override team codes from raw data (more accurate than DataFrame)
                     bi = raw_game.get('basic_info', {})
                     if bi.get('away_team_code'):
