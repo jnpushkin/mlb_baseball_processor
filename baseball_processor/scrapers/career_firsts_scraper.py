@@ -1030,6 +1030,27 @@ def find_career_firsts(player_id: str, scraper=None, verbose: bool = True, store
 
 # --- MLB API-based career firsts (real-time, no BREF lag) ---
 
+def _mlb_game_id_from_split(game: dict) -> str:
+    """Build the M-prefixed game ID expected by the rest of the pipeline.
+
+    Format: M{home_3letter_code}{YYYYMMDD}{suffix}; suffix='2' for DH game 2,
+    else '0'. Matches generate_game_id() in mlb_api_parser.py.
+    """
+    from ..parsers.mlb_api_parser import TEAM_ID_TO_CODE
+    date = game.get('date', '')
+    if not date or len(date) < 10:
+        return str(game.get('game', {}).get('gamePk', ''))
+    yyyymmdd = date.replace('-', '')
+    if game.get('isHome'):
+        team_id = game.get('team', {}).get('id')
+    else:
+        team_id = game.get('opponent', {}).get('id')
+    home_code = TEAM_ID_TO_CODE.get(team_id, 'UNK')
+    game_num = game.get('game', {}).get('gameNumber', 1)
+    suffix = '2' if game_num == 2 else '0'
+    return f"M{home_code}{yyyymmdd}{suffix}"
+
+
 # MLB API field -> our stat key mapping (G handled separately via combined gamelogs)
 _API_BATTING_MAP = {
     'hits': 'H', 'homeRuns': 'HR', 'rbi': 'RBI', 'doubles': '2B',
@@ -1089,14 +1110,14 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
     # is tracked separately later as pitching appearances.
     # Build a chronological sequence of unique games for G tracking.
     seen_pks = set()
-    combined_games_chrono = []  # (date_str, gamePk, opponent_name)
+    combined_games_chrono = []  # (date_str, mlb_game_id, opponent_name)
     for game in sorted(batting_games + pitching_games, key=lambda g: g.get('date', '')):
         pk = game.get('game', {}).get('gamePk')
         if pk and pk not in seen_pks:
             seen_pks.add(pk)
             combined_games_chrono.append((
                 game.get('date', ''),
-                str(pk),
+                _mlb_game_id_from_split(game),
                 game.get('opponent', {}).get('name', ''),
             ))
 
@@ -1141,8 +1162,7 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
         date_str = game.get('date', '')
         year = int(date_str[:4]) if date_str else 0
         opponent = game.get('opponent', {}).get('name', '')
-        game_pk = game.get('game', {}).get('gamePk', '')
-        game_id = str(game_pk) if game_pk else ''
+        game_id = _mlb_game_id_from_split(game)
 
         if year == current_year and not pre_year_batting:
             pre_year_batting = {k: v for k, v in batting_totals.items() if k != 'G'}
@@ -1203,8 +1223,7 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
         date_str = game.get('date', '')
         year = int(date_str[:4]) if date_str else 0
         opponent = game.get('opponent', {}).get('name', '')
-        game_pk = game.get('game', {}).get('gamePk', '')
-        game_id = str(game_pk) if game_pk else ''
+        game_id = _mlb_game_id_from_split(game)
 
         if year == current_year and not pre_year_pitching:
             pre_year_pitching = pitching_totals.copy()
@@ -1733,8 +1752,14 @@ def run_api_backfill(limit: Optional[int] = None, verbose: bool = True,
                             'diffs': diffs,
                             'action': 'overwritten_force_all',
                         })
-                    _merge_api_into_existing(existing, api_result)
-                    cache[pid] = existing
+                    if force_all:
+                        # Full replacement — additive merge would preserve stale
+                        # game_ids in firsts (which never get re-checked otherwise)
+                        api_result['player_id'] = pid
+                        cache[pid] = api_result
+                    else:
+                        _merge_api_into_existing(existing, api_result)
+                        cache[pid] = existing
                     merged += 1
                     if verbose and processed % 25 == 0:
                         print(f"[{processed}/{len(target_pids)}] {pid}: ✅ matched & merged")

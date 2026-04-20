@@ -96,33 +96,36 @@ def find_witnessed_career_firsts(raw_games, career_firsts_cache):
         firsts_by_player[pid].append(record)
 
     def find_attended_game(game_id):
-        """
-        Find attended game, trying doubleheader variants.
-        BREF gamelogs sometimes use 0 suffix even for doubleheader games,
-        so we try 1 and 2 suffixes as fallbacks.
+        """Find attended game, trying M-prefix and doubleheader variants.
+
+        Cached games can be in either MLB API format (M-prefixed, e.g.
+        'MSF202604190') or BREF format ('SFN202604190'). Career-firsts
+        milestones from the MLB API path always emit M-prefixed IDs, so we
+        also try the bare form for lookup compatibility with BREF games.
         """
         if not game_id or len(game_id) < 11:
             return None
 
-        # Try exact match first
-        if game_id in attended_games:
-            return attended_games[game_id]
+        # Build candidates: original + with/without M prefix
+        candidates = [game_id]
+        if game_id.startswith('M') and len(game_id) >= 12:
+            candidates.append(game_id[1:])
+        else:
+            candidates.append('M' + game_id)
 
-        # Try doubleheader variants
-        base = game_id[:-1]  # Remove last character (0, 1, or 2)
-        last_char = game_id[-1]
-
-        if last_char == '0':
-            # Gamelog shows single game, but might actually be doubleheader game 1 or 2
-            for suffix in ['1', '2']:
-                variant = base + suffix
-                if variant in attended_games:
-                    return attended_games[variant]
-        elif last_char in ['1', '2']:
-            # Gamelog shows doubleheader, try single game format
-            variant = base + '0'
-            if variant in attended_games:
-                return attended_games[variant]
+        for cand in candidates:
+            # Exact match
+            if cand in attended_games:
+                return attended_games[cand]
+            # Doubleheader variants
+            base, last_char = cand[:-1], cand[-1]
+            if last_char == '0':
+                for suffix in ('1', '2'):
+                    if (base + suffix) in attended_games:
+                        return attended_games[base + suffix]
+            elif last_char in ('1', '2'):
+                if (base + '0') in attended_games:
+                    return attended_games[base + '0']
 
         return None
 
