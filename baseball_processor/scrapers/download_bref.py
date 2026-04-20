@@ -111,16 +111,15 @@ def html_exists(away_team, home_team, date_str):
     return False
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Download BREF HTMLs for API-sourced games')
-    parser.add_argument('--all', action='store_true', help='Check all API games, not just last 30 days')
-    parser.add_argument('--dry-run', action='store_true', help='Preview without downloading')
-    parser.add_argument('--delay', type=float, default=3.2, help='Delay between BREF requests (default: 3.2s)')
-    args = parser.parse_args()
+def run(all_games: bool = False, dry_run: bool = False, delay: float = 3.2,
+        verbose: bool = True) -> dict:
+    """Download missing BREF HTMLs for API-sourced games. Programmatic entry.
 
+    Returns summary dict: {downloaded, errors, skipped_existing, found}.
+    """
     min_age = timedelta(hours=24)
     now = datetime.now()
-    cutoff_date = (now - timedelta(days=30)).strftime('%Y%m%d') if not args.all else '00000000'
+    cutoff_date = (now - timedelta(days=30)).strftime('%Y%m%d') if not all_games else '00000000'
 
     # Find API-sourced games needing HTML download
     to_download = []
@@ -176,24 +175,29 @@ def main():
         })
 
     if not to_download:
-        print("No BREF HTMLs to download. All API games already have HTML backups.")
-        return
+        if verbose:
+            print("No BREF HTMLs to download. All API games already have HTML backups.")
+        return {'downloaded': 0, 'errors': 0, 'found': 0}
 
-    print(f"Found {len(to_download)} game(s) needing BREF HTML download:\n")
-    for g in to_download:
-        print(f"  {g['api_game_id']} ({g['date'][:4]}-{g['date'][4:6]}-{g['date'][6:]}) {g['away']} @ {g['home']}")
+    if verbose:
+        print(f"Found {len(to_download)} game(s) needing BREF HTML download:\n")
+        for g in to_download:
+            print(f"  {g['api_game_id']} ({g['date'][:4]}-{g['date'][4:6]}-{g['date'][6:]}) {g['away']} @ {g['home']}")
 
-    if args.dry_run:
-        print("\n(dry run — no downloads)")
-        return
+    if dry_run:
+        if verbose:
+            print("\n(dry run — no downloads)")
+        return {'downloaded': 0, 'errors': 0, 'found': len(to_download)}
 
     session = create_retry_session()
     downloaded = 0
     errors = 0
 
-    print()
+    if verbose:
+        print()
     for i, g in enumerate(to_download, 1):
-        print(f"[{i}/{len(to_download)}] Downloading {g['game_id']}...", end=' ')
+        if verbose:
+            print(f"[{i}/{len(to_download)}] Downloading {g['game_id']}...", end=' ')
 
         resp = get_with_retry(session, g['url'], timeout=30, headers={
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
@@ -202,19 +206,33 @@ def main():
         if resp.status_code == 200:
             out_path = HTML_DIR / g['filename']
             out_path.write_text(resp.text, encoding='utf-8')
-            print(f"OK -> {g['filename'][:60]}")
+            if verbose:
+                print(f"OK -> {g['filename'][:60]}")
             downloaded += 1
         elif resp.status_code == 429:
-            print(f"RATE LIMITED (429). Stopping — wait 15 min and retry.")
+            if verbose:
+                print(f"RATE LIMITED (429). Stopping — wait 15 min and retry.")
             break
         else:
-            print(f"FAILED ({resp.status_code})")
+            if verbose:
+                print(f"FAILED ({resp.status_code})")
             errors += 1
 
         if i < len(to_download):
-            time.sleep(args.delay)
+            time.sleep(delay)
 
-    print(f"\nDone: {downloaded} downloaded, {errors} errors")
+    if verbose:
+        print(f"\nDone: {downloaded} downloaded, {errors} errors")
+    return {'downloaded': downloaded, 'errors': errors, 'found': len(to_download)}
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Download BREF HTMLs for API-sourced games')
+    parser.add_argument('--all', action='store_true', help='Check all API games, not just last 30 days')
+    parser.add_argument('--dry-run', action='store_true', help='Preview without downloading')
+    parser.add_argument('--delay', type=float, default=3.2, help='Delay between BREF requests (default: 3.2s)')
+    args = parser.parse_args()
+    run(all_games=args.all, dry_run=args.dry_run, delay=args.delay)
 
 
 if __name__ == '__main__':

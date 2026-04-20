@@ -1079,6 +1079,14 @@ def main():
             if args.deploy or surge_domain:
                 deploy_to_surge(html_path, args.surge_domain)
 
+            # Fetch any missing BREF HTML backups for API-sourced games (>24h old).
+            # Idempotent: skips games that already have HTML. Safe to run every pipeline.
+            try:
+                from .scrapers.download_bref import run as download_bref_run
+                download_bref_run(verbose=True)
+            except Exception as e:
+                warn(f"⚠️ BREF HTML backup skipped: {e}")
+
         elif args.excel_only:
             # Generate only Excel
             info("\n📊 Excel-only mode: Skipping website generation...")
@@ -1126,6 +1134,14 @@ def main():
             surge_domain = args.surge_domain or load_surge_domain()
             if args.deploy or surge_domain:
                 deploy_to_surge(html_path, args.surge_domain)
+
+            # Fetch any missing BREF HTML backups for API-sourced games (>24h old).
+            # Idempotent: skips games that already have HTML. Safe to run every pipeline.
+            try:
+                from .scrapers.download_bref import run as download_bref_run
+                download_bref_run(verbose=True)
+            except Exception as e:
+                warn(f"⚠️ BREF HTML backup skipped: {e}")
 
         # Export to CSV if requested
         if args.export_csv:
