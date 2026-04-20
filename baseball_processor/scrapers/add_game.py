@@ -102,6 +102,27 @@ def fetch_and_save_game(game_pk, force=False):
     print(f"  {basic.get('date')} at {basic.get('venue')}")
     print(f"  Score: {basic.get('away_score')} - {basic.get('home_score')}")
     print(f"  Saved to cache")
+
+    # Run enrichment pipeline
+    from ..main import _fetch_missing_bios_for_game, _update_gamelogs_for_game
+    try:
+        _fetch_missing_bios_for_game(game_data)
+    except Exception as e:
+        print(f"  ⚠️ Bio fetch skipped: {e}")
+
+    game_type = basic.get('game_type', 'regular')
+    if game_type in ('regular', 'postseason'):
+        # Use MLB API for career firsts (instant, no BREF rate limits)
+        try:
+            from .career_firsts_scraper import update_career_firsts_from_api
+            update_career_firsts_from_api(game_data, verbose=True)
+        except Exception as e:
+            print(f"  ⚠️ Career firsts (API) skipped: {e}")
+        try:
+            _update_gamelogs_for_game(cache_path)
+        except Exception as e:
+            print(f"  ⚠️ Gamelog update skipped: {e}")
+
     return game_data
 
 

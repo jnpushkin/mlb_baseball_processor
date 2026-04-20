@@ -1,0 +1,1635 @@
+{
+  "generated_at": "2026-04-19",
+  "description": "Players where cache.career_totals.G differs from MLB's stats=career endpoints. Cache uses union of batting+pitching gamelogs (counts each unique gamePk once); MLB returns separate hitting.G and pitching.G that don't always equal the true total games played (e.g., DH-only appearances appear in hitting but not pitching). These are accepted — our number is more accurate than MLB's two-endpoint split.",
+  "count": 129,
+  "records": [
+    {
+      "player_id": "anderty01",
+      "mlb_id": 542881,
+      "name": "Tyler Anderson",
+      "diffs": {
+        "batting_G": {
+          "cache": 234,
+          "mlb_hitting": 137,
+          "mlb_pitching": 231
+        }
+      }
+    },
+    {
+      "player_id": "baileho02",
+      "mlb_id": 456701,
+      "name": "Homer Bailey",
+      "diffs": {
+        "batting_G": {
+          "cache": 249,
+          "mlb_hitting": 247,
+          "mlb_pitching": 245
+        }
+      }
+    },
+    {
+      "player_id": "beeksja02",
+      "mlb_id": 656222,
+      "name": "Jalen Beeks",
+      "diffs": {
+        "batting_G": {
+          "cache": 274,
+          "mlb_hitting": 175,
+          "mlb_pitching": 273
+        }
+      }
+    },
+    {
+      "player_id": "belinst01",
+      "mlb_id": 110811,
+      "name": "Stan Belinda",
+      "diffs": {
+        "batting_G": {
+          "cache": 586,
+          "mlb_hitting": 492,
+          "mlb_pitching": 585
+        },
+        "pitching_G": {
+          "cache": 586,
+          "mlb_pitching": 585,
+          "mlb_hitting": 492
+        }
+      }
+    },
+    {
+      "player_id": "benoijo01",
+      "mlb_id": 276542,
+      "name": "Joaquín Benoit",
+      "diffs": {
+        "pitching_G": {
+          "cache": 765,
+          "mlb_pitching": 764,
+          "mlb_hitting": 765
+        }
+      }
+    },
+    {
+      "player_id": "blachty01",
+      "mlb_id": 621389,
+      "name": "Ty Blach",
+      "diffs": {
+        "batting_G": {
+          "cache": 163,
+          "mlb_hitting": 94,
+          "mlb_pitching": 156
+        }
+      }
+    },
+    {
+      "player_id": "bowmama01",
+      "mlb_id": 621199,
+      "name": "Matt Bowman",
+      "diffs": {
+        "batting_G": {
+          "cache": 232,
+          "mlb_hitting": 219,
+          "mlb_pitching": 231
+        }
+      }
+    },
+    {
+      "player_id": "broweji01",
+      "mlb_id": 150342,
+      "name": "Jim Brower",
+      "diffs": {
+        "batting_G": {
+          "cache": 356,
+          "mlb_hitting": 341,
+          "mlb_pitching": 354
+        }
+      }
+    },
+    {
+      "player_id": "brubajt01",
+      "mlb_id": 664141,
+      "name": "JT Brubaker",
+      "diffs": {
+        "batting_G": {
+          "cache": 90,
+          "mlb_hitting": 64,
+          "mlb_pitching": 89
+        }
+      }
+    },
+    {
+      "player_id": "buchhcl01",
+      "mlb_id": 453329,
+      "name": "Clay Buchholz",
+      "diffs": {
+        "batting_G": {
+          "cache": 238,
+          "mlb_hitting": 226,
+          "mlb_pitching": 236
+        },
+        "pitching_G": {
+          "cache": 237,
+          "mlb_pitching": 236,
+          "mlb_hitting": 226
+        }
+      }
+    },
+    {
+      "player_id": "buehlwa01",
+      "mlb_id": 621111,
+      "name": "Walker Buehler",
+      "diffs": {
+        "batting_G": {
+          "cache": 162,
+          "mlb_hitting": 132,
+          "mlb_pitching": 161
+        }
+      }
+    },
+    {
+      "player_id": "bundydy01",
+      "mlb_id": 605164,
+      "name": "Dylan Bundy",
+      "diffs": {
+        "batting_G": {
+          "cache": 191,
+          "mlb_hitting": 162,
+          "mlb_pitching": 190
+        }
+      }
+    },
+    {
+      "player_id": "cabrege01",
+      "mlb_id": 650893,
+      "name": "Génesis Cabrera",
+      "diffs": {
+        "batting_G": {
+          "cache": 313,
+          "mlb_hitting": 273,
+          "mlb_pitching": 312
+        },
+        "pitching_G": {
+          "cache": 313,
+          "mlb_pitching": 312,
+          "mlb_hitting": 273
+        }
+      }
+    },
+    {
+      "player_id": "cahiltr01",
+      "mlb_id": 502239,
+      "name": "Trevor Cahill",
+      "diffs": {
+        "batting_G": {
+          "cache": 363,
+          "mlb_hitting": 352,
+          "mlb_pitching": 361
+        }
+      }
+    },
+    {
+      "player_id": "carpeda01",
+      "mlb_id": 502304,
+      "name": "David Carpenter",
+      "diffs": {
+        "batting_G": {
+          "cache": 223,
+          "mlb_hitting": 216,
+          "mlb_pitching": 222
+        }
+      }
+    },
+    {
+      "player_id": "chacijh01",
+      "mlb_id": 468504,
+      "name": "Jhoulys Chacín",
+      "diffs": {
+        "batting_G": {
+          "cache": 345,
+          "mlb_hitting": 339,
+          "mlb_pitching": 338
+        }
+      }
+    },
+    {
+      "player_id": "chenbr01",
+      "mlb_id": 136600,
+      "name": "Bruce Chen",
+      "diffs": {
+        "batting_G": {
+          "cache": 401,
+          "mlb_hitting": 389,
+          "mlb_pitching": 400
+        }
+      }
+    },
+    {
+      "player_id": "colege01",
+      "mlb_id": 543037,
+      "name": "Gerrit Cole",
+      "diffs": {
+        "batting_G": {
+          "cache": 320,
+          "mlb_hitting": 195,
+          "mlb_pitching": 317
+        }
+      }
+    },
+    {
+      "player_id": "colemca01",
+      "mlb_id": 488787,
+      "name": "Casey Coleman",
+      "diffs": {
+        "batting_G": {
+          "cache": 60,
+          "mlb_hitting": 50,
+          "mlb_pitching": 58
+        }
+      }
+    },
+    {
+      "player_id": "coneda01",
+      "mlb_id": 112552,
+      "name": "David Cone",
+      "diffs": {
+        "batting_G": {
+          "cache": 451,
+          "mlb_hitting": 358,
+          "mlb_pitching": 450
+        }
+      }
+    },
+    {
+      "player_id": "cookde01",
+      "mlb_id": 112621,
+      "name": "Dennis Cook",
+      "diffs": {
+        "batting_G": {
+          "cache": 669,
+          "mlb_hitting": 468,
+          "mlb_pitching": 665
+        }
+      }
+    },
+    {
+      "player_id": "corbipa01",
+      "mlb_id": 571578,
+      "name": "Patrick Corbin",
+      "diffs": {
+        "batting_G": {
+          "cache": 380,
+          "mlb_hitting": 347,
+          "mlb_pitching": 375
+        }
+      }
+    },
+    {
+      "player_id": "cormirh01",
+      "mlb_id": 112690,
+      "name": "Rheal Cormier",
+      "diffs": {
+        "pitching_G": {
+          "cache": 684,
+          "mlb_pitching": 683,
+          "mlb_hitting": 684
+        }
+      }
+    },
+    {
+      "player_id": "cortene01",
+      "mlb_id": 641482,
+      "name": "Nestor Cortes",
+      "diffs": {
+        "batting_G": {
+          "cache": 144,
+          "mlb_hitting": 127,
+          "mlb_pitching": 143
+        }
+      }
+    },
+    {
+      "player_id": "curtijo02",
+      "mlb_id": 595928,
+      "name": "John Curtiss",
+      "diffs": {
+        "batting_G": {
+          "cache": 127,
+          "mlb_hitting": 74,
+          "mlb_pitching": 124
+        },
+        "pitching_G": {
+          "cache": 125,
+          "mlb_pitching": 124,
+          "mlb_hitting": 74
+        }
+      }
+    },
+    {
+      "player_id": "dejeami01",
+      "mlb_id": 113211,
+      "name": "Mike DeJean",
+      "diffs": {
+        "pitching_G": {
+          "cache": 568,
+          "mlb_pitching": 565,
+          "mlb_hitting": 568
+        }
+      }
+    },
+    {
+      "player_id": "desclan01",
+      "mlb_id": 543101,
+      "name": "Anthony DeSclafani",
+      "diffs": {
+        "batting_G": {
+          "cache": 196,
+          "mlb_hitting": 183,
+          "mlb_pitching": 193
+        }
+      }
+    },
+    {
+      "player_id": "diazed04",
+      "mlb_id": 621242,
+      "name": "Edwin Díaz",
+      "diffs": {
+        "batting_G": {
+          "cache": 528,
+          "mlb_hitting": 521,
+          "mlb_pitching": 527
+        },
+        "pitching_G": {
+          "cache": 528,
+          "mlb_pitching": 527,
+          "mlb_hitting": 521
+        }
+      }
+    },
+    {
+      "player_id": "duensbr01",
+      "mlb_id": 488846,
+      "name": "Brian Duensing",
+      "diffs": {
+        "batting_G": {
+          "cache": 485,
+          "mlb_hitting": 471,
+          "mlb_pitching": 484
+        }
+      }
+    },
+    {
+      "player_id": "edwarca01",
+      "mlb_id": 605218,
+      "name": "Carl Edwards Jr.",
+      "diffs": {
+        "batting_G": {
+          "cache": 302,
+          "mlb_hitting": 198,
+          "mlb_pitching": 300
+        }
+      }
+    },
+    {
+      "player_id": "eflinza01",
+      "mlb_id": 621107,
+      "name": "Zach Eflin",
+      "diffs": {
+        "batting_G": {
+          "cache": 202,
+          "mlb_hitting": 128,
+          "mlb_pitching": 201
+        }
+      }
+    },
+    {
+      "player_id": "ellisch01",
+      "mlb_id": 595939,
+      "name": "Chris Ellis",
+      "diffs": {
+        "batting_G": {
+          "cache": 11,
+          "mlb_hitting": 9,
+          "mlb_pitching": 10
+        }
+      }
+    },
+    {
+      "player_id": "feldmsc01",
+      "mlb_id": 444857,
+      "name": "Scott Feldman",
+      "diffs": {
+        "batting_G": {
+          "cache": 343,
+          "mlb_hitting": 329,
+          "mlb_pitching": 342
+        }
+      }
+    },
+    {
+      "player_id": "ferguca01",
+      "mlb_id": 657571,
+      "name": "Caleb Ferguson",
+      "diffs": {
+        "batting_G": {
+          "cache": 334,
+          "mlb_hitting": 202,
+          "mlb_pitching": 333
+        }
+      }
+    },
+    {
+      "player_id": "fiersmi01",
+      "mlb_id": 571666,
+      "name": "Mike Fiers",
+      "diffs": {
+        "batting_G": {
+          "cache": 219,
+          "mlb_hitting": 142,
+          "mlb_pitching": 218
+        }
+      }
+    },
+    {
+      "player_id": "freelky01",
+      "mlb_id": 607536,
+      "name": "Kyle Freeland",
+      "diffs": {
+        "pitching_G": {
+          "cache": 240,
+          "mlb_pitching": 239,
+          "mlb_hitting": 245
+        }
+      }
+    },
+    {
+      "player_id": "friedma01",
+      "mlb_id": 608331,
+      "name": "Max Fried",
+      "diffs": {
+        "batting_G": {
+          "cache": 217,
+          "mlb_hitting": 180,
+          "mlb_pitching": 205
+        }
+      }
+    },
+    {
+      "player_id": "garcifr03",
+      "mlb_id": 150119,
+      "name": "Freddy Garcia",
+      "diffs": {
+        "batting_G": {
+          "cache": 377,
+          "mlb_hitting": 363,
+          "mlb_pitching": 376
+        }
+      }
+    },
+    {
+      "player_id": "garcija02",
+      "mlb_id": 448802,
+      "name": "Jaime García",
+      "diffs": {
+        "batting_G": {
+          "cache": 222,
+          "mlb_hitting": 221,
+          "mlb_pitching": 218
+        }
+      }
+    },
+    {
+      "player_id": "gausmke01",
+      "mlb_id": 592332,
+      "name": "Kevin Gausman",
+      "diffs": {
+        "batting_G": {
+          "cache": 368,
+          "mlb_hitting": 238,
+          "mlb_pitching": 366
+        }
+      }
+    },
+    {
+      "player_id": "glasnty01",
+      "mlb_id": 607192,
+      "name": "Tyler Glasnow",
+      "diffs": {
+        "batting_G": {
+          "cache": 174,
+          "mlb_hitting": 130,
+          "mlb_pitching": 171
+        }
+      }
+    },
+    {
+      "player_id": "godleza01",
+      "mlb_id": 643327,
+      "name": "Zack Godley",
+      "diffs": {
+        "batting_G": {
+          "cache": 139,
+          "mlb_hitting": 131,
+          "mlb_pitching": 138
+        }
+      }
+    },
+    {
+      "player_id": "gomesbr01",
+      "mlb_id": 460156,
+      "name": "Brandon Gomes",
+      "diffs": {
+        "pitching_G": {
+          "cache": 174,
+          "mlb_pitching": 173,
+          "mlb_hitting": 174
+        }
+      }
+    },
+    {
+      "player_id": "gosean01",
+      "mlb_id": 543238,
+      "name": "Anthony Gose",
+      "diffs": {
+        "batting_G": {
+          "cache": 403,
+          "mlb_hitting": 372,
+          "mlb_pitching": 31
+        }
+      }
+    },
+    {
+      "player_id": "gracema02",
+      "mlb_id": 594840,
+      "name": "Matt Grace",
+      "diffs": {
+        "batting_G": {
+          "cache": 182,
+          "mlb_hitting": 179,
+          "mlb_pitching": 181
+        },
+        "pitching_G": {
+          "cache": 182,
+          "mlb_pitching": 181,
+          "mlb_hitting": 179
+        }
+      }
+    },
+    {
+      "player_id": "grayso01",
+      "mlb_id": 543243,
+      "name": "Sonny Gray",
+      "diffs": {
+        "batting_G": {
+          "cache": 346,
+          "mlb_hitting": 226,
+          "mlb_pitching": 343
+        }
+      }
+    },
+    {
+      "player_id": "greinza01",
+      "mlb_id": 425844,
+      "name": "Zack Greinke",
+      "diffs": {
+        "batting_G": {
+          "cache": 597,
+          "mlb_hitting": 584,
+          "mlb_pitching": 586
+        }
+      }
+    },
+    {
+      "player_id": "gsellro01",
+      "mlb_id": 607229,
+      "name": "Robert Gsellman",
+      "diffs": {
+        "batting_G": {
+          "cache": 188,
+          "mlb_hitting": 180,
+          "mlb_pitching": 184
+        }
+      }
+    },
+    {
+      "player_id": "guthrje01",
+      "mlb_id": 425386,
+      "name": "Jeremy Guthrie",
+      "diffs": {
+        "batting_G": {
+          "cache": 316,
+          "mlb_hitting": 300,
+          "mlb_pitching": 306
+        }
+      }
+    },
+    {
+      "player_id": "hahnje01",
+      "mlb_id": 534910,
+      "name": "Jesse Hahn",
+      "diffs": {
+        "batting_G": {
+          "cache": 86,
+          "mlb_hitting": 83,
+          "mlb_pitching": 85
+        }
+      }
+    },
+    {
+      "player_id": "hamelco01",
+      "mlb_id": 430935,
+      "name": "Cole Hamels",
+      "diffs": {
+        "batting_G": {
+          "cache": 430,
+          "mlb_hitting": 429,
+          "mlb_pitching": 423
+        }
+      }
+    },
+    {
+      "player_id": "harrige01",
+      "mlb_id": 115535,
+      "name": "Gene Harris",
+      "diffs": {
+        "batting_G": {
+          "cache": 185,
+          "mlb_hitting": 171,
+          "mlb_pitching": 183
+        }
+      }
+    },
+    {
+      "player_id": "harvema01",
+      "mlb_id": 518774,
+      "name": "Matt Harvey",
+      "diffs": {
+        "batting_G": {
+          "cache": 181,
+          "mlb_hitting": 162,
+          "mlb_pitching": 180
+        }
+      }
+    },
+    {
+      "player_id": "hayneji01",
+      "mlb_id": 115649,
+      "name": "Jimmy Haynes",
+      "diffs": {
+        "batting_G": {
+          "cache": 230,
+          "mlb_hitting": 200,
+          "mlb_pitching": 227
+        }
+      }
+    },
+    {
+      "player_id": "hellije01",
+      "mlb_id": 476451,
+      "name": "Jeremy Hellickson",
+      "diffs": {
+        "batting_G": {
+          "cache": 234,
+          "mlb_hitting": 224,
+          "mlb_pitching": 232
+        }
+      }
+    },
+    {
+      "player_id": "hendrky01",
+      "mlb_id": 543294,
+      "name": "Kyle Hendricks",
+      "diffs": {
+        "batting_G": {
+          "cache": 311,
+          "mlb_hitting": 280,
+          "mlb_pitching": 307
+        }
+      }
+    },
+    {
+      "player_id": "hendrli01",
+      "mlb_id": 521230,
+      "name": "Liam Hendriks",
+      "diffs": {
+        "batting_G": {
+          "cache": 491,
+          "mlb_hitting": 471,
+          "mlb_pitching": 490
+        }
+      }
+    },
+    {
+      "player_id": "hillri01",
+      "mlb_id": 448179,
+      "name": "Rich Hill",
+      "diffs": {
+        "batting_G": {
+          "cache": 389,
+          "mlb_hitting": 317,
+          "mlb_pitching": 388
+        }
+      }
+    },
+    {
+      "player_id": "hoffmtr01",
+      "mlb_id": 116034,
+      "name": "Trevor Hoffman",
+      "diffs": {
+        "pitching_G": {
+          "cache": 1035,
+          "mlb_pitching": 1034,
+          "mlb_hitting": 1035
+        }
+      }
+    },
+    {
+      "player_id": "hollade01",
+      "mlb_id": 502706,
+      "name": "Derek Holland",
+      "diffs": {
+        "batting_G": {
+          "cache": 349,
+          "mlb_hitting": 337,
+          "mlb_pitching": 346
+        }
+      }
+    },
+    {
+      "player_id": "housejr01",
+      "mlb_id": 407399,
+      "name": "J.R. House",
+      "diffs": {
+        "batting_G": {
+          "cache": 0,
+          "mlb_hitting": 32,
+          "mlb_pitching": 0
+        }
+      }
+    },
+    {
+      "player_id": "jacksed01",
+      "mlb_id": 429719,
+      "name": "Edwin Jackson",
+      "diffs": {
+        "batting_G": {
+          "cache": 429,
+          "mlb_hitting": 426,
+          "mlb_pitching": 412
+        }
+      }
+    },
+    {
+      "player_id": "jackslu01",
+      "mlb_id": 592426,
+      "name": "Luke Jackson",
+      "diffs": {
+        "batting_G": {
+          "cache": 391,
+          "mlb_hitting": 255,
+          "mlb_pitching": 390
+        },
+        "pitching_G": {
+          "cache": 391,
+          "mlb_pitching": 390,
+          "mlb_hitting": 255
+        }
+      }
+    },
+    {
+      "player_id": "janseke01",
+      "mlb_id": 445276,
+      "name": "Kenley Jansen",
+      "diffs": {
+        "batting_G": {
+          "cache": 942,
+          "mlb_hitting": 870,
+          "mlb_pitching": 940
+        },
+        "pitching_G": {
+          "cache": 941,
+          "mlb_pitching": 940,
+          "mlb_hitting": 870
+        }
+      }
+    },
+    {
+      "player_id": "jimenub01",
+      "mlb_id": 434622,
+      "name": "Ubaldo Jiménez",
+      "diffs": {
+        "pitching_G": {
+          "cache": 330,
+          "mlb_pitching": 329,
+          "mlb_hitting": 330
+        }
+      }
+    },
+    {
+      "player_id": "kellesh01",
+      "mlb_id": 518875,
+      "name": "Shawn Kelley",
+      "diffs": {
+        "batting_G": {
+          "cache": 494,
+          "mlb_hitting": 475,
+          "mlb_pitching": 493
+        },
+        "pitching_G": {
+          "cache": 494,
+          "mlb_pitching": 493,
+          "mlb_hitting": 475
+        }
+      }
+    },
+    {
+      "player_id": "kellyjo05",
+      "mlb_id": 523260,
+      "name": "Joe Kelly",
+      "diffs": {
+        "batting_G": {
+          "cache": 493,
+          "mlb_hitting": 419,
+          "mlb_pitching": 485
+        }
+      }
+    },
+    {
+      "player_id": "kenneia01",
+      "mlb_id": 453178,
+      "name": "Ian Kennedy",
+      "diffs": {
+        "batting_G": {
+          "cache": 500,
+          "mlb_hitting": 486,
+          "mlb_pitching": 497
+        }
+      }
+    },
+    {
+      "player_id": "klubeco01",
+      "mlb_id": 446372,
+      "name": "Corey Kluber",
+      "diffs": {
+        "batting_G": {
+          "cache": 273,
+          "mlb_hitting": 226,
+          "mlb_pitching": 271
+        }
+      }
+    },
+    {
+      "player_id": "kolarad01",
+      "mlb_id": 592473,
+      "name": "Adam Kolarek",
+      "diffs": {
+        "batting_G": {
+          "cache": 177,
+          "mlb_hitting": 173,
+          "mlb_pitching": 175
+        }
+      }
+    },
+    {
+      "player_id": "lauerer01",
+      "mlb_id": 641778,
+      "name": "Eric Lauer",
+      "diffs": {
+        "batting_G": {
+          "cache": 154,
+          "mlb_hitting": 122,
+          "mlb_pitching": 152
+        }
+      }
+    },
+    {
+      "player_id": "leblawa01",
+      "mlb_id": 453281,
+      "name": "Wade LeBlanc",
+      "diffs": {
+        "batting_G": {
+          "cache": 259,
+          "mlb_hitting": 247,
+          "mlb_pitching": 258
+        }
+      }
+    },
+    {
+      "player_id": "leecl02",
+      "mlb_id": 424324,
+      "name": "Cliff Lee",
+      "diffs": {
+        "batting_G": {
+          "cache": 337,
+          "mlb_hitting": 322,
+          "mlb_pitching": 328
+        }
+      }
+    },
+    {
+      "player_id": "leonedo01",
+      "mlb_id": 608678,
+      "name": "Dominic Leone",
+      "diffs": {
+        "batting_G": {
+          "cache": 428,
+          "mlb_hitting": 351,
+          "mlb_pitching": 427
+        },
+        "pitching_G": {
+          "cache": 428,
+          "mlb_pitching": 427,
+          "mlb_hitting": 351
+        }
+      }
+    },
+    {
+      "player_id": "linceti01",
+      "mlb_id": 453311,
+      "name": "Tim Lincecum",
+      "diffs": {
+        "batting_G": {
+          "cache": 281,
+          "mlb_hitting": 272,
+          "mlb_pitching": 278
+        }
+      }
+    },
+    {
+      "player_id": "loganbo02",
+      "mlb_id": 457429,
+      "name": "Boone Logan",
+      "diffs": {
+        "pitching_G": {
+          "cache": 636,
+          "mlb_pitching": 635,
+          "mlb_hitting": 636
+        }
+      }
+    },
+    {
+      "player_id": "lohseky01",
+      "mlb_id": 346798,
+      "name": "Kyle Lohse",
+      "diffs": {
+        "batting_G": {
+          "cache": 472,
+          "mlb_hitting": 470,
+          "mlb_pitching": 457
+        }
+      }
+    },
+    {
+      "player_id": "lorenmi01",
+      "mlb_id": 547179,
+      "name": "Michael Lorenzen",
+      "diffs": {
+        "batting_G": {
+          "cache": 458,
+          "mlb_hitting": 352,
+          "mlb_pitching": 401
+        }
+      }
+    },
+    {
+      "player_id": "lugose01",
+      "mlb_id": 607625,
+      "name": "Seth Lugo",
+      "diffs": {
+        "batting_G": {
+          "cache": 365,
+          "mlb_hitting": 276,
+          "mlb_pitching": 364
+        }
+      }
+    },
+    {
+      "player_id": "lylesjo01",
+      "mlb_id": 543475,
+      "name": "Jordan Lyles",
+      "diffs": {
+        "batting_G": {
+          "cache": 362,
+          "mlb_hitting": 294,
+          "mlb_pitching": 357
+        },
+        "pitching_G": {
+          "cache": 358,
+          "mlb_pitching": 357,
+          "mlb_hitting": 294
+        }
+      }
+    },
+    {
+      "player_id": "maedake01",
+      "mlb_id": 628317,
+      "name": "Kenta Maeda",
+      "diffs": {
+        "batting_G": {
+          "cache": 238,
+          "mlb_hitting": 202,
+          "mlb_pitching": 226
+        }
+      }
+    },
+    {
+      "player_id": "mahlety01",
+      "mlb_id": 641816,
+      "name": "Tyler Mahle",
+      "diffs": {
+        "batting_G": {
+          "cache": 149,
+          "mlb_hitting": 117,
+          "mlb_pitching": 146
+        }
+      }
+    },
+    {
+      "player_id": "marquge01",
+      "mlb_id": 608566,
+      "name": "Germán Márquez",
+      "diffs": {
+        "batting_G": {
+          "cache": 208,
+          "mlb_hitting": 204,
+          "mlb_pitching": 207
+        }
+      }
+    },
+    {
+      "player_id": "menezco01",
+      "mlb_id": 669214,
+      "name": "Conner Menez",
+      "diffs": {
+        "batting_G": {
+          "cache": 25,
+          "mlb_hitting": 24,
+          "mlb_pitching": 24
+        }
+      }
+    },
+    {
+      "player_id": "merckke01",
+      "mlb_id": 118967,
+      "name": "Kent Mercker",
+      "diffs": {
+        "batting_G": {
+          "cache": 698,
+          "mlb_hitting": 648,
+          "mlb_pitching": 692
+        },
+        "pitching_G": {
+          "cache": 693,
+          "mlb_pitching": 692,
+          "mlb_hitting": 648
+        }
+      }
+    },
+    {
+      "player_id": "millake01",
+      "mlb_id": 132788,
+      "name": "Kevin Millar",
+      "diffs": {
+        "batting_G": {
+          "cache": 0,
+          "mlb_hitting": 1427,
+          "mlb_pitching": 0
+        }
+      }
+    },
+    {
+      "player_id": "millesh01",
+      "mlb_id": 571946,
+      "name": "Shelby Miller",
+      "diffs": {
+        "batting_G": {
+          "cache": 303,
+          "mlb_hitting": 237,
+          "mlb_pitching": 302
+        }
+      }
+    },
+    {
+      "player_id": "minormi01",
+      "mlb_id": 501985,
+      "name": "Mike Minor",
+      "diffs": {
+        "batting_G": {
+          "cache": 296,
+          "mlb_hitting": 272,
+          "mlb_pitching": 295
+        }
+      }
+    },
+    {
+      "player_id": "mortoch02",
+      "mlb_id": 450203,
+      "name": "Charlie Morton",
+      "diffs": {
+        "batting_G": {
+          "cache": 417,
+          "mlb_hitting": 385,
+          "mlb_pitching": 416
+        }
+      }
+    },
+    {
+      "player_id": "moyerja01",
+      "mlb_id": 119469,
+      "name": "Jamie Moyer",
+      "diffs": {
+        "batting_G": {
+          "cache": 701,
+          "mlb_hitting": 555,
+          "mlb_pitching": 696
+        }
+      }
+    },
+    {
+      "player_id": "nicasju01",
+      "mlb_id": 504379,
+      "name": "Juan Nicasio",
+      "diffs": {
+        "batting_G": {
+          "cache": 365,
+          "mlb_hitting": 363,
+          "mlb_pitching": 364
+        }
+      }
+    },
+    {
+      "player_id": "norrida01",
+      "mlb_id": 596057,
+      "name": "Daniel Norris",
+      "diffs": {
+        "batting_G": {
+          "cache": 216,
+          "mlb_hitting": 199,
+          "mlb_pitching": 215
+        }
+      }
+    },
+    {
+      "player_id": "ottavad01",
+      "mlb_id": 493603,
+      "name": "Adam Ottavino",
+      "diffs": {
+        "batting_G": {
+          "cache": 728,
+          "mlb_hitting": 536,
+          "mlb_pitching": 727
+        }
+      }
+    },
+    {
+      "player_id": "parrijo01",
+      "mlb_id": 332292,
+      "name": "John Parrish",
+      "diffs": {
+        "batting_G": {
+          "cache": 184,
+          "mlb_hitting": 154,
+          "mlb_pitching": 183
+        }
+      }
+    },
+    {
+      "player_id": "peralfr01",
+      "mlb_id": 642547,
+      "name": "Freddy Peralta",
+      "diffs": {
+        "batting_G": {
+          "cache": 218,
+          "mlb_hitting": 213,
+          "mlb_pitching": 216
+        }
+      }
+    },
+    {
+      "player_id": "peraljo01",
+      "mlb_id": 407908,
+      "name": "Joel Peralta",
+      "diffs": {
+        "pitching_G": {
+          "cache": 621,
+          "mlb_pitching": 620,
+          "mlb_hitting": 621
+        }
+      }
+    },
+    {
+      "player_id": "phelpda01",
+      "mlb_id": 475479,
+      "name": "David Phelps",
+      "diffs": {
+        "batting_G": {
+          "cache": 368,
+          "mlb_hitting": 358,
+          "mlb_pitching": 367
+        },
+        "pitching_G": {
+          "cache": 368,
+          "mlb_pitching": 367,
+          "mlb_hitting": 358
+        }
+      }
+    },
+    {
+      "player_id": "pivetni01",
+      "mlb_id": 601713,
+      "name": "Nick Pivetta",
+      "diffs": {
+        "batting_G": {
+          "cache": 259,
+          "mlb_hitting": 224,
+          "mlb_pitching": 258
+        }
+      }
+    },
+    {
+      "player_id": "popza01",
+      "mlb_id": 647315,
+      "name": "Zach Pop",
+      "diffs": {
+        "batting_G": {
+          "cache": 171,
+          "mlb_hitting": 163,
+          "mlb_pitching": 170
+        },
+        "pitching_G": {
+          "cache": 171,
+          "mlb_pitching": 170,
+          "mlb_hitting": 163
+        }
+      }
+    },
+    {
+      "player_id": "poteeco01",
+      "mlb_id": 547001,
+      "name": "Cody Poteet",
+      "diffs": {
+        "batting_G": {
+          "cache": 26,
+          "mlb_hitting": 20,
+          "mlb_pitching": 25
+        }
+      }
+    },
+    {
+      "player_id": "pruitau01",
+      "mlb_id": 643493,
+      "name": "Austin Pruitt",
+      "diffs": {
+        "batting_G": {
+          "cache": 155,
+          "mlb_hitting": 72,
+          "mlb_pitching": 154
+        }
+      }
+    },
+    {
+      "player_id": "rayro02",
+      "mlb_id": 592662,
+      "name": "Robbie Ray",
+      "diffs": {
+        "batting_G": {
+          "cache": 272,
+          "mlb_hitting": 195,
+          "mlb_pitching": 270
+        }
+      }
+    },
+    {
+      "player_id": "redditi01",
+      "mlb_id": 400062,
+      "name": "Tim Redding",
+      "diffs": {
+        "batting_G": {
+          "cache": 181,
+          "mlb_hitting": 180,
+          "mlb_pitching": 179
+        }
+      }
+    },
+    {
+      "player_id": "reedst01",
+      "mlb_id": 121002,
+      "name": "Steve Reed",
+      "diffs": {
+        "pitching_G": {
+          "cache": 834,
+          "mlb_pitching": 833,
+          "mlb_hitting": 835
+        }
+      }
+    },
+    {
+      "player_id": "reyesal02",
+      "mlb_id": 621052,
+      "name": "Alex Reyes",
+      "diffs": {
+        "pitching_G": {
+          "cache": 102,
+          "mlb_pitching": 101,
+          "mlb_hitting": 102
+        }
+      }
+    },
+    {
+      "player_id": "reyesde01",
+      "mlb_id": 121096,
+      "name": "Dennys Reyes",
+      "diffs": {
+        "batting_G": {
+          "cache": 674,
+          "mlb_hitting": 655,
+          "mlb_pitching": 673
+        }
+      }
+    },
+    {
+      "player_id": "richacl01",
+      "mlb_id": 453385,
+      "name": "Clayton Richard",
+      "diffs": {
+        "batting_G": {
+          "cache": 285,
+          "mlb_hitting": 275,
+          "mlb_pitching": 275
+        }
+      }
+    },
+    {
+      "player_id": "richatr01",
+      "mlb_id": 670950,
+      "name": "Trevor Richards",
+      "diffs": {
+        "batting_G": {
+          "cache": 296,
+          "mlb_hitting": 262,
+          "mlb_pitching": 295
+        }
+      }
+    },
+    {
+      "player_id": "rodride01",
+      "mlb_id": 605446,
+      "name": "Dereck Rodríguez",
+      "diffs": {
+        "batting_G": {
+          "cache": 58,
+          "mlb_hitting": 52,
+          "mlb_pitching": 57
+        }
+      }
+    },
+    {
+      "player_id": "rosajo01",
+      "mlb_id": 407822,
+      "name": "Jorge De La Rosa",
+      "diffs": {
+        "pitching_G": {
+          "cache": 431,
+          "mlb_pitching": 430,
+          "mlb_hitting": 432
+        }
+      }
+    },
+    {
+      "player_id": "rossjo01",
+      "mlb_id": 605452,
+      "name": "Joe Ross",
+      "diffs": {
+        "batting_G": {
+          "cache": 178,
+          "mlb_hitting": 113,
+          "mlb_pitching": 163
+        }
+      }
+    },
+    {
+      "player_id": "rossty01",
+      "mlb_id": 475115,
+      "name": "Tyson Ross",
+      "diffs": {
+        "batting_G": {
+          "cache": 209,
+          "mlb_hitting": 202,
+          "mlb_pitching": 203
+        }
+      }
+    },
+    {
+      "player_id": "rusinch01",
+      "mlb_id": 543734,
+      "name": "Chris Rusin",
+      "diffs": {
+        "batting_G": {
+          "cache": 192,
+          "mlb_hitting": 191,
+          "mlb_pitching": 189
+        }
+      }
+    },
+    {
+      "player_id": "samarje01",
+      "mlb_id": 502188,
+      "name": "Jeff Samardzija",
+      "diffs": {
+        "batting_G": {
+          "cache": 372,
+          "mlb_hitting": 356,
+          "mlb_pitching": 364
+        }
+      }
+    },
+    {
+      "player_id": "sanchdu01",
+      "mlb_id": 400093,
+      "name": "Duaner Sanchez",
+      "diffs": {
+        "pitching_G": {
+          "cache": 289,
+          "mlb_pitching": 288,
+          "mlb_hitting": 289
+        }
+      }
+    },
+    {
+      "player_id": "snellbl01",
+      "mlb_id": 605483,
+      "name": "Blake Snell",
+      "diffs": {
+        "batting_G": {
+          "cache": 223,
+          "mlb_hitting": 192,
+          "mlb_pitching": 222
+        },
+        "pitching_G": {
+          "cache": 223,
+          "mlb_pitching": 222,
+          "mlb_hitting": 192
+        }
+      }
+    },
+    {
+      "player_id": "stemlst01",
+      "mlb_id": 435318,
+      "name": "Steve Stemle",
+      "diffs": {
+        "pitching_G": {
+          "cache": 12,
+          "mlb_pitching": 11,
+          "mlb_hitting": 12
+        }
+      }
+    },
+    {
+      "player_id": "strahma01",
+      "mlb_id": 621381,
+      "name": "Matt Strahm",
+      "diffs": {
+        "batting_G": {
+          "cache": 403,
+          "mlb_hitting": 165,
+          "mlb_pitching": 402
+        }
+      }
+    },
+    {
+      "player_id": "straida01",
+      "mlb_id": 573185,
+      "name": "Dan Straily",
+      "diffs": {
+        "batting_G": {
+          "cache": 159,
+          "mlb_hitting": 141,
+          "mlb_pitching": 156
+        }
+      }
+    },
+    {
+      "player_id": "stripro01",
+      "mlb_id": 548389,
+      "name": "Ross Stripling",
+      "diffs": {
+        "batting_G": {
+          "cache": 253,
+          "mlb_hitting": 209,
+          "mlb_pitching": 248
+        }
+      }
+    },
+    {
+      "player_id": "stromma01",
+      "mlb_id": 573186,
+      "name": "Marcus Stroman",
+      "diffs": {
+        "batting_G": {
+          "cache": 277,
+          "mlb_hitting": 186,
+          "mlb_pitching": 270
+        }
+      }
+    },
+    {
+      "player_id": "stroppe01",
+      "mlb_id": 467008,
+      "name": "Pedro Strop",
+      "diffs": {
+        "batting_G": {
+          "cache": 562,
+          "mlb_hitting": 525,
+          "mlb_pitching": 561
+        }
+      }
+    },
+    {
+      "player_id": "suarero01",
+      "mlb_id": 663158,
+      "name": "Robert Suarez",
+      "diffs": {
+        "pitching_G": {
+          "cache": 217,
+          "mlb_pitching": 216,
+          "mlb_hitting": 217
+        }
+      }
+    },
+    {
+      "player_id": "trachst01",
+      "mlb_id": 123431,
+      "name": "Steve Trachsel",
+      "diffs": {
+        "batting_G": {
+          "cache": 426,
+          "mlb_hitting": 415,
+          "mlb_pitching": 420
+        }
+      }
+    },
+    {
+      "player_id": "urenajo01",
+      "mlb_id": 570632,
+      "name": "José Ureña",
+      "diffs": {
+        "batting_G": {
+          "cache": 256,
+          "mlb_hitting": 206,
+          "mlb_pitching": 251
+        }
+      }
+    },
+    {
+      "player_id": "wagnebi02",
+      "mlb_id": 123790,
+      "name": "Billy Wagner",
+      "diffs": {
+        "batting_G": {
+          "cache": 854,
+          "mlb_hitting": 839,
+          "mlb_pitching": 853
+        },
+        "pitching_G": {
+          "cache": 854,
+          "mlb_pitching": 853,
+          "mlb_hitting": 839
+        }
+      }
+    },
+    {
+      "player_id": "walketa01",
+      "mlb_id": 592836,
+      "name": "Taijuan Walker",
+      "diffs": {
+        "batting_G": {
+          "cache": 256,
+          "mlb_hitting": 162,
+          "mlb_pitching": 255
+        }
+      }
+    },
+    {
+      "player_id": "weathry01",
+      "mlb_id": 677960,
+      "name": "Ryan Weathers",
+      "diffs": {
+        "batting_G": {
+          "cache": 77,
+          "mlb_hitting": 45,
+          "mlb_pitching": 75
+        }
+      }
+    },
+    {
+      "player_id": "weavelu01",
+      "mlb_id": 596133,
+      "name": "Luke Weaver",
+      "diffs": {
+        "batting_G": {
+          "cache": 287,
+          "mlb_hitting": 118,
+          "mlb_pitching": 279
+        }
+      }
+    }
+  ]
+}
