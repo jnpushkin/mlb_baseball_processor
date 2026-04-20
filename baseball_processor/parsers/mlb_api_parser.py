@@ -628,6 +628,7 @@ def parse_basic_info(feed_data: dict, box_data: dict) -> dict:
         'away_score_value': away_score,
         'home_score_value': home_score,
         'doubleheader': '0' if game_info.get('doubleHeader', 'N') == 'N' else game_info.get('doubleHeader', '0'),
+        'game_number': game_info.get('gameNumber', 1),
         'away_team_code': away_code,
         'home_team_code': home_code,
         'game_type': game_type,
@@ -1089,20 +1090,25 @@ def parse_play_by_play(feed_data: dict, bref_id_map: dict = None) -> list:
 
 
 def generate_game_id(basic_info: dict, game_pk: int) -> str:
-    """Generate a unique game ID compatible with BREF format."""
-    # Format: TEAMYYYYMMDD# where # is game number
-    # For MLB API games, use 'M' prefix to distinguish
-    home_code = basic_info.get('home_team_code', 'UNK')
-    date = basic_info.get('date_yyyymmdd', '')
-    doubleheader = basic_info.get('doubleheader', 'N')
+    """Generate a BREF-format game ID: {bref_home_code}{YYYYMMDD}{suffix}.
 
-    # Game number suffix
-    if doubleheader == 'Y':
-        suffix = '1'  # Would need more logic for actual DH game number
+    Using BREF's 3-letter codes (SFN, CHA, LAN, etc.) so API-sourced games
+    have the same ID format as BREF-sourced games — milestones, attended-game
+    lookups, and dedup all work uniformly. BREF prevents collisions by
+    deduping on date+teams.
+    """
+    from ..scrapers.download_bref import BREF_TEAM_CODES
+    mlb_code = basic_info.get('home_team_code', 'UNK')
+    home_code = BREF_TEAM_CODES.get(mlb_code, mlb_code)
+    date = basic_info.get('date_yyyymmdd', '')
+    doubleheader = basic_info.get('doubleheader', '0')
+    is_dh = doubleheader not in ('0', 'N', '')
+    if is_dh:
+        game_num = basic_info.get('game_number', 1)
+        suffix = '2' if int(game_num) == 2 else '1'
     else:
         suffix = '0'
-
-    return f"M{home_code}{date}{suffix}"
+    return f"{home_code}{date}{suffix}"
 
 
 def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player_ids: bool = True) -> dict:

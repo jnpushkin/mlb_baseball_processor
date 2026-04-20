@@ -117,13 +117,11 @@ def find_witnessed_career_firsts(raw_games, career_firsts_cache):
             # Exact match
             if cand in attended_games:
                 return attended_games[cand]
-            # Doubleheader variants
+            # Only allow '1'/'2' → '0' fallback (BREF sometimes stores DH games
+            # with '0' suffix). NOT '0' → '1'/'2': that direction risks matching
+            # the wrong game of a doubleheader for ambiguous single-game IDs.
             base, last_char = cand[:-1], cand[-1]
-            if last_char == '0':
-                for suffix in ('1', '2'):
-                    if (base + suffix) in attended_games:
-                        return attended_games[base + suffix]
-            elif last_char in ('1', '2'):
+            if last_char in ('1', '2'):
                 if (base + '0') in attended_games:
                     return attended_games[base + '0']
 

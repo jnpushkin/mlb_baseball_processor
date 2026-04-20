@@ -1030,13 +1030,18 @@ def find_career_firsts(player_id: str, scraper=None, verbose: bool = True, store
 
 # --- MLB API-based career firsts (real-time, no BREF lag) ---
 
-def _mlb_game_id_from_split(game: dict) -> str:
-    """Build the M-prefixed game ID expected by the rest of the pipeline.
+def _mlb_game_id_from_split(game: dict, dh_dates: set = None) -> str:
+    """Build a BREF-format game ID from an MLB API gameLog split.
 
-    Format: M{home_3letter_code}{YYYYMMDD}{suffix}; suffix='2' for DH game 2,
-    else '0'. Matches generate_game_id() in mlb_api_parser.py.
+    Format: {bref_home_code}{YYYYMMDD}{suffix}. Suffix uses the correct
+    '1'/'2' for doubleheader games when known, '0' for single games. DH
+    detection requires dh_dates — the set of dates where the player appeared
+    in both games of a DH (gameLog shows gameNumber=1 and 2 for the same
+    date). Without that context, gameNumber=2 still maps to '2' (safe),
+    gameNumber=1 defaults to '0'.
     """
     from ..parsers.mlb_api_parser import TEAM_ID_TO_CODE
+    from .download_bref import BREF_TEAM_CODES
     date = game.get('date', '')
     if not date or len(date) < 10:
         return str(game.get('game', {}).get('gamePk', ''))
@@ -1045,10 +1050,107 @@ def _mlb_game_id_from_split(game: dict) -> str:
         team_id = game.get('team', {}).get('id')
     else:
         team_id = game.get('opponent', {}).get('id')
-    home_code = TEAM_ID_TO_CODE.get(team_id, 'UNK')
+    mlb_code = TEAM_ID_TO_CODE.get(team_id, 'UNK')
+    bref_code = BREF_TEAM_CODES.get(mlb_code, mlb_code)
     game_num = game.get('game', {}).get('gameNumber', 1)
-    suffix = '2' if game_num == 2 else '0'
-    return f"M{home_code}{yyyymmdd}{suffix}"
+    if game_num == 2:
+        suffix = '2'
+    elif dh_dates and date in dh_dates:
+        suffix = '1'
+    else:
+        suffix = '0'
+    return f"{bref_code}{yyyymmdd}{suffix}"
+
+
+_SCHEDULE_CACHE = {}  # year -> {gamePk: (date_iso, doubleHeader_flag)}
+_SCHEDULE_LOCKS = {}  # year -> per-year Lock
+_SCHEDULE_LOCKS_MUTEX = None  # lazily created
+
+
+def _get_season_dh_map(year: str, session) -> dict:
+    """Return {gamePk: (date_iso, doubleHeader)} for a season, fetching once.
+
+    Thread-safe: per-year lock ensures only one worker fetches a given season;
+    other workers block briefly, then read from cache on wake. After the
+    first hit for a season, all subsequent lookups are O(1).
+    """
+    import threading
+    global _SCHEDULE_LOCKS_MUTEX
+    if year in _SCHEDULE_CACHE:
+        return _SCHEDULE_CACHE[year]
+    if _SCHEDULE_LOCKS_MUTEX is None:
+        _SCHEDULE_LOCKS_MUTEX = threading.Lock()
+    with _SCHEDULE_LOCKS_MUTEX:
+        if year not in _SCHEDULE_LOCKS:
+            _SCHEDULE_LOCKS[year] = threading.Lock()
+        lock = _SCHEDULE_LOCKS[year]
+    with lock:
+        if year in _SCHEDULE_CACHE:
+            return _SCHEDULE_CACHE[year]
+        url = (f"https://statsapi.mlb.com/api/v1/schedule"
+               f"?sportId=1&season={year}&gameType=R")
+        try:
+            r = session.get(url, timeout=20)
+            if r.status_code != 200:
+                _SCHEDULE_CACHE[year] = {}
+                return {}
+            m = {}
+            for day in r.json().get('dates', []):
+                date_iso = day.get('date', '')
+                for game in day.get('games', []):
+                    pk = game.get('gamePk')
+                    if pk:
+                        m[pk] = (date_iso, game.get('doubleHeader', 'N'))
+            _SCHEDULE_CACHE[year] = m
+            return m
+        except Exception:
+            _SCHEDULE_CACHE[year] = {}
+            return {}
+
+
+def _build_dh_dates(batting_games: list, pitching_games: list, session=None) -> set:
+    """Identify dates that are doubleheaders (for the player's games).
+
+    Uses globally-cached MLB schedule per season. Handles "scheduled DH,
+    game 2 rained out" (still flagged Y/S) and "player in only one DH
+    game" cases. Falls back to gameNumber=2 heuristic if schedule fetch
+    for a season fails.
+    """
+    import requests
+    seasons_pks = {}  # year -> set of pks
+    for g in batting_games + pitching_games:
+        d = g.get('date', '')
+        pk = g.get('game', {}).get('gamePk')
+        if d and len(d) >= 4 and pk:
+            seasons_pks.setdefault(d[:4], set()).add(pk)
+
+    if not seasons_pks:
+        return set()
+
+    sess = session or requests.Session()
+    dh_dates = set()
+    for year, pks in seasons_pks.items():
+        dh_map = _get_season_dh_map(year, sess)
+        if not dh_map:
+            # Per-season fallback: gameNumber=2 heuristic
+            for g in batting_games + pitching_games:
+                d = g.get('date', '')
+                if d and d[:4] == year and g.get('game', {}).get('gameNumber') == 2:
+                    dh_dates.add(d)
+            continue
+        for pk in pks:
+            if pk in dh_map:
+                date_iso, dh = dh_map[pk]
+                if dh != 'N':
+                    dh_dates.add(date_iso)
+    return dh_dates
+    dh_dates = set()
+    for g in batting_games + pitching_games:
+        if g.get('game', {}).get('gameNumber') == 2:
+            d = g.get('date', '')
+            if d:
+                dh_dates.add(d)
+    return dh_dates
 
 
 # MLB API field -> our stat key mapping (G handled separately via combined gamelogs)
@@ -1109,6 +1211,7 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
     # count each game once and pure pitchers get total appearances. Pitching.G
     # is tracked separately later as pitching appearances.
     # Build a chronological sequence of unique games for G tracking.
+    dh_dates = _build_dh_dates(batting_games, pitching_games, session=session)
     seen_pks = set()
     combined_games_chrono = []  # (date_str, mlb_game_id, opponent_name)
     for game in sorted(batting_games + pitching_games, key=lambda g: g.get('date', '')):
@@ -1117,7 +1220,7 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
             seen_pks.add(pk)
             combined_games_chrono.append((
                 game.get('date', ''),
-                _mlb_game_id_from_split(game),
+                _mlb_game_id_from_split(game, dh_dates),
                 game.get('opponent', {}).get('name', ''),
             ))
 
@@ -1162,7 +1265,7 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
         date_str = game.get('date', '')
         year = int(date_str[:4]) if date_str else 0
         opponent = game.get('opponent', {}).get('name', '')
-        game_id = _mlb_game_id_from_split(game)
+        game_id = _mlb_game_id_from_split(game, dh_dates)
 
         if year == current_year and not pre_year_batting:
             pre_year_batting = {k: v for k, v in batting_totals.items() if k != 'G'}
@@ -1223,7 +1326,7 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
         date_str = game.get('date', '')
         year = int(date_str[:4]) if date_str else 0
         opponent = game.get('opponent', {}).get('name', '')
-        game_id = _mlb_game_id_from_split(game)
+        game_id = _mlb_game_id_from_split(game, dh_dates)
 
         if year == current_year and not pre_year_pitching:
             pre_year_pitching = pitching_totals.copy()
