@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-04-19",
+  "description": "Players where Baseball-Reference and MLB Stats API report different career totals for the same regular-season MLB stat. Both sources are internally consistent (the BR scraper and the MLB API both reproduce their own numbers exactly when re-run); the numbers themselves disagree, likely from differing scoring decisions or post-game revisions that one source picked up and the other didn't. After force-all backfill (Apr 19, 2026), the cache holds MLB's number for each. This file preserves the BR value for the historical record.",
+  "count": 7,
+  "total_stat_diffs": 9,
+  "records": [
+    {
+      "player_id": "bautide01",
+      "name": "Denny Bautista",
+      "mlb_id": 425431,
+      "diffs": [
+        {
+          "stat": "pitching.IP",
+          "bref": 223.33,
+          "mlb": 223.0,
+          "cache_now": "mlb"
+        },
+        {
+          "stat": "pitching.SO",
+          "bref": 180,
+          "mlb": 179,
+          "cache_now": "mlb"
+        }
+      ]
+    },
+    {
+      "player_id": "burriem01",
+      "name": "Emmanuel Burriss",
+      "mlb_id": 458913,
+      "diffs": [
+        {
+          "stat": "batting.R",
+          "bref": 91,
+          "mlb": 92,
+          "cache_now": "mlb"
+        }
+      ]
+    },
+    {
+      "player_id": "cobbal01",
+      "name": "Alex Cobb",
+      "mlb_id": 502171,
+      "diffs": [
+        {
+          "stat": "pitching.GS",
+          "bref": 232,
+          "mlb": 233,
+          "cache_now": "mlb"
+        }
+      ]
+    },
+    {
+      "player_id": "devermi01",
+      "name": "Mike Devereaux",
+      "mlb_id": 113655,
+      "diffs": [
+        {
+          "stat": "batting.SB",
+          "bref": 85,
+          "mlb": 86,
+          "cache_now": "mlb"
+        }
+      ]
+    },
+    {
+      "player_id": "gomezch02",
+      "name": "Chris Gomez",
+      "mlb_id": 116534,
+      "diffs": [
+        {
+          "stat": "batting.RBI",
+          "bref": 487,
+          "mlb": 486,
+          "cache_now": "mlb"
+        }
+      ]
+    },
+    {
+      "player_id": "gonzalu03",
+      "name": "Luis González",
+      "mlb_id": 116584,
+      "diffs": [
+        {
+          "stat": "batting.H",
+          "bref": 81,
+          "mlb": 80,
+          "cache_now": "mlb"
+        },
+        {
+          "stat": "batting.TB",
+          "bref": 116,
+          "mlb": 115,
+          "cache_now": "mlb"
+        }
+      ]
+    },
+    {
+      "player_id": "molinbe01",
+      "name": "Bengie Molina",
+      "mlb_id": 116536,
+      "diffs": [
+        {
+          "stat": "batting.R",
+          "bref": 458,
+          "mlb": 457,
+          "cache_now": "mlb"
+        }
+      ]
+    }
+  ]
+}
