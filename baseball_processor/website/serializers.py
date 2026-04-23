@@ -750,6 +750,12 @@ class DataSerializer:
                         formatted_date = f"{date_str[4:6]}/{date_str[6:8]}/{date_str[0:4]}"
                         sortable_date = f"{date_str[0:4]}-{date_str[4:6]}-{date_str[6:8]}"
                 
+                # Two-way players (Ohtani) appear in BREF batting rows twice —
+                # once as DH/hitter, once listed under P (pitcher) with 0 stats.
+                # Track seen (side, player_id) to dedupe, keeping the row with
+                # the larger PA count (the real batting appearance).
+                game_seen = {}  # (side, player_id) → index into player_games
+
                 for side in ['home', 'away']:
                     team = self._normalize_team(basic_info.get(f'{side}_team_code', ''))
                     opponent = self._normalize_team(basic_info.get('away_team_code' if side == 'home' else 'home_team_code', ''))
@@ -758,6 +764,20 @@ class DataSerializer:
                         player_id = player.get('player_id', '')
                         if not player_id:
                             continue
+                        # Skip the P-line duplicate if we already have a DH/position
+                        # line with actual PAs for this player.
+                        prior_idx = game_seen.get((side, player_id))
+                        if prior_idx is not None:
+                            prior = player_games[prior_idx]
+                            prior_pa = prior.get('pa', 0)
+                            this_pa = int(player.get('PA', 0))
+                            if prior_pa >= this_pa:
+                                continue  # keep existing richer row
+                            player_games.pop(prior_idx)
+                            # Rebuild index offsets for any other entries after
+                            # (none currently — we only track per-game, and pop
+                            # invalidates only this game's indexes)
+                            game_seen = {k: v for k, v in game_seen.items() if v < prior_idx}
                         
                         ab = int(player.get('AB', 0))
                         pa = int(player.get('PA', 0))
@@ -825,6 +845,7 @@ class DataSerializer:
                             'hbp': player_extra.get('HBP', 0),
                             'gidp': player_extra.get('GIDP', 0),
                         })
+                        game_seen[(side, player_id)] = len(player_games) - 1
                         # Add hit data (exit velo) if available
                         hit_info = game.get('hit_data', {}).get(player_id, {})
                         if hit_info:
@@ -966,7 +987,9 @@ class DataSerializer:
                         if pitch_info:
                             pitcher_games[-1]['maxSpeed'] = pitch_info.get('maxSpeed')
                             pitcher_games[-1]['avgSpeed'] = pitch_info.get('avgSpeed')
+                            pitcher_games[-1]['minSpeed'] = pitch_info.get('minSpeed')
                             pitcher_games[-1]['avgSpinRate'] = pitch_info.get('avgSpinRate')
+                            pitcher_games[-1]['minSpinRate'] = pitch_info.get('minSpinRate')
                             pitcher_games[-1]['totalPitches'] = pitch_info.get('totalPitches', 0)
             except Exception as e:
                 print(f"   ⚠️ Error serializing pitcher game: {e}")
@@ -2202,6 +2225,7 @@ class DataSerializer:
         for game in raw_games:
             game_id = game.get('game_id', '')
             bi = game.get('basic_info', {})
+            game_type = (bi.get('game_type') or 'regular').lower()
             date = bi.get('date_yyyymmdd', '')
             formatted_date = ''
             if date and len(date) == 8:
@@ -2228,6 +2252,7 @@ class DataSerializer:
                                 'team': team,
                                 'gameId': game_id,
                                 'date': formatted_date,
+                                'gameType': game_type,
                             })
 
         return jersey_data

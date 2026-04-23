@@ -7504,8 +7504,8 @@ const JerseyCollection = ({ jerseyLog }) => {
     const numbers = useMemo(() => {
         const grid = [];
         const filterFn = (players) => includeSpring ? players : players.filter(p => {
-            // Game IDs starting with 'M' are MLB API (spring training) games
-            return !p.gameId?.startsWith('M');
+            // gameType is 'regular'/'postseason' for MLB games, 'spring'/'exhibition' otherwise
+            return p.gameType !== 'spring' && p.gameType !== 'exhibition';
         });
         grid.push({ num: '00', players: filterFn(jerseyLog['00'] || []) });
         for (let i = 0; i <= 99; i++) {
@@ -9151,6 +9151,28 @@ const StatcastView = ({ playerGames, pitcherGames, games }) => {
             .sort((a, b) => b.avgSpinRate - a.avgSpinRate);
     }, [pitcherGames, gameInfo]);
 
+    const slowestPitches = useMemo(() => {
+        return (pitcherGames || [])
+            .filter(pg => pg.minSpeed && pg.minSpeed > 0)
+            .map(pg => ({
+                name: pg.name, playerId: pg.playerId, team: pg.team,
+                minSpeed: pg.minSpeed, maxSpeed: pg.maxSpeed || 0, totalPitches: pg.totalPitches || 0,
+                date: pg.date || gameInfo.dateMap[pg.gameId] || '', venue: gameInfo.venueMap[pg.gameId] || '',
+            }))
+            .sort((a, b) => a.minSpeed - b.minSpeed);
+    }, [pitcherGames, gameInfo]);
+
+    const lowestSpin = useMemo(() => {
+        return (pitcherGames || [])
+            .filter(pg => pg.minSpinRate && pg.minSpinRate > 0)
+            .map(pg => ({
+                name: pg.name, playerId: pg.playerId, team: pg.team,
+                minSpinRate: pg.minSpinRate, maxSpeed: pg.maxSpeed || 0, totalPitches: pg.totalPitches || 0,
+                date: pg.date || gameInfo.dateMap[pg.gameId] || '', venue: gameInfo.venueMap[pg.gameId] || '',
+            }))
+            .sort((a, b) => a.minSpinRate - b.minSpinRate);
+    }, [pitcherGames, gameInfo]);
+
     const evCount = (playerGames || []).filter(pg => pg.maxExitVelo).length;
     const pitchCount = (pitcherGames || []).filter(pg => pg.maxSpeed).length;
     const playerCol = { key: 'name', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> };
@@ -9182,6 +9204,20 @@ const StatcastView = ({ playerGames, pitcherGames, games }) => {
             <DataTable title="Highest Avg Spin Rates" data={highestSpin} defaultSortKey="avgSpinRate" persistKey="statcast-spin" columns={[
                 playerCol, { key: 'team', label: 'Team' },
                 { key: 'avgSpinRate', label: 'Spin Rate', render: v => <span className="font-mono">{v.toLocaleString()} rpm</span> },
+                { key: 'maxSpeed', label: 'Speed', render: v => v ? <span className="font-mono">{v} mph</span> : '—' },
+                { key: 'totalPitches', label: 'Pitches' },
+                { key: 'date', label: 'Date' }, { key: 'venue', label: 'Venue' },
+            ]} />
+            <DataTable title="Slowest Pitches" data={slowestPitches} defaultSortKey="minSpeed" defaultSortDir="asc" persistKey="statcast-speed-slow" columns={[
+                playerCol, { key: 'team', label: 'Team' },
+                { key: 'minSpeed', label: 'Speed', render: v => <span className="font-mono">{v} mph</span> },
+                { key: 'maxSpeed', label: 'Max', render: v => v ? <span className="font-mono">{v} mph</span> : '—' },
+                { key: 'totalPitches', label: 'Pitches' },
+                { key: 'date', label: 'Date' }, { key: 'venue', label: 'Venue' },
+            ]} />
+            <DataTable title="Lowest Single-Pitch Spin Rates" data={lowestSpin} defaultSortKey="minSpinRate" defaultSortDir="asc" persistKey="statcast-spin-low" columns={[
+                playerCol, { key: 'team', label: 'Team' },
+                { key: 'minSpinRate', label: 'Spin Rate', render: v => <span className="font-mono">{v.toLocaleString()} rpm</span> },
                 { key: 'maxSpeed', label: 'Speed', render: v => v ? <span className="font-mono">{v} mph</span> : '—' },
                 { key: 'totalPitches', label: 'Pitches' },
                 { key: 'date', label: 'Date' }, { key: 'venue', label: 'Venue' },

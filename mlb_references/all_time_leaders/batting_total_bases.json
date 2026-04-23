@@ -2,7 +2,7 @@
   "stat": "TB",
   "stat_name": "Total Bases",
   "type": "batting",
-  "last_updated": "2026-04-13",
+  "last_updated": "2026-04-21",
   "leaders": [
     {
       "rank": 1,
@@ -450,15 +450,15 @@
     },
     {
       "rank": 75,
-      "player_id": "staubru01",
-      "name": "Rusty Staub",
-      "value": 4185
+      "player_id": "freemfr01",
+      "name": "Freddie Freeman",
+      "value": 4187
     },
     {
       "rank": 76,
-      "player_id": "freemfr01",
-      "name": "Freddie Freeman",
-      "value": 4175
+      "player_id": "staubru01",
+      "name": "Rusty Staub",
+      "value": 4185
     },
     {
       "rank": 77,
@@ -816,15 +816,15 @@
     },
     {
       "rank": 136,
-      "player_id": "vottojo01",
-      "name": "Joey Votto",
-      "value": 3706
+      "player_id": "altuvjo01",
+      "name": "Jose Altuve",
+      "value": 3712
     },
     {
       "rank": 137,
-      "player_id": "altuvjo01",
-      "name": "Jose Altuve",
-      "value": 3702
+      "player_id": "vottojo01",
+      "name": "Joey Votto",
+      "value": 3706
     },
     {
       "rank": 138,
@@ -905,16 +905,16 @@
       "value": 3629
     },
     {
-      "rank": 151,
-      "player_id": "rolensc01",
-      "name": "Scott Rolen",
-      "value": 3628
+      "rank": 150,
+      "player_id": "machama01",
+      "name": "Manny Machado",
+      "value": 3629
     },
     {
       "rank": 152,
-      "player_id": "machama01",
-      "name": "Manny Machado",
-      "value": 3626
+      "player_id": "rolensc01",
+      "name": "Scott Rolen",
+      "value": 3628
     },
     {
       "rank": 153,
@@ -1104,15 +1104,15 @@
     },
     {
       "rank": 184,
-      "player_id": "ibanera01",
-      "name": "Raul Ibanez",
-      "value": 3475
+      "player_id": "arenano01",
+      "name": "Nolan Arenado",
+      "value": 3481
     },
     {
       "rank": 185,
-      "player_id": "arenano01",
-      "name": "Nolan Arenado",
-      "value": 3471
+      "player_id": "ibanera01",
+      "name": "Raul Ibanez",
+      "value": 3475
     },
     {
       "rank": 186,
@@ -1140,63 +1140,63 @@
     },
     {
       "rank": 190,
+      "player_id": "troutmi01",
+      "name": "Mike Trout",
+      "value": 3446
+    },
+    {
+      "rank": 191,
       "player_id": "leede02",
       "name": "Derrek Lee",
       "value": 3444
     },
     {
-      "rank": 191,
+      "rank": 192,
       "player_id": "boyerke01",
       "name": "Ken Boyer",
       "value": 3443
     },
     {
-      "rank": 192,
+      "rank": 193,
       "player_id": "trammal01",
       "name": "Alan Trammell",
       "value": 3442
     },
     {
-      "rank": 193,
+      "rank": 194,
       "player_id": "o'neipa01",
       "name": "Paul O'Neill",
       "value": 3441
     },
     {
-      "rank": 194,
+      "rank": 195,
       "player_id": "longoev01",
       "name": "Evan Longoria",
       "value": 3439
     },
     {
-      "rank": 194,
+      "rank": 195,
       "player_id": "smithre06",
       "name": "Reggie Smith",
       "value": 3439
     },
     {
-      "rank": 196,
+      "rank": 197,
       "player_id": "loftoke01",
       "name": "Kenny Lofton",
       "value": 3433
     },
     {
-      "rank": 197,
-      "player_id": "cramedo01",
-      "name": "Doc Cramer",
-      "value": 3430
-    },
-    {
-      "rank": 197,
+      "rank": 198,
       "player_id": "grissma02",
       "name": "Marquis Grissom",
       "value": 3430
     },
     {
-      "rank": 199,
-      "player_id": "troutmi01",
-      "name": "Mike Trout",
-      "value": 3429
+      "rank": 198,
+      "player_id": "cramedo01",
+      "name": "Doc Cramer",
+      "value": 3430
     },
     {
       "rank": 200,

@@ -2,7 +2,7 @@
   "stat": "H",
   "stat_name": "Hits",
   "type": "batting",
-  "last_updated": "2026-04-13",
+  "last_updated": "2026-04-21",
   "leaders": [
     {
       "rank": 1,
@@ -234,14 +234,14 @@
     },
     {
       "rank": 39,
-      "player_id": "becklja01",
-      "name": "Jake Beckley",
+      "player_id": "hornsro01",
+      "name": "Rogers Hornsby",
       "value": 2930
     },
     {
       "rank": 39,
-      "player_id": "hornsro01",
-      "name": "Rogers Hornsby",
+      "player_id": "becklja01",
+      "name": "Jake Beckley",
       "value": 2930
     },
     {
@@ -450,14 +450,14 @@
     },
     {
       "rank": 75,
-      "player_id": "heilmha01",
-      "name": "Harry Heilmann",
+      "player_id": "davisge01",
+      "name": "George Davis",
       "value": 2660
     },
     {
       "rank": 75,
-      "player_id": "davisge01",
-      "name": "George Davis",
+      "player_id": "heilmha01",
+      "name": "Harry Heilmann",
       "value": 2660
     },
     {
@@ -689,28 +689,28 @@
       "value": 2455
     },
     {
-      "rank": 115,
-      "player_id": "hunteto01",
-      "name": "Torii Hunter",
-      "value": 2452
+      "rank": 114,
+      "player_id": "freemfr01",
+      "name": "Freddie Freeman",
+      "value": 2455
     },
     {
-      "rank": 115,
+      "rank": 116,
       "player_id": "riceji01",
       "name": "Jim Rice",
       "value": 2452
     },
     {
-      "rank": 117,
-      "player_id": "schoere01",
-      "name": "Red Schoendienst",
-      "value": 2449
+      "rank": 116,
+      "player_id": "hunteto01",
+      "name": "Torii Hunter",
+      "value": 2452
     },
     {
       "rank": 118,
-      "player_id": "freemfr01",
-      "name": "Freddie Freeman",
-      "value": 2448
+      "player_id": "schoere01",
+      "name": "Red Schoendienst",
+      "value": 2449
     },
     {
       "rank": 119,
@@ -744,20 +744,20 @@
     },
     {
       "rank": 124,
+      "player_id": "altuvjo01",
+      "name": "Jose Altuve",
+      "value": 2413
+    },
+    {
+      "rank": 125,
       "player_id": "sosasa01",
       "name": "Sammy Sosa",
       "value": 2408
     },
     {
-      "rank": 125,
+      "rank": 126,
       "player_id": "tejadmi01",
       "name": "Miguel Tejada",
-      "value": 2407
-    },
-    {
-      "rank": 125,
-      "player_id": "altuvjo01",
-      "name": "Jose Altuve",
       "value": 2407
     },
     {
@@ -888,6 +888,12 @@
     },
     {
       "rank": 148,
+      "player_id": "surhob.01",
+      "name": "B.J. Surhoff",
+      "value": 2326
+    },
+    {
+      "rank": 148,
       "player_id": "daubeja01",
       "name": "Jake Daubert",
       "value": 2326
@@ -896,12 +902,6 @@
       "rank": 148,
       "player_id": "conceda01",
       "name": "Dave Concepcion",
-      "value": 2326
-    },
-    {
-      "rank": 148,
-      "player_id": "surhob.01",
-      "name": "B.J. Surhoff",
       "value": 2326
     },
     {
@@ -930,14 +930,14 @@
     },
     {
       "rank": 155,
-      "player_id": "puckeki01",
-      "name": "Kirby Puckett",
+      "player_id": "o'rouji01",
+      "name": "Jim O'Rourke",
       "value": 2304
     },
     {
       "rank": 155,
-      "player_id": "o'rouji01",
-      "name": "Jim O'Rourke",
+      "player_id": "puckeki01",
+      "name": "Kirby Puckett",
       "value": 2304
     },
     {
@@ -1152,8 +1152,8 @@
     },
     {
       "rank": 192,
-      "player_id": "terrybi01",
-      "name": "Bill Terry",
+      "player_id": "goldspa01",
+      "name": "Paul Goldschmidt",
       "value": 2193
     },
     {
@@ -1164,8 +1164,8 @@
     },
     {
       "rank": 192,
-      "player_id": "goldspa01",
-      "name": "Paul Goldschmidt",
+      "player_id": "terrybi01",
+      "name": "Bill Terry",
       "value": 2193
     },
     {

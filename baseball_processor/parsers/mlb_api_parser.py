@@ -863,7 +863,9 @@ def parse_pitch_data(feed_data: dict, bref_id_map: dict = None) -> dict:
             'totalPitches': len(pitches),
             'avgSpeed': round(sum(speeds) / len(speeds), 1) if speeds else None,
             'maxSpeed': round(max(speeds), 1) if speeds else None,
+            'minSpeed': round(min(speeds), 1) if speeds else None,
             'avgSpinRate': round(sum(spins) / len(spins)) if spins else None,
+            'minSpinRate': round(min(spins)) if spins else None,
             'pitchTypes': type_counts,
             'pitchTypeNames': type_names,
         }
@@ -1015,6 +1017,15 @@ def parse_play_by_play(feed_data: dict, bref_id_map: dict = None) -> list:
     plays = feed_data.get('liveData', {}).get('plays', {})
     all_plays = plays.get('allPlays', [])
 
+    # Derive team codes for pitching_team / batting_team fields (half-inning
+    # based). Several downstream detectors (3-K innings, immaculate innings,
+    # etc.) require these to identify the pitcher's team.
+    teams = feed_data.get('gameData', {}).get('teams', {})
+    away_team_id = teams.get('away', {}).get('id')
+    home_team_id = teams.get('home', {}).get('id')
+    away_code = TEAM_ID_TO_CODE.get(away_team_id, teams.get('away', {}).get('abbreviation', ''))
+    home_code = TEAM_ID_TO_CODE.get(home_team_id, teams.get('home', {}).get('abbreviation', ''))
+
     play_by_play = []
 
     for play in all_plays:
@@ -1025,6 +1036,15 @@ def parse_play_by_play(feed_data: dict, bref_id_map: dict = None) -> list:
         event_type = result.get('eventType', '')
         if not event_type:
             continue
+
+        half = about.get('halfInning', '')
+        # Top of inning: away bats, home pitches. Bottom: reverse.
+        if half == 'top':
+            batting_team = away_code
+            pitching_team = home_code
+        else:
+            batting_team = home_code
+            pitching_team = away_code
 
         # Get batter and pitcher info
         batter = matchup.get('batter', {})
@@ -1046,7 +1066,9 @@ def parse_play_by_play(feed_data: dict, bref_id_map: dict = None) -> list:
 
         play_data = {
             'inning': about.get('inning', 0),
-            'half': about.get('halfInning', ''),
+            'half': half,
+            'batting_team': batting_team,
+            'pitching_team': pitching_team,
             'outs_before': play.get('count', {}).get('outs', 0),
             'event': result.get('event', ''),
             'event_type': event_type,

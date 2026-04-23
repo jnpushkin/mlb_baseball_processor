@@ -103,6 +103,22 @@ def fetch_and_save_game(game_pk, force=False):
     print(f"  Score: {basic.get('away_score')} - {basic.get('home_score')}")
     print(f"  Saved to cache")
 
+    # Supersede the Stats-API ABS data (often incomplete by 1-2 challenges)
+    # with Baseball Savant's gamefeed, which is the authoritative source.
+    try:
+        from .pitch_data_scraper import fetch_savant_abs, create_retry_session
+        sess = create_retry_session()
+        challenges = fetch_savant_abs(sess, game_pk, delay=0.5)
+        if challenges:
+            existing_abs = game_data.get('abs_challenges') or {}
+            existing_abs['reviews'] = challenges
+            game_data['abs_challenges'] = existing_abs
+            with open(cache_path, 'w') as f:
+                json.dump(game_data, f, indent=2)
+            print(f"  ⚾ ABS from Savant: {len(challenges)} challenge(s)")
+    except Exception as e:
+        print(f"  ⚠️ Savant ABS skipped: {e}")
+
     # Run enrichment pipeline
     from ..main import _fetch_missing_bios_for_game, _update_gamelogs_for_game
     try:

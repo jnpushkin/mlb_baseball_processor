@@ -8,7 +8,20 @@ from .base_processor import BaseProcessor
 
 class MilestonesProcessor(BaseProcessor):
     # Shared keyword lists for play classification
-    NON_K_OUT_KEYWORDS = ["flyball", "groundout", "lineout", "popfly", "double play", "triple play"]
+    # Keywords used to detect non-strikeout outs in play descriptions. Covers
+    # both BREF's compact phrasing ("groundout") and MLB API's expanded form
+    # ("grounds out", "grounded out", "flies out"), plus sac flies / force
+    # outs which appear in MLB API descriptions as "sacrifice fly" / "out at".
+    NON_K_OUT_KEYWORDS = [
+        "flyball", "flies out", "flied out", "fly ball",
+        "groundout", "grounds out", "grounded out", "ground ball",
+        "lineout", "lines out", "lined out", "line drive",
+        "popfly", "pops out", "popped out", "pop out",
+        "fouls out", "fouled out",
+        "sacrifice fly", "sac fly", "sacrifice bunt", "sac bunt",
+        "force out", "forceout", "out at",
+        "double play", "triple play",
+    ]
     K_KEYWORDS_SWINGING = ["swinging", "swing", "missed", "whiff", "swung"]
     K_KEYWORDS_LOOKING = ["looking", "called", "watched", "took", "frozen"]
 
@@ -646,7 +659,13 @@ class MilestonesProcessor(BaseProcessor):
                         half_inning_tracker[key]["pitches"] += pitch_count
 
                     description = safe_get_str(play, "description", "").lower()
-                    if any(keyword in description for keyword in self.NON_K_OUT_KEYWORDS + ["strikeout"]):
+                    event_type = (safe_get_str(play, "event_type", "") or "").lower()
+                    is_out = (event_type == "strikeout"
+                              or "strikes out" in description
+                              or "struck out" in description
+                              or "strikeout" in description
+                              or any(kw in description for kw in self.NON_K_OUT_KEYWORDS))
+                    if is_out:
                         half_inning_tracker[key]["outs"] += 1
 
                     cleaned_desc = self._clean_play_description(description)
@@ -737,7 +756,13 @@ class MilestonesProcessor(BaseProcessor):
                     # Track strikeouts vs other types of outs
                     description = safe_get_str(play, "description", "").lower()
                     
-                    if play.get("strikeout", False) or "struck out" in description or "strikeout" in description:
+                    event_type = (safe_get_str(play, "event_type", "") or "").lower()
+                    is_k = (play.get("strikeout", False)
+                            or event_type == "strikeout"
+                            or "struck out" in description
+                            or "strikes out" in description  # MLB API phrasing
+                            or "strikeout" in description)
+                    if is_k:
                         pitcher_tracker[key]["strikeouts"] += 1
                         pitcher_tracker[key]["batters_struck_out"].append(batter_name)
                         k_type = self._categorize_strikeout(description)
@@ -754,11 +779,12 @@ class MilestonesProcessor(BaseProcessor):
                     cleaned_desc = self._clean_play_description(description)
                     pitcher_tracker[key]["plays"].append(cleaned_desc)
 
-                # Check for perfect 3-strikeout innings by individual pitchers
+                # 3-strikeout inning: pitcher faces exactly 3 batters and strikes
+                # out all 3 (3-up, 3-down via K). Walks/hits/HBP mid-inning
+                # disqualify — those fall under broader "all outs via K" which
+                # we don't currently track separately.
                 for (inning, half, team, pitcher), result in pitcher_tracker.items():
-                    # Must have exactly 3 strikeouts, zero non-strikeout outs, and exactly 3 batters faced
-                    # This means pure "3-up, 3-down" on strikeouts - no walks, hits, or other baserunners
-                    if (result["strikeouts"] == 3 and 
+                    if (result["strikeouts"] == 3 and
                         result["non_strikeout_outs"] == 0 and
                         result["total_batters_faced"] == 3):
                         
@@ -941,7 +967,13 @@ class MilestonesProcessor(BaseProcessor):
 
                     description = safe_get_str(play, "description", "").lower()
                     
-                    if play.get("strikeout", False) or "struck out" in description or "strikeout" in description:
+                    event_type = (safe_get_str(play, "event_type", "") or "").lower()
+                    is_k = (play.get("strikeout", False)
+                            or event_type == "strikeout"
+                            or "struck out" in description
+                            or "strikes out" in description  # MLB API phrasing
+                            or "strikeout" in description)
+                    if is_k:
                         pitcher_tracker[key]["strikeouts"] += 1
                         pitcher_tracker[key]["batters_struck_out"].append(batter_name)
                         k_type = self._categorize_strikeout(description)
@@ -1062,7 +1094,13 @@ class MilestonesProcessor(BaseProcessor):
 
                 for play in all_plays:
                     desc = safe_get_str(play, "description", "").lower()
-                    event_is_hr = any(keyword in desc for keyword in ["homered", "home run"])
+                    event_type = (safe_get_str(play, "event_type", "") or "").lower()
+                    event_name = (safe_get_str(play, "event", "") or "").lower()
+                    event_is_hr = (
+                        event_type == "home_run"
+                        or event_name == "home run"
+                        or any(kw in desc for kw in ("homered", "home run", "homers"))
+                    )
                     team = safe_get_str(play, "batting_team", "")
                     inning = safe_get_int(play, "inning", 0)
                     half = safe_get_str(play, "half", "")
