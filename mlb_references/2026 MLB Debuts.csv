@@ -1,35 +1,54 @@
 Rk,Name,Age,Debut,Last Game,Pos,Tm,WAR,Ht,Wt,B,T,Birthdate,Birthplace,Draft/Signing,Schools,High School,Given Name,Name-additional
-1,Carter Baumler,24.054,Mar 26,,/1,TEX,0.1,6-2,195,R,R,"Jan 31, 2002","Grimes, IA, US",,,"Dowling Catholic HS (West Des Moines, IA)",Carter Cornelius,baumlca01
-2,Carson Benge,23.065,Mar 26,,*/978H,NYM,-0.2,6-1,184,L,R,"Jan 20, 2003","Oklahoma City, OK, US",,"Oklahoma State University (Stillwater, OK)","Yukon HS (Yukon, OK)",Carson Grant,bengeca01
-3,Juan Brito,24.195,Apr 7,,/4,CLE,0.1,6-0,202,B,R,"Sep 24, 2001","Santo Domingo, Distrito Nacional, DO",,,,Juan Manuel,britoju02
-4,Justin Crawford,22.072,Mar 26,,*8,PHI,0.1,6-2,188,L,R,"Jan 13, 2004","Phoenix, AZ, US",,,"Bishop Gorman HS (Las Vegas, NV)",Justin,crawfju01
-5,Duncan Davitt,26.199,Apr 10,,/1,CHW,0.0,6-3,235,R,R,"Sep 23, 1999","Des Moines, IA, US",,"University of Iowa (Iowa City, IA)",,Duncan Philip Danner,davitdu01
-6,Deyvison De Los Santos,22.281,Mar 29,,/3,MIA,0.1,6-1,185,R,R,"Jun 21, 2003","Santo Domingo, Distrito Nacional, DO",,,,Deyvison,delosde01
-7,Shane Drohan,27.091,Apr 8,,/1,MIL,-0.1,6-2,202,L,L,"Jan 7, 1999","Fort Lauderdale, FL, US",,"Florida State University (Tallahassee, FL)","Cardinal Newman HS (West Palm Beach, FL)",Shane Liam,drohash01
-8,Jose Fernandez,22.190,Mar 31,,/3D5H6,ARI,0.4,6-3,165,R,R,"Sep 22, 2003","Cumana, Sucre, VE",,,,Jose Luis,fernajo06
-9,Jose Franco,25.125,Mar 30,,/1,CIN,0.0,6-2,257,R,R,"Nov 25, 2000","Maracay, Aragua, VE",,,,Jose Alejandro,francjo02
-10,Konnor Griffin,19.344,Apr 3,,/6H,PIT,-0.1,6-3,222,R,R,"Apr 24, 2006","Jackson, MS, US",,,"Jackson Preparatory School (Flowood, MS)",Konnor Thomas,griffko01
-11,Tatsuya Imai,27.324,Mar 29,,/1,HOU,-0.2,5-11,176,R,R,"May 9, 1998","Kanuma, JP",,,,Tatsuya,imaita01
-12,George Klassen,24.069,Apr 5,,/1,LAA,-0.4,6-2,195,R,R,"Jan 26, 2002","West Bend, WI, US",,"University of Minnesota (Minneapolis, MN)","Port Washington HS (Port Washington, WI)",George Edward,klassge01
-13,Riley Martin,28.018,Apr 6,,/1,CHC,0.1,6-1,215,L,L,"Mar 19, 1998","Salem, IL, US",,"Quincy University (Quincy, IL)",,Riley Cole,martiri02
-14,Kevin McGonigle,21.220,Mar 26,,/56,DET,0.7,5-9,187,L,R,"Aug 18, 2004","Media, PA, US",,,"Monsignor Bonner and Archbishop Prendergast HS (Drexel Hill, PA)",Kevin Patrick,mcgonke01
-15,Spencer Miles,25.245,Mar 28,,/1,TOR,0.2,6-3,180,L,R,"Jul 26, 2000","Columbia, MO, US",,"University of Missouri (Columbia, MO)",,Spencer David,milessp01
-16,Munetaka Murakami,26.052,Mar 26,,*3/DH,CHW,0.1,6-2,213,L,R,"Feb 2, 2000","Kumamoto, JP",,,,Munetaka,murakmu01
-17,Tanner Murray,26.214,Apr 5,,/576,CHW,-0.1,6-1,190,R,R,"Sep 3, 1999","Santa Clara, CA, US",,"University of California, Davis (Davis, CA)",,Tanner Kane,murrata01
-18,Anthony Nunez,24.261,Mar 28,,/1,BAL,0.2,6-2,220,B,R,"Jul 10, 2001","Miami, FL, US",,"University of Tampa (Tampa, FL)","Miami Springs HS (Miami Springs, FL)",Anthony,nunezan01
-19,Kazuma Okamoto,29.270,Mar 27,,*5/3,TOR,-0.1,6-1,220,R,R,"Jun 30, 1996","Gojo, JP",,,,Kazuma,okamoka01
-20,Jedixson Paez,22.068,Mar 26,,/1,CHW,-0.2,6-1,170,R,R,"Jan 17, 2004","Tinaquillo, Cojedes, VE",,,,Jedixson Jose,paezje01
-21,Andrew Painter,22.355,Mar 31,,/1,PHI,0.1,6-7,215,R,R,"Apr 10, 2003","Pompano Beach, FL, US",,,"Calvary Christian Academy (Fort Lauderdale, FL)",Andrew Patrick,paintan01
-22,Peyton Pallette,24.322,Mar 27,,/1,CLE,0.0,6-1,190,R,R,"May 9, 2001","Little Rock, AR, US",,"University of Arkansas (Fayetteville, AR)","Benton HS (Benton, AR)",Peyton Minor,pallepe01
-23,Matt Pushard,28.153,Mar 29,,/1,STL,-0.2,6-4,250,R,R,"Oct 27, 1997","Bangor, ME, US",,"University of Maine (Orono, ME)",,Matthew Louis,pushama01
-24,Jeferson Quero,23.172,Mar 29,,/2,MIL,0.0,6-0,203,R,R,"Oct 8, 2002","Barquisimeto, Lara, VE",,,,Jeferson Jose,queroje01
-25,TJ Rumfield,25.314,Mar 27,,*3/DH,COL,0.4,6-5,238,L,R,"May 17, 2000","Richmond, VA, US",,"Texas Tech University (Lubbock, TX),Virginia Polytechnic Institute and State University (Blacksburg, VA)","Temple HS (Temple, TX)",Toby Joseph,rumfitj01
-26,Tyler Samaniego,27.068,Apr 8,,/1,BOS,0.1,6-4,205,R,L,"Jan 30, 1999","Huntsville, AL, US",,"University of South Alabama (Mobile, AL)",,Robert Tyler,samanty01
-27,Tyler Schweitzer,25.201,Apr 8,,/1,CHW,0.0,6-0,185,L,L,"Sep 19, 2000","Indianapolis, IN, US",,"Ball State University (Muncie, IN)",,Tyler Joseph,schwety01
-28,Daniel Susac,24.322,Apr 1,,/2H,SFG,0.5,6-5,210,R,R,"May 14, 2001","Roseville, CA, US",,"University of Arizona (Tucson, AZ)","Jesuit HS (Carmichael, CA)",Daniel Shawn,susacda01
-29,Tyler Uberstine,26.308,Apr 5,,/1,BOS,0.0,6-1,200,R,R,"Jun 1, 1999","Santa Monica, CA, US",,"Northwestern University (Evanston, IL)",,Tyler James,ubersty01
-30,Walbert UreÃ±a,22.060,Mar 26,,/1,LAA,-0.5,6-0,210,R,R,"Jan 25, 2004","Mao, Valverde, DO",,,,Walbert Jhoel,urenawa01
-31,Brandon Valenzuela,25.185,Apr 5,,/2,TOR,0.0,6-0,225,B,R,"Oct 2, 2000","Hermosillo, Sonora, MX",,,,Brandon Ivar,valenbr01
-32,Ryan Watson,28.133,Mar 28,,/1,BOS,0.1,6-5,225,R,R,"Nov 15, 1997","Auburn, AL, US",,"Auburn University (Auburn, AL)","Auburn HS (Auburn, AL)",Ryan Traylor,watsory01
-33,Ryan Weiss,29.107,Mar 27,,/1,HOU,-0.3,6-4,210,R,R,"Dec 10, 1996","South Elgin, IL, US",,"Wright State University (Dayton, OH)",,Ryan,weissry01
-34,JJ Wetherholt,23.197,Mar 26,,*4/H,STL,0.5,5-9,190,L,R,"Sep 10, 2002","Baltimore, MD, US",,"West Virginia University (Morgantown, WV)",,Jonathan David,wethejj01
+1,Jack Anderson,26.142,Apr 14,,/1,BOS,0.1,6-3,197,R,R,"Nov 23, 1999","Tampa, FL, US",,"Florida State University (Tallahassee, FL)","Jesuit HS (Tampa, FL)",Jack Thomas,anderja02
+2,Sam Antonacci,23.068,Apr 15,,/7H4,CHW,0.3,5-11,193,L,R,"Feb 6, 2003","Springfield, IL, US",,"Coastal Carolina University (Conway, SC),Heartland Community College (Normal, IL)","Sacred Heart-Griffin HS (Springfield, IL)",Samuel Joseph,antonsa01
+3,Carter Baumler,24.054,Mar 26,,/1,TEX,0.1,6-2,195,R,R,"Jan 31, 2002","Grimes, IA, US",,,"Dowling Catholic HS (West Des Moines, IA)",Carter Cornelius,baumlca01
+4,Carson Benge,23.065,Mar 26,,*79/8H,NYM,-0.1,6-1,184,L,R,"Jan 20, 2003","Oklahoma City, OK, US",,"Oklahoma State University (Stillwater, OK)","Yukon HS (Yukon, OK)",Carson Grant,bengeca01
+5,Juan Brito,24.195,Apr 7,,4/H,CLE,-0.5,6-0,202,B,R,"Sep 24, 2001","Santo Domingo, Distrito Nacional, DO",,,,Juan Manuel,britoju02
+6,Gavin Collyer,24.338,Apr 15,,/1,TEX,0.1,6-1,165,R,R,"May 12, 2001","Lawrenceville, GA, US",,,"Mountain View HS (Lawrenceville, GA)",Gavin Thomas,collyga01
+7,Riley Cornelio,25.322,Apr 24,,/1,WSN,-0.3,6-3,195,R,R,"Jun 6, 2000","Honolulu, HI, US",,"Texas Christian University (Fort Worth, TX)","Pine Creek HS (Colorado Springs, CO)",Riley John Thomas,corneri01
+8,Justin Crawford,22.072,Mar 26,,*8/H,PHI,-0.4,6-2,188,L,R,"Jan 13, 2004","Phoenix, AZ, US",,,"Bishop Gorman HS (Las Vegas, NV)",Justin,crawfju01
+9,Coleman Crow,25.108,Apr 17,,/1,MIL,0.1,5-10,175,R,R,"Dec 30, 2000","Concord, GA, US",,,"Pike County HS (Zebulon, GA)",Coleman McCade,crowco01
+10,Tyler Davis,27.204,Apr 25,,/1,CHW,0.1,6-2,210,R,R,"Oct 3, 1998","Webster, TX, US",,"Sam Houston State University (Huntsville, TX),Wichita State University (Wichita, KS)",,Tyler David,davisty01
+11,Duncan Davitt,26.199,Apr 10,,/1,CHW,0.0,6-3,235,R,R,"Sep 23, 1999","Des Moines, IA, US",,"University of Iowa (Iowa City, IA)",,Duncan Philip Danner,davitdu01
+12,Deyvison De Los Santos,22.281,Mar 29,,/3D,MIA,0.0,6-1,185,R,R,"Jun 21, 2003","Santo Domingo, Distrito Nacional, DO",,,,Deyvison,delosde01
+13,Wilber Dotel,23.206,Apr 19,,/1,PIT,0.0,6-3,238,R,R,"Sep 25, 2002","Santo Domingo, Distrito Nacional, DO",,,,Wilber Bladimir,dotelwi01
+14,Shane Drohan,27.091,Apr 8,,/1,MIL,-0.2,6-2,202,L,L,"Jan 7, 1999","Fort Lauderdale, FL, US",,"Florida State University (Tallahassee, FL)","Cardinal Newman HS (West Palm Beach, FL)",Shane Liam,drohash01
+15,Jose Fernandez,22.190,Mar 31,,/3D5H6,ARI,0.7,6-3,165,R,R,"Sep 22, 2003","Cumana, Sucre, VE",,,,Jose Luis,fernajo06
+16,Cameron Foster,27.030,Apr 16,,/1,BAL,-0.1,6-5,240,R,R,"Mar 17, 1999","Houston, TX, US",,"McNeese State University (Lake Charles, LA)","George Bush HS (Richmond, TX)",Cameron Michael John,fosteca01
+17,Jose Franco,25.125,Mar 30,,/1,CIN,0.0,6-2,257,R,R,"Nov 25, 2000","Maracay, Aragua, VE",,,,Jose Alejandro,francjo02
+18,Peyton Gray,30.325,Apr 23,,/1,TEX,0.0,6-4,235,R,R,"Jun 2, 1995","Columbus, IN, US",,"Florida Gulf Coast University (Fort Myers, FL),Western Michigan University (Kalamazoo, MI)",,Peyton Charles Paul,graype02
+19,Konnor Griffin,19.344,Apr 3,,*6/H,PIT,0.3,6-3,222,R,R,"Apr 24, 2006","Jackson, MS, US",,,"Jackson Preparatory School (Flowood, MS)",Konnor Thomas,griffko01
+20,Tatsuya Imai,27.324,Mar 29,,/1,HOU,-0.2,5-11,176,R,R,"May 9, 1998","Kanuma, JP",,,,Tatsuya,imaita01
+21,George Klassen,24.069,Apr 5,,/1,LAA,-0.3,6-2,195,R,R,"Jan 26, 2002","West Bend, WI, US",,"University of Minnesota (Minneapolis, MN)","Port Washington HS (Port Washington, WI)",George Edward,klassge01
+22,Hao-Yu Lee,23.073,Apr 17,,/54H,DET,-0.2,5-9,190,R,R,"Feb 3, 2003","New Taipei, TW",,,,Hao-Yu,leeha02
+23,Riley Martin,28.018,Apr 6,,/1,CHC,0.2,6-1,215,L,L,"Mar 19, 1998","Salem, IL, US",,"Quincy University (Quincy, IL)",,Riley Cole,martiri02
+24,Trevor Martin,25.126,Apr 20,,/1,TBR,-0.1,6-5,238,R,R,"Dec 15, 2000","Poteau, OK, US",,"Oklahoma State University (Stillwater, OK)","Asher HS (Asher, OK)",Trevor Zane,martitr01
+25,Kevin McGonigle,21.220,Mar 26,,65,DET,2.0,5-9,187,L,R,"Aug 18, 2004","Media, PA, US",,,"Monsignor Bonner and Archbishop Prendergast HS (Drexel Hill, PA)",Kevin Patrick,mcgonke01
+26,Spencer Miles,25.245,Mar 28,,/1,TOR,0.1,6-3,180,L,R,"Jul 26, 2000","Columbia, MO, US",,"University of Missouri (Columbia, MO)",,Spencer David,milessp01
+27,Andrew Morris,24.223,Apr 12,,/1,MIN,-0.1,6-0,195,R,R,"Sep 1, 2001","New York, NY, US",,"Colorado Mesa University (Grand Junction, CO),Texas Tech University (Lubbock, TX)",,Andrew Burke,morrian01
+28,Munetaka Murakami,26.052,Mar 26,,*3/DH,CHW,1.0,6-2,213,L,R,"Feb 2, 2000","Kumamoto, JP",,,,Munetaka,murakmu01
+29,Tanner Murray,26.214,Apr 5,,/756H,CHW,0.1,6-1,190,R,R,"Sep 3, 1999","Santa Clara, CA, US",,"University of California, Davis (Davis, CA)",,Tanner Kane,murrata01
+30,Anthony Nunez,24.261,Mar 28,,1,BAL,0.5,6-2,220,B,R,"Jul 10, 2001","Miami, FL, US",,"University of Tampa (Tampa, FL)","Miami Springs HS (Miami Springs, FL)",Anthony,nunezan01
+31,Kazuma Okamoto,29.270,Mar 27,,*5/3D,TOR,0.2,6-1,220,R,R,"Jun 30, 1996","Gojo, JP",,,,Kazuma,okamoka01
+32,Jedixson Paez,22.068,Mar 26,,/1,CHW,-0.2,6-1,170,R,R,"Jan 17, 2004","Tinaquillo, Cojedes, VE",,,,Jedixson Jose,paezje01
+33,Andrew Painter,22.355,Mar 31,,/1,PHI,0.3,6-7,215,R,R,"Apr 10, 2003","Pompano Beach, FL, US",,,"Calvary Christian Academy (Fort Lauderdale, FL)",Andrew Patrick,paintan01
+34,Peyton Pallette,24.322,Mar 27,,/1,CLE,0.1,6-1,190,R,R,"May 9, 2001","Little Rock, AR, US",,"University of Arkansas (Fayetteville, AR)","Benton HS (Benton, AR)",Peyton Minor,pallepe01
+35,Connor Prielipp,25.102,Apr 22,,/1,MIN,0.1,6-2,210,L,L,"Jan 10, 2001","Tomah, WI, US",,"University of Alabama (Tuscaloosa, AL)","Tomah HS (Tomah, WI)",Connor Francis,prielco01
+36,Matt Pushard,28.153,Mar 29,,/1,STL,-0.2,6-4,250,R,R,"Oct 27, 1997","Bangor, ME, US",,"University of Maine (Orono, ME)",,Matthew Louis,pushama01
+37,Jeferson Quero,23.172,Mar 29,,/2,MIL,0.0,6-0,203,R,R,"Oct 8, 2002","Barquisimeto, Lara, VE",,,,Jeferson Jose,queroje01
+38,Felix Reyes,25.023,Apr 18,,/73,PHI,-0.1,6-3,195,R,R,"Mar 26, 2001","Bani, Peravia, DO",,,,Felix Yomael,reyesfe01
+39,JR Ritchie,22.301,Apr 23,,/1,ATL,0.2,6-2,185,R,R,"Jun 26, 2003","Seattle, WA, US",,,"Bainbridge HS (Bainbridge Island, WA)",Ian,ritchjr01
+40,Eduardo Rivera,22.313,Apr 22,,/1,BOS,0.1,6-7,237,L,L,"Jun 13, 2003","San Juan, PR",,,"CADEST (Carolina, Puerto Rico)",Eduardo Yael,rivered01
+41,Kendry Rojas,23.147,Apr 22,,/1,MIN,0.1,6-2,190,L,L,"Nov 26, 2002","Ciego de Avila, CU",,,,Kendry Yoelvis,rojaske01
+42,TJ Rumfield,25.314,Mar 27,,*3/DH,COL,0.2,6-5,238,L,R,"May 17, 2000","Richmond, VA, US",,"Texas Tech University (Lubbock, TX),Virginia Polytechnic Institute and State University (Blacksburg, VA)","Temple HS (Temple, TX)",Toby Joseph,rumfitj01
+43,Tyler Samaniego,27.068,Apr 8,,/1,BOS,0.3,6-4,205,R,L,"Jan 30, 1999","Huntsville, AL, US",,"University of South Alabama (Mobile, AL)",,Robert Tyler,samanty01
+44,Noah Schultz,22.252,Apr 14,,/1,CHW,0.4,6-10,240,L,L,"Aug 5, 2003","Naperville, IL, US",,,"Oswego East HS (Oswego, IL)",Noah Chris,schulno01
+45,Tyler Schweitzer,25.201,Apr 8,,/1,CHW,0.0,6-0,185,L,L,"Sep 19, 2000","Indianapolis, IN, US",,"Ball State University (Muncie, IN)",,Tyler Joseph,schwety01
+46,Daniel Susac,24.322,Apr 1,,/2H,SFG,0.3,6-5,210,R,R,"May 14, 2001","Roseville, CA, US",,"University of Arizona (Tucson, AZ)","Jesuit HS (Carmichael, CA)",Daniel Shawn,susacda01
+47,Tyler Uberstine,26.308,Apr 5,,/1,BOS,0.0,6-1,200,R,R,"Jun 1, 1999","Santa Monica, CA, US",,"Northwestern University (Evanston, IL)",,Tyler James,ubersty01
+48,Walbert UreÃ±a,22.060,Mar 26,,/1,LAA,-0.5,6-0,210,R,R,"Jan 25, 2004","Mao, Valverde, DO",,,,Walbert Jhoel,urenawa01
+49,Brandon Valenzuela,25.185,Apr 5,,2/H,TOR,0.1,6-0,225,B,R,"Oct 2, 2000","Hermosillo, Sonora, MX",,,,Brandon Ivar,valenbr01
+50,Ryan Ward,28.055,Apr 19,,/3H,LAD,0.0,5-10,200,L,R,"Feb 23, 1998","Worcester, MA, US",,"Bryant University (Smithfield, RI)","Millbury HS (Millbury, MA)",Ryan Joseph,wardry01
+51,Ryan Watson,28.133,Mar 28,,1,BOS,-0.3,6-5,225,R,R,"Nov 15, 1997","Auburn, AL, US",,"Auburn University (Auburn, AL)","Auburn HS (Auburn, AL)",Ryan Traylor,watsory01
+52,Ryan Weiss,29.107,Mar 27,,/1,HOU,-0.3,6-4,210,R,R,"Dec 10, 1996","South Elgin, IL, US",,"Wright State University (Dayton, OH)",,Ryan,weissry01
+53,JJ Wetherholt,23.197,Mar 26,,*4/H,STL,0.8,5-9,190,L,R,"Sep 10, 2002","Baltimore, MD, US",,"West Virginia University (Morgantown, WV)",,Jonathan David,wethejj01

@@ -2316,18 +2316,67 @@ const MatchupMatrix = ({ matchupData, games }) => {
                     </div>
                 </div>
             </div>
-            {showModal && selectedMatchup && (
+            {showModal && selectedMatchup && (() => {
+                // Compute record from selectedMatchup.team's perspective
+                const getResult = (game) => {
+                    const scoreStr = game.score || '';
+                    const m = scoreStr.match(/(\w+)\s+(\d+)\s*-\s*(\d+)\s+(\w+)/);
+                    let awayScore, homeScore;
+                    if (m) {
+                        const [, team1, s1, s2, team2] = m;
+                        const nHome = normalizeCode(game.homeTeam);
+                        if (normalizeCode(team2) === nHome) {
+                            awayScore = parseInt(s1); homeScore = parseInt(s2);
+                        } else {
+                            awayScore = parseInt(s2); homeScore = parseInt(s1);
+                        }
+                    } else {
+                        const m2 = scoreStr.match(/(\d+)\s*-\s*(\d+)/);
+                        if (!m2) return null;
+                        awayScore = parseInt(m2[1]); homeScore = parseInt(m2[2]);
+                    }
+                    if (isNaN(awayScore) || isNaN(homeScore)) return null;
+                    const isHome = normalizeCode(game.homeTeam) === normalizeCode(selectedMatchup.team);
+                    const teamScore = isHome ? homeScore : awayScore;
+                    const oppScore = isHome ? awayScore : homeScore;
+                    if (teamScore === oppScore) return { result: 'T', teamScore, oppScore };
+                    return { result: teamScore > oppScore ? 'W' : 'L', teamScore, oppScore };
+                };
+                let wins = 0, losses = 0, ties = 0;
+                selectedMatchup.games.forEach(g => {
+                    const r = getResult(g);
+                    if (!r) return;
+                    if (r.result === 'W') wins++;
+                    else if (r.result === 'L') losses++;
+                    else ties++;
+                });
+                const recordStr = ties > 0 ? `${wins}-${losses}-${ties}` : `${wins}-${losses}`;
+                const decided = wins + losses;
+                const winPct = decided > 0 ? (wins / decided) : null;
+                return (
                 <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
                     <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-                            <h3 className="section-title font-bold">{selectedMatchup.team} vs {selectedMatchup.opponent}</h3>
-                            <p className="body-text text-blue-100 mt-1">{selectedMatchup.count} game{selectedMatchup.count !== 1 ? 's' : ''} attended</p>
+                            <div className="flex items-center justify-between gap-4 flex-wrap">
+                                <div>
+                                    <h3 className="section-title font-bold">{selectedMatchup.team} vs {selectedMatchup.opponent}</h3>
+                                    <p className="body-text text-blue-100 mt-1">{selectedMatchup.count} game{selectedMatchup.count !== 1 ? 's' : ''} attended</p>
+                                </div>
+                                <div className="text-center px-4 py-2 bg-white bg-opacity-15 rounded-lg">
+                                    <div className="text-2xl font-bold font-mono">{recordStr}</div>
+                                    <div className="text-xs text-blue-100">{selectedMatchup.team} record{winPct !== null ? ` • ${winPct.toFixed(3).replace(/^0/, '')}` : ''}</div>
+                                </div>
+                            </div>
                         </div>
                         <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
                             {selectedMatchup.games.length > 0 ? (
                                 <div className="divide-y">
                                     {selectedMatchup.games.map((game) => {
                                         const isHomeGame = game.homeTeam === selectedMatchup.team;
+                                        const res = getResult(game);
+                                        const badgeClass = res?.result === 'W' ? 'bg-green-100 text-green-700 border-green-300'
+                                            : res?.result === 'L' ? 'bg-red-100 text-red-700 border-red-300'
+                                            : 'bg-slate-100 text-slate-600 border-slate-300';
                                         return (
                                             <div key={game.gameId} className="p-4 hover:bg-blue-50 transition-colors cursor-pointer"
                                                 onClick={() => { window._pendingGameId = game.gameId; setShowModal(false); if (window.__navigateTab) window.__navigateTab('gamelog'); }}>
@@ -2341,6 +2390,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-4 flex-wrap">
+                                                    {res && <span className={`small-text font-bold px-2 py-0.5 rounded border ${badgeClass}`}>{res.result}</span>}
                                                     <div className="flex items-center gap-2">
                                                         <span className={`body-text w-12 text-right ${isHomeGame ? 'font-normal' : 'font-bold'}`}>{game.awayTeam}</span>
                                                         <span className="body-text text-slate-500">@</span>
@@ -2363,7 +2413,8 @@ const MatchupMatrix = ({ matchupData, games }) => {
                         </div>
                     </div>
                 </div>
-            )}
+                );
+            })()}
         </>
     );
 };

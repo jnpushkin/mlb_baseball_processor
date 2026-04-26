@@ -205,7 +205,10 @@ def run(all_games: bool = False, dry_run: bool = False, delay: float = 3.2,
 
         if resp.status_code == 200:
             out_path = HTML_DIR / g['filename']
-            out_path.write_text(resp.text, encoding='utf-8')
+            # BREF serves UTF-8 but doesn't always declare charset, so resp.text
+            # falls back to Latin-1 and produces double-encoded mojibake on
+            # non-ASCII names (Domínguez → DomÃ­nguez). Write bytes directly.
+            out_path.write_bytes(resp.content)
             if verbose:
                 print(f"OK -> {g['filename'][:60]}")
             downloaded += 1

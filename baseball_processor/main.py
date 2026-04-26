@@ -388,25 +388,70 @@ def _fetch_missing_bios_for_game(game_data):
 
 
 def _scrape_career_firsts_for_game(cache_path):
-    """Scrape/update career milestones for all players in a newly parsed game."""
+    """Scrape/update career milestones for all players in a newly parsed game.
+
+    Skips players whose cached career data is already fresh through this game's
+    date. add_game's MLB API path records scraped_at at the moment it runs, so
+    any game added via add_game (even historical ones) gets full career data
+    captured — a subsequent BREF HTML backup run would just overwrite with the
+    same info. Only re-scrape if cached scraped_at is earlier than the game's
+    date (i.e., the player's career data doesn't yet include this game).
+    """
+    from datetime import datetime
+    import json as _json
     from .scrapers.career_firsts_scraper import (
-        get_players_from_game_file, scrape_career_firsts_for_players
+        get_players_from_game_file, scrape_career_firsts_for_players,
+        get_cache_path,
     )
-    info("  🔍 Scraping career milestones for players in this game...")
+    info("  🔍 Checking career milestones for players in this game...")
     player_ids, player_names = get_players_from_game_file(cache_path)
     if not player_ids:
         return
-    # Filter out register-format IDs (minor leaguers without BREF pages)
     valid_ids = {pid for pid in player_ids if not (len(pid) >= 10 and any(c.isdigit() for c in pid[5:9]))}
     if not valid_ids:
         return
-    info(f"     Refreshing career data for {len(valid_ids)} players...")
+
+    # Determine this game's date (for the "scraped_at >= game_date" gate)
+    import json as __json
+    try:
+        with open(cache_path) as f:
+            _game = __json.load(f)
+        _date_str = (_game.get('basic_info', {}).get('date_yyyymmdd') or '')
+        game_date = datetime.strptime(_date_str, '%Y%m%d') if len(_date_str) == 8 else None
+    except (IOError, ValueError):
+        game_date = None
+
+    cf_path = get_cache_path() / 'career_firsts.json'
+    cache_data = {}
+    if cf_path.exists():
+        try:
+            with open(cf_path) as f:
+                cache_data = _json.load(f)
+        except (IOError, ValueError):
+            pass
+
+    stale_ids = set()
+    for pid in valid_ids:
+        entry = cache_data.get(pid) or {}
+        scraped_at = entry.get('scraped_at') or ''
+        try:
+            when = datetime.fromisoformat(scraped_at)
+        except ValueError:
+            when = None
+        # Stale if: never scraped, or scraped before this game's date
+        if not when or (game_date and when < game_date):
+            stale_ids.add(pid)
+    if not stale_ids:
+        info(f"     ✅ All {len(valid_ids)} players fresh through game date — skipping BREF scrape")
+        return
+    info(f"     Refreshing BREF career data for {len(stale_ids)} stale players "
+         f"(skipping {len(valid_ids) - len(stale_ids)} fresh ones)...")
     cache = scrape_career_firsts_for_players(
-        valid_ids,
-        refresh=True,  # Always refresh to pick up new milestones
+        stale_ids,
+        refresh=True,
         delay=3.1,
         verbose=True,
-        player_names=player_names
+        player_names={pid: player_names.get(pid) for pid in stale_ids if pid in player_names},
     )
     if cache:
         info(f"  ✅ Updated career milestones ({len(cache)} players in cache)")
@@ -577,6 +622,38 @@ def process_html_file(file_path, index=None, total=None):
         game_id = game_data.get("game_id", "UNKNOWN")
 
         info(f"  📊 Parsed game: {game_id}")
+
+        # If this game was already added via the MLB API (add_game), the
+        # API-sourced cache is the source of truth — don't let the BREF parse
+        # overwrite it. Use the API data instead, run MilestoneEngine on it
+        # (BREF parse runs it during parsing; API parse leaves it empty), and
+        # save to the HTML-keyed cache so future runs short-circuit.
+        api_cache_path = CACHE_DIR / f"{game_id}.json"
+        if api_cache_path.exists() and api_cache_path != cache_path:
+            try:
+                with open(api_cache_path, 'r', encoding='utf-8') as f:
+                    api_data = json.load(f)
+                api_source = api_data.get('source') or api_data.get('basic_info', {}).get('source')
+                if api_source == 'mlb':
+                    info(f"  🌟 API-sourced cache exists ({api_cache_path.name}) — preferring it over BREF parse")
+                    ms = api_data.get('milestone_stats')
+                    if not ms or (isinstance(ms, dict) and not any(ms.values())):
+                        try:
+                            from baseball_processor.engines.milestone_engine import MilestoneEngine
+                            MilestoneEngine(api_data).process()
+                            with open(api_cache_path, 'w', encoding='utf-8') as f:
+                                json.dump(api_data, f, indent=2)
+                        except Exception as e:
+                            debug(f"  ⚠️ Milestone engine on API data skipped: {e}")
+                    # Mirror to the HTML-keyed cache so the next run hits the
+                    # filename cache and skips parsing entirely.
+                    temp_cache = cache_path.with_suffix('.tmp')
+                    with open(temp_cache, 'w', encoding='utf-8') as f:
+                        json.dump(api_data, f, indent=2)
+                    temp_cache.replace(cache_path)
+                    return api_data
+            except Exception as e:
+                debug(f"  ⚠️ API cache check failed, falling back to BREF parse: {e}")
 
         # Enrich with MLB API data (pitch speeds, jersey numbers) if not already present
         if not game_data.get('pitch_data'):
