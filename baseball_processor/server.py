@@ -49,6 +49,10 @@ def fetch_schedule(date_str):
                 'status': game.get('status', {}).get('detailedState', ''),
                 'venue': game.get('venue', {}).get('name', ''),
                 'gameType': game.get('gameType', 'R'),
+                # 'N' = not a doubleheader, 'S' = split-admission DH, 'Y' = single-admission DH
+                'doubleHeader': game.get('doubleHeader', 'N'),
+                'gameNumber': game.get('gameNumber', 1),
+                'gameDate': game.get('gameDate', ''),  # ISO timestamp; first pitch
             })
     return games
 
@@ -119,6 +123,7 @@ h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
 .badge.cached { background: #dbeafe; color: #2563eb; }
 .badge.final { background: #dcfce7; color: #16a34a; }
 .badge.live { background: #fef3c7; color: #d97706; }
+.badge.dh { background: #ffedd5; color: #c2410c; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; display: none; z-index: 100; }
 .toast.show { display: block; }
 .spinner { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); z-index: 50; align-items: center; justify-content: center; }
@@ -162,17 +167,40 @@ function loadGames() {
         .then(data => {
             const el = document.getElementById('games');
             if (!data.games.length) { el.innerHTML = '<div class="empty">No games</div>'; return; }
+            // Group same-teams pairs to figure out DH total (most pairs are 2)
+            const dhTotalByPair = {};
+            data.games.forEach(g => {
+                if (g.doubleHeader && g.doubleHeader !== 'N') {
+                    const k = g.away_abbr + '@' + g.home_abbr;
+                    dhTotalByPair[k] = (dhTotalByPair[k] || 0) + 1;
+                }
+            });
+            const fmtTime = (iso) => {
+                if (!iso) return '';
+                try {
+                    const d = new Date(iso);
+                    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                } catch { return ''; }
+            };
             el.innerHTML = data.games.map((g, i) => {
                 const badges = [];
+                if (g.doubleHeader && g.doubleHeader !== 'N') {
+                    const k = g.away_abbr + '@' + g.home_abbr;
+                    const total = dhTotalByPair[k] || 2;
+                    const dhKind = g.doubleHeader === 'S' ? ' (split)' : '';
+                    badges.push(`<span class="badge dh">Game ${g.gameNumber} of ${total}${dhKind}</span>`);
+                }
                 if (g.cached) badges.push('<span class="badge cached">Added</span>');
                 else if (g.status === 'Final') badges.push('<span class="badge final">Final</span>');
                 else if (g.status.includes('Progress')) badges.push('<span class="badge live">Live</span>');
                 const cls = g.cached ? 'game cached' : 'game';
                 const onclick = g.cached ? '' : `onclick="addGame(${g.gamePk})"`;
+                const startTime = fmtTime(g.gameDate);
+                const statusLine = g.status + (g.gameType !== 'R' ? ' [' + g.gameType + ']' : '') + (startTime ? ' • ' + startTime : '');
                 return `<div class="${cls}" ${onclick}>
                     <div class="teams">${g.away_name} @ ${g.home_name}${badges.join('')}</div>
                     <div class="venue">${g.venue}</div>
-                    <div class="status">${g.status}${g.gameType !== 'R' ? ' [' + g.gameType + ']' : ''}</div>
+                    <div class="status">${statusLine}</div>
                 </div>`;
             }).join('');
         });

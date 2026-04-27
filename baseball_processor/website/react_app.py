@@ -5726,36 +5726,522 @@ const Dashboard = ({ data, onTabChange }) => {
 };
 
 // Expandable badge cell component
-const BadgeCell = ({ badges, badgeColors }) => {
+// The full-list popup is portaled to document.body with fixed positioning so
+// it isn't clipped by ancestor `overflow-*` containers (e.g. the DataTable's
+// scrolling wrapper). Hover handlers cover both the anchor and the popup so
+// moving the cursor from one to the other never drops the hover state.
+const BadgeCell = ({ badges, badgeColors, onBadgeClick }) => {
+    const anchorRef = useRef(null);
+    const [open, setOpen] = useState(false);
+    const [pos, setPos] = useState({ top: 0, left: 0 });
+    const closeTimer = useRef(null);
+    const handleBadgeClick = (badge) => (e) => {
+        if (!onBadgeClick) return;
+        e.stopPropagation();
+        setOpen(false);
+        onBadgeClick(badge);
+    };
+
+    const updatePos = () => {
+        const el = anchorRef.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        setPos({ top: r.bottom + 4, left: r.left });
+    };
+    const openPopup = () => {
+        if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; }
+        updatePos();
+        setOpen(true);
+    };
+    const closePopupSoon = () => {
+        if (closeTimer.current) clearTimeout(closeTimer.current);
+        closeTimer.current = setTimeout(() => setOpen(false), 80);
+    };
+    useEffect(() => {
+        if (!open) return;
+        const onScroll = () => setOpen(false);
+        window.addEventListener('scroll', onScroll, true);
+        window.addEventListener('resize', onScroll);
+        return () => {
+            window.removeEventListener('scroll', onScroll, true);
+            window.removeEventListener('resize', onScroll);
+        };
+    }, [open]);
+
     if (!badges || badges.length === 0) return null;
     const MAX_INLINE = 3;
+    const hasOverflow = badges.length > MAX_INLINE;
     return (
-        <div className="group relative flex flex-wrap gap-1 max-w-sm">
+        <div
+            ref={anchorRef}
+            className="relative flex flex-wrap gap-1 max-w-sm"
+            onMouseEnter={hasOverflow ? openPopup : undefined}
+            onMouseLeave={hasOverflow ? closePopupSoon : undefined}
+        >
             {badges.slice(0, MAX_INLINE).map((badge, i) => (
                 <span
                     key={`${badge.type}-${badge.text}-${i}`}
-                    className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`}
+                    className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${onBadgeClick ? 'cursor-pointer hover:ring-1 hover:ring-blue-300' : ''} ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`}
                     title={badge.title}
+                    onClick={onBadgeClick ? handleBadgeClick(badge) : undefined}
                 >
                     {badge.text}
                 </span>
             ))}
-            {badges.length > MAX_INLINE && (
+            {hasOverflow && (
                 <span className="px-1.5 py-0.5 rounded text-xs bg-slate-200 text-slate-600">
                     +{badges.length - MAX_INLINE}
                 </span>
             )}
-            {badges.length > MAX_INLINE && (
-                <div className="hidden group-hover:block absolute top-full left-0 mt-1 z-20 bg-white rounded-lg shadow-lg border p-2 max-w-md" onClick={(e) => e.stopPropagation()}>
+            {hasOverflow && open && ReactDOM.createPortal(
+                <div
+                    className="fixed z-50 bg-white rounded-lg shadow-lg border p-2 max-w-md"
+                    style={{ top: pos.top, left: pos.left }}
+                    onMouseEnter={openPopup}
+                    onMouseLeave={closePopupSoon}
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <div className="flex flex-wrap gap-1">
                         {badges.map((badge, i) => (
-                            <span key={`full-${badge.type}-${badge.text}-${i}`} className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`} title={badge.title}>
+                            <span key={`full-${badge.type}-${badge.text}-${i}`}
+                                  className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${onBadgeClick ? 'cursor-pointer hover:ring-1 hover:ring-blue-300' : ''} ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`}
+                                  title={badge.title}
+                                  onClick={onBadgeClick ? handleBadgeClick(badge) : undefined}>
                                 {badge.text}
                             </span>
                         ))}
                     </div>
+                </div>,
+                document.body
+            )}
+        </div>
+    );
+};
+
+// ---------------------------------------------------------------------------
+// Badge Detail Modal
+// ---------------------------------------------------------------------------
+// Generic frame: header (badge text + game line), body (per-type sub-component
+// or fallback "previous occurrence" generic detail), footer (close + go-to-game).
+// All data lookups are recomputed on demand from playerGames/pitcherGames since
+// badges only carry primitive metadata.
+
+const HIT_KEY_MAP = { H: 'h', HR: 'hr', RBI: 'rbi', R: 'r', '2B': 'doubles', '3B': 'triples', SB: 'sb', BB: 'bb', SO: 'so' };
+const PIT_KEY_MAP = { K: 'so', W: 'wins', SV: 'saves', G: 'games', GS: 'gameStarts' };
+const RANK_LABEL = { G: 'Games', H: 'Hits', HR: 'HRs', RBI: 'RBI', R: 'Runs', '2B': 'Doubles', '3B': 'Triples', SB: 'Steals', BB: 'Walks', TB: 'Total Bases', K: 'Strikeouts', W: 'Wins', SV: 'Saves', IP: 'Innings Pitched', GS: 'Starts' };
+
+// Build per-player cumulative totals for a given stat across all (regular-
+// season) games up to and including upToGameId. Used by the player-rank and
+// cumulative-stat detail views to recreate snapshots-in-time.
+const buildPlayerLeaderboard = (games, playerGames, pitcherGames, stat, kind, upToGameId) => {
+    const sortable = (s) => {
+        if (!s) return '';
+        if (s.includes('/')) {
+            const [m, d, y] = s.split('/');
+            return `${y.padStart(4, '0')}${m.padStart(2, '0')}${d.padStart(2, '0')}`;
+        }
+        return s;
+    };
+    const eligibleIds = new Set();
+    let cutoff = null;
+    if (upToGameId) {
+        const target = (games || []).find(g => g.gameId === upToGameId);
+        cutoff = target ? sortable(target.date) : null;
+    }
+    (games || []).forEach(g => {
+        if (g.gameType === 'spring' || g.gameType === 'postseason') return;
+        if (cutoff && sortable(g.date) > cutoff) return;
+        eligibleIds.add(g.gameId);
+    });
+    const totals = {};
+    const ensure = (pid, name) => {
+        if (!totals[pid]) totals[pid] = { playerId: pid, name: name || pid, value: 0, games: 0 };
+        else if (name && !totals[pid].name) totals[pid].name = name;
+        return totals[pid];
+    };
+    const gamesPerPlayer = {};
+    if (kind === 'g') {
+        // Combined games attended (hitter or pitcher line in same game = 1)
+        const seen = {};
+        (playerGames || []).forEach(pg => {
+            if (!eligibleIds.has(pg.gameId)) return;
+            const k = `${pg.playerId}|${pg.gameId}`;
+            if (seen[k]) return;
+            seen[k] = true;
+            const t = ensure(pg.playerId, pg.name);
+            t.value += 1;
+            t.games += 1;
+        });
+        (pitcherGames || []).forEach(pg => {
+            if (!eligibleIds.has(pg.gameId)) return;
+            const k = `${pg.playerId}|${pg.gameId}`;
+            if (seen[k]) return;
+            seen[k] = true;
+            const t = ensure(pg.playerId, pg.name);
+            t.value += 1;
+            t.games += 1;
+        });
+    } else if (kind === 'hit') {
+        const key = HIT_KEY_MAP[stat];
+        // TB is computed (singles + 2*2B + 3*3B + 4*HR), no direct key.
+        if (stat === 'TB') {
+            (playerGames || []).forEach(pg => {
+                if (!eligibleIds.has(pg.gameId)) return;
+                const h = pg.h || 0, d = pg.doubles || 0, t3 = pg.triples || 0, hr = pg.hr || 0;
+                const tb = (h - d - t3 - hr) + 2*d + 3*t3 + 4*hr;
+                const t = ensure(pg.playerId, pg.name);
+                t.value += tb;
+                t.games += 1;
+            });
+        } else {
+            if (!key) return [];
+            (playerGames || []).forEach(pg => {
+                if (!eligibleIds.has(pg.gameId)) return;
+                const t = ensure(pg.playerId, pg.name);
+                t.value += (pg[key] || 0);
+                t.games += 1;
+            });
+        }
+    } else if (kind === 'pit') {
+        const key = PIT_KEY_MAP[stat];
+        // IP is derived from outs/3 (float).
+        if (stat === 'IP') {
+            (pitcherGames || []).forEach(pg => {
+                if (!eligibleIds.has(pg.gameId)) return;
+                const t = ensure(pg.playerId, pg.name);
+                t.value += (pg.outs || 0) / 3;
+                t.games += 1;
+            });
+        } else {
+            if (!key) return [];
+            (pitcherGames || []).forEach(pg => {
+                if (!eligibleIds.has(pg.gameId)) return;
+                const t = ensure(pg.playerId, pg.name);
+                t.value += (pg[key] || 0);
+                t.games += 1;
+            });
+        }
+    }
+    return Object.values(totals)
+        .filter(p => p.value > 0)
+        .sort((a, b) => b.value - a.value || (a.name || '').localeCompare(b.name || ''));
+};
+
+const PlayerRankDetail = ({ badge, game, games, playerGames, pitcherGames }) => {
+    const meta = badge.meta || {};
+    const board = useMemo(
+        () => buildPlayerLeaderboard(games, playerGames, pitcherGames, meta.stat, meta.kind, game?.gameId).slice(0, 10),
+        [games, playerGames, pitcherGames, meta.stat, meta.kind, game?.gameId]
+    );
+    const label = meta.label || RANK_LABEL[meta.stat] || meta.stat;
+    const playerIdx = board.findIndex(p => p.playerId === meta.playerId);
+    const passed = (meta.prevRank && meta.rank < meta.prevRank)
+        ? board.slice(meta.rank, Math.min(meta.prevRank, board.length))
+        : [];
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-baseline gap-3">
+                <div className="text-sm text-slate-600">Rank change:</div>
+                <div className="font-mono">
+                    {meta.prevRank ? `#${meta.prevRank}` : '—'} → <span className="font-bold text-rose-700">#{meta.rank}</span>
+                </div>
+                <div className="text-sm text-slate-500">in {label.toLowerCase()}</div>
+            </div>
+            {passed.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm">
+                    <div className="font-semibold text-amber-900 mb-1">Just passed:</div>
+                    {passed.map(p => (
+                        <div key={p.playerId} className="text-amber-800">{p.name} ({p.value})</div>
+                    ))}
                 </div>
             )}
+            <div>
+                <div className="text-sm font-semibold text-slate-700 mb-2">Top 10 in {label.toLowerCase()} you've witnessed (through this game):</div>
+                <div className="border rounded divide-y">
+                    {board.map((p, i) => (
+                        <div key={p.playerId}
+                             className={`flex items-center justify-between px-3 py-1.5 ${p.playerId === meta.playerId ? 'bg-rose-50 font-semibold' : 'bg-white'}`}>
+                            <div className="flex items-center gap-3">
+                                <span className="text-sm font-mono text-slate-500 w-6">#{i + 1}</span>
+                                <span className="text-sm">{p.name}</span>
+                            </div>
+                            <div className="text-sm font-mono">{p.value.toLocaleString()}</div>
+                        </div>
+                    ))}
+                    {board.length === 0 && <div className="px-3 py-2 text-sm text-slate-500">No data.</div>}
+                </div>
+                {playerIdx >= 0 && playerIdx < board.length - 1 && (
+                    <div className="text-xs text-slate-500 mt-2">
+                        Gap to #{playerIdx + 2}: {(board[playerIdx].value - board[playerIdx + 1].value).toLocaleString()}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const CareerFirstDetail = ({ badge, game, games, careerFirstsByGame }) => {
+    const meta = badge.meta || {};
+    const playerName = meta.playerName;
+    const playerId = meta.playerId;
+    // Scan all career firsts to find every milestone for this player you've witnessed
+    const all = useMemo(() => {
+        const rows = [];
+        Object.entries(careerFirstsByGame || {}).forEach(([gid, firsts]) => {
+            (firsts || []).forEach(f => {
+                if (playerId && f.player_id === playerId) {
+                    rows.push({ ...f, gameId: gid });
+                } else if (!playerId && f.player_name === playerName) {
+                    rows.push({ ...f, gameId: gid });
+                }
+            });
+        });
+        const gameDate = (gid) => {
+            const g = (games || []).find(gg => gg.gameId === gid);
+            return g ? g.date : '';
+        };
+        rows.sort((a, b) => toSortableDate(gameDate(a.gameId)).localeCompare(toSortableDate(gameDate(b.gameId))));
+        return rows.map(r => ({ ...r, displayDate: gameDate(r.gameId) }));
+    }, [careerFirstsByGame, playerId, playerName, games]);
+    const brefUrl = playerId ? `https://www.baseball-reference.com/players/${playerId.charAt(0)}/${playerId}.shtml` : null;
+    return (
+        <div className="space-y-4">
+            <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                <div className="text-sm font-semibold text-amber-900">{playerName}</div>
+                <div className="text-sm text-amber-800 mt-1">{meta.milestone}{meta.careerTotalAfter ? ` (career total: ${meta.careerTotalAfter})` : ''}</div>
+                {brefUrl && (
+                    <a href={brefUrl} target="_blank" rel="noopener noreferrer"
+                       className="inline-block mt-2 text-xs text-blue-600 hover:underline">
+                        View on Baseball-Reference →
+                    </a>
+                )}
+            </div>
+            <div>
+                <div className="text-sm font-semibold text-slate-700 mb-2">
+                    All milestones for {playerName} you've witnessed ({all.length}):
+                </div>
+                <div className="border rounded divide-y max-h-72 overflow-y-auto">
+                    {all.map((r, i) => (
+                        <div key={i} className={`flex items-center justify-between px-3 py-1.5 text-sm ${r.gameId === game?.gameId ? 'bg-amber-50 font-semibold' : 'bg-white'}`}>
+                            <span>{r.milestone}</span>
+                            <span className="text-slate-500 font-mono text-xs">{r.displayDate}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const CumulativeStatDetail = ({ badge, game, games, playerGames, pitcherGames }) => {
+    const meta = badge.meta || {};
+    const stat = meta.stat || '';
+    const value = meta.value || 0;
+    const isPitchingK = stat === 'K_pit';
+    const baseStat = isPitchingK ? 'K' : stat;
+    // Top contributors to this stat in your dataset (all-time, regular season only)
+    const contributors = useMemo(() => {
+        if (isPitchingK) {
+            return buildPlayerLeaderboard(games, playerGames, pitcherGames, 'K', 'pit', null).slice(0, 10);
+        }
+        return buildPlayerLeaderboard(games, playerGames, pitcherGames, baseStat, 'hit', null).slice(0, 10);
+    }, [games, playerGames, pitcherGames, baseStat, isPitchingK]);
+
+    // Compute totals through this game and rate per game (regular season only)
+    const through = useMemo(() => {
+        const sortable = (s) => s && s.includes('/') ? (() => { const [m, d, y] = s.split('/'); return `${y}${m.padStart(2,'0')}${d.padStart(2,'0')}`; })() : s;
+        const cutoff = game ? sortable(game.date) : null;
+        let total = 0;
+        let gameCount = 0;
+        const eligible = new Set();
+        (games || []).forEach(g => {
+            if (g.gameType === 'spring' || g.gameType === 'postseason') return;
+            if (cutoff && sortable(g.date) > cutoff) return;
+            eligible.add(g.gameId);
+            gameCount++;
+        });
+        if (isPitchingK) {
+            (pitcherGames || []).forEach(pg => { if (eligible.has(pg.gameId)) total += (pg.so || 0); });
+        } else {
+            const key = HIT_KEY_MAP[baseStat];
+            if (key) (playerGames || []).forEach(pg => { if (eligible.has(pg.gameId)) total += (pg[key] || 0); });
+        }
+        return { total, gameCount };
+    }, [games, playerGames, pitcherGames, baseStat, isPitchingK, game]);
+
+    const label = isPitchingK ? 'pitching strikeouts' : (RANK_LABEL[baseStat] || baseStat).toLowerCase();
+    return (
+        <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+                <div className="bg-teal-50 border border-teal-200 rounded p-3 text-center">
+                    <div className="text-xs text-teal-700 uppercase tracking-wide">Milestone</div>
+                    <div className="text-2xl font-bold text-teal-900">{value.toLocaleString()}</div>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded p-3 text-center">
+                    <div className="text-xs text-slate-600 uppercase tracking-wide">Through this game</div>
+                    <div className="text-2xl font-bold text-slate-800">{through.total.toLocaleString()}</div>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded p-3 text-center">
+                    <div className="text-xs text-slate-600 uppercase tracking-wide">Per game</div>
+                    <div className="text-2xl font-bold text-slate-800">
+                        {through.gameCount > 0 ? (through.total / through.gameCount).toFixed(2) : '—'}
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div className="text-sm font-semibold text-slate-700 mb-2">Top contributors to {label}:</div>
+                <div className="border rounded divide-y">
+                    {contributors.map((p, i) => (
+                        <div key={p.playerId} className="flex items-center justify-between px-3 py-1.5 bg-white">
+                            <div className="flex items-center gap-3">
+                                <span className="text-sm font-mono text-slate-500 w-6">#{i + 1}</span>
+                                <span className="text-sm">{p.name}</span>
+                            </div>
+                            <div className="text-sm font-mono">{p.value.toLocaleString()}</div>
+                        </div>
+                    ))}
+                    {contributors.length === 0 && <div className="px-3 py-2 text-sm text-slate-500">No data.</div>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const PlayerStatDetail = ({ badge, game, games, allBadgesByGame }) => {
+    const meta = badge.meta || {};
+    const playerId = meta.playerId;
+    const stat = meta.stat;
+    // Find every player-stat crossing for this player + stat
+    const crossings = useMemo(() => {
+        const sortable = (s) => s && s.includes('/') ? (() => { const [m, d, y] = s.split('/'); return `${y}${m.padStart(2,'0')}${d.padStart(2,'0')}`; })() : s;
+        const rows = [];
+        Object.entries(allBadgesByGame || {}).forEach(([gid, list]) => {
+            (list || []).forEach(b => {
+                if (b.type !== 'player-stat') return;
+                const m = b.meta || {};
+                if (m.playerId !== playerId || m.stat !== stat) return;
+                const g = (games || []).find(gg => gg.gameId === gid);
+                rows.push({ gameId: gid, value: m.value, date: g ? g.date : '', away: g ? g.awayTeam : '', home: g ? g.homeTeam : '', venue: g ? g.venue : '' });
+            });
+        });
+        rows.sort((a, b) => sortable(a.date).localeCompare(sortable(b.date)));
+        return rows;
+    }, [allBadgesByGame, playerId, stat, games]);
+
+    const idx = crossings.findIndex(c => c.gameId === game?.gameId);
+    const prior = idx > 0 ? crossings[idx - 1] : null;
+    const next = idx >= 0 && idx < crossings.length - 1 ? crossings[idx + 1] : null;
+    const statLabel = meta.kind === 'g' ? 'games attended' :
+        (meta.kind === 'hit' ? (RANK_LABEL[stat] || stat) : (RANK_LABEL[stat] || stat));
+
+    return (
+        <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+                <div className="bg-amber-50 border border-amber-200 rounded p-3 text-center">
+                    <div className="text-xs text-amber-700 uppercase tracking-wide">This milestone</div>
+                    <div className="text-2xl font-bold text-amber-900">{ordinal(meta.value || 0)}</div>
+                    <div className="text-xs text-amber-700">{statLabel}</div>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded p-3 text-center">
+                    <div className="text-xs text-slate-600 uppercase tracking-wide">Previous</div>
+                    <div className="text-lg font-semibold text-slate-800">{prior ? ordinal(prior.value) : '—'}</div>
+                    <div className="text-xs text-slate-500">{prior ? prior.date : 'first crossing'}</div>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded p-3 text-center">
+                    <div className="text-xs text-slate-600 uppercase tracking-wide">Next so far</div>
+                    <div className="text-lg font-semibold text-slate-800">{next ? ordinal(next.value) : '—'}</div>
+                    <div className="text-xs text-slate-500">{next ? next.date : 'no later milestone yet'}</div>
+                </div>
+            </div>
+            <div>
+                <div className="text-sm font-semibold text-slate-700 mb-2">
+                    All {statLabel} milestones for {meta.playerName} with you ({crossings.length}):
+                </div>
+                <div className="border rounded divide-y max-h-72 overflow-y-auto">
+                    {crossings.map((c, i) => (
+                        <div key={c.gameId} className={`flex items-center justify-between px-3 py-1.5 text-sm ${c.gameId === game?.gameId ? 'bg-amber-50 font-semibold' : 'bg-white'}`}>
+                            <span>{ordinal(c.value)} {meta.kind === 'g' ? 'game' : (RANK_LABEL[stat] || stat)}</span>
+                            <span className="text-slate-500 font-mono text-xs">{c.date} • {c.away} @ {c.home}</span>
+                        </div>
+                    ))}
+                    {crossings.length === 0 && <div className="px-3 py-2 text-sm text-slate-500">No data.</div>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const GenericBadgeDetail = ({ badge, game, games, allBadgesByGame }) => {
+    // Find the previous game (chronologically) where this badge type appeared
+    const prior = useMemo(() => {
+        if (!game || !games || !allBadgesByGame) return null;
+        const sortable = (s) => s && s.includes('/') ? (() => { const [m, d, y] = s.split('/'); return `${y}${m.padStart(2,'0')}${d.padStart(2,'0')}`; })() : s;
+        const cutoff = sortable(game.date);
+        const earlier = (games || [])
+            .filter(g => g.gameId !== game.gameId && sortable(g.date) <= cutoff)
+            .sort((a, b) => sortable(b.date).localeCompare(sortable(a.date)));
+        for (const g of earlier) {
+            const list = allBadgesByGame[g.gameId] || [];
+            const match = list.find(b => b.type === badge.type);
+            if (match) return { game: g, badge: match };
+        }
+        return null;
+    }, [badge, game, games, allBadgesByGame]);
+    return (
+        <div className="space-y-3 text-sm">
+            {prior ? (
+                <div className="border rounded p-3 bg-slate-50">
+                    <div className="text-xs uppercase tracking-wide text-slate-500 mb-1">Previous {badge.type.replace(/-/g, ' ')}</div>
+                    <div className="font-medium">{prior.badge.text}</div>
+                    <div className="text-xs text-slate-500">{prior.game.date} • {prior.game.awayTeam} @ {prior.game.homeTeam} • {prior.game.venue}</div>
+                </div>
+            ) : (
+                <div className="text-slate-500">No prior occurrence of this badge type.</div>
+            )}
+        </div>
+    );
+};
+
+const BadgeDetailModal = ({ badge, game, games, playerGames, pitcherGames, careerFirstsByGame, allBadgesByGame, onClose, onGoToGame }) => {
+    if (!badge) return null;
+    let body = null;
+    if (badge.type === 'player-rank') {
+        body = <PlayerRankDetail badge={badge} game={game} games={games} playerGames={playerGames} pitcherGames={pitcherGames} />;
+    } else if (badge.type === 'career-first') {
+        body = <CareerFirstDetail badge={badge} game={game} games={games} careerFirstsByGame={careerFirstsByGame} />;
+    } else if (badge.type === 'cumulative-stat') {
+        body = <CumulativeStatDetail badge={badge} game={game} games={games} playerGames={playerGames} pitcherGames={pitcherGames} />;
+    } else if (badge.type === 'player-stat') {
+        body = <PlayerStatDetail badge={badge} game={game} games={games} allBadgesByGame={allBadgesByGame} />;
+    } else {
+        body = <GenericBadgeDetail badge={badge} game={game} games={games} allBadgesByGame={allBadgesByGame} />;
+    }
+    return (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <div className="p-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                    <div className="text-xs uppercase tracking-wide text-blue-100">{(badge.type || '').replace(/-/g, ' ')}</div>
+                    <h3 className="text-lg font-bold mt-1">{badge.text}</h3>
+                    <p className="text-sm text-blue-100 mt-1">{badge.title}</p>
+                    {game && (
+                        <div className="mt-2 text-xs text-blue-100">
+                            {game.date} • {game.awayTeam} @ {game.homeTeam}{game.score ? ` (${game.score})` : ''} • {game.venue}
+                        </div>
+                    )}
+                </div>
+                <div className="flex-1 overflow-y-auto p-5">
+                    {body}
+                </div>
+                <div className="p-3 border-t bg-slate-50 flex gap-2 justify-end">
+                    {onGoToGame && game && (
+                        <button onClick={() => { onClose(); onGoToGame(); }}
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm font-semibold">Go to game</button>
+                    )}
+                    <button onClick={onClose}
+                            className="px-4 py-2 bg-slate-200 rounded hover:bg-slate-300 text-sm font-semibold">Close</button>
+                </div>
+            </div>
         </div>
     );
 };
@@ -5779,6 +6265,7 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
 
     const parseDate = toSortableDate;
     const springGameIds = new Set((games || []).filter(g => g.gameType === 'spring').map(g => g.gameId));
+    const postseasonGameIds = new Set((games || []).filter(g => g.gameType === 'postseason').map(g => g.gameId));
     const sorted = [...games].filter(g => !springGameIds.has(g.gameId)).sort((a, b) => parseDate(a.date).localeCompare(parseDate(b.date)));
 
     let totals = { H: 0, R: 0, HR: 0, RBI: 0, SO: 0, BB: 0, SB: 0, '2B': 0, '3B': 0 };
@@ -5790,6 +6277,55 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
     const VENUE_MILESTONES = [50, 100, 250, 500, 750, 1000];
     const venueTotals = {};  // venue -> { H, R, HR, ... }
     const venuePrev = {};    // venue -> prev totals snapshot
+
+    // Per-player tracking (regular season only) — emits two badge types:
+    //   player-stat: a player crosses a personal threshold with you in attendance
+    //   player-rank: a player moves up in your personal top-5 for a stat
+    // G (games attended) is a single combined counter per player so two-way
+    // players (e.g. Nolan McClean) don't double-fire on hitter-G + pitcher-G.
+    const playerInfo = {};   // pid -> { name, G, H, HR, RBI, R, '2B', '3B', SB, BB, TB, K, W, SV, IP, GS, hadHit, hadPit }
+    const PLAYER_HIT_THRESHOLDS = {
+        H:   [10, 25, 50, 100, 150, 200, 250, 300, 400, 500],
+        HR:  [5, 10, 15, 20, 25, 30, 40, 50, 75, 100],
+        RBI: [10, 25, 50, 75, 100, 150, 200, 250, 300],
+        R:   [10, 25, 50, 75, 100, 150, 200, 250, 300],
+        '2B':[5, 10, 15, 20, 25, 30, 40, 50, 75],
+        '3B':[3, 5, 10, 15, 20, 25, 30],
+        SB:  [5, 10, 15, 20, 25, 30, 40, 50],
+        BB:  [10, 25, 50, 75, 100, 150, 200],
+        TB:  [10, 25, 50, 100, 150, 200, 300, 400, 500, 750, 1000],
+    };
+    const PLAYER_PIT_THRESHOLDS = {
+        K: [25, 50, 100, 150, 200, 300, 400, 500],
+        W: [5, 10, 15, 20, 25, 30, 40, 50],
+        SV:[5, 10, 15, 20, 25, 30, 40, 50],
+        IP:[10, 25, 50, 100, 150, 200, 300],
+        GS:[5, 10, 15, 20, 25, 30, 50],
+    };
+    const PLAYER_G_THRESHOLDS = [10, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500];
+    const HIT_LABELS_S = { H: 'Hit', HR: 'HR', RBI: 'RBI', R: 'Run', '2B': 'Double', '3B': 'Triple', SB: 'Steal', BB: 'Walk', TB: 'Total Base' };
+    const PIT_LABELS_S = { K: 'K', W: 'Win', SV: 'Save', IP: 'IP', GS: 'Start' };
+    const HIT_LABELS_P = { H: 'Hits', HR: 'HRs', RBI: 'RBI', R: 'Runs', '2B': 'Doubles', '3B': 'Triples', SB: 'Steals', BB: 'Walks', TB: 'Total Bases' };
+    const PIT_LABELS_P = { K: 'Strikeouts', W: 'Wins', SV: 'Saves', IP: 'Innings Pitched', GS: 'Starts' };
+    const HIT_RANK_STATS = ['H', 'HR', 'RBI', 'R', '2B', '3B', 'SB', 'BB', 'TB'];
+    const PIT_RANK_STATS = ['K', 'W', 'SV', 'IP', 'GS'];
+    const lastNameOf = (n) => {
+        const parts = (n || '').trim().split(/\s+/);
+        return parts.length > 1 ? parts[parts.length - 1] : (n || '');
+    };
+    const topNForStat = (info, stat, n, kind) => {
+        // kind: 'hit' filters to players with hit appearances, 'pit' to pitchers, 'all' to anyone
+        return Object.values(info)
+            .filter(p => {
+                if ((p[stat] || 0) <= 0) return false;
+                if (kind === 'hit') return p.hadHit;
+                if (kind === 'pit') return p.hadPit;
+                return true;
+            })
+            .sort((a, b) => (b[stat] || 0) - (a[stat] || 0) || (a.name || '').localeCompare(b.name || ''))
+            .slice(0, n)
+            .map(p => p.playerId);
+    };
 
     sorted.forEach(game => {
         const gid = game.gameId;
@@ -5845,7 +6381,8 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
                     badges[gid].push({
                         type: 'cumulative-stat',
                         text: `${m.toLocaleString()} ${labels[stat]} Witnessed`,
-                        title: `You've now witnessed ${m.toLocaleString()} total ${labels[stat].toLowerCase()} across all games`
+                        title: `You've now witnessed ${m.toLocaleString()} total ${labels[stat].toLowerCase()} across all games`,
+                        meta: { stat, value: m, scope: 'global' }
                     });
                 }
             });
@@ -5855,7 +6392,8 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
                 badges[gid].push({
                     type: 'cumulative-stat',
                     text: `${m.toLocaleString()} K Witnessed`,
-                    title: `You've now witnessed ${m.toLocaleString()} total strikeouts (pitching) across all games`
+                    title: `You've now witnessed ${m.toLocaleString()} total strikeouts (pitching) across all games`,
+                    meta: { stat: 'K_pit', value: m, scope: 'global' }
                 });
             }
         });
@@ -5889,6 +6427,173 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
 
         prevTotals = { ...totals };
         prevPitK = pitK;
+
+        // Per-player threshold + top-5 rank movement (regular season only)
+        if (!postseasonGameIds.has(gid)) {
+            // Snapshot prev top-5s (for rank-movement check)
+            const prevGTop5 = topNForStat(playerInfo, 'G', 5, 'all');
+            const prevHitTop5 = {};
+            HIT_RANK_STATS.forEach(s => { prevHitTop5[s] = topNForStat(playerInfo, s, 5, 'hit'); });
+            const prevPitTop5 = {};
+            PIT_RANK_STATS.forEach(s => { prevPitTop5[s] = topNForStat(playerInfo, s, 5, 'pit'); });
+
+            // Snapshot per-touched-player previous values, then accumulate
+            const touched = new Map();  // pid -> { prevG, prevHit{}, prevPit{}, isHit, isPit }
+            const ensure = (pid, name) => {
+                if (!playerInfo[pid]) {
+                    playerInfo[pid] = {
+                        playerId: pid, name: name || pid,
+                        G: 0, H: 0, HR: 0, RBI: 0, R: 0, '2B': 0, '3B': 0, SB: 0, BB: 0, TB: 0,
+                        K: 0, W: 0, SV: 0, IP: 0, GS: 0,
+                        hadHit: false, hadPit: false,
+                    };
+                } else if (name && !playerInfo[pid].name) {
+                    playerInfo[pid].name = name;
+                }
+                if (!touched.has(pid)) {
+                    const cur = playerInfo[pid];
+                    touched.set(pid, {
+                        prevG: cur.G,
+                        prev: { H: cur.H, HR: cur.HR, RBI: cur.RBI, R: cur.R, '2B': cur['2B'], '3B': cur['3B'], SB: cur.SB, BB: cur.BB, TB: cur.TB, K: cur.K, W: cur.W, SV: cur.SV, IP: cur.IP, GS: cur.GS },
+                        isHit: false, isPit: false,
+                    });
+                }
+                return touched.get(pid);
+            };
+
+            (pgByGame[gid] || []).forEach(pg => {
+                const pid = pg.playerId;
+                if (!pid) return;
+                const t = ensure(pid, pg.name);
+                t.isHit = true;
+                playerInfo[pid].hadHit = true;
+                playerInfo[pid].H   += (pg.h || 0);
+                playerInfo[pid].HR  += (pg.hr || 0);
+                playerInfo[pid].RBI += (pg.rbi || 0);
+                playerInfo[pid].R   += (pg.r || 0);
+                playerInfo[pid]['2B'] += (pg.doubles || 0);
+                playerInfo[pid]['3B'] += (pg.triples || 0);
+                playerInfo[pid].SB  += (pg.sb || 0);
+                playerInfo[pid].BB  += (pg.bb || 0);
+                {
+                    const h = pg.h || 0, d = pg.doubles || 0, t3 = pg.triples || 0, hr = pg.hr || 0;
+                    playerInfo[pid].TB += (h - d - t3 - hr) + 2*d + 3*t3 + 4*hr;
+                }
+            });
+            (pitByGame[gid] || []).forEach(pg => {
+                const pid = pg.playerId;
+                if (!pid) return;
+                const t = ensure(pid, pg.name);
+                t.isPit = true;
+                playerInfo[pid].hadPit = true;
+                playerInfo[pid].K  += (pg.so || 0);
+                playerInfo[pid].W  += (pg.wins || 0);
+                playerInfo[pid].SV += (pg.saves || 0);
+                playerInfo[pid].IP += (pg.outs || 0) / 3;
+                playerInfo[pid].GS += (pg.gameStarts || 0);
+            });
+            // Single G increment per touched player (covers two-way players)
+            touched.forEach((_t, pid) => { playerInfo[pid].G += 1; });
+
+            // Threshold badges
+            touched.forEach((t, pid) => {
+                const cur = playerInfo[pid];
+                const ln = lastNameOf(cur.name);
+
+                // Combined Games threshold (one badge for two-way players)
+                PLAYER_G_THRESHOLDS.forEach(m => {
+                    if (cur.G >= m && t.prevG < m) {
+                        badges[gid].push({
+                            type: 'player-stat',
+                            text: `${ln}: ${ordinal(m)} game with you`,
+                            title: `${cur.name}'s ${ordinal(m)} game with you in attendance`,
+                            meta: { playerId: pid, playerName: cur.name, stat: 'G', value: m, kind: 'g' }
+                        });
+                    }
+                });
+                // Hit thresholds (only for players who hit this game)
+                if (t.isHit) {
+                    Object.entries(PLAYER_HIT_THRESHOLDS).forEach(([stat, thresholds]) => {
+                        thresholds.forEach(m => {
+                            if ((cur[stat] || 0) >= m && (t.prev[stat] || 0) < m) {
+                                badges[gid].push({
+                                    type: 'player-stat',
+                                    text: `${ln}: ${ordinal(m)} ${HIT_LABELS_S[stat]}`,
+                                    title: `${cur.name}'s ${ordinal(m)} ${HIT_LABELS_S[stat]} with you in attendance`,
+                                    meta: { playerId: pid, playerName: cur.name, stat, value: m, kind: 'hit' }
+                                });
+                            }
+                        });
+                    });
+                }
+                // Pitch thresholds (only for pitchers this game)
+                if (t.isPit) {
+                    Object.entries(PLAYER_PIT_THRESHOLDS).forEach(([stat, thresholds]) => {
+                        thresholds.forEach(m => {
+                            if ((cur[stat] || 0) >= m && (t.prev[stat] || 0) < m) {
+                                badges[gid].push({
+                                    type: 'player-stat',
+                                    text: `${ln}: ${ordinal(m)} ${PIT_LABELS_S[stat]}`,
+                                    title: `${cur.name}'s ${ordinal(m)} ${PIT_LABELS_S[stat]} with you in attendance`,
+                                    meta: { playerId: pid, playerName: cur.name, stat, value: m, kind: 'pit' }
+                                });
+                            }
+                        });
+                    });
+                }
+            });
+
+            // Top-5 rank movement (only for players who played this game)
+            const emitRankBadge = (pid, stat, prevTop5, newTop5, label, kind) => {
+                const newRank = newTop5.indexOf(pid);
+                if (newRank === -1) return;
+                const prevRank = prevTop5.indexOf(pid);
+                if (prevRank !== -1 && newRank >= prevRank) return;  // didn't improve
+                const cur = playerInfo[pid];
+                const ln = lastNameOf(cur.name);
+                const baseMeta = {
+                    playerId: pid, playerName: cur.name, stat, value: cur[stat] || 0,
+                    rank: newRank + 1, prevRank: prevRank === -1 ? null : prevRank + 1,
+                    kind, label,
+                };
+                if (newRank === 0) {
+                    badges[gid].push({
+                        type: 'player-rank',
+                        text: `${ln}: most ${label} you've seen`,
+                        title: `${cur.name} now leads your top-5 in ${label} (${cur[stat]})`,
+                        meta: baseMeta,
+                    });
+                } else if (prevRank === -1) {
+                    badges[gid].push({
+                        type: 'player-rank',
+                        text: `${ln}: top-5 ${label} (#${newRank + 1})`,
+                        title: `${cur.name} entered your top-5 ${label} list at #${newRank + 1} (${cur[stat]})`,
+                        meta: baseMeta,
+                    });
+                } else {
+                    badges[gid].push({
+                        type: 'player-rank',
+                        text: `${ln}: #${newRank + 1} ${label}`,
+                        title: `${cur.name} climbed to #${newRank + 1} on your top-5 ${label} list (${cur[stat]})`,
+                        meta: baseMeta,
+                    });
+                }
+            };
+            const newGTop5 = topNForStat(playerInfo, 'G', 5, 'all');
+            touched.forEach((_t, pid) => emitRankBadge(pid, 'G', prevGTop5, newGTop5, 'Games', 'g'));
+            HIT_RANK_STATS.forEach(stat => {
+                const newTop5 = topNForStat(playerInfo, stat, 5, 'hit');
+                touched.forEach((t, pid) => {
+                    if (t.isHit) emitRankBadge(pid, stat, prevHitTop5[stat], newTop5, HIT_LABELS_P[stat], 'hit');
+                });
+            });
+            PIT_RANK_STATS.forEach(stat => {
+                const newTop5 = topNForStat(playerInfo, stat, 5, 'pit');
+                touched.forEach((t, pid) => {
+                    if (t.isPit) emitRankBadge(pid, stat, prevPitTop5[stat], newTop5, PIT_LABELS_P[stat], 'pit');
+                });
+            });
+        }
     });
 
     return badges;
@@ -5896,6 +6601,7 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
 
 const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGame, allTimePassingsByGame }) => {
     const [selectedGame, setSelectedGame] = useState(null);
+    const [selectedBadge, setSelectedBadge] = useState(null);  // { badge, gameId }
     const [badgeTypeFilter, setBadgeTypeFilter] = useState('all');
     const [badgeTextFilter, setBadgeTextFilter] = useState('');
 
@@ -5930,7 +6636,9 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         'career-first': 'bg-amber-100 text-amber-800 font-bold',
         'cumulative-stat': 'bg-teal-100 text-teal-800 font-bold',
         'venue-stat': 'bg-purple-100 text-purple-800 font-bold',
-        'pitch-velo': 'bg-red-100 text-red-700 font-bold'
+        'pitch-velo': 'bg-red-100 text-red-700 font-bold',
+        'player-stat': 'bg-amber-100 text-amber-800 font-bold',
+        'player-rank': 'bg-rose-100 text-rose-800 font-bold'
     };
 
     const badgeTypeLabels = {
@@ -5945,8 +6653,31 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         'career-first': 'Career First',
         'cumulative-stat': 'Cumulative Stat',
         'venue-stat': 'Venue Stat',
-        'pitch-velo': '100+ mph'
+        'pitch-velo': '100+ mph',
+        'player-stat': 'Player Milestone',
+        'player-rank': 'Top-5 Movement'
     };
+
+    // Drop "Career Pitching Game #N" when "Career Game #N" exists for the
+    // same player on the same game — for pure pitchers (e.g. McClean, Povich)
+    // these always coincide and emitting both is redundant.
+    const dedupedCareerFirstsByGame = useMemo(() => {
+        const result = {};
+        Object.entries(careerFirstsByGame || {}).forEach(([gid, firsts]) => {
+            const list = firsts || [];
+            const haveBattingG = new Set();
+            list.forEach(f => {
+                const m = (f.milestone || '').match(/^Career Game #(\d+)$/);
+                if (m) haveBattingG.add(`${f.player_name}|${m[1]}`);
+            });
+            result[gid] = list.filter(f => {
+                const m = (f.milestone || '').match(/^Career Pitching Game #(\d+)$/);
+                if (!m) return true;
+                return !haveBattingG.has(`${f.player_name}|${m[1]}`);
+            });
+        });
+        return result;
+    }, [careerFirstsByGame]);
 
     // Precompute all badges per game for filtering
     const allBadgesByGame = useMemo(() => {
@@ -5957,16 +6688,23 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
             const gid = game.gameId;
             if (!gid) return;
             const regularBadges = gameMilestones[gid]?.badges || [];
-            const gameCareerFirsts = careerFirstsByGame?.[gid] || [];
+            const gameCareerFirsts = dedupedCareerFirstsByGame[gid] || [];
             const careerFirstBadges = gameCareerFirsts.map(f => ({
                 type: 'career-first',
                 text: `⭐ ${getLastName(f.player_name)}: ${shortenMilestone(f.milestone)}`,
-                title: `${f.player_name || 'Unknown'}'s ${f.milestone || 'milestone'}`
+                title: `${f.player_name || 'Unknown'}'s ${f.milestone || 'milestone'}`,
+                meta: {
+                    playerId: f.player_id,
+                    playerName: f.player_name,
+                    milestone: f.milestone,
+                    number: f.number,
+                    careerTotalAfter: f.career_total_after,
+                }
             }));
             result[gid] = [...regularBadges, ...careerFirstBadges, ...(cumulativeBadges[gid] || [])].filter(b => b.text && b.text.trim());
         });
         return result;
-    }, [games, gameMilestones, careerFirstsByGame, cumulativeBadges]);
+    }, [games, gameMilestones, dedupedCareerFirstsByGame, cumulativeBadges]);
 
     // Collect all badge types that actually appear
     const availableBadgeTypes = useMemo(() => {
@@ -6116,6 +6854,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                             <BadgeCell
                                 badges={allBadgesByGame[row.gameId] || []}
                                 badgeColors={badgeColors}
+                                onBadgeClick={(badge) => setSelectedBadge({ badge, gameId: row.gameId })}
                             />
                         )
                     },
@@ -6148,7 +6887,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                         game={selectedGame}
                         playerGames={playerGames}
                         pitcherGames={pitcherGames}
-                        careerFirsts={careerFirstsByGame?.[selectedGame.gameId] || []}
+                        careerFirsts={dedupedCareerFirstsByGame[selectedGame.gameId] || []}
                         allTimePassings={(allTimePassingsByGame || {})[selectedGame.gameId] || []}
                         badges={allBadgesByGame?.[selectedGame.gameId] || []}
                         onClose={() => setSelectedGame(null)}
@@ -6159,6 +6898,23 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                     />
                 );
             })()}
+
+            {selectedBadge && (
+                <BadgeDetailModal
+                    badge={selectedBadge.badge}
+                    game={(games || []).find(g => g.gameId === selectedBadge.gameId) || null}
+                    games={games}
+                    playerGames={playerGames}
+                    pitcherGames={pitcherGames}
+                    careerFirstsByGame={careerFirstsByGame}
+                    allBadgesByGame={allBadgesByGame}
+                    onClose={() => setSelectedBadge(null)}
+                    onGoToGame={() => {
+                        const g = (games || []).find(gg => gg.gameId === selectedBadge.gameId);
+                        if (g) setSelectedGame(g);
+                    }}
+                />
+            )}
         </>
     );
 };
@@ -6781,7 +7537,10 @@ const normalizeTeamCode = (code) => TEAM_CODE_ALIASES[code] || code;
 
 // Milestone thresholds
 const MILESTONE_COUNTS = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 75, 100, 150, 200];
+// Regular-season game-count thresholds (postseason/spring tracked separately below)
 const GAME_MILESTONES = [1, 10, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000];
+const POSTSEASON_MILESTONES = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
+const SPRING_MILESTONES = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
 
 // Holiday detection
 const getHoliday = (dateStr) => {
@@ -6830,6 +7589,9 @@ const computeGameMilestones = (games) => {
 
     const gameMilestones = {};
     let gameCount = 0;
+    let regularCount = 0;
+    let postseasonCount = 0;
+    let springCount = 0;
     const teamCounts = {};
     const venueCounts = {};
     const matchupsSeen = {};
@@ -6873,13 +7635,36 @@ const computeGameMilestones = (games) => {
         const awayDiv = getDivision(awayCode);
         const homeDiv = getDivision(homeCode);
 
-        // Game count milestone
-        if (GAME_MILESTONES.includes(gameCount)) {
-            gameMilestones[gameId].badges.push({
-                type: 'game-count',
-                text: `Game #${gameCount}`,
-                title: `${ordinal(gameCount)} game attended`
-            });
+        // Game count milestones — split by game type so regular season,
+        // postseason, and spring training each get their own track.
+        const gameType = (game.gameType || 'regular').toLowerCase();
+        if (gameType === 'regular') {
+            regularCount++;
+            if (GAME_MILESTONES.includes(regularCount)) {
+                gameMilestones[gameId].badges.push({
+                    type: 'game-count',
+                    text: `Game #${regularCount}`,
+                    title: `${ordinal(regularCount)} regular-season game attended`
+                });
+            }
+        } else if (gameType === 'postseason') {
+            postseasonCount++;
+            if (POSTSEASON_MILESTONES.includes(postseasonCount)) {
+                gameMilestones[gameId].badges.push({
+                    type: 'game-count-postseason',
+                    text: `Postseason #${postseasonCount}`,
+                    title: `${ordinal(postseasonCount)} postseason game attended`
+                });
+            }
+        } else if (gameType === 'spring' || gameType === 'exhibition') {
+            springCount++;
+            if (SPRING_MILESTONES.includes(springCount)) {
+                gameMilestones[gameId].badges.push({
+                    type: 'game-count-spring',
+                    text: `Spring #${springCount}`,
+                    title: `${ordinal(springCount)} spring training game attended`
+                });
+            }
         }
 
         // Holiday badge
@@ -7203,31 +7988,70 @@ const DivisionChecklist = ({ divisionChecklist, games }) => {
 };
 
 // Badges Display Component
-const BadgesDisplay = ({ games }) => {
+const BadgesDisplay = ({ games, playerGames, pitcherGames, careerFirstsByGame }) => {
     const [filter, setFilter] = useState('all');
+    const [selectedBadge, setSelectedBadge] = useState(null);  // { badge, gameId }
     const milestoneData = useMemo(() => computeGameMilestones(games), [games]);
+    const cumulativeBadges = useMemo(
+        () => computeCumulativeStatBadges(games || [], playerGames || [], pitcherGames || []),
+        [games, playerGames, pitcherGames]
+    );
 
-    // Collect all badges
+    // Drop "Career Pitching Game #N" when "Career Game #N" exists for the same player.
+    const dedupedCareerFirstsByGame = useMemo(() => {
+        const result = {};
+        Object.entries(careerFirstsByGame || {}).forEach(([gid, firsts]) => {
+            const list = firsts || [];
+            const haveBattingG = new Set();
+            list.forEach(f => {
+                const m = (f.milestone || '').match(/^Career Game #(\d+)$/);
+                if (m) haveBattingG.add(`${f.player_name}|${m[1]}`);
+            });
+            result[gid] = list.filter(f => {
+                const m = (f.milestone || '').match(/^Career Pitching Game #(\d+)$/);
+                if (!m) return true;
+                return !haveBattingG.has(`${f.player_name}|${m[1]}`);
+            });
+        });
+        return result;
+    }, [careerFirstsByGame]);
+
+    // Collect all badges (regular game milestones + cumulative + career firsts)
     const allBadges = useMemo(() => {
         const badges = [];
         const sortedGames = [...(games || [])].sort((a, b) => toSortableDate(b.date).localeCompare(toSortableDate(a.date)));
 
         sortedGames.forEach(game => {
-            const gameBadges = milestoneData.milestones?.[game.gameId]?.badges || [];
-            gameBadges.forEach(badge => {
-                badges.push({
-                    ...badge,
-                    date: game.date,
-                    gameId: game.gameId,
-                    away: game.awayTeam,
-                    home: game.homeTeam,
-                    venue: game.venue
-                });
-            });
+            const meta = { date: game.date, gameId: game.gameId, away: game.awayTeam, home: game.homeTeam, venue: game.venue };
+            const regularBadges = milestoneData.milestones?.[game.gameId]?.badges || [];
+            regularBadges.forEach(b => badges.push({ ...b, ...meta }));
+            const cuml = cumulativeBadges[game.gameId] || [];
+            cuml.forEach(b => badges.push({ ...b, ...meta }));
+            const firsts = dedupedCareerFirstsByGame[game.gameId] || [];
+            firsts.forEach(f => badges.push({
+                type: 'career-first',
+                text: `⭐ ${getLastName(f.player_name)}: ${shortenMilestone(f.milestone)}`,
+                title: `${f.player_name || 'Unknown'}'s ${f.milestone || 'milestone'}`,
+                meta: {
+                    playerId: f.player_id, playerName: f.player_name,
+                    milestone: f.milestone, number: f.number, careerTotalAfter: f.career_total_after,
+                },
+                ...meta,
+            }));
         });
 
         return badges;
-    }, [games, milestoneData]);
+    }, [games, milestoneData, cumulativeBadges, dedupedCareerFirstsByGame]);
+
+    // Need allBadgesByGame structure for the GenericBadgeDetail "previous occurrence" lookup
+    const allBadgesByGame = useMemo(() => {
+        const result = {};
+        allBadges.forEach(b => {
+            if (!result[b.gameId]) result[b.gameId] = [];
+            result[b.gameId].push(b);
+        });
+        return result;
+    }, [allBadges]);
 
     const filteredBadges = useMemo(() => {
         if (filter === 'all') return allBadges;
@@ -7245,12 +8069,21 @@ const BadgesDisplay = ({ games }) => {
     const getBadgeIcon = (type) => {
         const icons = {
             'game-count': '🎮',
+            'game-count-postseason': '🏆',
+            'game-count-spring': '🌱',
             'team': '👕',
             'venue': '🏟️',
             'div-first': '🌟',
             'div-complete': '🏆',
+            'div-stadiums': '🏟️',
             'matchup': '⚔️',
             'holiday': '🎉',
+            'career-first': '⭐',
+            'cumulative-stat': '📊',
+            'venue-stat': '🏟️',
+            'pitch-velo': '🚀',
+            'player-stat': '🎯',
+            'player-rank': '📈',
         };
         return icons[type] || '🏅';
     };
@@ -7258,6 +8091,8 @@ const BadgesDisplay = ({ games }) => {
     const getBadgeColor = (type) => {
         const colors = {
             'game-count': 'bg-purple-100 border-purple-300',
+            'game-count-postseason': 'bg-yellow-100 border-yellow-300',
+            'game-count-spring': 'bg-green-100 border-green-300',
             'team': 'bg-blue-100 border-blue-300',
             'venue': 'bg-green-100 border-green-300',
             'div-first': 'bg-yellow-100 border-yellow-300',
@@ -7265,6 +8100,12 @@ const BadgesDisplay = ({ games }) => {
             'matchup': 'bg-pink-100 border-pink-300',
             'holiday': 'bg-red-100 border-red-300',
             'div-stadiums': 'bg-indigo-100 border-indigo-300',
+            'career-first': 'bg-amber-100 border-amber-300',
+            'cumulative-stat': 'bg-teal-100 border-teal-300',
+            'venue-stat': 'bg-purple-100 border-purple-300',
+            'pitch-velo': 'bg-red-100 border-red-300',
+            'player-stat': 'bg-amber-100 border-amber-300',
+            'player-rank': 'bg-rose-100 border-rose-300',
         };
         return colors[type] || 'bg-slate-100 border-slate-300';
     };
@@ -7280,7 +8121,9 @@ const BadgesDisplay = ({ games }) => {
                         className="px-3 py-2 border rounded-lg"
                     >
                         <option value="all">All Badges ({badgeCounts.all})</option>
-                        <option value="game-count">Game Count ({badgeCounts['game-count'] || 0})</option>
+                        <option value="game-count">Reg-Season Game Count ({badgeCounts['game-count'] || 0})</option>
+                        <option value="game-count-postseason">Postseason Game Count ({badgeCounts['game-count-postseason'] || 0})</option>
+                        <option value="game-count-spring">Spring Training Game Count ({badgeCounts['game-count-spring'] || 0})</option>
                         <option value="team">Team Milestones ({badgeCounts['team'] || 0})</option>
                         <option value="venue">Venue ({badgeCounts['venue'] || 0})</option>
                         <option value="div-first">Division Firsts ({badgeCounts['div-first'] || 0})</option>
@@ -7288,6 +8131,12 @@ const BadgesDisplay = ({ games }) => {
                         <option value="div-stadiums">Div. Stadiums Complete ({badgeCounts['div-stadiums'] || 0})</option>
                         <option value="matchup">First Matchups ({badgeCounts['matchup'] || 0})</option>
                         <option value="holiday">Holiday Games ({badgeCounts['holiday'] || 0})</option>
+                        <option value="career-first">Career Firsts ({badgeCounts['career-first'] || 0})</option>
+                        <option value="cumulative-stat">Cumulative Stats ({badgeCounts['cumulative-stat'] || 0})</option>
+                        <option value="venue-stat">Venue Stats ({badgeCounts['venue-stat'] || 0})</option>
+                        <option value="pitch-velo">100+ mph ({badgeCounts['pitch-velo'] || 0})</option>
+                        <option value="player-stat">Player Milestones ({badgeCounts['player-stat'] || 0})</option>
+                        <option value="player-rank">Top-5 Movement ({badgeCounts['player-rank'] || 0})</option>
                     </select>
                 </div>
             </div>
@@ -7329,7 +8178,7 @@ const BadgesDisplay = ({ games }) => {
                                 key={`${badge.gameId}-${badge.type}-${idx}`}
                                 className={`p-3 rounded-lg border ${getBadgeColor(badge.type)} cursor-pointer hover:shadow-md transition-all`}
                                 title={badge.title}
-                                onClick={() => { window._pendingGameId = badge.gameId; if (window.__navigateTab) window.__navigateTab('gamelog'); }}
+                                onClick={() => setSelectedBadge({ badge, gameId: badge.gameId })}
                             >
                                 <div className="flex items-start gap-3">
                                     <span className="text-2xl">{getBadgeIcon(badge.type)}</span>
@@ -7344,6 +8193,22 @@ const BadgesDisplay = ({ games }) => {
                     </div>
                 )}
             </div>
+            {selectedBadge && (
+                <BadgeDetailModal
+                    badge={selectedBadge.badge}
+                    game={(games || []).find(g => g.gameId === selectedBadge.gameId) || null}
+                    games={games}
+                    playerGames={playerGames}
+                    pitcherGames={pitcherGames}
+                    careerFirstsByGame={careerFirstsByGame}
+                    allBadgesByGame={allBadgesByGame}
+                    onClose={() => setSelectedBadge(null)}
+                    onGoToGame={() => {
+                        window._pendingGameId = selectedBadge.gameId;
+                        if (window.__navigateTab) window.__navigateTab('gamelog');
+                    }}
+                />
+            )}
         </div>
     );
 };
@@ -9351,7 +10216,7 @@ const ProgressTab = ({ data, initialSubtab, onSubtabChange }) => {
                 { id: 'matchups', label: 'Matchups' },
             ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'checklist' && <DivisionChecklist divisionChecklist={data.divisionChecklist} games={data.games || []} />}
-            {view === 'badges' && <BadgesDisplay games={data.games || []} />}
+            {view === 'badges' && <BadgesDisplay games={data.games || []} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} />}
             {view === 'matchups' && (data.matchupMatrix ? <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} /> : <EmptyState icon="🎯" title="No Matchup Data" message="No matchup data available." />)}
         </div>
     );

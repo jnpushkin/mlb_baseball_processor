@@ -1930,6 +1930,10 @@ class DataSerializer:
             'baseOnBalls': 'BB', 'homeRuns': 'HR',
         }
 
+        # Flag only CLEAR career highs — strict val > c_high. Ties to a
+        # player's career high are intentionally suppressed (they're noisier
+        # than they're worth, and the cache can't reliably tell whether a
+        # tied game set the high or matched it after the fact).
         annotated = 0
         for pg in json_data.get('playerGames', []):
             pid = pg.get('playerId', '')
@@ -1938,44 +1942,25 @@ class DataSerializer:
                 continue
 
             career = player_data.get('career_highs', {})
-            all_season_highs = player_data.get('season_highs', {})
-            # Get season from date (MM/DD/YYYY)
-            date = pg.get('date', '')
-            season = date.split('/')[-1] if '/' in date else ''
-            season_data = all_season_highs.get(season, {})
-
-            # Compute max of all OTHER seasons (for distinguishing new vs tied career high)
-            prior_seasons_max = {}
-            for s_year, s_data in all_season_highs.items():
-                if s_year == season or not s_data:
-                    continue
-                for stat_key, stat_val in s_data.items():
-                    if stat_val is not None:
-                        prior_seasons_max[stat_key] = max(prior_seasons_max.get(stat_key, 0), stat_val)
-
             career_high_stats = []
 
             for field, api_key in hitting_map.items():
                 val = pg.get(field, 0) or 0
                 if val <= 0:
                     continue
-                display = hitting_display.get(api_key, api_key)
-
                 c_high = career.get(api_key)
-                if c_high is not None and val >= c_high:
-                    prior_max = prior_seasons_max.get(api_key, 0)
-                    if val > prior_max:
-                        career_high_stats.append(display)
+                if c_high is None or c_high <= 0:
+                    continue
+                if val > c_high:
+                    career_high_stats.append(hitting_display.get(api_key, api_key))
 
-            # Also compute totalBases for comparison
+            # totalBases
             tb = (pg.get('h', 0) - pg.get('doubles', 0) - pg.get('triples', 0) - pg.get('hr', 0)) + \
                  pg.get('doubles', 0) * 2 + pg.get('triples', 0) * 3 + pg.get('hr', 0) * 4
             if tb > 0:
                 c_tb = career.get('totalBases')
-                if c_tb is not None and tb >= c_tb:
-                    prior_tb = prior_seasons_max.get('totalBases', 0)
-                    if tb > prior_tb:
-                        career_high_stats.append('TB')
+                if c_tb is not None and c_tb > 0 and tb > c_tb:
+                    career_high_stats.append('TB')
 
             if career_high_stats:
                 pg['careerHighs'] = career_high_stats
@@ -1992,35 +1977,21 @@ class DataSerializer:
             if not career:
                 continue
 
-            all_pitch_seasons = player_data.get('season_highs_pitching', {})
-            date = pg.get('date', '')
-            season = date.split('/')[-1] if '/' in date else ''
-
-            # Compute max of all OTHER seasons for pitching
-            prior_pitch_max = {}
-            for s_year, s_data in all_pitch_seasons.items():
-                if s_year == season or not s_data:
-                    continue
-                for stat_key, stat_val in s_data.items():
-                    if stat_val is not None and stat_key != 'inningsPitched':
-                        prior_pitch_max[stat_key] = max(prior_pitch_max.get(stat_key, 0), stat_val)
-
             career_high_stats = []
 
             for field, api_key in pitching_map.items():
                 val = pg.get(field, 0) or 0
                 if val <= 0:
                     continue
-                display = pitching_display.get(api_key, api_key)
-
+                # Only flag strikeouts on the pitching side — H/ER/BB/HR
+                # allowed are bad outcomes and don't deserve a career-high.
                 if api_key != 'strikeOuts':
                     continue
-
                 c_high = career.get(api_key)
-                if c_high is not None and val >= c_high:
-                    prior_max = prior_pitch_max.get(api_key, 0)
-                    if val > prior_max:
-                        career_high_stats.append(display)
+                if c_high is None or c_high <= 0:
+                    continue
+                if val > c_high:
+                    career_high_stats.append(pitching_display.get(api_key, api_key))
 
             # IP
             outs = pg.get('outs', 0)
@@ -2030,18 +2001,8 @@ class DataSerializer:
                 if c_ip:
                     parts = str(c_ip).split('.')
                     c_ip_num = int(parts[0]) + (int(parts[1]) / 3 if len(parts) > 1 else 0)
-                    if ip_numeric >= c_ip_num:
-                        prior_ip_max = 0
-                        for s_year, s_data in all_pitch_seasons.items():
-                            if s_year == season or not s_data:
-                                continue
-                            s_ip = s_data.get('inningsPitched')
-                            if s_ip:
-                                p = str(s_ip).split('.')
-                                s_ip_num = int(p[0]) + (int(p[1]) / 3 if len(p) > 1 else 0)
-                                prior_ip_max = max(prior_ip_max, s_ip_num)
-                        if ip_numeric > prior_ip_max:
-                            career_high_stats.append('IP')
+                    if c_ip_num > 0 and ip_numeric > c_ip_num:
+                        career_high_stats.append('IP')
 
             if career_high_stats:
                 pg['careerHighs'] = career_high_stats

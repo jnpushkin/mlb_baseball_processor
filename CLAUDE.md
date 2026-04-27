@@ -27,7 +27,28 @@ When processing a new BREF HTML file, the processor automatically:
 7. Generates website and deploys to Surge
 
 ## Deployment
-Website auto-deploys to: https://mlb-processor.surge.sh
+Website auto-deploys to: https://mlb-processor.surge.sh as part of `python3 -m baseball_processor` / `--website-only`.
+
+The output is **two files** — `MLB Game Passport - BREF.html` and `data.json` (the React app fetches `data.json` next to itself at runtime). Both must be deployed together; deploying only the HTML produces a "Failed to Load Data: HTTP 404" error on the live site.
+
+### Manual deploy fallback
+If the auto-deploy step times out or fails, redeploy from the **project root** so the directory listing includes both files:
+
+```bash
+# from the project root (which contains the .html and data.json)
+surge . mlb-processor.surge.sh
+```
+
+Surge expects the index file to be named `index.html`. Stage it in a temp dir if needed:
+
+```bash
+rm -rf /tmp/mlb-deploy && mkdir -p /tmp/mlb-deploy
+cp "MLB Game Passport - BREF.html" /tmp/mlb-deploy/index.html
+cp data.json /tmp/mlb-deploy/data.json
+surge /tmp/mlb-deploy mlb-processor.surge.sh
+```
+
+**Do NOT** deploy a directory that contains only the HTML — `data.json` MUST be alongside it or the site 404s.
 
 ## Scraping
 
