@@ -398,6 +398,118 @@ class DataSerializer:
             "players": self._serialize_players(data.get('hitters')),
             "pitchers": self._serialize_pitchers(data.get('pitchers')),
             "playersWithoutStats": self._serialize_players_without_stats(data.get('players_without_stats')),
+            "hallOfFamers": self._serialize_hall_of_famers(data.get('hofers_seen')),
+            "rispPerformance": self._serialize_situational_table(
+                self._call_tracker_dataframe(data.get('situation_tracker'), 'create_risp_dataframe', min_ab=5),
+                {
+                    "Player ID": "playerId",
+                    "Name": "name",
+                    "RISP AB": "ab",
+                    "RISP H": "h",
+                    "RISP AVG": "avg",
+                    "RISP HR": "hr",
+                },
+                rate_fields={"avg": 3},
+            ),
+            "twoOutPerformance": self._serialize_situational_table(
+                self._call_tracker_dataframe(data.get('situation_tracker'), 'create_two_out_dataframe', min_ab=5),
+                {
+                    "Player ID": "playerId",
+                    "Name": "name",
+                    "2-Out AB": "ab",
+                    "2-Out H": "h",
+                    "2-Out AVG": "avg",
+                    "2-Out HR": "hr",
+                },
+                rate_fields={"avg": 3},
+            ),
+            "rispTwoOutPerformance": self._serialize_situational_table(
+                self._call_tracker_dataframe(data.get('situation_tracker'), 'create_clutch_situations_dataframe', min_ab=3),
+                {
+                    "Player ID": "playerId",
+                    "Name": "name",
+                    "RISP+2Out AB": "ab",
+                    "RISP+2Out H": "h",
+                    "RISP+2Out AVG": "avg",
+                    "RISP+2Out HR": "hr",
+                },
+                rate_fields={"avg": 3},
+            ),
+            "basesLoaded": self._serialize_situational_table(
+                self._call_tracker_dataframe(data.get('situation_tracker'), 'create_bases_loaded_dataframe'),
+                {
+                    "Player ID": "playerId",
+                    "Name": "name",
+                    "Grand Slams": "grandSlams",
+                },
+            ),
+            "lateClose": self._serialize_situational_table(
+                self._call_tracker_dataframe(data.get('situation_tracker'), 'create_late_close_dataframe', min_ab=5),
+                {
+                    "Player ID": "playerId",
+                    "Name": "name",
+                    "Late/Close AB": "ab",
+                    "Late/Close H": "h",
+                    "Late/Close AVG": "avg",
+                    "Late/Close HR": "hr",
+                },
+                rate_fields={"avg": 3},
+            ),
+            "wpaLeaders": self._serialize_situational_table(
+                self._call_tracker_dataframe(data.get('saber_tracker'), 'create_wpa_dataframe'),
+                {
+                    "Player ID": "playerId",
+                    "Name": "name",
+                    "Games": "games",
+                    "Total WPA": "totalWpa",
+                    "Avg WPA": "avgWpa",
+                    "Positive WPA": "positiveWpa",
+                    "Negative WPA": "negativeWpa",
+                    "Best Game WPA": "bestGameWpa",
+                    "Best Game ID": "bestGameId",
+                    "Worst Game WPA": "worstGameWpa",
+                    "Worst Game ID": "worstGameId",
+                },
+                rate_fields={
+                    "totalWpa": 3,
+                    "avgWpa": 3,
+                    "positiveWpa": 3,
+                    "negativeWpa": 3,
+                    "bestGameWpa": 3,
+                    "worstGameWpa": 3,
+                },
+            ),
+            "defensiveLeaders": self._serialize_situational_table(
+                self._call_tracker_dataframe(data.get('defense_tracker'), 'create_defensive_leaders_dataframe', min_games=1),
+                {
+                    "Player ID": "playerId",
+                    "Name": "name",
+                    "Games": "games",
+                    "PO": "putouts",
+                    "A": "assists",
+                    "E": "errors",
+                    "TC": "totalChances",
+                    "Fielding %": "fieldingPct",
+                    "Positions": "positions",
+                },
+                rate_fields={"fieldingPct": 3},
+            ),
+            "lineupAnalysis": self._serialize_situational_table(
+                self._call_tracker_dataframe(data.get('defense_tracker'), 'create_lineup_analysis_dataframe', min_games=1),
+                {
+                    "Player ID": "playerId",
+                    "Name": "name",
+                    "Games": "games",
+                    "Most Common Spot": "mostCommonSpot",
+                    "Times in Spot": "timesInSpot",
+                    "Pinch Hits": "pinchHits",
+                },
+            ),
+            "lineupMatrix": self._serialize_lineup_matrix(
+                self._call_tracker_dataframe(data.get('defense_tracker'), 'create_lineup_position_matrix'),
+                self._call_tracker_dataframe(data.get('defense_tracker'), 'create_lineup_analysis_dataframe', min_games=1),
+            ),
+            "weatherTiming": self._serialize_weather_timing(data.get('weather_tracker')),
             "teams": self._serialize_teams(data.get('team_records')),
             "games": self._serialize_games(data.get('game_log'), data.get('_raw_games', [])),
             "stadiums": self._serialize_stadiums(data.get('stadiums')),
@@ -432,6 +544,11 @@ class DataSerializer:
             f"Milestones: {len(json_data['milestones'])}",
             f"Players: {len(json_data['players'])}",
             f"Pitchers: {len(json_data['pitchers'])}",
+            f"HallOfFamers: {len(json_data['hallOfFamers'])}",
+            f"Situational: {sum(len(json_data[key]) for key in ['rispPerformance', 'twoOutPerformance', 'rispTwoOutPerformance', 'basesLoaded', 'lateClose'])}",
+            f"WPA: {len(json_data['wpaLeaders'])}",
+            f"Defense/Lineup: {sum(len(json_data[key]) for key in ['defensiveLeaders', 'lineupAnalysis', 'lineupMatrix'])}",
+            f"WeatherTiming: {len(json_data['weatherTiming'])}",
             f"Games: {len(json_data['games'])}",
             f"PlayerGames: {len(json_data['playerGames'])}",
             f"PitcherGames: {len(json_data['pitcherGames'])}",
@@ -654,6 +771,172 @@ class DataSerializer:
                 print(f"   Warning: Could not serialize player data: {e}")
                 continue
         return players
+
+    def _call_tracker_dataframe(self, tracker, method_name, *args, **kwargs):
+        """Call an optional tracker method and return an empty DataFrame on failure."""
+        if tracker is None:
+            return pd.DataFrame()
+
+        method = getattr(tracker, method_name, None)
+        if method is None:
+            return pd.DataFrame()
+
+        try:
+            return method(*args, **kwargs)
+        except Exception as e:
+            print(f"   Warning: Could not serialize tracker data from {method_name}: {e}")
+            return pd.DataFrame()
+
+    def _serialize_situational_table(self, df, field_map, rate_fields=None):
+        """Convert situational hitting DataFrames to compact website rows."""
+        if df is None or df.empty:
+            return []
+
+        rate_fields = rate_fields or {}
+
+        def clean_value(value, output_key):
+            if value is None or pd.isna(value):
+                return ""
+            if hasattr(value, "item"):
+                value = value.item()
+            if output_key in rate_fields:
+                return f"{float(value):.{rate_fields[output_key]}f}"
+            if isinstance(value, float) and value.is_integer():
+                return int(value)
+            return value
+
+        rows = []
+        for _, row in df.iterrows():
+            try:
+                rows.append({
+                    output_key: clean_value(row.get(input_key, ""), output_key)
+                    for input_key, output_key in field_map.items()
+                })
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"   Warning: Could not serialize situational hitting row: {e}")
+                continue
+        return rows
+
+    def _serialize_lineup_matrix(self, matrix_df, lineup_df=None):
+        """Convert the lineup position matrix to website rows."""
+        if matrix_df is None or matrix_df.empty:
+            return []
+
+        player_id_by_name = {}
+        if lineup_df is not None and not lineup_df.empty:
+            for _, row in lineup_df.iterrows():
+                name = row.get("Name", "")
+                player_id = row.get("Player ID", "")
+                if name and player_id and not pd.isna(name) and not pd.isna(player_id):
+                    player_id_by_name[str(name)] = str(player_id)
+
+        rows = []
+        for player_name, row in matrix_df.iterrows():
+            try:
+                name = str(player_name)
+                matrix_row = {
+                    "name": name,
+                    "playerId": player_id_by_name.get(name, ""),
+                }
+                total = 0
+                for spot in range(1, 10):
+                    value = row.get(f"#{spot}", 0)
+                    count = int(value) if pd.notna(value) else 0
+                    matrix_row[f"spot{spot}"] = count
+                    total += count
+                matrix_row["total"] = total
+                rows.append(matrix_row)
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"   Warning: Could not serialize lineup matrix row: {e}")
+                continue
+        return rows
+
+    def _serialize_weather_timing(self, weather_tracker):
+        """Flatten weather and timing summary stats for the website."""
+        if weather_tracker is None:
+            return []
+
+        try:
+            stats = weather_tracker.get_summary_stats()
+        except Exception as e:
+            print(f"   Warning: Could not serialize weather/timing data: {e}")
+            return []
+
+        def label(value):
+            return str(value).replace("_", " ").title()
+
+        rows = []
+        for key, value in stats.items():
+            category = label(key)
+            if isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    rows.append({
+                        "category": category,
+                        "statistic": label(sub_key),
+                        "value": str(sub_value),
+                    })
+            else:
+                rows.append({
+                    "category": "Weather & Timing",
+                    "statistic": category,
+                    "value": str(value),
+                })
+        return rows
+
+    def _serialize_hall_of_famers(self, df):
+        """Convert enhanced Hall of Famers DataFrame to JSON."""
+        if df is None or df.empty:
+            return []
+
+        def as_text(value):
+            if value is None or pd.isna(value):
+                return ""
+            return str(value)
+
+        def as_int(value):
+            if value is None or pd.isna(value) or value == "":
+                return 0
+            return int(float(value))
+
+        def as_decimal(value, digits):
+            if value is None or pd.isna(value) or value == "":
+                return ""
+            return f"{float(value):.{digits}f}"
+
+        hofers = []
+        for _, row in df.iterrows():
+            try:
+                game_ids = as_text(row.get("GameIDs", ""))
+                player_id = row.get("Player ID", "")
+                if player_id is None or pd.isna(player_id) or player_id == "":
+                    player_id = row.get("PlayerID", "")
+                hofers.append({
+                    "name": as_text(row.get("Name", "")),
+                    "playerId": as_text(player_id),
+                    "yearInducted": as_text(row.get("Year Inducted", "")),
+                    "positions": as_text(row.get("Position(s)", "")),
+                    "teams": as_text(row.get("Teams in Games", "")),
+                    "gamesSeen": as_int(row.get("Games Seen", 0)),
+                    "firstGame": as_text(row.get("First Game", "")),
+                    "lastGame": as_text(row.get("Last Game", "")),
+                    "span": as_text(row.get("Span", "")),
+                    "ab": as_int(row.get("AB", 0)),
+                    "h": as_int(row.get("H", 0)),
+                    "hr": as_int(row.get("HR", 0)),
+                    "rbi": as_int(row.get("RBI", 0)),
+                    "avg": as_decimal(row.get("AVG", ""), 3),
+                    "ip": as_text(row.get("IP", "")),
+                    "wins": as_int(row.get("W", 0)),
+                    "losses": as_int(row.get("L", 0)),
+                    "era": as_decimal(row.get("ERA", ""), 2),
+                    "pitchingSo": as_int(row.get("SO_P", 0)),
+                    "milestones": as_text(row.get("Milestones Achieved", "")),
+                    "gameIds": game_ids,
+                })
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"   Warning: Could not serialize Hall of Famer data: {e}")
+                continue
+        return hofers
 
     def _serialize_pitchers(self, df):
         """Convert ALL pitchers DataFrame to JSON with complete stats and date range."""
@@ -1903,7 +2186,8 @@ class DataSerializer:
         if not cache_path.exists():
             return
         try:
-            highs_cache = json.load(open(cache_path))
+            with cache_path.open("r", encoding="utf-8") as handle:
+                highs_cache = json.load(handle)
         except (json.JSONDecodeError, IOError):
             return
         if not highs_cache:

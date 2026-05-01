@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 from .serializers import DataSerializer
 from .templates import HTMLTemplate
+from .parity import collect_website_data_parity_issues
 
 class WebsiteGenerator:
     """Generate an interactive HTML website from processed game data."""
@@ -29,6 +30,12 @@ class WebsiteGenerator:
 
         # Convert data to JSON-serializable format
         json_data = self.serializer.serialize_all_data(self.data)
+        parity_issues = collect_website_data_parity_issues(
+            self.data,
+            json_data,
+            excluded_milestone_types=self.serializer.EXCLUDED_MILESTONE_TYPES,
+        )
+        self._log_parity_issues(parity_issues)
 
         # Create the HTML content using template
         html_content = HTMLTemplate.create_full_page(json_data)
@@ -52,6 +59,23 @@ class WebsiteGenerator:
         logging.info(f"Open in browser: file://{output_file.absolute()}")
 
         return output_file
+
+    def _log_parity_issues(self, issues):
+        if not issues:
+            return
+
+        warnings = [issue for issue in issues if issue["severity"] == "warning"]
+        feature_gaps = [issue for issue in issues if issue["severity"] != "warning"]
+
+        for issue in warnings:
+            logging.warning("Website data parity warning: %s", issue["message"])
+
+        if feature_gaps:
+            labels = ", ".join(issue["dataset"] for issue in feature_gaps[:6])
+            extra = len(feature_gaps) - 6
+            if extra > 0:
+                labels = f"{labels}, +{extra} more"
+            logging.info("Website feature parity gaps detected: %s", labels)
 
 
 def generate_website_from_data(processed_data, output_path="baseball_stats.html"):

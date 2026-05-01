@@ -3,6 +3,7 @@ import json
 import argparse
 import logging
 import re
+import copy
 import pandas as pd
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -12,7 +13,7 @@ from .parsers.html_parser import parse_baseball_reference_boxscore
 from .utils.constants import BASE_DIR, DEFAULT_INPUT_DIR, REFERENCES_DIR, HOF_FILE, CACHE_DIR
 from .utils.helpers import load_mlb_debuts
 from .utils.globals import UmpireTracker
-from .utils.log import info, warn, error, set_verbosity, set_use_emoji, configure_file_logging
+from .utils.log import info, warn, error, debug, set_verbosity, set_use_emoji, configure_file_logging
 from .website import generate_website_from_data
 from .reports.quick_stats import generate_quick_stats_report, print_quick_stats_report
 from .exporters.csv_exporter import export_all_to_csv, export_raw_games_to_csv
@@ -106,6 +107,46 @@ def deploy_to_surge(html_path: str, domain: str | None = None) -> bool:
             return False
 
 
+def _configured_surge_domain(args) -> str | None:
+    return args.surge_domain or load_surge_domain()
+
+
+def _should_deploy_to_surge(args, configured_domain: str | None = None) -> bool:
+    if args.no_deploy:
+        return False
+    if configured_domain is None:
+        configured_domain = _configured_surge_domain(args)
+    return bool(args.deploy or configured_domain)
+
+
+def _log_surge_deploy_mode(args) -> None:
+    if args.excel_only or args.quick_stats:
+        return
+
+    configured_domain = _configured_surge_domain(args)
+    if args.no_deploy and (args.deploy or configured_domain):
+        info("🚫 Surge deploy mode: disabled for this run (--no-deploy)")
+    elif args.deploy:
+        info("🚀 Surge deploy mode: explicit deploy requested")
+    elif configured_domain:
+        info(f"🚀 Surge deploy mode: auto-deploy enabled ({configured_domain})")
+
+
+def _maybe_deploy_to_surge(html_path: str, args) -> bool:
+    configured_domain = _configured_surge_domain(args)
+    if args.no_deploy:
+        if args.deploy or configured_domain:
+            info("🚫 Skipping Surge deployment for this run (--no-deploy)")
+        return False
+
+    if not _should_deploy_to_surge(args, configured_domain):
+        return False
+
+    if not args.deploy and configured_domain:
+        info(f"🚀 Auto-deploying to configured Surge domain: {configured_domain}")
+    return deploy_to_surge(html_path, configured_domain)
+
+
 def _print_game_summary(game_data):
     """Print a 'New This Game' summary highlighting notable aspects."""
     bi = game_data.get('basic_info', {})
@@ -185,6 +226,404 @@ def _refresh_all_time_leaders_if_stale(max_age_days=7):
         warn("  ⚠️ All-time leaders update timed out")
     except Exception as e:
         warn(f"  ⚠️ All-time leaders update error: {e}")
+
+
+def _should_skip_network_reference_updates(args):
+    """Return True for modes that should be reproducible from local data only."""
+    return args.from_cache_only or args.from_db or args.quick_stats
+
+
+def _should_refresh_all_time_leaders(args):
+    return not args.website_only and not _should_skip_network_reference_updates(args)
+
+
+def _should_update_debuts(args):
+    return not args.skip_debut_update and not _should_skip_network_reference_updates(args)
+
+
+def _should_download_bref_backups(args):
+    return not _should_skip_network_reference_updates(args)
+
+
+def _maybe_download_bref_backups(args):
+    if not _should_download_bref_backups(args):
+        info("Skipping BREF HTML backup fetch in local-only mode")
+        return
+
+    # Fetch any missing BREF HTML backups for API-sourced games (>24h old).
+    # Idempotent: skips games that already have HTML. Safe to run every pipeline.
+    try:
+        from .scrapers.download_bref import run as download_bref_run
+        download_bref_run(verbose=True)
+    except Exception as e:
+        warn(f"⚠️ BREF HTML backup skipped: {e}")
+
+
+def _count_milestone_events(game):
+    return sum(
+        len(events)
+        for events in game.get('milestone_stats', {}).values()
+        if isinstance(events, list)
+    )
+
+
+def _has_meaningful_batting_line(player):
+    """Return True when a batting row represents an actual plate/running line."""
+    for stat in ['PA', 'AB', 'R', 'H', 'RBI', 'BB', 'SO', 'HBP', 'SF', 'SH', 'SB', 'CS', '2B', '3B', 'HR']:
+        try:
+            if int(player.get(stat, 0) or 0) != 0:
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False
+
+
+def _count_meaningful_lines(game):
+    batting_count = sum(
+        1
+        for side in ['away', 'home']
+        for player in game.get('batting', {}).get(side, []) or []
+        if _has_meaningful_batting_line(player)
+    )
+    pitching_count = sum(
+        len(game.get('pitching', {}).get(side, []) or [])
+        for side in ['away', 'home']
+    )
+    return batting_count + pitching_count
+
+
+def _count_enrichment_fields(game):
+    return sum(
+        1
+        for key in ['pitch_data', 'hit_data', 'lineups', 'umpires', 'pitcher_decisions']
+        if game.get(key)
+    )
+
+
+def _cache_game_quality_score(game):
+    line_count = _count_meaningful_lines(game)
+    play_count = len(game.get('play_by_play', []) or game.get('plays', []) or [])
+    source = game.get('source') or game.get('basic_info', {}).get('source') or ''
+    source_score = {'mlb': 2, 'bref': 1, 'pdf': 0}.get(source, 1)
+    return (
+        line_count,
+        source_score,
+        _count_enrichment_fields(game),
+        play_count,
+        _count_milestone_events(game),
+        1 if game.get('footer_summary') else 0,
+    )
+
+
+def _has_cache_value(value):
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return value.strip() not in ('', 'N/A', 'None', 'null')
+    if isinstance(value, (list, tuple, set, dict)):
+        return bool(value)
+    return True
+
+
+def _merge_missing_values(base, incoming):
+    """Merge missing nested values from incoming into base without clobbering base."""
+    if not isinstance(base, dict) or not isinstance(incoming, dict):
+        return base
+
+    for key, value in incoming.items():
+        if not _has_cache_value(value):
+            continue
+
+        if key not in base or not _has_cache_value(base.get(key)):
+            base[key] = copy.deepcopy(value)
+        elif isinstance(base.get(key), dict) and isinstance(value, dict):
+            _merge_missing_values(base[key], value)
+
+    return base
+
+
+def _stable_json_signature(value):
+    return json.dumps(value, sort_keys=True, default=str)
+
+
+def _normalize_cache_name(name):
+    normalized = str(name or '').replace('\u00a0', ' ').strip().lower()
+    return re.sub(r'\s+', ' ', normalized)
+
+
+def _player_id_is_better(candidate, current):
+    candidate = str(candidate or '').strip()
+    current = str(current or '').strip()
+    if not candidate:
+        return False
+    if not current:
+        return True
+    if current.startswith('mlb_') and not candidate.startswith('mlb_'):
+        return True
+    if '000' in current and '000' not in candidate:
+        return True
+    return False
+
+
+def _merge_player_row(existing_row, incoming_row, prefer_incoming=False):
+    primary = incoming_row if prefer_incoming else existing_row
+    secondary = existing_row if prefer_incoming else incoming_row
+    merged = copy.deepcopy(primary)
+    _merge_missing_values(merged, secondary)
+
+    if not prefer_incoming and _player_id_is_better(incoming_row.get('player_id'), existing_row.get('player_id')):
+        merged['player_id'] = incoming_row.get('player_id')
+    if not prefer_incoming and _player_id_is_better(incoming_row.get('bref_id'), existing_row.get('bref_id')):
+        merged['bref_id'] = incoming_row.get('bref_id')
+
+    existing_row.clear()
+    existing_row.update(merged)
+
+
+def _merge_player_section(base, incoming, section_name, incoming_source):
+    section = base.setdefault(section_name, {})
+    incoming_section = incoming.get(section_name, {})
+    if not isinstance(section, dict) or not isinstance(incoming_section, dict):
+        return
+
+    base_source = base.get('source') or base.get('basic_info', {}).get('source') or ''
+    prefer_incoming_common = incoming_source == 'mlb' and base_source != 'mlb'
+
+    for side in ['away', 'home']:
+        rows = section.setdefault(side, [])
+        incoming_rows = incoming_section.get(side, []) or []
+
+        by_id = {
+            str(row.get('player_id')): row
+            for row in rows
+            if row.get('player_id')
+        }
+        by_name = {
+            _normalize_cache_name(row.get('name')): row
+            for row in rows
+            if row.get('name')
+        }
+
+        for incoming_row in incoming_rows:
+            match = None
+            player_id = incoming_row.get('player_id')
+            if player_id:
+                match = by_id.get(str(player_id))
+            if match is None and incoming_row.get('name'):
+                match = by_name.get(_normalize_cache_name(incoming_row.get('name')))
+
+            if match is not None:
+                _merge_player_row(match, incoming_row, prefer_incoming_common)
+                if match.get('player_id'):
+                    by_id[str(match.get('player_id'))] = match
+                if match.get('name'):
+                    by_name[_normalize_cache_name(match.get('name'))] = match
+                continue
+
+            if section_name == 'batting' and not _has_meaningful_batting_line(incoming_row):
+                continue
+
+            copied = copy.deepcopy(incoming_row)
+            rows.append(copied)
+            if copied.get('player_id'):
+                by_id[str(copied.get('player_id'))] = copied
+            if copied.get('name'):
+                by_name[_normalize_cache_name(copied.get('name'))] = copied
+
+
+def _play_signature(play):
+    description = _normalize_cache_name(play.get('description', ''))
+    description = re.sub(r'\.?\s*\d+\s+outs?$', '', description)
+    description = re.sub(r'[^a-z0-9]+', ' ', description).strip()
+    return (
+        play.get('inning'),
+        str(play.get('half', '')).lower(),
+        _normalize_cache_name(play.get('batter', '')),
+        play.get('away_score'),
+        play.get('home_score'),
+        description,
+    )
+
+
+def _merge_play_list(base, incoming, key):
+    incoming_plays = incoming.get(key) or []
+    if not incoming_plays:
+        return
+
+    base_plays = base.get(key)
+    if not base_plays:
+        base[key] = copy.deepcopy(incoming_plays)
+        return
+
+    seen = {_play_signature(play) for play in base_plays}
+    for play in incoming_plays:
+        signature = _play_signature(play)
+        if signature not in seen:
+            base_plays.append(copy.deepcopy(play))
+            seen.add(signature)
+
+
+def _merge_milestone_stats(base, incoming):
+    incoming_stats = incoming.get('milestone_stats')
+    if not isinstance(incoming_stats, dict):
+        return
+
+    base_stats = base.setdefault('milestone_stats', {})
+    if not isinstance(base_stats, dict):
+        base['milestone_stats'] = copy.deepcopy(incoming_stats)
+        return
+
+    for category, incoming_events in incoming_stats.items():
+        if not _has_cache_value(incoming_events):
+            continue
+
+        if category not in base_stats or not _has_cache_value(base_stats.get(category)):
+            base_stats[category] = copy.deepcopy(incoming_events)
+            continue
+
+        if isinstance(base_stats[category], list) and isinstance(incoming_events, list):
+            seen = {_stable_json_signature(event) for event in base_stats[category]}
+            for event in incoming_events:
+                signature = _stable_json_signature(event)
+                if signature not in seen:
+                    base_stats[category].append(copy.deepcopy(event))
+                    seen.add(signature)
+        elif isinstance(base_stats[category], dict) and isinstance(incoming_events, dict):
+            _merge_missing_values(base_stats[category], incoming_events)
+
+
+def _merge_generic_list(base, incoming, key):
+    incoming_values = incoming.get(key) or []
+    if not incoming_values:
+        return
+    if not isinstance(incoming_values, list):
+        if isinstance(incoming_values, dict) and isinstance(base.get(key), dict):
+            _merge_missing_values(base[key], incoming_values)
+        elif key not in base or not _has_cache_value(base.get(key)):
+            base[key] = copy.deepcopy(incoming_values)
+        return
+
+    base_values = base.get(key)
+    if not base_values:
+        base[key] = copy.deepcopy(incoming_values)
+        return
+    if not isinstance(base_values, list):
+        return
+
+    seen = {_stable_json_signature(value) for value in base_values}
+    for value in incoming_values:
+        signature = _stable_json_signature(value)
+        if signature not in seen:
+            base_values.append(copy.deepcopy(value))
+            seen.add(signature)
+
+
+def _merge_cache_game_records(primary, secondary):
+    """Merge two cache aliases for the same game_id, keeping primary as canonical."""
+    merged = copy.deepcopy(primary)
+    incoming_source = secondary.get('source') or secondary.get('basic_info', {}).get('source') or ''
+
+    _merge_missing_values(merged, secondary)
+    if isinstance(merged.get('basic_info'), dict) and isinstance(secondary.get('basic_info'), dict):
+        _merge_missing_values(merged['basic_info'], secondary['basic_info'])
+
+    _merge_player_section(merged, secondary, 'batting', incoming_source)
+    _merge_player_section(merged, secondary, 'pitching', incoming_source)
+    _merge_milestone_stats(merged, secondary)
+
+    for key in ['raw_plays', 'play_by_play', 'plays']:
+        _merge_play_list(merged, secondary, key)
+
+    for key in ['substitutions', 'special_events', 'abs_challenges']:
+        _merge_generic_list(merged, secondary, key)
+
+    return merged
+
+
+def _find_api_cache_for_game_id(game_id, cache_dir=CACHE_DIR, exclude_path=None):
+    """Find an API-sourced cache record by internal game_id, not just filename."""
+    if not game_id:
+        return None, None
+
+    exclude = Path(exclude_path).resolve() if exclude_path else None
+    searched = set()
+    candidate_names = [f"{game_id}.json", f"M{game_id}.json"]
+
+    def try_path(path):
+        resolved = path.resolve()
+        if resolved in searched or (exclude and resolved == exclude):
+            return None, None
+        searched.add(resolved)
+        if not path.exists():
+            return None, None
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                game = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return None, None
+        source = game.get('source') or game.get('basic_info', {}).get('source')
+        if source == 'mlb' and game.get('game_id') == game_id:
+            return path, game
+        return None, None
+
+    for name in candidate_names:
+        found_path, found_game = try_path(cache_dir / name)
+        if found_game:
+            return found_path, found_game
+
+    skip_patterns = ['career_firsts', 'career_gamelogs', 'player_bios', 'career_highs']
+    for path in sorted(cache_dir.glob("*.json")):
+        if any(pattern in path.name for pattern in skip_patterns):
+            continue
+        found_path, found_game = try_path(path)
+        if found_game:
+            return found_path, found_game
+
+    return None, None
+
+
+def _load_games_from_cache(cache_dir=CACHE_DIR):
+    """Load cache games, deduping exact game_id aliases while merging useful data."""
+    games_by_id = {}
+    games_without_id = []
+    duplicates_skipped = 0
+    skip_patterns = ['career_firsts', 'career_gamelogs']
+
+    for file in sorted(cache_dir.glob("*.json")):
+        if any(pattern in str(file) for pattern in skip_patterns):
+            continue
+        with open(file, 'r', encoding='utf-8') as f:
+            game = json.load(f)
+        if not isinstance(game, dict) or 'basic_info' not in game:
+            continue
+
+        bi = game['basic_info']
+        if 'game_type' not in bi:
+            bi['game_type'] = 'regular'
+            bi['source'] = bi.get('source', 'bref')
+
+        game_id = game.get('game_id')
+        if not game_id:
+            games_without_id.append(game)
+            continue
+
+        existing = games_by_id.get(game_id)
+        if existing is None:
+            games_by_id[game_id] = game
+            continue
+
+        duplicates_skipped += 1
+        if _cache_game_quality_score(game) > _cache_game_quality_score(existing):
+            games_by_id[game_id] = _merge_cache_game_records(game, existing)
+        else:
+            games_by_id[game_id] = _merge_cache_game_records(existing, game)
+
+    games_data = list(games_by_id.values()) + games_without_id
+    spring_count = sum(
+        1 for game in games_data
+        if game.get('basic_info', {}).get('game_type') == 'spring'
+    )
+    return games_data, spring_count, duplicates_skipped
 
 
 def _update_gamelogs_for_game(cache_path):
@@ -624,34 +1063,23 @@ def process_html_file(file_path, index=None, total=None):
         info(f"  📊 Parsed game: {game_id}")
 
         # If this game was already added via the MLB API (add_game), the
-        # API-sourced cache is the source of truth — don't let the BREF parse
-        # overwrite it. Use the API data instead, run MilestoneEngine on it
-        # (BREF parse runs it during parsing; API parse leaves it empty), and
-        # save to the HTML-keyed cache so future runs short-circuit.
-        api_cache_path = CACHE_DIR / f"{game_id}.json"
-        if api_cache_path.exists() and api_cache_path != cache_path:
+        # API-sourced cache is the source of truth — don't let the BREF backup
+        # create a competing JSON record. Use the API data instead, running
+        # MilestoneEngine on it if needed.
+        api_cache_path, api_data = _find_api_cache_for_game_id(game_id, CACHE_DIR, cache_path)
+        if api_cache_path and api_data:
             try:
-                with open(api_cache_path, 'r', encoding='utf-8') as f:
-                    api_data = json.load(f)
-                api_source = api_data.get('source') or api_data.get('basic_info', {}).get('source')
-                if api_source == 'mlb':
-                    info(f"  🌟 API-sourced cache exists ({api_cache_path.name}) — preferring it over BREF parse")
-                    ms = api_data.get('milestone_stats')
-                    if not ms or (isinstance(ms, dict) and not any(ms.values())):
-                        try:
-                            from baseball_processor.engines.milestone_engine import MilestoneEngine
-                            MilestoneEngine(api_data).process()
-                            with open(api_cache_path, 'w', encoding='utf-8') as f:
-                                json.dump(api_data, f, indent=2)
-                        except Exception as e:
-                            debug(f"  ⚠️ Milestone engine on API data skipped: {e}")
-                    # Mirror to the HTML-keyed cache so the next run hits the
-                    # filename cache and skips parsing entirely.
-                    temp_cache = cache_path.with_suffix('.tmp')
-                    with open(temp_cache, 'w', encoding='utf-8') as f:
-                        json.dump(api_data, f, indent=2)
-                    temp_cache.replace(cache_path)
-                    return api_data
+                info(f"  🌟 API-sourced cache exists ({api_cache_path.name}) — using it instead of BREF backup JSON")
+                ms = api_data.get('milestone_stats')
+                if not ms or (isinstance(ms, dict) and not any(ms.values())):
+                    try:
+                        from baseball_processor.engines.milestone_engine import MilestoneEngine
+                        MilestoneEngine(api_data).process()
+                        with open(api_cache_path, 'w', encoding='utf-8') as f:
+                            json.dump(api_data, f, indent=2)
+                    except Exception as e:
+                        debug(f"  ⚠️ Milestone engine on API data skipped: {e}")
+                return api_data
             except Exception as e:
                 debug(f"  ⚠️ API cache check failed, falling back to BREF parse: {e}")
 
@@ -881,6 +1309,11 @@ def main():
         help='Deploy website to Surge after generation'
     )
     parser.add_argument(
+        '--no-deploy',
+        action='store_true',
+        help='Skip Surge deployment for this run, even if .surge-domain is configured'
+    )
+    parser.add_argument(
         '--surge-domain',
         type=str,
         default=None,
@@ -952,9 +1385,10 @@ def main():
 
     info("⚾️ Starting Baseball Game Processor...")
     info(f"📂 Input: {args.input_path}")
+    _log_surge_deploy_mode(args)
 
     # Refresh all-time leaders if stale (>7 days old)
-    if not args.website_only:
+    if _should_refresh_all_time_leaders(args):
         _refresh_all_time_leaders_if_stale()
 
     # Create a fresh umpire tracker for this run
@@ -967,7 +1401,7 @@ def main():
     info(f"▶ Current working directory: {os.getcwd()}")
 
     # Step 0: Auto-update debuts (unless skipped)
-    if not args.skip_debut_update:
+    if _should_update_debuts(args):
         try:
             from .scrapers.debut_scraper import scrape_debuts, save_debuts_csv
             debut_year = args.debut_year or datetime.now().year
@@ -1001,28 +1435,9 @@ def main():
             info(f"  Found {spring_count} spring training games")
     elif args.from_cache_only:
         info("📦 Loading games from cache only...")
-        games_data = []
-        spring_count = 0
-        # Files to skip (not game data)
-        skip_patterns = ['career_firsts', 'career_gamelogs']
-        for file in CACHE_DIR.glob("*.json"):
-            # Skip non-game files
-            if any(pattern in str(file) for pattern in skip_patterns):
-                continue
-            with open(file, 'r', encoding='utf-8') as f:
-                game = json.load(f)
-                # Skip files that don't look like game data
-                if not isinstance(game, dict) or 'basic_info' not in game:
-                    continue
-                # Ensure game_type is set
-                bi = game['basic_info']
-                if 'game_type' not in bi:
-                    # Default to regular for BREF games
-                    bi['game_type'] = 'regular'
-                    bi['source'] = bi.get('source', 'bref')
-                if bi.get('game_type') == 'spring':
-                    spring_count += 1
-                games_data.append(game)
+        games_data, spring_count, duplicates_skipped = _load_games_from_cache(CACHE_DIR)
+        if duplicates_skipped:
+            info(f"  Merged {duplicates_skipped} duplicate cache alias(es)")
         if spring_count > 0:
             info(f"  Found {spring_count} spring training games")
     elif args.parallel:
@@ -1151,18 +1566,8 @@ def main():
             info("\n🎉 Processing complete!")
             info(f"✅ Website: {os.path.abspath(html_path)}")
 
-            # Deploy to Surge if requested or if domain is configured (auto-deploy)
-            surge_domain = args.surge_domain or load_surge_domain()
-            if args.deploy or surge_domain:
-                deploy_to_surge(html_path, args.surge_domain)
-
-            # Fetch any missing BREF HTML backups for API-sourced games (>24h old).
-            # Idempotent: skips games that already have HTML. Safe to run every pipeline.
-            try:
-                from .scrapers.download_bref import run as download_bref_run
-                download_bref_run(verbose=True)
-            except Exception as e:
-                warn(f"⚠️ BREF HTML backup skipped: {e}")
+            _maybe_deploy_to_surge(html_path, args)
+            _maybe_download_bref_backups(args)
 
         elif args.excel_only:
             # Generate only Excel
@@ -1207,18 +1612,8 @@ def main():
             if args.save_json:
                 info(f"📄 JSON: {json_output}")
 
-            # Deploy to Surge if requested or if domain is configured (auto-deploy)
-            surge_domain = args.surge_domain or load_surge_domain()
-            if args.deploy or surge_domain:
-                deploy_to_surge(html_path, args.surge_domain)
-
-            # Fetch any missing BREF HTML backups for API-sourced games (>24h old).
-            # Idempotent: skips games that already have HTML. Safe to run every pipeline.
-            try:
-                from .scrapers.download_bref import run as download_bref_run
-                download_bref_run(verbose=True)
-            except Exception as e:
-                warn(f"⚠️ BREF HTML backup skipped: {e}")
+            _maybe_deploy_to_surge(html_path, args)
+            _maybe_download_bref_backups(args)
 
         # Export to CSV if requested
         if args.export_csv:

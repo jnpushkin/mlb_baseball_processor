@@ -1,0 +1,5757 @@
+{
+  "basic_info": {
+    "away_team": "Los Angeles Dodgers",
+    "home_team": "San Francisco Giants",
+    "date": "Tuesday, April 21, 2026",
+    "date_yyyymmdd": "20260421",
+    "start_time": "6:45 PM",
+    "attendance": "40,066",
+    "attendance_value": 40066,
+    "venue": "Oracle Park",
+    "venue_city": "San Francisco",
+    "venue_state": "CA",
+    "venue_latitude": 37.778383,
+    "venue_longitude": -122.389448,
+    "duration": "2:30",
+    "weather": "57\u00b0F, Cloudy, Wind: 14 mph, Out To CF",
+    "temperature_f": 57,
+    "away_score": "1",
+    "home_score": "3",
+    "away_score_value": 1,
+    "home_score_value": 3,
+    "doubleheader": "0",
+    "game_number": 1,
+    "away_team_code": "LAD",
+    "home_team_code": "SF",
+    "game_type": "regular",
+    "game_type_code": "R",
+    "source": "mlb"
+  },
+  "batting": {
+    "away": [
+      {
+        "name": "Shohei Ohtani",
+        "player_id": "ohtansh01",
+        "mlb_id": 660271,
+        "bref_id": "ohtansh01",
+        "jersey_number": "17",
+        "position": "DH",
+        "AB": 4,
+        "R": 0,
+        "H": 1,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 2,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 1,
+        "lineup_slot": 1,
+        "is_starter": true
+      },
+      {
+        "name": "Kyle Tucker",
+        "player_id": "tuckeky01",
+        "mlb_id": 663656,
+        "bref_id": "tuckeky01",
+        "jersey_number": "23",
+        "position": "RF",
+        "AB": 4,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 3,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": 2,
+        "is_starter": true
+      },
+      {
+        "name": "Freddie Freeman",
+        "player_id": "freemfr01",
+        "mlb_id": 518692,
+        "bref_id": "freemfr01",
+        "jersey_number": "5",
+        "position": "1B",
+        "AB": 2,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 2,
+        "SO": 0,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": 3,
+        "is_starter": true
+      },
+      {
+        "name": "Teoscar Hern\u00e1ndez",
+        "player_id": "hernate01",
+        "mlb_id": 606192,
+        "bref_id": "hernate01",
+        "jersey_number": "37",
+        "position": "LF",
+        "AB": 3,
+        "R": 1,
+        "H": 1,
+        "RBI": 0,
+        "BB": 1,
+        "SO": 0,
+        "PA": 4,
+        "HR": 0,
+        "2B": 1,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 2,
+        "lineup_slot": 4,
+        "is_starter": true
+      },
+      {
+        "name": "Max Muncy",
+        "player_id": "muncyma01",
+        "mlb_id": 571970,
+        "bref_id": "muncyma01",
+        "jersey_number": "13",
+        "position": "3B",
+        "AB": 3,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 1,
+        "SO": 2,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": 5,
+        "is_starter": true
+      },
+      {
+        "name": "Dalton Rushing",
+        "player_id": "rushida01",
+        "mlb_id": 687221,
+        "bref_id": "rushida01",
+        "jersey_number": "68",
+        "position": "C",
+        "AB": 2,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 1,
+        "SO": 0,
+        "PA": 3,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": 6,
+        "is_starter": true
+      },
+      {
+        "name": "Will Smith",
+        "player_id": "smithwi05",
+        "mlb_id": 669257,
+        "bref_id": "smithwi05",
+        "jersey_number": "16",
+        "position": "C",
+        "AB": 1,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 1,
+        "PA": 1,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": null,
+        "is_starter": false
+      },
+      {
+        "name": "Hyeseong Kim",
+        "player_id": "kimhy02",
+        "mlb_id": 808975,
+        "bref_id": "kimhy02",
+        "jersey_number": "6",
+        "position": "SS",
+        "AB": 1,
+        "R": 0,
+        "H": 1,
+        "RBI": 1,
+        "BB": 1,
+        "SO": 0,
+        "PA": 2,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 1,
+        "lineup_slot": 7,
+        "is_starter": true
+      },
+      {
+        "name": "Miguel Rojas",
+        "player_id": "rojasmi02",
+        "mlb_id": 500743,
+        "bref_id": "rojasmi02",
+        "jersey_number": "72",
+        "position": "SS",
+        "AB": 1,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 0,
+        "PA": 1,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": null,
+        "is_starter": false
+      },
+      {
+        "name": "Andy Pages",
+        "player_id": "pagesan01",
+        "mlb_id": 681624,
+        "bref_id": "pagesan01",
+        "jersey_number": "44",
+        "position": "PH",
+        "AB": 1,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 1,
+        "PA": 1,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": null,
+        "is_starter": false
+      },
+      {
+        "name": "Alex Call",
+        "player_id": "callal02",
+        "mlb_id": 669743,
+        "bref_id": "callal02",
+        "jersey_number": "12",
+        "position": "CF",
+        "AB": 4,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 0,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 1,
+        "TB": 0,
+        "lineup_slot": 8,
+        "is_starter": true
+      },
+      {
+        "name": "Alex Freeland",
+        "player_id": "freelal01",
+        "mlb_id": 690976,
+        "bref_id": "freelal01",
+        "jersey_number": "76",
+        "position": "2B",
+        "AB": 3,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 1,
+        "SO": 3,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": 9,
+        "is_starter": true
+      }
+    ],
+    "home": [
+      {
+        "name": "Willy Adames",
+        "player_id": "adamewi01",
+        "mlb_id": 642715,
+        "bref_id": "adamewi01",
+        "jersey_number": "2",
+        "position": "SS",
+        "AB": 4,
+        "R": 1,
+        "H": 1,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 2,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 1,
+        "lineup_slot": 1,
+        "is_starter": true
+      },
+      {
+        "name": "Luis Arraez",
+        "player_id": "arraelu01",
+        "mlb_id": 650333,
+        "bref_id": "arraelu01",
+        "jersey_number": "1",
+        "position": "2B",
+        "AB": 4,
+        "R": 1,
+        "H": 1,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 0,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 1,
+        "lineup_slot": 2,
+        "is_starter": true
+      },
+      {
+        "name": "Matt Chapman",
+        "player_id": "chapmma01",
+        "mlb_id": 656305,
+        "bref_id": "chapmma01",
+        "jersey_number": "26",
+        "position": "3B",
+        "AB": 2,
+        "R": 1,
+        "H": 0,
+        "RBI": 0,
+        "BB": 2,
+        "SO": 1,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": 3,
+        "is_starter": true
+      },
+      {
+        "name": "Rafael Devers",
+        "player_id": "deverra01",
+        "mlb_id": 646240,
+        "bref_id": "deverra01",
+        "jersey_number": "16",
+        "position": "1B",
+        "AB": 4,
+        "R": 0,
+        "H": 1,
+        "RBI": 1,
+        "BB": 0,
+        "SO": 2,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 1,
+        "lineup_slot": 4,
+        "is_starter": true
+      },
+      {
+        "name": "Casey Schmitt",
+        "player_id": "schmica01",
+        "mlb_id": 669477,
+        "bref_id": "schmica01",
+        "jersey_number": "10",
+        "position": "DH",
+        "AB": 3,
+        "R": 0,
+        "H": 0,
+        "RBI": 1,
+        "BB": 0,
+        "SO": 0,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 1,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": 5,
+        "is_starter": true
+      },
+      {
+        "name": "Jung Hoo Lee",
+        "player_id": "leeju01",
+        "mlb_id": 808982,
+        "bref_id": "leeju01",
+        "jersey_number": "51",
+        "position": "RF",
+        "AB": 3,
+        "R": 0,
+        "H": 2,
+        "RBI": 1,
+        "BB": 0,
+        "SO": 0,
+        "PA": 3,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 2,
+        "lineup_slot": 6,
+        "is_starter": true
+      },
+      {
+        "name": "Heliot Ramos",
+        "player_id": "ramoshe02",
+        "mlb_id": 671218,
+        "bref_id": "ramoshe02",
+        "jersey_number": "17",
+        "position": "LF",
+        "AB": 3,
+        "R": 0,
+        "H": 1,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 0,
+        "PA": 3,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 1,
+        "lineup_slot": 7,
+        "is_starter": true
+      },
+      {
+        "name": "Drew Gilbert",
+        "player_id": "gilbedr01",
+        "mlb_id": 687551,
+        "bref_id": "gilbedr01",
+        "jersey_number": "0",
+        "position": "CF",
+        "AB": 3,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 2,
+        "PA": 3,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": 8,
+        "is_starter": true
+      },
+      {
+        "name": "Patrick Bailey",
+        "player_id": "bailepa01",
+        "mlb_id": 672275,
+        "bref_id": "bailepa01",
+        "jersey_number": "14",
+        "position": "C",
+        "AB": 2,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 1,
+        "SO": 1,
+        "PA": 3,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": 9,
+        "is_starter": true
+      }
+    ]
+  },
+  "pitching": {
+    "away": [
+      {
+        "name": "Yoshinobu Yamamoto",
+        "player_id": "yamamyo01",
+        "mlb_id": 808967,
+        "bref_id": "yamamyo01",
+        "jersey_number": "18",
+        "IP": "7.0",
+        "H": 6,
+        "R": 3,
+        "ER": 3,
+        "BB": 2,
+        "SO": 7,
+        "HR": 0,
+        "BF": 28,
+        "Pit": 101,
+        "Str": 62,
+        "W": 0,
+        "L": 1,
+        "SV": 0,
+        "HLD": 0,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 1,
+        "win": false,
+        "loss": true,
+        "save": false
+      },
+      {
+        "name": "Tanner Scott",
+        "player_id": "scottta01",
+        "mlb_id": 656945,
+        "bref_id": "scottta01",
+        "jersey_number": "66",
+        "IP": "1.0",
+        "H": 0,
+        "R": 0,
+        "ER": 0,
+        "BB": 1,
+        "SO": 1,
+        "HR": 0,
+        "BF": 4,
+        "Pit": 16,
+        "Str": 11,
+        "W": 0,
+        "L": 0,
+        "SV": 0,
+        "HLD": 0,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 0,
+        "win": false,
+        "loss": false,
+        "save": false
+      }
+    ],
+    "home": [
+      {
+        "name": "Landen Roupp",
+        "player_id": "rouppla01",
+        "mlb_id": 694738,
+        "bref_id": "rouppla01",
+        "jersey_number": "65",
+        "IP": "5.0",
+        "H": 1,
+        "R": 1,
+        "ER": 1,
+        "BB": 5,
+        "SO": 7,
+        "HR": 0,
+        "BF": 20,
+        "Pit": 106,
+        "Str": 58,
+        "W": 1,
+        "L": 0,
+        "SV": 0,
+        "HLD": 0,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 1,
+        "win": true,
+        "loss": false,
+        "save": false
+      },
+      {
+        "name": "Ryan Borucki",
+        "player_id": "borucry01",
+        "mlb_id": 621366,
+        "bref_id": "borucry01",
+        "jersey_number": "47",
+        "IP": "1.0",
+        "H": 1,
+        "R": 0,
+        "ER": 0,
+        "BB": 0,
+        "SO": 1,
+        "HR": 0,
+        "BF": 4,
+        "Pit": 10,
+        "Str": 8,
+        "W": 0,
+        "L": 0,
+        "SV": 0,
+        "HLD": 1,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 0,
+        "win": false,
+        "loss": false,
+        "save": false
+      },
+      {
+        "name": "Matt Gage",
+        "player_id": "gagema01",
+        "mlb_id": 657424,
+        "bref_id": "gagema01",
+        "jersey_number": "93",
+        "IP": "0.2",
+        "H": 0,
+        "R": 0,
+        "ER": 0,
+        "BB": 1,
+        "SO": 0,
+        "HR": 0,
+        "BF": 3,
+        "Pit": 14,
+        "Str": 7,
+        "W": 0,
+        "L": 0,
+        "SV": 0,
+        "HLD": 1,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 0,
+        "win": false,
+        "loss": false,
+        "save": false
+      },
+      {
+        "name": "Erik Miller",
+        "player_id": "milleer01",
+        "mlb_id": 669062,
+        "bref_id": "milleer01",
+        "jersey_number": "68",
+        "IP": "1.0",
+        "H": 1,
+        "R": 0,
+        "ER": 0,
+        "BB": 1,
+        "SO": 1,
+        "HR": 0,
+        "BF": 5,
+        "Pit": 26,
+        "Str": 12,
+        "W": 0,
+        "L": 0,
+        "SV": 0,
+        "HLD": 1,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 0,
+        "win": false,
+        "loss": false,
+        "save": false
+      },
+      {
+        "name": "Keaton Winn",
+        "player_id": "winnke01",
+        "mlb_id": 676775,
+        "bref_id": "winnke01",
+        "jersey_number": "67",
+        "IP": "0.1",
+        "H": 0,
+        "R": 0,
+        "ER": 0,
+        "BB": 0,
+        "SO": 1,
+        "HR": 0,
+        "BF": 1,
+        "Pit": 5,
+        "Str": 3,
+        "W": 0,
+        "L": 0,
+        "SV": 0,
+        "HLD": 1,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 0,
+        "win": false,
+        "loss": false,
+        "save": false
+      },
+      {
+        "name": "Ryan Walker",
+        "player_id": "walkery01",
+        "mlb_id": 676254,
+        "bref_id": "walkery01",
+        "jersey_number": "74",
+        "IP": "1.0",
+        "H": 0,
+        "R": 0,
+        "ER": 0,
+        "BB": 0,
+        "SO": 2,
+        "HR": 0,
+        "BF": 3,
+        "Pit": 15,
+        "Str": 10,
+        "W": 0,
+        "L": 0,
+        "SV": 1,
+        "HLD": 0,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 0,
+        "win": false,
+        "loss": false,
+        "save": true
+      }
+    ]
+  },
+  "linescore": {
+    "away": {
+      "innings": [
+        "0",
+        "0",
+        "0",
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "R": 1,
+      "H": 3,
+      "E": 1
+    },
+    "home": {
+      "innings": [
+        "3",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "R": 3,
+      "H": 6,
+      "E": 0
+    }
+  },
+  "game_id": "SFN202604210",
+  "mlb_game_pk": 823236,
+  "source": "mlb",
+  "lineups": {
+    "away": [
+      {
+        "slot": 1,
+        "name": "Shohei Ohtani",
+        "player_id": "ohtansh01",
+        "pos": "DH",
+        "jersey_number": "17"
+      },
+      {
+        "slot": 2,
+        "name": "Kyle Tucker",
+        "player_id": "tuckeky01",
+        "pos": "RF",
+        "jersey_number": "23"
+      },
+      {
+        "slot": 3,
+        "name": "Freddie Freeman",
+        "player_id": "freemfr01",
+        "pos": "1B",
+        "jersey_number": "5"
+      },
+      {
+        "slot": 4,
+        "name": "Teoscar Hern\u00e1ndez",
+        "player_id": "hernate01",
+        "pos": "LF",
+        "jersey_number": "37"
+      },
+      {
+        "slot": 5,
+        "name": "Max Muncy",
+        "player_id": "muncyma01",
+        "pos": "3B",
+        "jersey_number": "13"
+      },
+      {
+        "slot": 6,
+        "name": "Dalton Rushing",
+        "player_id": "rushida01",
+        "pos": "C",
+        "jersey_number": "68"
+      },
+      {
+        "slot": 7,
+        "name": "Hyeseong Kim",
+        "player_id": "kimhy02",
+        "pos": "SS",
+        "jersey_number": "6"
+      },
+      {
+        "slot": 8,
+        "name": "Alex Call",
+        "player_id": "callal02",
+        "pos": "CF",
+        "jersey_number": "12"
+      },
+      {
+        "slot": 9,
+        "name": "Alex Freeland",
+        "player_id": "freelal01",
+        "pos": "2B",
+        "jersey_number": "76"
+      },
+      {
+        "slot": 0,
+        "name": "Yoshinobu Yamamoto",
+        "player_id": "yamamyo01",
+        "pos": "P",
+        "jersey_number": "18"
+      }
+    ],
+    "home": [
+      {
+        "slot": 1,
+        "name": "Willy Adames",
+        "player_id": "adamewi01",
+        "pos": "SS",
+        "jersey_number": "2"
+      },
+      {
+        "slot": 2,
+        "name": "Luis Arraez",
+        "player_id": "arraelu01",
+        "pos": "2B",
+        "jersey_number": "1"
+      },
+      {
+        "slot": 3,
+        "name": "Matt Chapman",
+        "player_id": "chapmma01",
+        "pos": "3B",
+        "jersey_number": "26"
+      },
+      {
+        "slot": 4,
+        "name": "Rafael Devers",
+        "player_id": "deverra01",
+        "pos": "1B",
+        "jersey_number": "16"
+      },
+      {
+        "slot": 5,
+        "name": "Casey Schmitt",
+        "player_id": "schmica01",
+        "pos": "DH",
+        "jersey_number": "10"
+      },
+      {
+        "slot": 6,
+        "name": "Jung Hoo Lee",
+        "player_id": "leeju01",
+        "pos": "RF",
+        "jersey_number": "51"
+      },
+      {
+        "slot": 7,
+        "name": "Heliot Ramos",
+        "player_id": "ramoshe02",
+        "pos": "LF",
+        "jersey_number": "17"
+      },
+      {
+        "slot": 8,
+        "name": "Drew Gilbert",
+        "player_id": "gilbedr01",
+        "pos": "CF",
+        "jersey_number": "0"
+      },
+      {
+        "slot": 9,
+        "name": "Patrick Bailey",
+        "player_id": "bailepa01",
+        "pos": "C",
+        "jersey_number": "14"
+      },
+      {
+        "slot": 0,
+        "name": "Landen Roupp",
+        "player_id": "rouppla01",
+        "pos": "P",
+        "jersey_number": "65"
+      }
+    ]
+  },
+  "substitutions": [
+    {
+      "raw": "Pitching Change: Ryan Borucki replaces Landen Roupp.",
+      "type": "pitching_substitution",
+      "player_in": "Ryan Borucki",
+      "player_out": "Landen Roupp",
+      "inning": 6,
+      "half": "top",
+      "player_id": "borucry01"
+    },
+    {
+      "raw": "Pitching Change: Matt Gage replaces Ryan Borucki.",
+      "type": "pitching_substitution",
+      "player_in": "Matt Gage",
+      "player_out": "Ryan Borucki",
+      "inning": 7,
+      "half": "top",
+      "player_id": "gagema01"
+    },
+    {
+      "raw": "Offensive Substitution: Pinch-hitter Miguel Rojas replaces Hyeseong Kim.",
+      "type": "offensive_substitution",
+      "player_in": "Pinch-hitter Miguel Rojas",
+      "player_out": "Hyeseong Kim",
+      "inning": 7,
+      "half": "top",
+      "player_id": "rojasmi02"
+    },
+    {
+      "raw": "Pitching Change: Erik Miller replaces Matt Gage.",
+      "type": "pitching_substitution",
+      "player_in": "Erik Miller",
+      "player_out": "Matt Gage",
+      "inning": 7,
+      "half": "top",
+      "player_id": "milleer01"
+    },
+    {
+      "raw": "Miguel Rojas remains in the game as the shortstop.",
+      "type": "defensive_switch",
+      "player_in": "",
+      "player_out": "",
+      "inning": 7,
+      "half": "bottom",
+      "player_id": "rojasmi02"
+    },
+    {
+      "raw": "Defensive Substitution: Jerar Encarnacion replaces right fielder Jung Hoo Lee, batting 6th, playing right field.",
+      "type": "defensive_substitution",
+      "player_in": "Defensive Substitution: Jerar Encarnacion",
+      "player_out": "right fielder Jung Hoo Lee, batting 6th, playing right field",
+      "inning": 8,
+      "half": "top",
+      "player_id": "encarje01"
+    },
+    {
+      "raw": "Offensive Substitution: Pinch-hitter Will Smith replaces Dalton Rushing.",
+      "type": "offensive_substitution",
+      "player_in": "Pinch-hitter Will Smith",
+      "player_out": "Dalton Rushing",
+      "inning": 8,
+      "half": "top",
+      "player_id": "smithwi05"
+    },
+    {
+      "raw": "Pitching Change: Keaton Winn replaces Erik Miller.",
+      "type": "pitching_substitution",
+      "player_in": "Keaton Winn",
+      "player_out": "Erik Miller",
+      "inning": 8,
+      "half": "top",
+      "player_id": "winnke01"
+    },
+    {
+      "raw": "Will Smith remains in the game as the catcher.",
+      "type": "defensive_switch",
+      "player_in": "",
+      "player_out": "",
+      "inning": 8,
+      "half": "bottom",
+      "player_id": "smithwi05"
+    },
+    {
+      "raw": "Pitching Change: Tanner Scott replaces Yoshinobu Yamamoto.",
+      "type": "pitching_substitution",
+      "player_in": "Tanner Scott",
+      "player_out": "Yoshinobu Yamamoto",
+      "inning": 8,
+      "half": "bottom",
+      "player_id": "scottta01"
+    },
+    {
+      "raw": "Pitching Change: Ryan Walker replaces Keaton Winn.",
+      "type": "pitching_substitution",
+      "player_in": "Ryan Walker",
+      "player_out": "Keaton Winn",
+      "inning": 9,
+      "half": "top",
+      "player_id": "walkery01"
+    },
+    {
+      "raw": "Offensive Substitution: Pinch-hitter Andy Pages replaces Miguel Rojas.",
+      "type": "offensive_substitution",
+      "player_in": "Pinch-hitter Andy Pages",
+      "player_out": "Miguel Rojas",
+      "inning": 9,
+      "half": "top",
+      "player_id": "pagesan01"
+    }
+  ],
+  "play_by_play": [
+    {
+      "inning": 1,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Shohei Ohtani strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Shohei Ohtani",
+      "batter_id": "ohtansh01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Shohei Ohtani",
+          "player_id": "ohtansh01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Kyle Tucker flies out to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Kyle Tucker",
+      "batter_id": "tuckeky01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Kyle Tucker",
+          "player_id": "tuckeky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Freddie Freeman walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Freddie Freeman",
+      "batter_id": "freemfr01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Freddie Freeman",
+          "player_id": "freemfr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Teoscar Hern\u00e1ndez flies out to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Teoscar Hern\u00e1ndez",
+      "batter_id": "hernate01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 0,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Willy Adames singles on a ground ball to shortstop Hyeseong Kim. Willy Adames to 2nd. Willy Adames advances to 2nd, on a throwing error by shortstop Hyeseong Kim.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Error"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 0,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Luis Arraez singles on a line drive to left fielder Teoscar Hern\u00e1ndez. Willy Adames to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 0,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Matt Chapman walks. Luis Arraez to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 0,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Rafael Devers singles on a line drive to right fielder Kyle Tucker. Willy Adames scores. Luis Arraez to 3rd. Matt Chapman to 2nd.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 0,
+      "home_score": 1,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Sac Fly",
+      "event_type": "sac_fly",
+      "description": "Casey Schmitt out on a sacrifice fly to center fielder Alex Call. Luis Arraez scores. Matt Chapman to 3rd.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 0,
+      "home_score": 2,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Sac Fly"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Sac Fly"
+        },
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Sac Fly"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Jung Hoo Lee singles on a line drive to right fielder Kyle Tucker. Matt Chapman scores. Rafael Devers to 2nd.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Heliot Ramos flies out to left fielder Teoscar Hern\u00e1ndez.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Drew Gilbert flies out to center fielder Alex Call.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Max Muncy strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Max Muncy",
+      "batter_id": "muncyma01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Dalton Rushing grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Dalton Rushing",
+      "batter_id": "rushida01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Dalton Rushing",
+          "player_id": "rushida01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Hyeseong Kim singles on a line drive to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Hyeseong Kim",
+      "batter_id": "kimhy02",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Hyeseong Kim",
+          "player_id": "kimhy02",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Alex Call grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Alex Call",
+      "batter_id": "callal02",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Alex Call",
+          "player_id": "callal02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Patrick Bailey lines out to left fielder Teoscar Hern\u00e1ndez.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Patrick Bailey",
+      "batter_id": "bailepa01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Patrick Bailey",
+          "player_id": "bailepa01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Willy Adames strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Luis Arraez flies out to right fielder Kyle Tucker.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Alex Freeland strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Alex Freeland",
+      "batter_id": "freelal01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Alex Freeland",
+          "player_id": "freelal01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Shohei Ohtani strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Shohei Ohtani",
+      "batter_id": "ohtansh01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Shohei Ohtani",
+          "player_id": "ohtansh01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Kyle Tucker strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Kyle Tucker",
+      "batter_id": "tuckeky01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Kyle Tucker",
+          "player_id": "tuckeky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Matt Chapman strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Rafael Devers strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt grounds out, third baseman Max Muncy to first baseman Freddie Freeman.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 0,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Freddie Freeman walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Freddie Freeman",
+      "batter_id": "freemfr01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Freddie Freeman",
+          "player_id": "freemfr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Forceout",
+      "event_type": "force_out",
+      "description": "Teoscar Hern\u00e1ndez grounds into a force out, second baseman Luis Arraez to shortstop Willy Adames. Freddie Freeman out at 2nd. Teoscar Hern\u00e1ndez to 1st.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Teoscar Hern\u00e1ndez",
+      "batter_id": "hernate01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Freddie Freeman",
+          "player_id": "freemfr01",
+          "start": "1B",
+          "end": null,
+          "is_out": true,
+          "event": "Forceout"
+        },
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Forceout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Max Muncy walks. Teoscar Hern\u00e1ndez to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Max Muncy",
+      "batter_id": "muncyma01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Dalton Rushing challenged (pitch result), call on the field was overturned: Dalton Rushing walks. Teoscar Hern\u00e1ndez to 3rd. Max Muncy to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Dalton Rushing",
+      "batter_id": "rushida01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Dalton Rushing",
+          "player_id": "rushida01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Patrick Bailey challenged (pitch result), call on the field was confirmed: Hyeseong Kim walks. Teoscar Hern\u00e1ndez scores. Max Muncy to 3rd. Dalton Rushing to 2nd.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Hyeseong Kim",
+      "batter_id": "kimhy02",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Dalton Rushing",
+          "player_id": "rushida01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Hyeseong Kim",
+          "player_id": "kimhy02",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Grounded Into DP",
+      "event_type": "grounded_into_double_play",
+      "description": "Alex Call grounds into a double play, third baseman Matt Chapman to second baseman Luis Arraez to first baseman Rafael Devers. Hyeseong Kim out at 2nd. Alex Call out at 1st.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Call",
+      "batter_id": "callal02",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Hyeseong Kim",
+          "player_id": "kimhy02",
+          "start": "1B",
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        },
+        {
+          "name": "Alex Call",
+          "player_id": "callal02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Jung Hoo Lee lines out to center fielder Alex Call.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Heliot Ramos flies out sharply to center fielder Alex Call.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Drew Gilbert strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Alex Freeland called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Freeland",
+      "batter_id": "freelal01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Alex Freeland",
+          "player_id": "freelal01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Shohei Ohtani flies out to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Shohei Ohtani",
+      "batter_id": "ohtansh01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Shohei Ohtani",
+          "player_id": "ohtansh01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Kyle Tucker called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Kyle Tucker",
+      "batter_id": "tuckeky01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Kyle Tucker",
+          "player_id": "tuckeky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "outs_before": 0,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Patrick Bailey walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Patrick Bailey",
+      "batter_id": "bailepa01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Patrick Bailey",
+          "player_id": "bailepa01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Pop Out",
+      "event_type": "field_out",
+      "description": "Willy Adames pops out to first baseman Freddie Freeman.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Pop Out"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Luis Arraez lines out to shortstop Hyeseong Kim.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Forceout",
+      "event_type": "force_out",
+      "description": "Matt Chapman grounds into a force out, shortstop Hyeseong Kim to second baseman Alex Freeland. Patrick Bailey out at 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Patrick Bailey",
+          "player_id": "bailepa01",
+          "start": "1B",
+          "end": null,
+          "is_out": true,
+          "event": "Forceout"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Forceout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Freddie Freeman grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Freddie Freeman",
+      "batter_id": "freemfr01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Freddie Freeman",
+          "player_id": "freemfr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Teoscar Hern\u00e1ndez doubles (4) on a ground ball to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Teoscar Hern\u00e1ndez",
+      "batter_id": "hernate01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Max Muncy strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Max Muncy",
+      "batter_id": "muncyma01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Dalton Rushing flies out to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Dalton Rushing",
+      "batter_id": "rushida01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Dalton Rushing",
+          "player_id": "rushida01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Pop Out",
+      "event_type": "field_out",
+      "description": "Rafael Devers pops out to shortstop Hyeseong Kim.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Pop Out"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt flies out to left fielder Teoscar Hern\u00e1ndez.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Jung Hoo Lee singles on a line drive to right fielder Kyle Tucker.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Heliot Ramos singles on a line drive to center fielder Alex Call. Jung Hoo Lee out at home on the throw, center fielder Alex Call to second baseman Alex Freeland to catcher Dalton Rushing.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": "2B",
+          "end": null,
+          "is_out": true,
+          "event": "Runner Out"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Miguel Rojas grounds out, third baseman Matt Chapman to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Miguel Rojas",
+      "batter_id": "rojasmi02",
+      "pitcher": "Matt Gage",
+      "pitcher_id": "gagema01",
+      "runners": [
+        {
+          "name": "Miguel Rojas",
+          "player_id": "rojasmi02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Alex Call grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Call",
+      "batter_id": "callal02",
+      "pitcher": "Matt Gage",
+      "pitcher_id": "gagema01",
+      "runners": [
+        {
+          "name": "Alex Call",
+          "player_id": "callal02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Alex Freeland walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Freeland",
+      "batter_id": "freelal01",
+      "pitcher": "Matt Gage",
+      "pitcher_id": "gagema01",
+      "runners": [
+        {
+          "name": "Alex Freeland",
+          "player_id": "freelal01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Shohei Ohtani singles on a ground ball to shortstop Willy Adames. Alex Freeland to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Shohei Ohtani",
+      "batter_id": "ohtansh01",
+      "pitcher": "Erik Miller",
+      "pitcher_id": "milleer01",
+      "runners": [
+        {
+          "name": "Shohei Ohtani",
+          "player_id": "ohtansh01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Alex Freeland",
+          "player_id": "freelal01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Kyle Tucker strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Kyle Tucker",
+      "batter_id": "tuckeky01",
+      "pitcher": "Erik Miller",
+      "pitcher_id": "milleer01",
+      "runners": [
+        {
+          "name": "Kyle Tucker",
+          "player_id": "tuckeky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Drew Gilbert called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Patrick Bailey called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Patrick Bailey",
+      "batter_id": "bailepa01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Patrick Bailey",
+          "player_id": "bailepa01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Willy Adames called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Freddie Freeman grounds out, shortstop Willy Adames to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Freddie Freeman",
+      "batter_id": "freemfr01",
+      "pitcher": "Erik Miller",
+      "pitcher_id": "milleer01",
+      "runners": [
+        {
+          "name": "Freddie Freeman",
+          "player_id": "freemfr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Teoscar Hern\u00e1ndez walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Teoscar Hern\u00e1ndez",
+      "batter_id": "hernate01",
+      "pitcher": "Erik Miller",
+      "pitcher_id": "milleer01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Max Muncy grounds out softly, second baseman Luis Arraez to first baseman Rafael Devers. Teoscar Hern\u00e1ndez to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Max Muncy",
+      "batter_id": "muncyma01",
+      "pitcher": "Erik Miller",
+      "pitcher_id": "milleer01",
+      "runners": [
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        },
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Groundout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Will Smith strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Will Smith",
+      "batter_id": "smithwi05",
+      "pitcher": "Keaton Winn",
+      "pitcher_id": "winnke01",
+      "runners": [
+        {
+          "name": "Will Smith",
+          "player_id": "smithwi05",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Luis Arraez grounds out, second baseman Alex Freeland to first baseman Freddie Freeman.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Tanner Scott",
+      "pitcher_id": "scottta01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Matt Chapman walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Tanner Scott",
+      "pitcher_id": "scottta01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Rafael Devers strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Tanner Scott",
+      "pitcher_id": "scottta01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt flies out to center fielder Alex Call.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Tanner Scott",
+      "pitcher_id": "scottta01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ],
+      "batting_team": "SF",
+      "pitching_team": "LAD"
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Andy Pages called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Andy Pages",
+      "batter_id": "pagesan01",
+      "pitcher": "Ryan Walker",
+      "pitcher_id": "walkery01",
+      "runners": [
+        {
+          "name": "Andy Pages",
+          "player_id": "pagesan01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Alex Call flies out to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Call",
+      "batter_id": "callal02",
+      "pitcher": "Ryan Walker",
+      "pitcher_id": "walkery01",
+      "runners": [
+        {
+          "name": "Alex Call",
+          "player_id": "callal02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Alex Freeland strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Freeland",
+      "batter_id": "freelal01",
+      "pitcher": "Ryan Walker",
+      "pitcher_id": "walkery01",
+      "runners": [
+        {
+          "name": "Alex Freeland",
+          "player_id": "freelal01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ],
+      "batting_team": "LAD",
+      "pitching_team": "SF"
+    }
+  ],
+  "pitcher_decisions": {
+    "winning_pitcher": "Landen Roupp",
+    "winning_pitcher_id": "rouppla01",
+    "losing_pitcher": "Yoshinobu Yamamoto",
+    "losing_pitcher_id": "yamamyo01",
+    "save_pitcher": "Ryan Walker",
+    "save_pitcher_id": "walkery01"
+  },
+  "special_events": {},
+  "milestone_stats": {
+    "three_hr_games": [],
+    "multi_hr_games": [],
+    "cycles": [],
+    "five_hit_games": [],
+    "four_hit_games": [],
+    "six_rbi_games": [],
+    "five_rbi_games": [],
+    "four_rbi_games": [],
+    "multi_triple_games": [],
+    "multi_steal_games": [],
+    "complete_games": [],
+    "shutouts": [],
+    "no_hitters": [],
+    "perfect_games": [],
+    "quality_starts": [
+      {
+        "player": "Yoshinobu Yamamoto",
+        "player_id": "yamamyo01",
+        "team": "Los Angeles Dodgers",
+        "team_code": "LAD",
+        "opposing_team": "San Francisco Giants",
+        "opponent_code": "SF",
+        "pitch_count": 101,
+        "innings_pitched": "7.0",
+        "runs_allowed": 3,
+        "earned_runs": 3,
+        "walks_allowed": 2,
+        "strikeouts": 7,
+        "decision": "",
+        "save": false,
+        "is_home_game": false,
+        "game_id": "SFN202604210",
+        "game_date": "20260421",
+        "final_score": "LAD 1 \u2013 3 SF",
+        "hits": 6,
+        "walks": 2,
+        "runs": 3
+      }
+    ],
+    "fifteen_k_games": [],
+    "twelve_k_games": [],
+    "ten_k_games": [],
+    "maddux_games": [],
+    "seven_inning_shutouts": [],
+    "low_hit_cg": [],
+    "one_hitters": [],
+    "two_hitters": [],
+    "cgso_no_walks": [],
+    "immaculate_inning_pitchers": [],
+    "dominant_starts": [],
+    "three_hit_games": [],
+    "eight_k_games": [],
+    "four_walk_games": [],
+    "perfect_batting_games": [],
+    "three_run_games": [],
+    "four_run_games": [],
+    "hit_for_extra_bases": [],
+    "three_total_bases_games": [],
+    "multi_double_games": [],
+    "save_games": [
+      {
+        "player": "Ryan Walker",
+        "player_id": "walkery01",
+        "team": "San Francisco Giants",
+        "team_code": "SF",
+        "opposing_team": "Los Angeles Dodgers",
+        "opponent_code": "LAD",
+        "pitch_count": 15,
+        "innings_pitched": "1.0",
+        "runs_allowed": 0,
+        "earned_runs": 0,
+        "walks_allowed": 0,
+        "strikeouts": 2,
+        "decision": "",
+        "save": true,
+        "is_home_game": true,
+        "game_id": "SFN202604210",
+        "game_date": "20260421",
+        "final_score": "LAD 1 \u2013 3 SF",
+        "hits": 0,
+        "walks": 0,
+        "runs": 0
+      }
+    ],
+    "win_games": [],
+    "efficient_starts": [],
+    "no_walk_starts": [],
+    "scoreless_relief": [],
+    "high_k_low_bb": [],
+    "golden_sombreros": []
+  },
+  "umpires": {
+    "HP": "Junior Valentine",
+    "1B": "Jordan Baker",
+    "2B": "Rob Drake",
+    "3B": "Stu Scheurwater"
+  },
+  "flags": {
+    "no_hitter": false,
+    "perfect_game": false
+  },
+  "abs_challenges": {
+    "reviews": [
+      {
+        "overturned": false,
+        "batter": "Shohei Ohtani",
+        "batterId": "660271",
+        "pitcher": "Erik Miller",
+        "pitcherId": "669062",
+        "challengerType": "batter",
+        "challengePlayer": "Shohei Ohtani",
+        "challengeTeam": "away",
+        "challengeTeamId": 119,
+        "challengingPlayerId": "660271",
+        "edgeDistance": 0.0539867005043303,
+        "pitchType": "Slider",
+        "count": "3-1",
+        "inning": 7,
+        "half": "top"
+      },
+      {
+        "overturned": true,
+        "batter": "Max Muncy",
+        "batterId": "571970",
+        "pitcher": "Erik Miller",
+        "pitcherId": "669062",
+        "challengerType": "batter",
+        "challengePlayer": "Max Muncy",
+        "challengeTeam": "away",
+        "challengeTeamId": 119,
+        "challengingPlayerId": "571970",
+        "edgeDistance": 0.002422318539750626,
+        "pitchType": "Sinker",
+        "count": "1-2",
+        "inning": 8,
+        "half": "top"
+      },
+      {
+        "overturned": false,
+        "batter": "Alex Freeland",
+        "batterId": "690976",
+        "pitcher": "Ryan Walker",
+        "pitcherId": "676254",
+        "challengerType": "catcher",
+        "challengePlayer": "Patrick Bailey",
+        "challengeTeam": "home",
+        "challengeTeamId": 137,
+        "challengingPlayerId": "672275",
+        "edgeDistance": 0.11926140944147066,
+        "pitchType": "Sinker",
+        "count": "2-2",
+        "inning": 9,
+        "half": "top"
+      },
+      {
+        "overturned": true,
+        "batter": "Dalton Rushing",
+        "batterId": "687221",
+        "pitcher": "Landen Roupp",
+        "pitcherId": "694738",
+        "challengerType": "batter",
+        "challengePlayer": "Dalton Rushing",
+        "challengeTeam": "away",
+        "challengeTeamId": 119,
+        "challengingPlayerId": "687221",
+        "edgeDistance": 0.0055980108451224725,
+        "pitchType": "Curveball",
+        "count": "3-1",
+        "inning": 4,
+        "half": "top"
+      },
+      {
+        "overturned": false,
+        "batter": "Hyeseong Kim",
+        "batterId": "808975",
+        "pitcher": "Landen Roupp",
+        "pitcherId": "694738",
+        "challengerType": "catcher",
+        "challengePlayer": "Patrick Bailey",
+        "challengeTeam": "home",
+        "challengeTeamId": 137,
+        "challengingPlayerId": "672275",
+        "edgeDistance": 0.19164918556100663,
+        "pitchType": "Curveball",
+        "count": "3-2",
+        "inning": 4,
+        "half": "top"
+      },
+      {
+        "overturned": true,
+        "batter": "Matt Chapman",
+        "batterId": "656305",
+        "pitcher": "Tanner Scott",
+        "pitcherId": "656945",
+        "challengerType": "catcher",
+        "challengePlayer": "Will Smith",
+        "challengeTeam": "away",
+        "challengeTeamId": 119,
+        "challengingPlayerId": "669257",
+        "edgeDistance": 0.23577069888392188,
+        "pitchType": "Slider",
+        "count": "0-0",
+        "inning": 8,
+        "half": "bottom"
+      }
+    ]
+  },
+  "pitch_data": {
+    "rouppla01": {
+      "name": "Landen Roupp",
+      "player_id": "rouppla01",
+      "totalPitches": 106,
+      "avgSpeed": 87.4,
+      "maxSpeed": 94.8,
+      "avgSpinRate": 2402,
+      "pitchTypes": {
+        "SI": 51,
+        "CU": 29,
+        "FC": 11,
+        "CH": 13,
+        "FF": 2
+      },
+      "pitchTypeNames": {
+        "SI": "Sinker",
+        "CU": "Curveball",
+        "FC": "Cutter",
+        "CH": "Changeup",
+        "FF": "Four-Seam Fastball"
+      }
+    },
+    "yamamyo01": {
+      "name": "Yoshinobu Yamamoto",
+      "player_id": "yamamyo01",
+      "totalPitches": 101,
+      "avgSpeed": 90.1,
+      "maxSpeed": 96.6,
+      "avgSpinRate": 2170,
+      "pitchTypes": {
+        "CU": 13,
+        "FC": 14,
+        "SI": 12,
+        "FF": 27,
+        "FS": 27,
+        "SL": 8
+      },
+      "pitchTypeNames": {
+        "CU": "Curveball",
+        "FC": "Cutter",
+        "SI": "Sinker",
+        "FF": "Four-Seam Fastball",
+        "FS": "Splitter",
+        "SL": "Slider"
+      }
+    },
+    "borucry01": {
+      "name": "Ryan Borucki",
+      "player_id": "borucry01",
+      "totalPitches": 10,
+      "avgSpeed": 87.2,
+      "maxSpeed": 94.3,
+      "avgSpinRate": 2130,
+      "pitchTypes": {
+        "SI": 2,
+        "SL": 6,
+        "FS": 2
+      },
+      "pitchTypeNames": {
+        "SI": "Sinker",
+        "SL": "Slider",
+        "FS": "Splitter"
+      }
+    },
+    "gagema01": {
+      "name": "Matt Gage",
+      "player_id": "gagema01",
+      "totalPitches": 14,
+      "avgSpeed": 87.1,
+      "maxSpeed": 93.3,
+      "avgSpinRate": 1899,
+      "pitchTypes": {
+        "SL": 6,
+        "CH": 4,
+        "FF": 4
+      },
+      "pitchTypeNames": {
+        "SL": "Slider",
+        "CH": "Changeup",
+        "FF": "Four-Seam Fastball"
+      }
+    },
+    "milleer01": {
+      "name": "Erik Miller",
+      "player_id": "milleer01",
+      "totalPitches": 26,
+      "avgSpeed": 93.6,
+      "maxSpeed": 98.7,
+      "avgSpinRate": 2263,
+      "pitchTypes": {
+        "SI": 17,
+        "SL": 8,
+        "FF": 1
+      },
+      "pitchTypeNames": {
+        "SI": "Sinker",
+        "SL": "Slider",
+        "FF": "Four-Seam Fastball"
+      }
+    },
+    "winnke01": {
+      "name": "Keaton Winn",
+      "player_id": "winnke01",
+      "totalPitches": 5,
+      "avgSpeed": 92.0,
+      "maxSpeed": 95.9,
+      "avgSpinRate": 1869,
+      "pitchTypes": {
+        "SI": 2,
+        "FS": 3
+      },
+      "pitchTypeNames": {
+        "SI": "Sinker",
+        "FS": "Splitter"
+      }
+    },
+    "scottta01": {
+      "name": "Tanner Scott",
+      "player_id": "scottta01",
+      "totalPitches": 16,
+      "avgSpeed": 93.5,
+      "maxSpeed": 97.1,
+      "avgSpinRate": 2340,
+      "pitchTypes": {
+        "FF": 10,
+        "SL": 6
+      },
+      "pitchTypeNames": {
+        "FF": "Four-Seam Fastball",
+        "SL": "Slider"
+      }
+    },
+    "walkery01": {
+      "name": "Ryan Walker",
+      "player_id": "walkery01",
+      "totalPitches": 15,
+      "avgSpeed": 94.3,
+      "maxSpeed": 96.8,
+      "avgSpinRate": 2429,
+      "pitchTypes": {
+        "SI": 13,
+        "SL": 2
+      },
+      "pitchTypeNames": {
+        "SI": "Sinker",
+        "SL": "Slider"
+      }
+    }
+  },
+  "hit_data": {
+    "tuckeky01": {
+      "name": "Kyle Tucker",
+      "player_id": "tuckeky01",
+      "battedBalls": 1,
+      "maxExitVelo": 81.3,
+      "avgExitVelo": 81.3,
+      "maxDistance": 253,
+      "trajectories": {
+        "fly_ball": 1
+      }
+    },
+    "hernate01": {
+      "name": "Teoscar Hern\u00e1ndez",
+      "player_id": "hernate01",
+      "battedBalls": 3,
+      "maxExitVelo": 90.0,
+      "avgExitVelo": 79.7,
+      "maxDistance": 331,
+      "trajectories": {
+        "fly_ball": 1,
+        "ground_ball": 2
+      }
+    },
+    "adamewi01": {
+      "name": "Willy Adames",
+      "player_id": "adamewi01",
+      "battedBalls": 2,
+      "maxExitVelo": 104.6,
+      "avgExitVelo": 90.5,
+      "maxDistance": 112,
+      "trajectories": {
+        "ground_ball": 1,
+        "popup": 1
+      }
+    },
+    "arraelu01": {
+      "name": "Luis Arraez",
+      "player_id": "arraelu01",
+      "battedBalls": 4,
+      "maxExitVelo": 96.1,
+      "avgExitVelo": 90.5,
+      "maxDistance": 378,
+      "trajectories": {
+        "line_drive": 2,
+        "fly_ball": 1,
+        "ground_ball": 1
+      }
+    },
+    "deverra01": {
+      "name": "Rafael Devers",
+      "player_id": "deverra01",
+      "battedBalls": 2,
+      "maxExitVelo": 98.1,
+      "avgExitVelo": 87.8,
+      "maxDistance": 186,
+      "trajectories": {
+        "line_drive": 1,
+        "popup": 1
+      }
+    },
+    "schmica01": {
+      "name": "Casey Schmitt",
+      "player_id": "schmica01",
+      "battedBalls": 4,
+      "maxExitVelo": 102.0,
+      "avgExitVelo": 86.4,
+      "maxDistance": 378,
+      "trajectories": {
+        "fly_ball": 3,
+        "ground_ball": 1
+      }
+    },
+    "leeju01": {
+      "name": "Jung Hoo Lee",
+      "player_id": "leeju01",
+      "battedBalls": 3,
+      "maxExitVelo": 94.9,
+      "avgExitVelo": 94.4,
+      "maxDistance": 325,
+      "trajectories": {
+        "line_drive": 3
+      }
+    },
+    "ramoshe02": {
+      "name": "Heliot Ramos",
+      "player_id": "ramoshe02",
+      "battedBalls": 3,
+      "maxExitVelo": 108.5,
+      "avgExitVelo": 100.3,
+      "maxDistance": 357,
+      "trajectories": {
+        "fly_ball": 2,
+        "line_drive": 1
+      }
+    },
+    "gilbedr01": {
+      "name": "Drew Gilbert",
+      "player_id": "gilbedr01",
+      "battedBalls": 1,
+      "maxExitVelo": 99.6,
+      "avgExitVelo": 99.6,
+      "maxDistance": 367,
+      "trajectories": {
+        "fly_ball": 1
+      }
+    },
+    "rushida01": {
+      "name": "Dalton Rushing",
+      "player_id": "rushida01",
+      "battedBalls": 2,
+      "maxExitVelo": 99.9,
+      "avgExitVelo": 89.4,
+      "maxDistance": 342,
+      "trajectories": {
+        "ground_ball": 1,
+        "fly_ball": 1
+      }
+    },
+    "kimhy02": {
+      "name": "Hyeseong Kim",
+      "player_id": "kimhy02",
+      "battedBalls": 1,
+      "maxExitVelo": 92.9,
+      "avgExitVelo": 92.9,
+      "maxDistance": 267,
+      "trajectories": {
+        "line_drive": 1
+      }
+    },
+    "callal02": {
+      "name": "Alex Call",
+      "player_id": "callal02",
+      "battedBalls": 4,
+      "maxExitVelo": 95.3,
+      "avgExitVelo": 91.9,
+      "maxDistance": 351,
+      "trajectories": {
+        "ground_ball": 3,
+        "fly_ball": 1
+      }
+    },
+    "bailepa01": {
+      "name": "Patrick Bailey",
+      "player_id": "bailepa01",
+      "battedBalls": 1,
+      "maxExitVelo": 99.0,
+      "avgExitVelo": 99.0,
+      "maxDistance": 321,
+      "trajectories": {
+        "line_drive": 1
+      }
+    },
+    "ohtansh01": {
+      "name": "Shohei Ohtani",
+      "player_id": "ohtansh01",
+      "battedBalls": 2,
+      "maxExitVelo": 88.1,
+      "avgExitVelo": 85.2,
+      "maxDistance": 327,
+      "trajectories": {
+        "fly_ball": 1,
+        "ground_ball": 1
+      }
+    },
+    "chapmma01": {
+      "name": "Matt Chapman",
+      "player_id": "chapmma01",
+      "battedBalls": 1,
+      "maxExitVelo": 90.7,
+      "avgExitVelo": 90.7,
+      "maxDistance": 22,
+      "trajectories": {
+        "ground_ball": 1
+      }
+    },
+    "freemfr01": {
+      "name": "Freddie Freeman",
+      "player_id": "freemfr01",
+      "battedBalls": 2,
+      "maxExitVelo": 86.5,
+      "avgExitVelo": 84.5,
+      "maxDistance": 10,
+      "trajectories": {
+        "ground_ball": 2
+      }
+    },
+    "rojasmi02": {
+      "name": "Miguel Rojas",
+      "player_id": "rojasmi02",
+      "battedBalls": 1,
+      "maxExitVelo": 79.8,
+      "avgExitVelo": 79.8,
+      "maxDistance": 10,
+      "trajectories": {
+        "ground_ball": 1
+      }
+    },
+    "muncyma01": {
+      "name": "Max Muncy",
+      "player_id": "muncyma01",
+      "battedBalls": 1,
+      "maxExitVelo": 77.2,
+      "avgExitVelo": 77.2,
+      "maxDistance": 2,
+      "trajectories": {
+        "ground_ball": 1
+      }
+    }
+  },
+  "doubleheader": "0",
+  "raw_plays": [
+    {
+      "inning": 1,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Shohei Ohtani strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Shohei Ohtani",
+      "batter_id": "ohtansh01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Shohei Ohtani",
+          "player_id": "ohtansh01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Kyle Tucker flies out to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Kyle Tucker",
+      "batter_id": "tuckeky01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Kyle Tucker",
+          "player_id": "tuckeky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Freddie Freeman walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Freddie Freeman",
+      "batter_id": "freemfr01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Freddie Freeman",
+          "player_id": "freemfr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Teoscar Hern\u00e1ndez flies out to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Teoscar Hern\u00e1ndez",
+      "batter_id": "hernate01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 0,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Willy Adames singles on a ground ball to shortstop Hyeseong Kim. Willy Adames to 2nd. Willy Adames advances to 2nd, on a throwing error by shortstop Hyeseong Kim.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Error"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 0,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Luis Arraez singles on a line drive to left fielder Teoscar Hern\u00e1ndez. Willy Adames to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 0,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Matt Chapman walks. Luis Arraez to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 0,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Rafael Devers singles on a line drive to right fielder Kyle Tucker. Willy Adames scores. Luis Arraez to 3rd. Matt Chapman to 2nd.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 0,
+      "home_score": 1,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Sac Fly",
+      "event_type": "sac_fly",
+      "description": "Casey Schmitt out on a sacrifice fly to center fielder Alex Call. Luis Arraez scores. Matt Chapman to 3rd.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 0,
+      "home_score": 2,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Sac Fly"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Sac Fly"
+        },
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Sac Fly"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Jung Hoo Lee singles on a line drive to right fielder Kyle Tucker. Matt Chapman scores. Rafael Devers to 2nd.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Heliot Ramos flies out to left fielder Teoscar Hern\u00e1ndez.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Drew Gilbert flies out to center fielder Alex Call.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Max Muncy strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Max Muncy",
+      "batter_id": "muncyma01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Dalton Rushing grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Dalton Rushing",
+      "batter_id": "rushida01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Dalton Rushing",
+          "player_id": "rushida01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Hyeseong Kim singles on a line drive to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Hyeseong Kim",
+      "batter_id": "kimhy02",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Hyeseong Kim",
+          "player_id": "kimhy02",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Alex Call grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Alex Call",
+      "batter_id": "callal02",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Alex Call",
+          "player_id": "callal02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Patrick Bailey lines out to left fielder Teoscar Hern\u00e1ndez.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Patrick Bailey",
+      "batter_id": "bailepa01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Patrick Bailey",
+          "player_id": "bailepa01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Willy Adames strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Luis Arraez flies out to right fielder Kyle Tucker.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Alex Freeland strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Alex Freeland",
+      "batter_id": "freelal01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Alex Freeland",
+          "player_id": "freelal01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Shohei Ohtani strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Shohei Ohtani",
+      "batter_id": "ohtansh01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Shohei Ohtani",
+          "player_id": "ohtansh01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Kyle Tucker strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Kyle Tucker",
+      "batter_id": "tuckeky01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Kyle Tucker",
+          "player_id": "tuckeky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Matt Chapman strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Rafael Devers strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt grounds out, third baseman Max Muncy to first baseman Freddie Freeman.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 0,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Freddie Freeman walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Freddie Freeman",
+      "batter_id": "freemfr01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Freddie Freeman",
+          "player_id": "freemfr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Forceout",
+      "event_type": "force_out",
+      "description": "Teoscar Hern\u00e1ndez grounds into a force out, second baseman Luis Arraez to shortstop Willy Adames. Freddie Freeman out at 2nd. Teoscar Hern\u00e1ndez to 1st.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Teoscar Hern\u00e1ndez",
+      "batter_id": "hernate01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Freddie Freeman",
+          "player_id": "freemfr01",
+          "start": "1B",
+          "end": null,
+          "is_out": true,
+          "event": "Forceout"
+        },
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Forceout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Max Muncy walks. Teoscar Hern\u00e1ndez to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Max Muncy",
+      "batter_id": "muncyma01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Dalton Rushing challenged (pitch result), call on the field was overturned: Dalton Rushing walks. Teoscar Hern\u00e1ndez to 3rd. Max Muncy to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 3,
+      "batter": "Dalton Rushing",
+      "batter_id": "rushida01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Dalton Rushing",
+          "player_id": "rushida01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Patrick Bailey challenged (pitch result), call on the field was confirmed: Hyeseong Kim walks. Teoscar Hern\u00e1ndez scores. Max Muncy to 3rd. Dalton Rushing to 2nd.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Hyeseong Kim",
+      "batter_id": "kimhy02",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Dalton Rushing",
+          "player_id": "rushida01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Hyeseong Kim",
+          "player_id": "kimhy02",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Grounded Into DP",
+      "event_type": "grounded_into_double_play",
+      "description": "Alex Call grounds into a double play, third baseman Matt Chapman to second baseman Luis Arraez to first baseman Rafael Devers. Hyeseong Kim out at 2nd. Alex Call out at 1st.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Call",
+      "batter_id": "callal02",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Hyeseong Kim",
+          "player_id": "kimhy02",
+          "start": "1B",
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        },
+        {
+          "name": "Alex Call",
+          "player_id": "callal02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Jung Hoo Lee lines out to center fielder Alex Call.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Heliot Ramos flies out sharply to center fielder Alex Call.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Drew Gilbert strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Alex Freeland called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Freeland",
+      "batter_id": "freelal01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Alex Freeland",
+          "player_id": "freelal01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Shohei Ohtani flies out to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Shohei Ohtani",
+      "batter_id": "ohtansh01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Shohei Ohtani",
+          "player_id": "ohtansh01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Kyle Tucker called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Kyle Tucker",
+      "batter_id": "tuckeky01",
+      "pitcher": "Landen Roupp",
+      "pitcher_id": "rouppla01",
+      "runners": [
+        {
+          "name": "Kyle Tucker",
+          "player_id": "tuckeky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "outs_before": 0,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Patrick Bailey walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Patrick Bailey",
+      "batter_id": "bailepa01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Patrick Bailey",
+          "player_id": "bailepa01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Pop Out",
+      "event_type": "field_out",
+      "description": "Willy Adames pops out to first baseman Freddie Freeman.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Pop Out"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Luis Arraez lines out to shortstop Hyeseong Kim.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Forceout",
+      "event_type": "force_out",
+      "description": "Matt Chapman grounds into a force out, shortstop Hyeseong Kim to second baseman Alex Freeland. Patrick Bailey out at 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Patrick Bailey",
+          "player_id": "bailepa01",
+          "start": "1B",
+          "end": null,
+          "is_out": true,
+          "event": "Forceout"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Forceout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Freddie Freeman grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Freddie Freeman",
+      "batter_id": "freemfr01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Freddie Freeman",
+          "player_id": "freemfr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Teoscar Hern\u00e1ndez doubles (4) on a ground ball to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Teoscar Hern\u00e1ndez",
+      "batter_id": "hernate01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Max Muncy strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Max Muncy",
+      "batter_id": "muncyma01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Dalton Rushing flies out to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Dalton Rushing",
+      "batter_id": "rushida01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Dalton Rushing",
+          "player_id": "rushida01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Pop Out",
+      "event_type": "field_out",
+      "description": "Rafael Devers pops out to shortstop Hyeseong Kim.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Pop Out"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt flies out to left fielder Teoscar Hern\u00e1ndez.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Jung Hoo Lee singles on a line drive to right fielder Kyle Tucker.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Heliot Ramos singles on a line drive to center fielder Alex Call. Jung Hoo Lee out at home on the throw, center fielder Alex Call to second baseman Alex Freeland to catcher Dalton Rushing.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": "2B",
+          "end": null,
+          "is_out": true,
+          "event": "Runner Out"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Miguel Rojas grounds out, third baseman Matt Chapman to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Miguel Rojas",
+      "batter_id": "rojasmi02",
+      "pitcher": "Matt Gage",
+      "pitcher_id": "gagema01",
+      "runners": [
+        {
+          "name": "Miguel Rojas",
+          "player_id": "rojasmi02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Alex Call grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Call",
+      "batter_id": "callal02",
+      "pitcher": "Matt Gage",
+      "pitcher_id": "gagema01",
+      "runners": [
+        {
+          "name": "Alex Call",
+          "player_id": "callal02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Alex Freeland walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Freeland",
+      "batter_id": "freelal01",
+      "pitcher": "Matt Gage",
+      "pitcher_id": "gagema01",
+      "runners": [
+        {
+          "name": "Alex Freeland",
+          "player_id": "freelal01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Shohei Ohtani singles on a ground ball to shortstop Willy Adames. Alex Freeland to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Shohei Ohtani",
+      "batter_id": "ohtansh01",
+      "pitcher": "Erik Miller",
+      "pitcher_id": "milleer01",
+      "runners": [
+        {
+          "name": "Shohei Ohtani",
+          "player_id": "ohtansh01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Alex Freeland",
+          "player_id": "freelal01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Kyle Tucker strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Kyle Tucker",
+      "batter_id": "tuckeky01",
+      "pitcher": "Erik Miller",
+      "pitcher_id": "milleer01",
+      "runners": [
+        {
+          "name": "Kyle Tucker",
+          "player_id": "tuckeky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Drew Gilbert called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Patrick Bailey called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Patrick Bailey",
+      "batter_id": "bailepa01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Patrick Bailey",
+          "player_id": "bailepa01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Willy Adames called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Yoshinobu Yamamoto",
+      "pitcher_id": "yamamyo01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Freddie Freeman grounds out, shortstop Willy Adames to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Freddie Freeman",
+      "batter_id": "freemfr01",
+      "pitcher": "Erik Miller",
+      "pitcher_id": "milleer01",
+      "runners": [
+        {
+          "name": "Freddie Freeman",
+          "player_id": "freemfr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Teoscar Hern\u00e1ndez walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Teoscar Hern\u00e1ndez",
+      "batter_id": "hernate01",
+      "pitcher": "Erik Miller",
+      "pitcher_id": "milleer01",
+      "runners": [
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Max Muncy grounds out softly, second baseman Luis Arraez to first baseman Rafael Devers. Teoscar Hern\u00e1ndez to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Max Muncy",
+      "batter_id": "muncyma01",
+      "pitcher": "Erik Miller",
+      "pitcher_id": "milleer01",
+      "runners": [
+        {
+          "name": "Max Muncy",
+          "player_id": "muncyma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        },
+        {
+          "name": "Teoscar Hern\u00e1ndez",
+          "player_id": "hernate01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Will Smith strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Will Smith",
+      "batter_id": "smithwi05",
+      "pitcher": "Keaton Winn",
+      "pitcher_id": "winnke01",
+      "runners": [
+        {
+          "name": "Will Smith",
+          "player_id": "smithwi05",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Luis Arraez grounds out, second baseman Alex Freeland to first baseman Freddie Freeman.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Tanner Scott",
+      "pitcher_id": "scottta01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Matt Chapman walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Tanner Scott",
+      "pitcher_id": "scottta01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Rafael Devers strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Tanner Scott",
+      "pitcher_id": "scottta01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "outs_before": 3,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt flies out to center fielder Alex Call.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Tanner Scott",
+      "pitcher_id": "scottta01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Andy Pages called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Andy Pages",
+      "batter_id": "pagesan01",
+      "pitcher": "Ryan Walker",
+      "pitcher_id": "walkery01",
+      "runners": [
+        {
+          "name": "Andy Pages",
+          "player_id": "pagesan01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Alex Call flies out to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Call",
+      "batter_id": "callal02",
+      "pitcher": "Ryan Walker",
+      "pitcher_id": "walkery01",
+      "runners": [
+        {
+          "name": "Alex Call",
+          "player_id": "callal02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Alex Freeland strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 1,
+      "home_score": 3,
+      "batter": "Alex Freeland",
+      "batter_id": "freelal01",
+      "pitcher": "Ryan Walker",
+      "pitcher_id": "walkery01",
+      "runners": [
+        {
+          "name": "Alex Freeland",
+          "player_id": "freelal01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    }
+  ],
+  "footer_summary": {}
+}

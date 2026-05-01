@@ -4,19 +4,20 @@ Local web server for adding games via browser/phone.
 Usage:
     python3 -m baseball_processor.server              # Start on port 5555
     python3 -m baseball_processor.server --port 8080   # Custom port
+    python3 -m baseball_processor.server --lan         # Allow phone access on same wifi
 
 Access from browser: http://localhost:5555
-Access from phone (same wifi): http://<your-mac-ip>:5555
+Access from phone (same wifi): use --lan and open the printed phone URL
 """
 
 import argparse
 import json
+import secrets
 import subprocess
-import threading
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 
 from .parsers.mlb_api_parser import parse_mlb_game
 from .utils.http import create_retry_session, get_with_retry
@@ -27,6 +28,31 @@ MLB_API_BASE = 'https://statsapi.mlb.com/api/v1'
 
 _session = create_retry_session()
 _processing = False
+_server_token = ""
+
+
+def build_url(host, port, token):
+    token_query = f"?token={quote(token)}" if token else ""
+    return f"http://{host}:{port}/{token_query}"
+
+
+def bind_host_for_mode(lan_enabled):
+    return '0.0.0.0' if lan_enabled else '127.0.0.1'
+
+
+def get_request_token(parsed, headers):
+    params = parse_qs(parsed.query)
+    return (
+        params.get('token', [''])[0]
+        or headers.get('X-Add-Game-Token', '')
+        or headers.get('Authorization', '').removeprefix('Bearer ').strip()
+    )
+
+
+def is_authorized(parsed, headers, expected_token):
+    if not expected_token:
+        return True
+    return secrets.compare_digest(get_request_token(parsed, headers), expected_token)
 
 
 def fetch_schedule(date_str):
@@ -146,6 +172,7 @@ h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
 <div class="toast" id="toast"></div>
 <script>
 let currentDate = new Date();
+const ADD_GAME_TOKEN = new URLSearchParams(window.location.search).get('token') || '';
 // Start with today
 loadGames();
 
@@ -207,12 +234,15 @@ function loadGames() {
 }
 function addGame(pk) {
     document.getElementById('spinner').classList.add('show');
-    fetch('/api/add?gamePk=' + pk, { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
+    fetch('/api/add?gamePk=' + pk + '&token=' + encodeURIComponent(ADD_GAME_TOKEN), {
+        method: 'POST',
+        headers: { 'X-Add-Game-Token': ADD_GAME_TOKEN }
+    })
+        .then(r => r.json().then(data => ({ status: r.status, data })))
+        .then(({ status, data }) => {
             document.getElementById('spinner').classList.remove('show');
             const toast = document.getElementById('toast');
-            toast.textContent = data.ok ? 'Game added and deployed!' : 'Error: ' + data.error;
+            toast.textContent = data.ok ? 'Game added and deployed!' : 'Error: ' + (data.error || ('HTTP ' + status));
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
             if (data.ok) loadGames();
@@ -244,11 +274,17 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
         if parsed.path == '/api/add':
+            if not is_authorized(parsed, self.headers, _server_token):
+                self._json({'ok': False, 'error': 'Invalid or missing token'}, status=403)
+                return
             if _processing:
                 self._json({'ok': False, 'error': 'Already processing a game'})
                 return
             params = parse_qs(parsed.query)
-            game_pk = int(params.get('gamePk', [0])[0])
+            try:
+                game_pk = int(params.get('gamePk', [0])[0])
+            except (TypeError, ValueError):
+                game_pk = 0
             if not game_pk:
                 self._json({'ok': False, 'error': 'No gamePk'})
                 return
@@ -261,9 +297,9 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._respond(404, 'Not found')
 
-    def _json(self, data):
+    def _json(self, data, status=200):
         body = json.dumps(data).encode()
-        self.send_response(200)
+        self.send_response(status)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', len(body))
         self.end_headers()
@@ -299,17 +335,38 @@ def get_local_ip():
 
 
 def main():
+    global _server_token
+
     parser = argparse.ArgumentParser(description='Local web server for adding games')
     parser.add_argument('--port', type=int, default=5555)
+    parser.add_argument(
+        '--lan',
+        action='store_true',
+        help='Allow access from other devices on the same network'
+    )
+    parser.add_argument(
+        '--token',
+        default=None,
+        help='Token required for add-game POSTs. Defaults to a random token printed at startup.'
+    )
     args = parser.parse_args()
 
-    local_ip = get_local_ip()
+    _server_token = args.token or secrets.token_urlsafe(18)
+    bind_host = bind_host_for_mode(args.lan)
+
     print(f"Starting server on port {args.port}...")
-    print(f"  Local:  http://localhost:{args.port}")
-    print(f"  Phone:  http://{local_ip}:{args.port}")
+    print(f"  Mode:   {'LAN enabled' if args.lan else 'local only'}")
+    print(f"  Local:  {build_url('localhost', args.port, _server_token)}")
+    if args.lan:
+        local_ip = get_local_ip()
+        print(f"  Phone:  {build_url(local_ip, args.port, _server_token)}")
+        print("  Note:   LAN mode allows devices on the same network to reach this server.")
+    else:
+        print("  Phone:  disabled (restart with --lan to allow same-wifi access)")
+    print("  Token:  required for add-game requests")
     print(f"  Press Ctrl+C to stop\n")
 
-    server = HTTPServer(('0.0.0.0', args.port), Handler)
+    server = HTTPServer((bind_host, args.port), Handler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

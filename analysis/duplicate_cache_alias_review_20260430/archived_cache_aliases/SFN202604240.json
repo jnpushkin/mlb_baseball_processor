@@ -1,0 +1,7198 @@
+{
+  "basic_info": {
+    "away_team": "Miami Marlins",
+    "home_team": "San Francisco Giants",
+    "date": "Friday, April 24, 2026",
+    "date_yyyymmdd": "20260424",
+    "start_time": "7:15 PM",
+    "attendance": "38,317",
+    "attendance_value": 38317,
+    "venue": "Oracle Park",
+    "venue_city": "San Francisco",
+    "venue_state": "CA",
+    "venue_latitude": 37.778383,
+    "venue_longitude": -122.389448,
+    "duration": "2:54",
+    "weather": "56\u00b0F, Partly Cloudy, Wind: 12 mph, Out To CF",
+    "temperature_f": 56,
+    "away_score": "9",
+    "home_score": "4",
+    "away_score_value": 9,
+    "home_score_value": 4,
+    "doubleheader": "0",
+    "game_number": 1,
+    "away_team_code": "MIA",
+    "home_team_code": "SF",
+    "game_type": "regular",
+    "game_type_code": "R",
+    "source": "mlb"
+  },
+  "batting": {
+    "away": [
+      {
+        "name": "Jakob Marsee",
+        "player_id": "marseja01",
+        "mlb_id": 805300,
+        "bref_id": "marseja01",
+        "jersey_number": "87",
+        "position": "CF",
+        "AB": 6,
+        "R": 1,
+        "H": 1,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 1,
+        "PA": 6,
+        "HR": 0,
+        "2B": 1,
+        "3B": 0,
+        "SB": 1,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 2,
+        "lineup_slot": 1,
+        "is_starter": true
+      },
+      {
+        "name": "Kyle Stowers",
+        "player_id": "stoweky01",
+        "mlb_id": 669065,
+        "bref_id": "stoweky01",
+        "jersey_number": "28",
+        "position": "LF",
+        "AB": 5,
+        "R": 2,
+        "H": 3,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 1,
+        "PA": 5,
+        "HR": 0,
+        "2B": 2,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 5,
+        "lineup_slot": 2,
+        "is_starter": true
+      },
+      {
+        "name": "Otto Lopez",
+        "player_id": "lopezot01",
+        "mlb_id": 672640,
+        "bref_id": "lopezot01",
+        "jersey_number": "6",
+        "position": "SS",
+        "AB": 5,
+        "R": 0,
+        "H": 3,
+        "RBI": 1,
+        "BB": 0,
+        "SO": 1,
+        "PA": 5,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 3,
+        "lineup_slot": 3,
+        "is_starter": true
+      },
+      {
+        "name": "Xavier Edwards",
+        "player_id": "edwarxa01",
+        "mlb_id": 669364,
+        "bref_id": "edwarxa01",
+        "jersey_number": "9",
+        "position": "2B",
+        "AB": 4,
+        "R": 1,
+        "H": 3,
+        "RBI": 1,
+        "BB": 1,
+        "SO": 0,
+        "PA": 5,
+        "HR": 0,
+        "2B": 1,
+        "3B": 0,
+        "SB": 1,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 4,
+        "lineup_slot": 4,
+        "is_starter": true
+      },
+      {
+        "name": "Liam Hicks",
+        "player_id": "hicksli01",
+        "mlb_id": 689414,
+        "bref_id": "hicksli01",
+        "jersey_number": "34",
+        "position": "C",
+        "AB": 4,
+        "R": 1,
+        "H": 1,
+        "RBI": 3,
+        "BB": 0,
+        "SO": 1,
+        "PA": 5,
+        "HR": 1,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 1,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 4,
+        "lineup_slot": 5,
+        "is_starter": true
+      },
+      {
+        "name": "Agust\u00edn Ram\u00edrez",
+        "player_id": "ramirag01",
+        "mlb_id": 682663,
+        "bref_id": "ramirag01",
+        "jersey_number": "50",
+        "position": "DH",
+        "AB": 5,
+        "R": 0,
+        "H": 1,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 0,
+        "PA": 5,
+        "HR": 0,
+        "2B": 1,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 2,
+        "lineup_slot": 6,
+        "is_starter": true
+      },
+      {
+        "name": "Owen Caissie",
+        "player_id": "caissow01",
+        "mlb_id": 683357,
+        "bref_id": "caissow01",
+        "jersey_number": "17",
+        "position": "RF",
+        "AB": 3,
+        "R": 2,
+        "H": 1,
+        "RBI": 0,
+        "BB": 1,
+        "SO": 1,
+        "PA": 4,
+        "HR": 0,
+        "2B": 1,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 2,
+        "lineup_slot": 7,
+        "is_starter": true
+      },
+      {
+        "name": "Heriberto Hern\u00e1ndez",
+        "player_id": "hernahe01",
+        "mlb_id": 681715,
+        "bref_id": "hernahe01",
+        "jersey_number": "13",
+        "position": "LF",
+        "AB": 1,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 0,
+        "PA": 1,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": null,
+        "is_starter": false
+      },
+      {
+        "name": "Graham Pauley",
+        "player_id": "paulegr01",
+        "mlb_id": 688363,
+        "bref_id": "paulegr01",
+        "jersey_number": "21",
+        "position": "3B",
+        "AB": 3,
+        "R": 1,
+        "H": 2,
+        "RBI": 1,
+        "BB": 1,
+        "SO": 1,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 2,
+        "lineup_slot": 8,
+        "is_starter": true
+      },
+      {
+        "name": "Javier Sanoja",
+        "player_id": "sanojja01",
+        "mlb_id": 691594,
+        "bref_id": "sanojja01",
+        "jersey_number": "8",
+        "position": "3B",
+        "AB": 0,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 1,
+        "SO": 0,
+        "PA": 1,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": null,
+        "is_starter": false
+      },
+      {
+        "name": "Connor Norby",
+        "player_id": "norbyco01",
+        "mlb_id": 681393,
+        "bref_id": "norbyco01",
+        "jersey_number": "1",
+        "position": "1B",
+        "AB": 5,
+        "R": 1,
+        "H": 1,
+        "RBI": 3,
+        "BB": 0,
+        "SO": 0,
+        "PA": 5,
+        "HR": 1,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 1,
+        "TB": 4,
+        "lineup_slot": 9,
+        "is_starter": true
+      }
+    ],
+    "home": [
+      {
+        "name": "Willy Adames",
+        "player_id": "adamewi01",
+        "mlb_id": 642715,
+        "bref_id": "adamewi01",
+        "jersey_number": "2",
+        "position": "SS",
+        "AB": 5,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 2,
+        "PA": 5,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": 1,
+        "is_starter": true
+      },
+      {
+        "name": "Luis Arraez",
+        "player_id": "arraelu01",
+        "mlb_id": 650333,
+        "bref_id": "arraelu01",
+        "jersey_number": "1",
+        "position": "2B",
+        "AB": 5,
+        "R": 0,
+        "H": 3,
+        "RBI": 1,
+        "BB": 0,
+        "SO": 0,
+        "PA": 5,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 1,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 3,
+        "lineup_slot": 2,
+        "is_starter": true
+      },
+      {
+        "name": "Matt Chapman",
+        "player_id": "chapmma01",
+        "mlb_id": 656305,
+        "bref_id": "chapmma01",
+        "jersey_number": "26",
+        "position": "3B",
+        "AB": 4,
+        "R": 0,
+        "H": 1,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 0,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 1,
+        "lineup_slot": 3,
+        "is_starter": true
+      },
+      {
+        "name": "Rafael Devers",
+        "player_id": "deverra01",
+        "mlb_id": 646240,
+        "bref_id": "deverra01",
+        "jersey_number": "16",
+        "position": "1B",
+        "AB": 4,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 2,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 1,
+        "TB": 0,
+        "lineup_slot": 4,
+        "is_starter": true
+      },
+      {
+        "name": "Casey Schmitt",
+        "player_id": "schmica01",
+        "mlb_id": 669477,
+        "bref_id": "schmica01",
+        "jersey_number": "10",
+        "position": "DH",
+        "AB": 4,
+        "R": 0,
+        "H": 1,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 0,
+        "PA": 4,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 1,
+        "lineup_slot": 5,
+        "is_starter": true
+      },
+      {
+        "name": "Jung Hoo Lee",
+        "player_id": "leeju01",
+        "mlb_id": 808982,
+        "bref_id": "leeju01",
+        "jersey_number": "51",
+        "position": "RF",
+        "AB": 4,
+        "R": 1,
+        "H": 3,
+        "RBI": 1,
+        "BB": 0,
+        "SO": 0,
+        "PA": 4,
+        "HR": 1,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 6,
+        "lineup_slot": 6,
+        "is_starter": true
+      },
+      {
+        "name": "Heliot Ramos",
+        "player_id": "ramoshe02",
+        "mlb_id": 671218,
+        "bref_id": "ramoshe02",
+        "jersey_number": "17",
+        "position": "LF",
+        "AB": 3,
+        "R": 1,
+        "H": 1,
+        "RBI": 0,
+        "BB": 1,
+        "SO": 1,
+        "PA": 4,
+        "HR": 0,
+        "2B": 1,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 2,
+        "lineup_slot": 7,
+        "is_starter": true
+      },
+      {
+        "name": "Drew Gilbert",
+        "player_id": "gilbedr01",
+        "mlb_id": 687551,
+        "bref_id": "gilbedr01",
+        "jersey_number": "0",
+        "position": "CF",
+        "AB": 3,
+        "R": 1,
+        "H": 1,
+        "RBI": 1,
+        "BB": 0,
+        "SO": 1,
+        "PA": 3,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 1,
+        "lineup_slot": 8,
+        "is_starter": true
+      },
+      {
+        "name": "Jerar Encarnacion",
+        "player_id": "encarje01",
+        "mlb_id": 666464,
+        "bref_id": "encarje01",
+        "jersey_number": "19",
+        "position": "PH",
+        "AB": 0,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 1,
+        "SO": 0,
+        "PA": 1,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": null,
+        "is_starter": false
+      },
+      {
+        "name": "Eric Haase",
+        "player_id": "haaseer01",
+        "mlb_id": 606992,
+        "bref_id": "haaseer01",
+        "jersey_number": "18",
+        "position": "C",
+        "AB": 3,
+        "R": 1,
+        "H": 1,
+        "RBI": 1,
+        "BB": 0,
+        "SO": 0,
+        "PA": 3,
+        "HR": 0,
+        "2B": 1,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 2,
+        "lineup_slot": 9,
+        "is_starter": true
+      },
+      {
+        "name": "Christian Koss",
+        "player_id": "kossch01",
+        "mlb_id": 683766,
+        "bref_id": "kossch01",
+        "jersey_number": "50",
+        "position": "PH",
+        "AB": 1,
+        "R": 0,
+        "H": 0,
+        "RBI": 0,
+        "BB": 0,
+        "SO": 0,
+        "PA": 1,
+        "HR": 0,
+        "2B": 0,
+        "3B": 0,
+        "SB": 0,
+        "CS": 0,
+        "HBP": 0,
+        "SF": 0,
+        "SH": 0,
+        "GDP": 0,
+        "TB": 0,
+        "lineup_slot": null,
+        "is_starter": false
+      }
+    ]
+  },
+  "pitching": {
+    "away": [
+      {
+        "name": "Sandy Alcantara",
+        "player_id": "alcansa01",
+        "mlb_id": 645261,
+        "bref_id": "alcansa01",
+        "jersey_number": "22",
+        "IP": "6.0",
+        "H": 9,
+        "R": 3,
+        "ER": 3,
+        "BB": 1,
+        "SO": 4,
+        "HR": 0,
+        "BF": 26,
+        "Pit": 108,
+        "Str": 75,
+        "W": 1,
+        "L": 0,
+        "SV": 0,
+        "HLD": 0,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 1,
+        "win": true,
+        "loss": false,
+        "save": false
+      },
+      {
+        "name": "Lake Bachar",
+        "player_id": "bachala01",
+        "mlb_id": 669199,
+        "bref_id": "bachala01",
+        "jersey_number": "84",
+        "IP": "2.0",
+        "H": 2,
+        "R": 1,
+        "ER": 1,
+        "BB": 0,
+        "SO": 1,
+        "HR": 1,
+        "BF": 8,
+        "Pit": 31,
+        "Str": 23,
+        "W": 0,
+        "L": 0,
+        "SV": 0,
+        "HLD": 0,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 0,
+        "win": false,
+        "loss": false,
+        "save": false
+      },
+      {
+        "name": "John King",
+        "player_id": "kingjo01",
+        "mlb_id": 667463,
+        "bref_id": "kingjo01",
+        "jersey_number": "47",
+        "IP": "1.0",
+        "H": 0,
+        "R": 0,
+        "ER": 0,
+        "BB": 1,
+        "SO": 1,
+        "HR": 0,
+        "BF": 4,
+        "Pit": 14,
+        "Str": 9,
+        "W": 0,
+        "L": 0,
+        "SV": 0,
+        "HLD": 0,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 0,
+        "win": false,
+        "loss": false,
+        "save": false
+      }
+    ],
+    "home": [
+      {
+        "name": "Adrian Houser",
+        "player_id": "housead01",
+        "mlb_id": 605288,
+        "bref_id": "housead01",
+        "jersey_number": "12",
+        "IP": "4.0",
+        "H": 11,
+        "R": 8,
+        "ER": 8,
+        "BB": 1,
+        "SO": 3,
+        "HR": 2,
+        "BF": 23,
+        "Pit": 77,
+        "Str": 47,
+        "W": 0,
+        "L": 1,
+        "SV": 0,
+        "HLD": 0,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 1,
+        "win": false,
+        "loss": true,
+        "save": false
+      },
+      {
+        "name": "JT Brubaker",
+        "player_id": "brubajt01",
+        "mlb_id": 664141,
+        "bref_id": "brubajt01",
+        "jersey_number": "34",
+        "IP": "3.0",
+        "H": 3,
+        "R": 1,
+        "ER": 1,
+        "BB": 1,
+        "SO": 3,
+        "HR": 0,
+        "BF": 13,
+        "Pit": 54,
+        "Str": 34,
+        "W": 0,
+        "L": 0,
+        "SV": 0,
+        "HLD": 0,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 0,
+        "win": false,
+        "loss": false,
+        "save": false
+      },
+      {
+        "name": "Caleb Kilian",
+        "player_id": "kiliaca01",
+        "mlb_id": 668873,
+        "bref_id": "kiliaca01",
+        "jersey_number": "45",
+        "IP": "1.0",
+        "H": 1,
+        "R": 0,
+        "ER": 0,
+        "BB": 1,
+        "SO": 0,
+        "HR": 0,
+        "BF": 5,
+        "Pit": 18,
+        "Str": 12,
+        "W": 0,
+        "L": 0,
+        "SV": 0,
+        "HLD": 0,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 0,
+        "win": false,
+        "loss": false,
+        "save": false
+      },
+      {
+        "name": "Ryan Borucki",
+        "player_id": "borucry01",
+        "mlb_id": 621366,
+        "bref_id": "borucry01",
+        "jersey_number": "47",
+        "IP": "1.0",
+        "H": 1,
+        "R": 0,
+        "ER": 0,
+        "BB": 1,
+        "SO": 0,
+        "HR": 0,
+        "BF": 5,
+        "Pit": 24,
+        "Str": 14,
+        "W": 0,
+        "L": 0,
+        "SV": 0,
+        "HLD": 0,
+        "BS": 0,
+        "HBP": 0,
+        "WP": 0,
+        "BK": 0,
+        "GS": 0,
+        "win": false,
+        "loss": false,
+        "save": false
+      }
+    ]
+  },
+  "linescore": {
+    "away": {
+      "innings": [
+        "3",
+        "1",
+        "1",
+        "3",
+        "0",
+        "1",
+        "0",
+        "0",
+        "0"
+      ],
+      "R": 9,
+      "H": 16,
+      "E": 0
+    },
+    "home": {
+      "innings": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "3",
+        "0",
+        "0",
+        "1",
+        "0"
+      ],
+      "R": 4,
+      "H": 11,
+      "E": 0
+    }
+  },
+  "game_id": "SFN202604240",
+  "mlb_game_pk": 823232,
+  "source": "mlb",
+  "lineups": {
+    "away": [
+      {
+        "slot": 1,
+        "name": "Jakob Marsee",
+        "player_id": "marseja01",
+        "pos": "CF",
+        "jersey_number": "87"
+      },
+      {
+        "slot": 2,
+        "name": "Kyle Stowers",
+        "player_id": "stoweky01",
+        "pos": "LF",
+        "jersey_number": "28"
+      },
+      {
+        "slot": 3,
+        "name": "Otto Lopez",
+        "player_id": "lopezot01",
+        "pos": "SS",
+        "jersey_number": "6"
+      },
+      {
+        "slot": 4,
+        "name": "Xavier Edwards",
+        "player_id": "edwarxa01",
+        "pos": "2B",
+        "jersey_number": "9"
+      },
+      {
+        "slot": 5,
+        "name": "Liam Hicks",
+        "player_id": "hicksli01",
+        "pos": "C",
+        "jersey_number": "34"
+      },
+      {
+        "slot": 6,
+        "name": "Agust\u00edn Ram\u00edrez",
+        "player_id": "ramirag01",
+        "pos": "DH",
+        "jersey_number": "50"
+      },
+      {
+        "slot": 7,
+        "name": "Owen Caissie",
+        "player_id": "caissow01",
+        "pos": "RF",
+        "jersey_number": "17"
+      },
+      {
+        "slot": 8,
+        "name": "Graham Pauley",
+        "player_id": "paulegr01",
+        "pos": "3B",
+        "jersey_number": "21"
+      },
+      {
+        "slot": 9,
+        "name": "Connor Norby",
+        "player_id": "norbyco01",
+        "pos": "1B",
+        "jersey_number": "1"
+      },
+      {
+        "slot": 0,
+        "name": "Sandy Alcantara",
+        "player_id": "alcansa01",
+        "pos": "P",
+        "jersey_number": "22"
+      }
+    ],
+    "home": [
+      {
+        "slot": 1,
+        "name": "Willy Adames",
+        "player_id": "adamewi01",
+        "pos": "SS",
+        "jersey_number": "2"
+      },
+      {
+        "slot": 2,
+        "name": "Luis Arraez",
+        "player_id": "arraelu01",
+        "pos": "2B",
+        "jersey_number": "1"
+      },
+      {
+        "slot": 3,
+        "name": "Matt Chapman",
+        "player_id": "chapmma01",
+        "pos": "3B",
+        "jersey_number": "26"
+      },
+      {
+        "slot": 4,
+        "name": "Rafael Devers",
+        "player_id": "deverra01",
+        "pos": "1B",
+        "jersey_number": "16"
+      },
+      {
+        "slot": 5,
+        "name": "Casey Schmitt",
+        "player_id": "schmica01",
+        "pos": "DH",
+        "jersey_number": "10"
+      },
+      {
+        "slot": 6,
+        "name": "Jung Hoo Lee",
+        "player_id": "leeju01",
+        "pos": "RF",
+        "jersey_number": "51"
+      },
+      {
+        "slot": 7,
+        "name": "Heliot Ramos",
+        "player_id": "ramoshe02",
+        "pos": "LF",
+        "jersey_number": "17"
+      },
+      {
+        "slot": 8,
+        "name": "Drew Gilbert",
+        "player_id": "gilbedr01",
+        "pos": "CF",
+        "jersey_number": "0"
+      },
+      {
+        "slot": 9,
+        "name": "Eric Haase",
+        "player_id": "haaseer01",
+        "pos": "C",
+        "jersey_number": "18"
+      },
+      {
+        "slot": 0,
+        "name": "Adrian Houser",
+        "player_id": "housead01",
+        "pos": "P",
+        "jersey_number": "12"
+      }
+    ]
+  },
+  "substitutions": [
+    {
+      "raw": "Pitching Change: JT Brubaker replaces Adrian Houser.",
+      "type": "pitching_substitution",
+      "player_in": "JT Brubaker",
+      "player_out": "Adrian Houser",
+      "inning": 5,
+      "half": "top",
+      "player_id": "brubajt01"
+    },
+    {
+      "raw": "Pitching Change: Lake Bachar replaces Sandy Alcantara.",
+      "type": "pitching_substitution",
+      "player_in": "Lake Bachar",
+      "player_out": "Sandy Alcantara",
+      "inning": 7,
+      "half": "bottom",
+      "player_id": "bachala01"
+    },
+    {
+      "raw": "Pitching Change: Caleb Kilian replaces JT Brubaker.",
+      "type": "pitching_substitution",
+      "player_in": "Caleb Kilian",
+      "player_out": "JT Brubaker",
+      "inning": 8,
+      "half": "top",
+      "player_id": "kiliaca01"
+    },
+    {
+      "raw": "Defensive Substitution: Esteury Ruiz replaces left fielder Kyle Stowers, batting 2nd, playing left field.",
+      "type": "defensive_substitution",
+      "player_in": "Defensive Substitution: Esteury Ruiz",
+      "player_out": "left fielder Kyle Stowers, batting 2nd, playing left field",
+      "inning": 8,
+      "half": "bottom",
+      "player_id": "ruizes01"
+    },
+    {
+      "raw": "Pitching Change: Ryan Borucki replaces Caleb Kilian.",
+      "type": "pitching_substitution",
+      "player_in": "Ryan Borucki",
+      "player_out": "Caleb Kilian",
+      "inning": 9,
+      "half": "top",
+      "player_id": "borucry01"
+    },
+    {
+      "raw": "Offensive Substitution: Pinch-hitter Heriberto Hern\u00e1ndez replaces Owen Caissie.",
+      "type": "offensive_substitution",
+      "player_in": "Pinch-hitter Heriberto Hern\u00e1ndez",
+      "player_out": "Owen Caissie",
+      "inning": 9,
+      "half": "top",
+      "player_id": "hernahe01"
+    },
+    {
+      "raw": "Offensive Substitution: Pinch-hitter Javier Sanoja replaces Graham Pauley.",
+      "type": "offensive_substitution",
+      "player_in": "Pinch-hitter Javier Sanoja",
+      "player_out": "Graham Pauley",
+      "inning": 9,
+      "half": "top",
+      "player_id": "sanojja01"
+    },
+    {
+      "raw": "Defensive switch from left field to right field for Esteury Ruiz.",
+      "type": "defensive_switch",
+      "player_in": "",
+      "player_out": "",
+      "inning": 9,
+      "half": "bottom",
+      "player_id": "ruizes01"
+    },
+    {
+      "raw": "Heriberto Hern\u00e1ndez remains in the game as the left fielder.",
+      "type": "defensive_switch",
+      "player_in": "",
+      "player_out": "",
+      "inning": 9,
+      "half": "bottom",
+      "player_id": "hernahe01"
+    },
+    {
+      "raw": "Javier Sanoja remains in the game as the third baseman.",
+      "type": "defensive_switch",
+      "player_in": "",
+      "player_out": "",
+      "inning": 9,
+      "half": "bottom",
+      "player_id": "sanojja01"
+    },
+    {
+      "raw": "Pitching Change: John King replaces Lake Bachar.",
+      "type": "pitching_substitution",
+      "player_in": "John King",
+      "player_out": "Lake Bachar",
+      "inning": 9,
+      "half": "bottom",
+      "player_id": "kingjo01"
+    },
+    {
+      "raw": "Offensive Substitution: Pinch-hitter Jerar Encarnacion replaces Drew Gilbert.",
+      "type": "offensive_substitution",
+      "player_in": "Pinch-hitter Jerar Encarnacion",
+      "player_out": "Drew Gilbert",
+      "inning": 9,
+      "half": "bottom",
+      "player_id": "encarje01"
+    },
+    {
+      "raw": "Offensive Substitution: Pinch-hitter Christian Koss replaces Eric Haase.",
+      "type": "offensive_substitution",
+      "player_in": "Pinch-hitter Christian Koss",
+      "player_out": "Eric Haase",
+      "inning": 9,
+      "half": "bottom",
+      "player_id": "kossch01"
+    }
+  ],
+  "play_by_play": [
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Jakob Marsee doubles (2) on a sharp line drive to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Kyle Stowers strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Kyle Stowers",
+      "batter_id": "stoweky01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Otto Lopez strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Otto Lopez",
+      "batter_id": "lopezot01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Stolen Base 3B"
+        },
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Xavier Edwards doubles (6) on a sharp line drive to right fielder Jung Hoo Lee. Jakob Marsee scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 1,
+      "home_score": 0,
+      "batter": "Xavier Edwards",
+      "batter_id": "edwarxa01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        },
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Home Run",
+      "event_type": "home_run",
+      "description": "Liam Hicks homers (5) on a fly ball to right center field. Xavier Edwards scores.",
+      "rbi": 2,
+      "is_scoring_play": true,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Liam Hicks",
+      "batter_id": "hicksli01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Liam Hicks",
+          "player_id": "hicksli01",
+          "start": null,
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        },
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": "2B",
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Agust\u00edn Ram\u00edrez lines out to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Agust\u00edn Ram\u00edrez",
+      "batter_id": "ramirag01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Willy Adames strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Luis Arraez singles on a line drive to left fielder Kyle Stowers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Matt Chapman singles on a fly ball to center fielder Jakob Marsee. Luis Arraez to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Grounded Into DP",
+      "event_type": "grounded_into_double_play",
+      "description": "Rafael Devers grounds into a double play, second baseman Xavier Edwards to shortstop Otto Lopez to first baseman Connor Norby. Matt Chapman out at 2nd. Rafael Devers out at 1st.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": "1B",
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        },
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Owen Caissie doubles (6) on a line drive to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Owen Caissie",
+      "batter_id": "caissow01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Graham Pauley singles on a line drive to center fielder Drew Gilbert. Owen Caissie scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Graham Pauley",
+      "batter_id": "paulegr01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": "2B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Grounded Into DP",
+      "event_type": "grounded_into_double_play",
+      "description": "Connor Norby grounds into a double play, second baseman Luis Arraez to shortstop Willy Adames to first baseman Rafael Devers. Graham Pauley out at 2nd. Connor Norby out at 1st.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Connor Norby",
+      "batter_id": "norbyco01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": "1B",
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        },
+        {
+          "name": "Connor Norby",
+          "player_id": "norbyco01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Jakob Marsee called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt flies out to left fielder Kyle Stowers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Jung Hoo Lee singles on a line drive to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Heliot Ramos strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Drew Gilbert grounds out to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Kyle Stowers doubles (2) on a sharp ground ball to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Kyle Stowers",
+      "batter_id": "stoweky01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Otto Lopez grounds out, shortstop Willy Adames to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Otto Lopez",
+      "batter_id": "lopezot01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Xavier Edwards singles on a ground ball to right fielder Jung Hoo Lee. Kyle Stowers to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Xavier Edwards",
+      "batter_id": "edwarxa01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Sac Fly",
+      "event_type": "sac_fly",
+      "description": "Liam Hicks out on a sacrifice fly to left fielder Heliot Ramos. Kyle Stowers scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Liam Hicks",
+      "batter_id": "hicksli01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Liam Hicks",
+          "player_id": "hicksli01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Sac Fly"
+        },
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Sac Fly"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Agust\u00edn Ram\u00edrez grounds out softly, pitcher Adrian Houser to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Agust\u00edn Ram\u00edrez",
+      "batter_id": "ramirag01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Eric Haase grounds out, second baseman Xavier Edwards to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Eric Haase",
+      "batter_id": "haaseer01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Eric Haase",
+          "player_id": "haaseer01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Willy Adames grounds out, third baseman Graham Pauley to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Luis Arraez lines out to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Owen Caissie walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Owen Caissie",
+      "batter_id": "caissow01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Graham Pauley singles on a sharp line drive to right fielder Jung Hoo Lee. Owen Caissie to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Graham Pauley",
+      "batter_id": "paulegr01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Home Run",
+      "event_type": "home_run",
+      "description": "Connor Norby homers (3) on a fly ball to center field. Owen Caissie scores. Graham Pauley scores.",
+      "rbi": 3,
+      "is_scoring_play": true,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Connor Norby",
+      "batter_id": "norbyco01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Connor Norby",
+          "player_id": "norbyco01",
+          "start": null,
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        },
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": "2B",
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        },
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": "1B",
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Jakob Marsee grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Kyle Stowers singles on a ground ball to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Kyle Stowers",
+      "batter_id": "stoweky01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Otto Lopez singles on a sharp line drive to center fielder Drew Gilbert. Kyle Stowers to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Otto Lopez",
+      "batter_id": "lopezot01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Xavier Edwards flies out to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Xavier Edwards",
+      "batter_id": "edwarxa01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Liam Hicks lines out sharply to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Liam Hicks",
+      "batter_id": "hicksli01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Liam Hicks",
+          "player_id": "hicksli01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Matt Chapman grounds out softly, pitcher Sandy Alcantara to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Rafael Devers grounds out, second baseman Xavier Edwards to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt grounds out, pitcher Sandy Alcantara to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Agust\u00edn Ram\u00edrez grounds out, shortstop Willy Adames to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Agust\u00edn Ram\u00edrez",
+      "batter_id": "ramirag01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Owen Caissie strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Owen Caissie",
+      "batter_id": "caissow01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Graham Pauley strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Graham Pauley",
+      "batter_id": "paulegr01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Jung Hoo Lee flies out to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Heliot Ramos doubles (5) on a ground ball to left fielder Kyle Stowers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Drew Gilbert singles on a line drive to center fielder Jakob Marsee. Heliot Ramos scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 8,
+      "home_score": 1,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": "2B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Eric Haase doubles (1) on a line drive to right fielder Owen Caissie. Drew Gilbert scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 8,
+      "home_score": 2,
+      "batter": "Eric Haase",
+      "batter_id": "haaseer01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Eric Haase",
+          "player_id": "haaseer01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        },
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": "1B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Double"
+        },
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Willy Adames grounds out to first baseman Connor Norby. Eric Haase to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 2,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        },
+        {
+          "name": "Eric Haase",
+          "player_id": "haaseer01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Luis Arraez singles on a line drive to left fielder Kyle Stowers. Eric Haase scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 8,
+      "home_score": 3,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Eric Haase",
+          "player_id": "haaseer01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Matt Chapman grounds out, shortstop Otto Lopez to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 3,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Stolen Base 2B"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Connor Norby grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 3,
+      "batter": "Connor Norby",
+      "batter_id": "norbyco01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Connor Norby",
+          "player_id": "norbyco01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Jakob Marsee lines out to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 3,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Kyle Stowers doubles (3) on a sharp fly ball to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 3,
+      "batter": "Kyle Stowers",
+      "batter_id": "stoweky01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Otto Lopez singles on a line drive to left fielder Heliot Ramos. Kyle Stowers scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Otto Lopez",
+      "batter_id": "lopezot01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": "2B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Xavier Edwards singles on a sharp ground ball to right fielder Jung Hoo Lee. Otto Lopez to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Xavier Edwards",
+      "batter_id": "edwarxa01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Liam Hicks strikes out on a foul tip.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Liam Hicks",
+      "batter_id": "hicksli01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Stolen Base 2B"
+        },
+        {
+          "name": "Liam Hicks",
+          "player_id": "hicksli01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Rafael Devers strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Casey Schmitt singles on a line drive to right fielder Owen Caissie.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Jung Hoo Lee singles on a ground ball to shortstop Otto Lopez. Casey Schmitt out at 3rd, shortstop Otto Lopez to second baseman Xavier Edwards.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": "2B",
+          "end": null,
+          "is_out": true,
+          "event": "Runner Out"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Heliot Ramos challenged (pitch result), call on the field was overturned: Heliot Ramos walks. Jung Hoo Lee to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Drew Gilbert strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Agust\u00edn Ram\u00edrez flies out to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Agust\u00edn Ram\u00edrez",
+      "batter_id": "ramirag01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Owen Caissie grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Owen Caissie",
+      "batter_id": "caissow01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Graham Pauley walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Graham Pauley",
+      "batter_id": "paulegr01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Pop Out",
+      "event_type": "field_out",
+      "description": "Connor Norby pops out to shortstop Willy Adames.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Connor Norby",
+      "batter_id": "norbyco01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Connor Norby",
+          "player_id": "norbyco01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Pop Out"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Eric Haase flies out to right fielder Owen Caissie.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Eric Haase",
+      "batter_id": "haaseer01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Eric Haase",
+          "player_id": "haaseer01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Willy Adames flies out to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Luis Arraez singles on a line drive to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Matt Chapman grounds out, second baseman Xavier Edwards to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Jakob Marsee grounds out, second baseman Luis Arraez to pitcher Caleb Kilian.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "Caleb Kilian",
+      "pitcher_id": "kiliaca01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Kyle Stowers grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Kyle Stowers",
+      "batter_id": "stoweky01",
+      "pitcher": "Caleb Kilian",
+      "pitcher_id": "kiliaca01",
+      "runners": [
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Otto Lopez singles on a ground ball to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Otto Lopez",
+      "batter_id": "lopezot01",
+      "pitcher": "Caleb Kilian",
+      "pitcher_id": "kiliaca01",
+      "runners": [
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Xavier Edwards walks. Otto Lopez to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Xavier Edwards",
+      "batter_id": "edwarxa01",
+      "pitcher": "Caleb Kilian",
+      "pitcher_id": "kiliaca01",
+      "runners": [
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Liam Hicks lines out to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Liam Hicks",
+      "batter_id": "hicksli01",
+      "pitcher": "Caleb Kilian",
+      "pitcher_id": "kiliaca01",
+      "runners": [
+        {
+          "name": "Liam Hicks",
+          "player_id": "hicksli01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Rafael Devers strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt flies out to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Home Run",
+      "event_type": "home_run",
+      "description": "Jung Hoo Lee homers (2) on a fly ball to right field.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Heliot Ramos grounds out, shortstop Otto Lopez to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Agust\u00edn Ram\u00edrez doubles (5) on a sharp ground ball to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Agust\u00edn Ram\u00edrez",
+      "batter_id": "ramirag01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Pop Out",
+      "event_type": "field_out",
+      "description": "Heriberto Hern\u00e1ndez pops out to first baseman Rafael Devers in foul territory.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Heriberto Hern\u00e1ndez",
+      "batter_id": "hernahe01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Heriberto Hern\u00e1ndez",
+          "player_id": "hernahe01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Pop Out"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Javier Sanoja walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Javier Sanoja",
+      "batter_id": "sanojja01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Javier Sanoja",
+          "player_id": "sanojja01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Connor Norby flies out to center fielder Drew Gilbert. Agust\u00edn Ram\u00edrez to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Connor Norby",
+      "batter_id": "norbyco01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Connor Norby",
+          "player_id": "norbyco01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        },
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Jakob Marsee lines out to second baseman Luis Arraez.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 0,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Jerar Encarnacion walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Jerar Encarnacion",
+      "batter_id": "encarje01",
+      "pitcher": "John King",
+      "pitcher_id": "kingjo01",
+      "runners": [
+        {
+          "name": "Jerar Encarnacion",
+          "player_id": "encarje01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Christian Koss flies out to right fielder Esteury Ruiz.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Christian Koss",
+      "batter_id": "kossch01",
+      "pitcher": "John King",
+      "pitcher_id": "kingjo01",
+      "runners": [
+        {
+          "name": "Christian Koss",
+          "player_id": "kossch01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Willy Adames strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "John King",
+      "pitcher_id": "kingjo01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Luis Arraez grounds out, third baseman Javier Sanoja to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "John King",
+      "pitcher_id": "kingjo01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    }
+  ],
+  "pitcher_decisions": {
+    "winning_pitcher": "Sandy Alcantara",
+    "winning_pitcher_id": "alcansa01",
+    "losing_pitcher": "Adrian Houser",
+    "losing_pitcher_id": "housead01"
+  },
+  "special_events": {},
+  "milestone_stats": {
+    "three_hr_games": [],
+    "multi_hr_games": [],
+    "cycles": [],
+    "five_hit_games": [],
+    "four_hit_games": [],
+    "six_rbi_games": [],
+    "five_rbi_games": [],
+    "four_rbi_games": [],
+    "multi_triple_games": [],
+    "multi_steal_games": [],
+    "complete_games": [],
+    "shutouts": [],
+    "no_hitters": [],
+    "perfect_games": [],
+    "quality_starts": [
+      {
+        "player": "Sandy Alcantara",
+        "player_id": "alcansa01",
+        "team": "Miami Marlins",
+        "team_code": "MIA",
+        "opposing_team": "San Francisco Giants",
+        "opponent_code": "SF",
+        "pitch_count": 108,
+        "innings_pitched": "6.0",
+        "runs_allowed": 3,
+        "earned_runs": 3,
+        "walks_allowed": 1,
+        "strikeouts": 4,
+        "decision": "",
+        "save": false,
+        "is_home_game": false,
+        "game_id": "SFN202604240",
+        "game_date": "20260424",
+        "final_score": "MIA 9 \u2013 4 SF",
+        "hits": 9,
+        "walks": 1,
+        "runs": 3
+      }
+    ],
+    "fifteen_k_games": [],
+    "twelve_k_games": [],
+    "ten_k_games": [],
+    "maddux_games": [],
+    "seven_inning_shutouts": [],
+    "low_hit_cg": [],
+    "one_hitters": [],
+    "two_hitters": [],
+    "cgso_no_walks": [],
+    "immaculate_inning_pitchers": [],
+    "dominant_starts": [],
+    "three_hit_games": [
+      {
+        "player": "Luis Arraez",
+        "player_id": "arraelu01",
+        "team": "San Francisco Giants",
+        "team_code": "SF",
+        "opposing_team": "Miami Marlins",
+        "opponent_code": "MIA",
+        "singles": 3,
+        "doubles": 0,
+        "triples": 0,
+        "home_runs": 0,
+        "hits": 3,
+        "rbi": 1,
+        "ab": 5,
+        "runs": 0,
+        "bb": 0,
+        "so": 0,
+        "hbp": 0,
+        "sf": 0,
+        "sh": 0,
+        "game_id": "SFN202604240",
+        "game_date": "20260424",
+        "final_score": "MIA 9 \u2013 4 SF",
+        "is_home_game": true
+      },
+      {
+        "player": "Jung Hoo Lee",
+        "player_id": "leeju01",
+        "team": "San Francisco Giants",
+        "team_code": "SF",
+        "opposing_team": "Miami Marlins",
+        "opponent_code": "MIA",
+        "singles": 2,
+        "doubles": 0,
+        "triples": 0,
+        "home_runs": 1,
+        "hits": 3,
+        "rbi": 1,
+        "ab": 4,
+        "runs": 1,
+        "bb": 0,
+        "so": 0,
+        "hbp": 0,
+        "sf": 0,
+        "sh": 0,
+        "game_id": "SFN202604240",
+        "game_date": "20260424",
+        "final_score": "MIA 9 \u2013 4 SF",
+        "is_home_game": true
+      },
+      {
+        "player": "Kyle Stowers",
+        "player_id": "stoweky01",
+        "team": "Miami Marlins",
+        "team_code": "MIA",
+        "opposing_team": "San Francisco Giants",
+        "opponent_code": "SF",
+        "singles": 1,
+        "doubles": 2,
+        "triples": 0,
+        "home_runs": 0,
+        "hits": 3,
+        "rbi": 0,
+        "ab": 5,
+        "runs": 2,
+        "bb": 0,
+        "so": 1,
+        "hbp": 0,
+        "sf": 0,
+        "sh": 0,
+        "game_id": "SFN202604240",
+        "game_date": "20260424",
+        "final_score": "MIA 9 \u2013 4 SF",
+        "is_home_game": false
+      },
+      {
+        "player": "Otto Lopez",
+        "player_id": "lopezot01",
+        "team": "Miami Marlins",
+        "team_code": "MIA",
+        "opposing_team": "San Francisco Giants",
+        "opponent_code": "SF",
+        "singles": 3,
+        "doubles": 0,
+        "triples": 0,
+        "home_runs": 0,
+        "hits": 3,
+        "rbi": 1,
+        "ab": 5,
+        "runs": 0,
+        "bb": 0,
+        "so": 1,
+        "hbp": 0,
+        "sf": 0,
+        "sh": 0,
+        "game_id": "SFN202604240",
+        "game_date": "20260424",
+        "final_score": "MIA 9 \u2013 4 SF",
+        "is_home_game": false
+      },
+      {
+        "player": "Xavier Edwards",
+        "player_id": "edwarxa01",
+        "team": "Miami Marlins",
+        "team_code": "MIA",
+        "opposing_team": "San Francisco Giants",
+        "opponent_code": "SF",
+        "singles": 2,
+        "doubles": 1,
+        "triples": 0,
+        "home_runs": 0,
+        "hits": 3,
+        "rbi": 1,
+        "ab": 4,
+        "runs": 1,
+        "bb": 1,
+        "so": 0,
+        "hbp": 0,
+        "sf": 0,
+        "sh": 0,
+        "game_id": "SFN202604240",
+        "game_date": "20260424",
+        "final_score": "MIA 9 \u2013 4 SF",
+        "is_home_game": false
+      }
+    ],
+    "eight_k_games": [],
+    "four_walk_games": [],
+    "perfect_batting_games": [
+      {
+        "player": "Luis Arraez",
+        "player_id": "arraelu01",
+        "team": "San Francisco Giants",
+        "team_code": "SF",
+        "opposing_team": "Miami Marlins",
+        "opponent_code": "MIA",
+        "singles": 3,
+        "doubles": 0,
+        "triples": 0,
+        "home_runs": 0,
+        "hits": 3,
+        "rbi": 1,
+        "ab": 5,
+        "runs": 0,
+        "bb": 0,
+        "so": 0,
+        "hbp": 0,
+        "sf": 0,
+        "sh": 0,
+        "game_id": "SFN202604240",
+        "game_date": "20260424",
+        "final_score": "MIA 9 \u2013 4 SF",
+        "is_home_game": true
+      },
+      {
+        "player": "Jung Hoo Lee",
+        "player_id": "leeju01",
+        "team": "San Francisco Giants",
+        "team_code": "SF",
+        "opposing_team": "Miami Marlins",
+        "opponent_code": "MIA",
+        "singles": 2,
+        "doubles": 0,
+        "triples": 0,
+        "home_runs": 1,
+        "hits": 3,
+        "rbi": 1,
+        "ab": 4,
+        "runs": 1,
+        "bb": 0,
+        "so": 0,
+        "hbp": 0,
+        "sf": 0,
+        "sh": 0,
+        "game_id": "SFN202604240",
+        "game_date": "20260424",
+        "final_score": "MIA 9 \u2013 4 SF",
+        "is_home_game": true
+      },
+      {
+        "player": "Xavier Edwards",
+        "player_id": "edwarxa01",
+        "team": "Miami Marlins",
+        "team_code": "MIA",
+        "opposing_team": "San Francisco Giants",
+        "opponent_code": "SF",
+        "singles": 2,
+        "doubles": 1,
+        "triples": 0,
+        "home_runs": 0,
+        "hits": 3,
+        "rbi": 1,
+        "ab": 4,
+        "runs": 1,
+        "bb": 1,
+        "so": 0,
+        "hbp": 0,
+        "sf": 0,
+        "sh": 0,
+        "game_id": "SFN202604240",
+        "game_date": "20260424",
+        "final_score": "MIA 9 \u2013 4 SF",
+        "is_home_game": false
+      }
+    ],
+    "three_run_games": [],
+    "four_run_games": [],
+    "hit_for_extra_bases": [
+      {
+        "player": "Kyle Stowers",
+        "player_id": "stoweky01",
+        "team": "Miami Marlins",
+        "team_code": "MIA",
+        "opposing_team": "San Francisco Giants",
+        "opponent_code": "SF",
+        "singles": 1,
+        "doubles": 2,
+        "triples": 0,
+        "home_runs": 0,
+        "hits": 3,
+        "rbi": 0,
+        "ab": 5,
+        "runs": 2,
+        "bb": 0,
+        "so": 1,
+        "hbp": 0,
+        "sf": 0,
+        "sh": 0,
+        "game_id": "SFN202604240",
+        "game_date": "20260424",
+        "final_score": "MIA 9 \u2013 4 SF",
+        "is_home_game": false
+      }
+    ],
+    "three_total_bases_games": [],
+    "multi_double_games": [
+      {
+        "player": "Kyle Stowers",
+        "player_id": "stoweky01",
+        "team": "Miami Marlins",
+        "team_code": "MIA",
+        "opposing_team": "San Francisco Giants",
+        "opponent_code": "SF",
+        "singles": 1,
+        "doubles": 2,
+        "triples": 0,
+        "home_runs": 0,
+        "hits": 3,
+        "rbi": 0,
+        "ab": 5,
+        "runs": 2,
+        "bb": 0,
+        "so": 1,
+        "hbp": 0,
+        "sf": 0,
+        "sh": 0,
+        "game_id": "SFN202604240",
+        "game_date": "20260424",
+        "final_score": "MIA 9 \u2013 4 SF",
+        "is_home_game": false
+      }
+    ],
+    "save_games": [],
+    "win_games": [],
+    "efficient_starts": [],
+    "no_walk_starts": [],
+    "scoreless_relief": [],
+    "high_k_low_bb": [],
+    "golden_sombreros": []
+  },
+  "umpires": {
+    "HP": "Dan Bellino",
+    "1B": "Mark Ripperger",
+    "2B": "Shane Livensparger",
+    "3B": "Dan Merzel"
+  },
+  "flags": {
+    "no_hitter": false,
+    "perfect_game": false
+  },
+  "abs_challenges": {
+    "away": {
+      "usedSuccessful": 1,
+      "usedFailed": 2,
+      "remaining": 0
+    },
+    "home": {
+      "usedSuccessful": 2,
+      "usedFailed": 2,
+      "remaining": 0
+    },
+    "reviews": [
+      {
+        "overturned": true,
+        "batter": "Matt Chapman",
+        "batterId": "656305",
+        "pitcher": "Sandy Alcantara",
+        "pitcherId": "645261",
+        "challengerType": "batter",
+        "challengePlayer": "Matt Chapman",
+        "challengeTeam": "home",
+        "challengeTeamId": 137,
+        "challengingPlayerId": "656305",
+        "edgeDistance": 0.03231466771008164,
+        "pitchType": "Slider",
+        "count": "0-1",
+        "inning": 1,
+        "half": "bottom"
+      },
+      {
+        "overturned": true,
+        "batter": "Drew Gilbert",
+        "batterId": "687551",
+        "pitcher": "Sandy Alcantara",
+        "pitcherId": "645261",
+        "challengerType": "catcher",
+        "challengePlayer": "Liam Hicks",
+        "challengeTeam": "away",
+        "challengeTeamId": 146,
+        "challengingPlayerId": "689414",
+        "edgeDistance": 0.006435116939339736,
+        "pitchType": "Sinker",
+        "count": "0-0",
+        "inning": 2,
+        "half": "bottom"
+      },
+      {
+        "overturned": false,
+        "batter": "Casey Schmitt",
+        "batterId": "669477",
+        "pitcher": "Sandy Alcantara",
+        "pitcherId": "645261",
+        "challengerType": "batter",
+        "challengePlayer": "Casey Schmitt",
+        "challengeTeam": "home",
+        "challengeTeamId": 137,
+        "challengingPlayerId": "669477",
+        "edgeDistance": 0.2302294112816886,
+        "pitchType": "4-Seam Fastball",
+        "count": "1-0",
+        "inning": 6,
+        "half": "bottom"
+      },
+      {
+        "overturned": false,
+        "batter": "Heliot Ramos",
+        "batterId": "671218",
+        "pitcher": "Sandy Alcantara",
+        "pitcherId": "645261",
+        "challengerType": "pitcher",
+        "challengePlayer": "Sandy Alcantara",
+        "challengeTeam": "away",
+        "challengeTeamId": 146,
+        "challengingPlayerId": "645261",
+        "edgeDistance": 0.021234695402840523,
+        "pitchType": "4-Seam Fastball",
+        "count": "1-1",
+        "inning": 6,
+        "half": "bottom"
+      },
+      {
+        "overturned": true,
+        "batter": "Heliot Ramos",
+        "batterId": "671218",
+        "pitcher": "Sandy Alcantara",
+        "pitcherId": "645261",
+        "challengerType": "batter",
+        "challengePlayer": "Heliot Ramos",
+        "challengeTeam": "home",
+        "challengeTeamId": 137,
+        "challengingPlayerId": "671218",
+        "edgeDistance": 0.12447022380504626,
+        "pitchType": "Cutter",
+        "count": "3-1",
+        "inning": 6,
+        "half": "bottom"
+      },
+      {
+        "overturned": false,
+        "batter": "Drew Gilbert",
+        "batterId": "687551",
+        "pitcher": "Sandy Alcantara",
+        "pitcherId": "645261",
+        "challengerType": "catcher",
+        "challengePlayer": "Liam Hicks",
+        "challengeTeam": "away",
+        "challengeTeamId": 146,
+        "challengingPlayerId": "689414",
+        "edgeDistance": 0.0878656352228654,
+        "pitchType": "Sinker",
+        "count": "1-2",
+        "inning": 6,
+        "half": "bottom"
+      },
+      {
+        "overturned": false,
+        "batter": "Jerar Encarnacion",
+        "batterId": "666464",
+        "pitcher": "John King",
+        "pitcherId": "667463",
+        "challengerType": "batter",
+        "challengePlayer": "Jerar Encarnacion",
+        "challengeTeam": "home",
+        "challengeTeamId": 137,
+        "challengingPlayerId": "666464",
+        "edgeDistance": 0.0440951924651648,
+        "pitchType": "Sinker",
+        "count": "3-1",
+        "inning": 9,
+        "half": "bottom"
+      }
+    ]
+  },
+  "pitch_data": {
+    "housead01": {
+      "name": "Adrian Houser",
+      "player_id": "housead01",
+      "totalPitches": 77,
+      "avgSpeed": 89.6,
+      "maxSpeed": 97.0,
+      "minSpeed": 80.1,
+      "avgSpinRate": 2021,
+      "minSpinRate": 1401,
+      "pitchTypes": {
+        "FF": 11,
+        "SI": 24,
+        "CH": 18,
+        "CU": 12,
+        "SL": 12
+      },
+      "pitchTypeNames": {
+        "FF": "Four-Seam Fastball",
+        "SI": "Sinker",
+        "CH": "Changeup",
+        "CU": "Curveball",
+        "SL": "Slider"
+      }
+    },
+    "alcansa01": {
+      "name": "Sandy Alcantara",
+      "player_id": "alcansa01",
+      "totalPitches": 108,
+      "avgSpeed": 93.3,
+      "maxSpeed": 99.6,
+      "minSpeed": 81.8,
+      "avgSpinRate": 2261,
+      "minSpinRate": 2062,
+      "pitchTypes": {
+        "FF": 34,
+        "FC": 11,
+        "SL": 13,
+        "SI": 27,
+        "ST": 6,
+        "CH": 17
+      },
+      "pitchTypeNames": {
+        "FF": "Four-Seam Fastball",
+        "FC": "Cutter",
+        "SL": "Slider",
+        "SI": "Sinker",
+        "ST": "Sweeper",
+        "CH": "Changeup"
+      }
+    },
+    "brubajt01": {
+      "name": "JT Brubaker",
+      "player_id": "brubajt01",
+      "totalPitches": 54,
+      "avgSpeed": 90.0,
+      "maxSpeed": 95.4,
+      "minSpeed": 80.4,
+      "avgSpinRate": 2295,
+      "minSpinRate": 1930,
+      "pitchTypes": {
+        "SI": 25,
+        "SL": 7,
+        "CU": 9,
+        "FF": 4,
+        "CH": 9
+      },
+      "pitchTypeNames": {
+        "SI": "Sinker",
+        "SL": "Slider",
+        "CU": "Curveball",
+        "FF": "Four-Seam Fastball",
+        "CH": "Changeup"
+      }
+    },
+    "bachala01": {
+      "name": "Lake Bachar",
+      "player_id": "bachala01",
+      "totalPitches": 31,
+      "avgSpeed": 90.0,
+      "maxSpeed": 94.5,
+      "minSpeed": 83.8,
+      "avgSpinRate": 2730,
+      "minSpinRate": 2493,
+      "pitchTypes": {
+        "FF": 15,
+        "ST": 4,
+        "SL": 7,
+        "CU": 5
+      },
+      "pitchTypeNames": {
+        "FF": "Four-Seam Fastball",
+        "ST": "Sweeper",
+        "SL": "Slider",
+        "CU": "Curveball"
+      }
+    },
+    "kiliaca01": {
+      "name": "Caleb Kilian",
+      "player_id": "kiliaca01",
+      "totalPitches": 18,
+      "avgSpeed": 92.0,
+      "maxSpeed": 97.6,
+      "minSpeed": 79.3,
+      "avgSpinRate": 2471,
+      "minSpinRate": 2228,
+      "pitchTypes": {
+        "FF": 9,
+        "KC": 4,
+        "SI": 3,
+        "SL": 2
+      },
+      "pitchTypeNames": {
+        "FF": "Four-Seam Fastball",
+        "KC": "Knuckle Curve",
+        "SI": "Sinker",
+        "SL": "Slider"
+      }
+    },
+    "borucry01": {
+      "name": "Ryan Borucki",
+      "player_id": "borucry01",
+      "totalPitches": 24,
+      "avgSpeed": 86.7,
+      "maxSpeed": 94.9,
+      "minSpeed": 78.6,
+      "avgSpinRate": 2134,
+      "minSpinRate": 1293,
+      "pitchTypes": {
+        "FS": 4,
+        "ST": 2,
+        "SL": 11,
+        "SI": 6,
+        "FC": 1
+      },
+      "pitchTypeNames": {
+        "FS": "Splitter",
+        "ST": "Sweeper",
+        "SL": "Slider",
+        "SI": "Sinker",
+        "FC": "Cutter"
+      }
+    },
+    "kingjo01": {
+      "name": "John King",
+      "player_id": "kingjo01",
+      "totalPitches": 14,
+      "avgSpeed": 87.0,
+      "maxSpeed": 92.6,
+      "minSpeed": 80.2,
+      "avgSpinRate": 2150,
+      "minSpinRate": 1429,
+      "pitchTypes": {
+        "SI": 8,
+        "CU": 1,
+        "CH": 3,
+        "ST": 1,
+        "SL": 1
+      },
+      "pitchTypeNames": {
+        "SI": "Sinker",
+        "CU": "Curveball",
+        "CH": "Changeup",
+        "ST": "Sweeper",
+        "SL": "Slider"
+      }
+    }
+  },
+  "hit_data": {
+    "marseja01": {
+      "name": "Jakob Marsee",
+      "player_id": "marseja01",
+      "battedBalls": 5,
+      "maxExitVelo": 107.4,
+      "avgExitVelo": 95.8,
+      "maxDistance": 367,
+      "trajectories": {
+        "line_drive": 3,
+        "ground_ball": 2
+      }
+    },
+    "edwarxa01": {
+      "name": "Xavier Edwards",
+      "player_id": "edwarxa01",
+      "battedBalls": 4,
+      "maxExitVelo": 105.7,
+      "avgExitVelo": 97.2,
+      "maxDistance": 318,
+      "trajectories": {
+        "line_drive": 1,
+        "ground_ball": 2,
+        "fly_ball": 1
+      }
+    },
+    "hicksli01": {
+      "name": "Liam Hicks",
+      "player_id": "hicksli01",
+      "battedBalls": 4,
+      "maxExitVelo": 101.8,
+      "avgExitVelo": 94.6,
+      "maxDistance": 390,
+      "trajectories": {
+        "fly_ball": 1,
+        "line_drive": 3
+      }
+    },
+    "ramirag01": {
+      "name": "Agust\u00edn Ram\u00edrez",
+      "player_id": "ramirag01",
+      "battedBalls": 5,
+      "maxExitVelo": 107.2,
+      "avgExitVelo": 89.2,
+      "maxDistance": 293,
+      "trajectories": {
+        "line_drive": 1,
+        "ground_ball": 3,
+        "fly_ball": 1
+      }
+    },
+    "arraelu01": {
+      "name": "Luis Arraez",
+      "player_id": "arraelu01",
+      "battedBalls": 5,
+      "maxExitVelo": 95.3,
+      "avgExitVelo": 91.3,
+      "maxDistance": 277,
+      "trajectories": {
+        "line_drive": 4,
+        "ground_ball": 1
+      }
+    },
+    "chapmma01": {
+      "name": "Matt Chapman",
+      "player_id": "chapmma01",
+      "battedBalls": 4,
+      "maxExitVelo": 108.3,
+      "avgExitVelo": 80.5,
+      "maxDistance": 247,
+      "trajectories": {
+        "fly_ball": 1,
+        "ground_ball": 3
+      }
+    },
+    "deverra01": {
+      "name": "Rafael Devers",
+      "player_id": "deverra01",
+      "battedBalls": 2,
+      "maxExitVelo": 88.5,
+      "avgExitVelo": 86.3,
+      "maxDistance": 99,
+      "trajectories": {
+        "ground_ball": 2
+      }
+    },
+    "caissow01": {
+      "name": "Owen Caissie",
+      "player_id": "caissow01",
+      "battedBalls": 2,
+      "maxExitVelo": 94.6,
+      "avgExitVelo": 86.7,
+      "maxDistance": 295,
+      "trajectories": {
+        "line_drive": 1,
+        "ground_ball": 1
+      }
+    },
+    "paulegr01": {
+      "name": "Graham Pauley",
+      "player_id": "paulegr01",
+      "battedBalls": 2,
+      "maxExitVelo": 103.3,
+      "avgExitVelo": 91.6,
+      "maxDistance": 211,
+      "trajectories": {
+        "line_drive": 2
+      }
+    },
+    "norbyco01": {
+      "name": "Connor Norby",
+      "player_id": "norbyco01",
+      "battedBalls": 5,
+      "maxExitVelo": 104.3,
+      "avgExitVelo": 94.6,
+      "maxDistance": 418,
+      "trajectories": {
+        "ground_ball": 2,
+        "fly_ball": 2,
+        "popup": 1
+      }
+    },
+    "schmica01": {
+      "name": "Casey Schmitt",
+      "player_id": "schmica01",
+      "battedBalls": 4,
+      "maxExitVelo": 99.0,
+      "avgExitVelo": 83.0,
+      "maxDistance": 336,
+      "trajectories": {
+        "fly_ball": 2,
+        "ground_ball": 1,
+        "line_drive": 1
+      }
+    },
+    "leeju01": {
+      "name": "Jung Hoo Lee",
+      "player_id": "leeju01",
+      "battedBalls": 4,
+      "maxExitVelo": 98.4,
+      "avgExitVelo": 91.4,
+      "maxDistance": 364,
+      "trajectories": {
+        "line_drive": 1,
+        "fly_ball": 2,
+        "ground_ball": 1
+      }
+    },
+    "gilbedr01": {
+      "name": "Drew Gilbert",
+      "player_id": "gilbedr01",
+      "battedBalls": 2,
+      "maxExitVelo": 104.0,
+      "avgExitVelo": 93.5,
+      "maxDistance": 200,
+      "trajectories": {
+        "ground_ball": 1,
+        "line_drive": 1
+      }
+    },
+    "stoweky01": {
+      "name": "Kyle Stowers",
+      "player_id": "stoweky01",
+      "battedBalls": 4,
+      "maxExitVelo": 104.6,
+      "avgExitVelo": 99.3,
+      "maxDistance": 355,
+      "trajectories": {
+        "ground_ball": 3,
+        "fly_ball": 1
+      }
+    },
+    "lopezot01": {
+      "name": "Otto Lopez",
+      "player_id": "lopezot01",
+      "battedBalls": 4,
+      "maxExitVelo": 105.2,
+      "avgExitVelo": 98.8,
+      "maxDistance": 206,
+      "trajectories": {
+        "ground_ball": 2,
+        "line_drive": 2
+      }
+    },
+    "haaseer01": {
+      "name": "Eric Haase",
+      "player_id": "haaseer01",
+      "battedBalls": 3,
+      "maxExitVelo": 92.7,
+      "avgExitVelo": 87.8,
+      "maxDistance": 219,
+      "trajectories": {
+        "ground_ball": 1,
+        "line_drive": 1,
+        "fly_ball": 1
+      }
+    },
+    "adamewi01": {
+      "name": "Willy Adames",
+      "player_id": "adamewi01",
+      "battedBalls": 3,
+      "maxExitVelo": 94.9,
+      "avgExitVelo": 75.7,
+      "maxDistance": 346,
+      "trajectories": {
+        "ground_ball": 2,
+        "fly_ball": 1
+      }
+    },
+    "ramoshe02": {
+      "name": "Heliot Ramos",
+      "player_id": "ramoshe02",
+      "battedBalls": 2,
+      "maxExitVelo": 110.9,
+      "avgExitVelo": 106.0,
+      "maxDistance": 112,
+      "trajectories": {
+        "ground_ball": 2
+      }
+    },
+    "hernahe01": {
+      "name": "Heriberto Hern\u00e1ndez",
+      "player_id": "hernahe01",
+      "battedBalls": 1,
+      "maxExitVelo": 71.1,
+      "avgExitVelo": 71.1,
+      "maxDistance": 53,
+      "trajectories": {
+        "popup": 1
+      }
+    },
+    "kossch01": {
+      "name": "Christian Koss",
+      "player_id": "kossch01",
+      "battedBalls": 1,
+      "maxExitVelo": 86.9,
+      "avgExitVelo": 86.9,
+      "maxDistance": 243,
+      "trajectories": {
+        "fly_ball": 1
+      }
+    }
+  },
+  "doubleheader": "0",
+  "raw_plays": [
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Jakob Marsee doubles (2) on a sharp line drive to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Kyle Stowers strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Kyle Stowers",
+      "batter_id": "stoweky01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Otto Lopez strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 0,
+      "home_score": 0,
+      "batter": "Otto Lopez",
+      "batter_id": "lopezot01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Stolen Base 3B"
+        },
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Xavier Edwards doubles (6) on a sharp line drive to right fielder Jung Hoo Lee. Jakob Marsee scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 1,
+      "home_score": 0,
+      "batter": "Xavier Edwards",
+      "batter_id": "edwarxa01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        },
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Home Run",
+      "event_type": "home_run",
+      "description": "Liam Hicks homers (5) on a fly ball to right center field. Xavier Edwards scores.",
+      "rbi": 2,
+      "is_scoring_play": true,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Liam Hicks",
+      "batter_id": "hicksli01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Liam Hicks",
+          "player_id": "hicksli01",
+          "start": null,
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        },
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": "2B",
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Agust\u00edn Ram\u00edrez lines out to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Agust\u00edn Ram\u00edrez",
+      "batter_id": "ramirag01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Willy Adames strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Luis Arraez singles on a line drive to left fielder Kyle Stowers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Matt Chapman singles on a fly ball to center fielder Jakob Marsee. Luis Arraez to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 1,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Grounded Into DP",
+      "event_type": "grounded_into_double_play",
+      "description": "Rafael Devers grounds into a double play, second baseman Xavier Edwards to shortstop Otto Lopez to first baseman Connor Norby. Matt Chapman out at 2nd. Rafael Devers out at 1st.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": "1B",
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        },
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Owen Caissie doubles (6) on a line drive to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 3,
+      "home_score": 0,
+      "batter": "Owen Caissie",
+      "batter_id": "caissow01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Graham Pauley singles on a line drive to center fielder Drew Gilbert. Owen Caissie scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Graham Pauley",
+      "batter_id": "paulegr01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": "2B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Grounded Into DP",
+      "event_type": "grounded_into_double_play",
+      "description": "Connor Norby grounds into a double play, second baseman Luis Arraez to shortstop Willy Adames to first baseman Rafael Devers. Graham Pauley out at 2nd. Connor Norby out at 1st.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Connor Norby",
+      "batter_id": "norbyco01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": "1B",
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        },
+        {
+          "name": "Connor Norby",
+          "player_id": "norbyco01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Grounded Into DP"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Jakob Marsee called out on strikes.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt flies out to left fielder Kyle Stowers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Jung Hoo Lee singles on a line drive to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Heliot Ramos strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 2,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Drew Gilbert grounds out to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Kyle Stowers doubles (2) on a sharp ground ball to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Kyle Stowers",
+      "batter_id": "stoweky01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Otto Lopez grounds out, shortstop Willy Adames to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Otto Lopez",
+      "batter_id": "lopezot01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Xavier Edwards singles on a ground ball to right fielder Jung Hoo Lee. Kyle Stowers to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 4,
+      "home_score": 0,
+      "batter": "Xavier Edwards",
+      "batter_id": "edwarxa01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Sac Fly",
+      "event_type": "sac_fly",
+      "description": "Liam Hicks out on a sacrifice fly to left fielder Heliot Ramos. Kyle Stowers scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Liam Hicks",
+      "batter_id": "hicksli01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Liam Hicks",
+          "player_id": "hicksli01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Sac Fly"
+        },
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Sac Fly"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Agust\u00edn Ram\u00edrez grounds out softly, pitcher Adrian Houser to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Agust\u00edn Ram\u00edrez",
+      "batter_id": "ramirag01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Eric Haase grounds out, second baseman Xavier Edwards to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Eric Haase",
+      "batter_id": "haaseer01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Eric Haase",
+          "player_id": "haaseer01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Willy Adames grounds out, third baseman Graham Pauley to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 3,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Luis Arraez lines out to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Owen Caissie walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Owen Caissie",
+      "batter_id": "caissow01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Graham Pauley singles on a sharp line drive to right fielder Jung Hoo Lee. Owen Caissie to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 5,
+      "home_score": 0,
+      "batter": "Graham Pauley",
+      "batter_id": "paulegr01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Home Run",
+      "event_type": "home_run",
+      "description": "Connor Norby homers (3) on a fly ball to center field. Owen Caissie scores. Graham Pauley scores.",
+      "rbi": 3,
+      "is_scoring_play": true,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Connor Norby",
+      "batter_id": "norbyco01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Connor Norby",
+          "player_id": "norbyco01",
+          "start": null,
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        },
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": "2B",
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        },
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": "1B",
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Jakob Marsee grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Kyle Stowers singles on a ground ball to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Kyle Stowers",
+      "batter_id": "stoweky01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Otto Lopez singles on a sharp line drive to center fielder Drew Gilbert. Kyle Stowers to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Otto Lopez",
+      "batter_id": "lopezot01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Xavier Edwards flies out to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Xavier Edwards",
+      "batter_id": "edwarxa01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Liam Hicks lines out sharply to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Liam Hicks",
+      "batter_id": "hicksli01",
+      "pitcher": "Adrian Houser",
+      "pitcher_id": "housead01",
+      "runners": [
+        {
+          "name": "Liam Hicks",
+          "player_id": "hicksli01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Matt Chapman grounds out softly, pitcher Sandy Alcantara to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Rafael Devers grounds out, second baseman Xavier Edwards to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 4,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt grounds out, pitcher Sandy Alcantara to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Agust\u00edn Ram\u00edrez grounds out, shortstop Willy Adames to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Agust\u00edn Ram\u00edrez",
+      "batter_id": "ramirag01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Owen Caissie strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Owen Caissie",
+      "batter_id": "caissow01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Graham Pauley strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Graham Pauley",
+      "batter_id": "paulegr01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Jung Hoo Lee flies out to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Heliot Ramos doubles (5) on a ground ball to left fielder Kyle Stowers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 0,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Drew Gilbert singles on a line drive to center fielder Jakob Marsee. Heliot Ramos scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 8,
+      "home_score": 1,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": "2B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Eric Haase doubles (1) on a line drive to right fielder Owen Caissie. Drew Gilbert scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 8,
+      "home_score": 2,
+      "batter": "Eric Haase",
+      "batter_id": "haaseer01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Eric Haase",
+          "player_id": "haaseer01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        },
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": "1B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Double"
+        },
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Willy Adames grounds out to first baseman Connor Norby. Eric Haase to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 2,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        },
+        {
+          "name": "Eric Haase",
+          "player_id": "haaseer01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Luis Arraez singles on a line drive to left fielder Kyle Stowers. Eric Haase scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 8,
+      "home_score": 3,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Eric Haase",
+          "player_id": "haaseer01",
+          "start": "3B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 5,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Matt Chapman grounds out, shortstop Otto Lopez to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 3,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Stolen Base 2B"
+        },
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Connor Norby grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 3,
+      "batter": "Connor Norby",
+      "batter_id": "norbyco01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Connor Norby",
+          "player_id": "norbyco01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Jakob Marsee lines out to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 3,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Kyle Stowers doubles (3) on a sharp fly ball to right fielder Jung Hoo Lee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 8,
+      "home_score": 3,
+      "batter": "Kyle Stowers",
+      "batter_id": "stoweky01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Otto Lopez singles on a line drive to left fielder Heliot Ramos. Kyle Stowers scores.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Otto Lopez",
+      "batter_id": "lopezot01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": "2B",
+          "end": "score",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Xavier Edwards singles on a sharp ground ball to right fielder Jung Hoo Lee. Otto Lopez to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Xavier Edwards",
+      "batter_id": "edwarxa01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Liam Hicks strikes out on a foul tip.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Liam Hicks",
+      "batter_id": "hicksli01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Stolen Base 2B"
+        },
+        {
+          "name": "Liam Hicks",
+          "player_id": "hicksli01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Rafael Devers strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Casey Schmitt singles on a line drive to right fielder Owen Caissie.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Jung Hoo Lee singles on a ground ball to shortstop Otto Lopez. Casey Schmitt out at 3rd, shortstop Otto Lopez to second baseman Xavier Edwards.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Single"
+        },
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": "2B",
+          "end": null,
+          "is_out": true,
+          "event": "Runner Out"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Heliot Ramos challenged (pitch result), call on the field was overturned: Heliot Ramos walks. Jung Hoo Lee to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 6,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Drew Gilbert strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Drew Gilbert",
+      "batter_id": "gilbedr01",
+      "pitcher": "Sandy Alcantara",
+      "pitcher_id": "alcansa01",
+      "runners": [
+        {
+          "name": "Drew Gilbert",
+          "player_id": "gilbedr01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Agust\u00edn Ram\u00edrez flies out to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Agust\u00edn Ram\u00edrez",
+      "batter_id": "ramirag01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Owen Caissie grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Owen Caissie",
+      "batter_id": "caissow01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Owen Caissie",
+          "player_id": "caissow01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Graham Pauley walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Graham Pauley",
+      "batter_id": "paulegr01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Graham Pauley",
+          "player_id": "paulegr01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Pop Out",
+      "event_type": "field_out",
+      "description": "Connor Norby pops out to shortstop Willy Adames.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Connor Norby",
+      "batter_id": "norbyco01",
+      "pitcher": "JT Brubaker",
+      "pitcher_id": "brubajt01",
+      "runners": [
+        {
+          "name": "Connor Norby",
+          "player_id": "norbyco01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Pop Out"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Eric Haase flies out to right fielder Owen Caissie.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Eric Haase",
+      "batter_id": "haaseer01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Eric Haase",
+          "player_id": "haaseer01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Willy Adames flies out to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Luis Arraez singles on a line drive to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 7,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Matt Chapman grounds out, second baseman Xavier Edwards to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Matt Chapman",
+      "batter_id": "chapmma01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Matt Chapman",
+          "player_id": "chapmma01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Jakob Marsee grounds out, second baseman Luis Arraez to pitcher Caleb Kilian.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "Caleb Kilian",
+      "pitcher_id": "kiliaca01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Kyle Stowers grounds out, second baseman Luis Arraez to first baseman Rafael Devers.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Kyle Stowers",
+      "batter_id": "stoweky01",
+      "pitcher": "Caleb Kilian",
+      "pitcher_id": "kiliaca01",
+      "runners": [
+        {
+          "name": "Kyle Stowers",
+          "player_id": "stoweky01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Single",
+      "event_type": "single",
+      "description": "Otto Lopez singles on a ground ball to center fielder Drew Gilbert.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Otto Lopez",
+      "batter_id": "lopezot01",
+      "pitcher": "Caleb Kilian",
+      "pitcher_id": "kiliaca01",
+      "runners": [
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Single"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Xavier Edwards walks. Otto Lopez to 2nd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Xavier Edwards",
+      "batter_id": "edwarxa01",
+      "pitcher": "Caleb Kilian",
+      "pitcher_id": "kiliaca01",
+      "runners": [
+        {
+          "name": "Otto Lopez",
+          "player_id": "lopezot01",
+          "start": "1B",
+          "end": "2B",
+          "is_out": false,
+          "event": "Walk"
+        },
+        {
+          "name": "Xavier Edwards",
+          "player_id": "edwarxa01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Liam Hicks lines out to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Liam Hicks",
+      "batter_id": "hicksli01",
+      "pitcher": "Caleb Kilian",
+      "pitcher_id": "kiliaca01",
+      "runners": [
+        {
+          "name": "Liam Hicks",
+          "player_id": "hicksli01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Rafael Devers strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Rafael Devers",
+      "batter_id": "deverra01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Rafael Devers",
+          "player_id": "deverra01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Casey Schmitt flies out to center fielder Jakob Marsee.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 3,
+      "batter": "Casey Schmitt",
+      "batter_id": "schmica01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Casey Schmitt",
+          "player_id": "schmica01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Home Run",
+      "event_type": "home_run",
+      "description": "Jung Hoo Lee homers (2) on a fly ball to right field.",
+      "rbi": 1,
+      "is_scoring_play": true,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Jung Hoo Lee",
+      "batter_id": "leeju01",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Jung Hoo Lee",
+          "player_id": "leeju01",
+          "start": null,
+          "end": "score",
+          "is_out": false,
+          "event": "Home Run"
+        }
+      ]
+    },
+    {
+      "inning": 8,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Heliot Ramos grounds out, shortstop Otto Lopez to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Heliot Ramos",
+      "batter_id": "ramoshe02",
+      "pitcher": "Lake Bachar",
+      "pitcher_id": "bachala01",
+      "runners": [
+        {
+          "name": "Heliot Ramos",
+          "player_id": "ramoshe02",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 0,
+      "event": "Double",
+      "event_type": "double",
+      "description": "Agust\u00edn Ram\u00edrez doubles (5) on a sharp ground ball to left fielder Heliot Ramos.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Agust\u00edn Ram\u00edrez",
+      "batter_id": "ramirag01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": null,
+          "end": "2B",
+          "is_out": false,
+          "event": "Double"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Pop Out",
+      "event_type": "field_out",
+      "description": "Heriberto Hern\u00e1ndez pops out to first baseman Rafael Devers in foul territory.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Heriberto Hern\u00e1ndez",
+      "batter_id": "hernahe01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Heriberto Hern\u00e1ndez",
+          "player_id": "hernahe01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Pop Out"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 1,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Javier Sanoja walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Javier Sanoja",
+      "batter_id": "sanojja01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Javier Sanoja",
+          "player_id": "sanojja01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 2,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Connor Norby flies out to center fielder Drew Gilbert. Agust\u00edn Ram\u00edrez to 3rd.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Connor Norby",
+      "batter_id": "norbyco01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Connor Norby",
+          "player_id": "norbyco01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        },
+        {
+          "name": "Agust\u00edn Ram\u00edrez",
+          "player_id": "ramirag01",
+          "start": "2B",
+          "end": "3B",
+          "is_out": false,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "top",
+      "batting_team": "MIA",
+      "pitching_team": "SF",
+      "outs_before": 3,
+      "event": "Lineout",
+      "event_type": "field_out",
+      "description": "Jakob Marsee lines out to second baseman Luis Arraez.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Jakob Marsee",
+      "batter_id": "marseja01",
+      "pitcher": "Ryan Borucki",
+      "pitcher_id": "borucry01",
+      "runners": [
+        {
+          "name": "Jakob Marsee",
+          "player_id": "marseja01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Lineout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 0,
+      "event": "Walk",
+      "event_type": "walk",
+      "description": "Jerar Encarnacion walks.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Jerar Encarnacion",
+      "batter_id": "encarje01",
+      "pitcher": "John King",
+      "pitcher_id": "kingjo01",
+      "runners": [
+        {
+          "name": "Jerar Encarnacion",
+          "player_id": "encarje01",
+          "start": null,
+          "end": "1B",
+          "is_out": false,
+          "event": "Walk"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 1,
+      "event": "Flyout",
+      "event_type": "field_out",
+      "description": "Christian Koss flies out to right fielder Esteury Ruiz.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Christian Koss",
+      "batter_id": "kossch01",
+      "pitcher": "John King",
+      "pitcher_id": "kingjo01",
+      "runners": [
+        {
+          "name": "Christian Koss",
+          "player_id": "kossch01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Flyout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 2,
+      "event": "Strikeout",
+      "event_type": "strikeout",
+      "description": "Willy Adames strikes out swinging.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Willy Adames",
+      "batter_id": "adamewi01",
+      "pitcher": "John King",
+      "pitcher_id": "kingjo01",
+      "runners": [
+        {
+          "name": "Willy Adames",
+          "player_id": "adamewi01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Strikeout"
+        }
+      ]
+    },
+    {
+      "inning": 9,
+      "half": "bottom",
+      "batting_team": "SF",
+      "pitching_team": "MIA",
+      "outs_before": 3,
+      "event": "Groundout",
+      "event_type": "field_out",
+      "description": "Luis Arraez grounds out, third baseman Javier Sanoja to first baseman Connor Norby.",
+      "rbi": 0,
+      "is_scoring_play": false,
+      "away_score": 9,
+      "home_score": 4,
+      "batter": "Luis Arraez",
+      "batter_id": "arraelu01",
+      "pitcher": "John King",
+      "pitcher_id": "kingjo01",
+      "runners": [
+        {
+          "name": "Luis Arraez",
+          "player_id": "arraelu01",
+          "start": null,
+          "end": null,
+          "is_out": true,
+          "event": "Groundout"
+        }
+      ]
+    }
+  ],
+  "footer_summary": {}
+}

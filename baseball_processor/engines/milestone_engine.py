@@ -144,6 +144,7 @@ class MilestoneEngine:
                 doubles = self.get_enhanced_stat_count(player, team_type, '2B', '2B')
                 triples = self.get_enhanced_stat_count(player, team_type, '3B', '3B')
                 home_runs = self.get_enhanced_stat_count(player, team_type, 'HR', 'HR')
+                stolen_bases = self.get_enhanced_stat_count(player, team_type, 'SB', 'SB')
                 hits = player.get('H', 0)
                 rbi = player.get('RBI', 0)
                 singles = hits - (doubles + triples + home_runs)
@@ -159,6 +160,7 @@ class MilestoneEngine:
                     'doubles': doubles,
                     'triples': triples,
                     'home_runs': home_runs, 
+                    'sb': stolen_bases,
                     'hits': hits,
                     'rbi': rbi,
                     # Add complete batting line for enhanced milestone display

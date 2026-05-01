@@ -35,6 +35,16 @@ Thumbs.db
 # Generated outputs
 MLB Game Passport - BREF.html
 MLB Game Passport - BREF.xlsx
+data.json
+data/
+bref_download.log
+tmp*.xlsx
+*.tmp
+
+# Downloaded/raw game artifacts that should live in ignored input folders
+/*.pdf
+/Gameday_*.html
+/MLB Gameday_*.html
 
 # Data directories
 Current Season Games/

@@ -1500,7 +1500,7 @@ class MilestonesProcessor(BaseProcessor):
 class PracticalMilestoneEnhancer:
     """Enhance milestone tabs with useful information without over-complication."""
 
-    HITTING_STAT_KEYS = ["AB", "H", "R", "RBI", "HR", "2B", "3B", "BB", "SO"]
+    HITTING_STAT_KEYS = ["AB", "H", "R", "RBI", "HR", "2B", "3B", "BB", "SO", "SB"]
 
     def __init__(self, games):
         self.games = games
@@ -1519,7 +1519,7 @@ class PracticalMilestoneEnhancer:
 
     def _get_hitting_stats_with_fallback(self, record, game, player_name):
         """Get hitting stats: prefer preserved record stats, fallback to box score."""
-        if any(stat in record and record[stat] > 0 for stat in ["HR", "2B", "3B", "H", "RBI"]):
+        if any(stat in record and record[stat] > 0 for stat in ["HR", "2B", "3B", "H", "RBI", "SB"]):
             return {k: record.get(k, 0) for k in self.HITTING_STAT_KEYS}
         hitting = self._get_hitter_stats(game, player_name)
         return {k: hitting.get(k, 0) for k in self.HITTING_STAT_KEYS}

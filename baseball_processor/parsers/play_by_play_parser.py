@@ -342,6 +342,6 @@ def extract_play_features(play_description):
             if rbi_match:
                 features['rbi'] = int(rbi_match.group(1))
             else:
-                features['rbi'] = desc.count('scored')
+                features['rbi'] = len(re.findall(r'\b(?:scores|scored)\b', desc))
 
     return features

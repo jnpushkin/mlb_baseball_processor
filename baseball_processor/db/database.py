@@ -71,7 +71,16 @@ class Database:
                     game_type, source, raw_json, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                 ON CONFLICT(game_id) DO UPDATE SET
+                    date=excluded.date,
+                    date_yyyymmdd=excluded.date_yyyymmdd,
+                    away_team=excluded.away_team,
+                    home_team=excluded.home_team,
+                    away_team_code=excluded.away_team_code,
+                    home_team_code=excluded.home_team_code,
                     away_score=excluded.away_score, home_score=excluded.home_score,
+                    venue=excluded.venue,
+                    game_type=excluded.game_type,
+                    source=excluded.source,
                     raw_json=excluded.raw_json, updated_at=datetime('now')
             """, (
                 game_id, date, date_yyyymmdd, away_team, home_team,
@@ -91,12 +100,12 @@ class Database:
             for side in ['away', 'home']:
                 team = basic_info.get(f'{side}_team', '')
                 for batter in game_data.get('batting', {}).get(side, []):
-                    pid = batter.get('player_id', '')
+                    pid = batter.get('player_id') or None
                     name = batter.get('name', '')
                     if not name:
                         continue
                     conn.execute("""
-                        INSERT OR IGNORE INTO batting_lines
+                        INSERT INTO batting_lines
                         (game_id, player_id, player_name, team, side,
                          ab, r, h, rbi, bb, so, pa, hr, doubles, triples, sb, cs, hbp, gidp)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -114,12 +123,12 @@ class Database:
             for side in ['away', 'home']:
                 team = basic_info.get(f'{side}_team', '')
                 for idx, pitcher in enumerate(game_data.get('pitching', {}).get(side, [])):
-                    pid = pitcher.get('player_id', '')
+                    pid = pitcher.get('player_id') or None
                     name = pitcher.get('name', '')
                     if not name:
                         continue
                     conn.execute("""
-                        INSERT OR IGNORE INTO pitching_lines
+                        INSERT INTO pitching_lines
                         (game_id, player_id, player_name, team, side, pitcher_order,
                          ip, h, r, er, bb, so, hr, wins, losses, saves, game_starts)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

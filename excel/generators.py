@@ -1,62 +1,22 @@
-import pandas as pd
-import unicodedata
-import re
-from datetime import datetime
+"""Deprecated compatibility wrapper for baseball_processor.excel.generators."""
 
-from ..utils.helpers import unify_team_code, safe_get_int, safe_get_str
+from importlib import import_module as _import_module
+from warnings import warn as _warn
+
+_CANONICAL_MODULE = "baseball_processor.excel.generators"
+_warn(
+    f"{__name__} is deprecated; use {_CANONICAL_MODULE} instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+_module = _import_module(_CANONICAL_MODULE)
+__all__ = getattr(_module, "__all__", [name for name in dir(_module) if not name.startswith("_")])
+globals().update({name: getattr(_module, name) for name in __all__})
 
 
-class ExcelGeneratorUtils:
-    """Utility methods for Excel generation."""
+def __getattr__(name):
+    return getattr(_module, name)
 
-    @staticmethod
-    def finalize_date_column(df, col='Date', in_format=None, out_format="%m/%d/%Y", sort=True):
-        """Coerce df[col] to datetime, optionally with a given input format, drop invalids,
-        sort by date, and format as out_format. Returns a new DataFrame (copy)."""
-        import pandas as _pd
-        if df is None or df.empty or col not in df.columns:
-            return df
-        df2 = df.copy()
-        try:
-            if in_format:
-                df2[col] = _pd.to_datetime(df2[col], format=in_format, errors="coerce")
-            else:
-                df2[col] = _pd.to_datetime(df2[col], errors="coerce")
-            df2 = df2.dropna(subset=[col])
-            if sort:
-                df2 = df2.sort_values(col).reset_index(drop=True)
-            df2[col] = df2[col].dt.strftime(out_format)
-            return df2
-        except Exception:
-            return df
 
-    @staticmethod
-    def format_score_string(basic_info: dict, max_innings: int = 9) -> str:
-        """Create standardized score string."""
-        away_code = unify_team_code(basic_info.get('away_team_code', 'UNK'))
-        home_code = unify_team_code(basic_info.get('home_team_code', 'UNK'))
-        away_score = safe_get_int(basic_info, 'away_score_value', 0)
-        home_score = safe_get_int(basic_info, 'home_score_value', 0)
-        
-        score_str = f"{away_code} {away_score} – {home_score} {home_code}"
-        if max_innings != 9:
-            score_str += f" ({max_innings})"
-        return score_str
-    
-    @staticmethod
-    def extract_stat_counts(blob: str):
-        """Parse footer lines like 'Player Name 3 (10, off ...)' → [('Player Name', 3)]"""
-        results = []
-        if not blob:
-            return results
-        for part in blob.split(";"):
-            part = unicodedata.normalize("NFKD", part.replace("\u00a0", " ")).strip() 
-            if not part:
-                continue
-            match = re.match(r"(.+?)\s*(\d+)?\s*\(", part)
-            if match:
-                name = match.group(1).strip()
-                count = int(match.group(2)) if match.group(2) else 1
-                results.append((name, count))
-        return results
-
+def __dir__():
+    return sorted(set(globals()) | set(dir(_module)))

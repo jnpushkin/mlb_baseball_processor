@@ -34,7 +34,7 @@ SUMMARY_SCORE_WIDTH = 25
 
 # Enhanced HOF Columns
 ENHANCED_HOF_COLUMNS = [
-    'Name', 'Year Inducted', 'Position(s)', 'Teams in Games', 'Games Seen',
+    'Name', 'Player ID', 'Year Inducted', 'Position(s)', 'Teams in Games', 'Games Seen',
     'First Game', 'Last Game', 'Span',
     'AB', 'H', 'HR', 'RBI', 'AVG',      # Hitting stats
     'IP', 'W', 'L', 'ERA', 'SO_P',      # Pitching stats
@@ -228,6 +228,9 @@ def process_all_game_data(games, debut_entries, hof_df):
         
         # Debut and final game detection
         mlb_debut_rows, final_game_rows = process_career_milestones(games, debut_entries, all_players)
+
+        # Hall of Famers seen, shared by Excel and website outputs
+        hofers_seen = create_enhanced_hof_dataframe(hof_df, hitters, pitchers, all_players, milestones)
         
         return {
             'game_log': game_log,
@@ -245,6 +248,7 @@ def process_all_game_data(games, debut_entries, hof_df):
             'df_matchups': df_matchups,
             'mlb_debut_rows': mlb_debut_rows,
             'final_game_rows': final_game_rows,
+            'hofers_seen': hofers_seen,
             'b2b_only_df': b2b_only_df,
             'b2b2b_only_df': b2b2b_only_df,
             'b2b2b2b_only_df': b2b2b2b_only_df,
@@ -301,12 +305,17 @@ def create_enhanced_hof_dataframe(hof_df, hitters, pitchers, all_players, milest
             player_name = hof_player['Name']
             
             # Get game IDs
-            player_games = combined_lookup[combined_lookup['PlayerID'] == player_id]['GameIDs'].iloc[0] if not combined_lookup[combined_lookup['PlayerID'] == player_id].empty else ""
+            matching_games = combined_lookup[combined_lookup['PlayerID'] == player_id]['GameIDs']
+            player_game_ids = []
+            for game_ids in matching_games.dropna():
+                player_game_ids.extend([g.strip() for g in str(game_ids).split(',') if g.strip()])
+            player_games = join_sorted_gameids(player_game_ids)
             game_count = len(player_games.split(',')) if player_games.strip() else 0
             
             # Initialize row data
             row = {
                 'Name': player_name,
+                'Player ID': player_id,
                 'Year Inducted': hof_player.get('Year', ''),
                 'Position(s)': '',
                 'Teams in Games': '',
@@ -670,7 +679,7 @@ def write_milestone_sheets(xl, data, workbook, colors):
     try:
         milestone_order = [
             "Game Log", "Walk-Offs", "Leadoff HRs", "Grand Slams", "4+ Hit Games",
-            "5+ RBI Games", "Multi-HR Games", "Pinch Hit HRs", "Consecutive HR Instances", 
+            "5+ RBI Games", "Multi-HR Games", "Multi-SB Games", "Pinch Hit HRs", "Consecutive HR Instances",
             "3 Pitch Innings", "3 Strikeout Innings", "Immaculate Innings",
             "10+ K Games", "Complete Games & Shutouts", "Quality Starts",
             "Cycles", "No-Hitters", "Inside-the-Park HRs"

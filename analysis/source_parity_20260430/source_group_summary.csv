@@ -1,0 +1,7 @@
+group,games,batters,pitchers,games_with_milestones,stored_milestone_events,recomputed_milestone_events,milestone_count_mismatches,missing_basic,missing_batter,missing_pitcher
+legacy_bref_unknown,231,6696,1915,190,418,1546,231,{},"{""2B"": 6696, ""3B"": 6696, ""HR"": 6696, ""SB"": 6696}",{}
+mlb_regular,12,243,81,10,54,60,2,{},{},{}
+mlb_spring,12,410,184,0,0,26,6,{},{},{}
+pdf_spring,2,0,0,0,0,0,0,{},{},{}
+unknown_postseason,2,54,12,2,14,14,0,{},"{""2B"": 54, ""3B"": 54, ""HR"": 54, ""SB"": 54}",{}
+unknown_regular,14,402,123,14,84,85,1,{},"{""2B"": 402, ""3B"": 402, ""HR"": 402, ""SB"": 402}",{}

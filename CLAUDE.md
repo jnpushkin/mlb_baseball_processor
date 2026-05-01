@@ -81,10 +81,12 @@ ABS challenge data sourced from Baseball Savant gamefeed API (more complete than
 
 ### Web Server (Add Games from Browser/Phone)
 ```bash
-python3 -m baseball_processor.server              # Start on port 5555
+python3 -m baseball_processor.server              # Local-only on port 5555
 python3 -m baseball_processor.server --port 8080   # Custom port
+python3 -m baseball_processor.server --lan         # Allow phone access on same wifi
+python3 -m baseball_processor.server --token abc   # Use a stable add-game token
 ```
-Opens a web UI at `http://localhost:5555` (or `http://<mac-ip>:5555` from phone on same wifi). Browse dates, tap a game to add it, auto-processes and deploys.
+Opens a web UI at the printed tokenized local URL. Use `--lan` for the printed phone URL. Browse dates, tap a game to add it, auto-processes and deploys.
 
 ### Add Game via MLB API
 ```bash
@@ -126,7 +128,8 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 - `baseball_processor/engines/all_time_passing_engine.py` - All-time list passing detection
 - `baseball_processor/parsers/html_parser.py` - BREF HTML parsing
 - `baseball_processor/parsers/mlb_api_parser.py` - MLB Stats API parsing (pitch data, hit data, umpires, ABS, lineups)
-- `baseball_processor/website/react_app.py` - Website generation (React, ~8000 lines)
+- `baseball_processor/website/react_app.py` - Assembles the generated React app from ordered chunks
+- `baseball_processor/website/react_chunks/` - React source chunks for the generated static website
 - `baseball_processor/website/serializers.py` - Data serialization to JSON
 - `baseball_processor/scrapers/career_firsts_scraper.py` - Career milestone scraper
 - `baseball_processor/scrapers/all_time_leaders_scraper.py` - All-time leaderboard scraper
@@ -139,13 +142,20 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 ## Architecture Notes
 - Milestone detection uses tiered pattern (only highest tier reported per category)
 - Career milestones track every 100 (e.g., Hit #100, #200, #300... up to #4000)
-- Website is a single-file React app (10 tabs, 21 subtabs) embedded in Python strings
+- Website output is a static React app (10 tabs, 21 subtabs) assembled from `website/react_chunks/` and embedded into the generated HTML
 - All-time passing detection distinguishes "tied" vs "passed" events
 - Game deduplication by date+teams (prevents BREF + API duplicates)
 - Sports-Reference sites hide tables in HTML comments - must extract with BeautifulSoup Comment class
 - MLB API game IDs start with 'M' prefix (e.g., MSF202603230), BREF IDs don't (e.g., SFN202603230)
 - Spring training games excluded from cumulative stat badges but included in game log
 - Player bios cached in `cache/player_bios.json` (fetched from MLB API)
+
+## Local Website Review
+```bash
+python3 -m baseball_processor --from-cache-only --skip-debut-update --website-only --no-deploy --no-emoji
+python3 -m http.server 8765
+```
+Open `http://127.0.0.1:8765/MLB%20Game%20Passport%20-%20BREF.html`. Keep `data.json` beside the HTML file.
 
 ## Website Structure (10 tabs)
 1. **Dashboard** - Overview stats, charts, trends

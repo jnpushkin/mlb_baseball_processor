@@ -72,6 +72,8 @@ mlb_baseball_processor/
 │   └── stat_utils.py
 ├── website/             # Website generation
 │   ├── generator.py
+│   ├── react_app.py
+│   ├── react_chunks/    # Ordered React source chunks assembled into the static app
 │   ├── serializers.py
 │   └── templates.py
 └── main.py             # Main entry point
@@ -98,6 +100,23 @@ cd mlb_baseball_processor
 pip install -r requirements.txt
 ```
 
+## Testing
+
+Preferred test command after installing requirements:
+```bash
+python3 -m pytest
+```
+
+Local quality gate:
+```bash
+scripts/check.sh
+```
+
+No-extra-install fallback:
+```bash
+python3 -m unittest discover -s tests
+```
+
 ## Usage
 
 1. Place Baseball Reference HTML files for games you've attended in the input directory (e.g., `Current Season Games/`)
@@ -108,6 +127,15 @@ python3 -m baseball_processor "Current Season Games"
 3. Generated outputs:
    - Excel workbook: `MLB Game Passport - BREF.xlsx`
    - Interactive website: `MLB Game Passport - BREF.html`
+   - Website data payload: `data.json`
+
+The website shell and `data.json` are intentionally generated at the project root by default so local review and auto-deploy can serve them together. Temporary workbooks, logs, and generated payloads are ignored by Git unless they are intentional fixtures.
+
+For local website review, serve the project root and open the generated HTML:
+```bash
+python3 -m http.server 8765
+```
+Then visit `http://127.0.0.1:8765/MLB%20Game%20Passport%20-%20BREF.html`.
 
 ### Command Line Options
 
