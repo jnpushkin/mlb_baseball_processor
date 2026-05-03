@@ -440,14 +440,167 @@ const Dashboard = ({ data, onTabChange }) => {
         ].filter(Boolean);
     }, [data.playerGames, data.pitcherGames]);
 
+    const latestGame = recentGames[0] || null;
+    const latestGameId = latestGame?.gameId;
+    const openGame = (game) => {
+        if (!game?.gameId) return;
+        window._pendingGameId = game.gameId;
+        if (onTabChange) onTabChange('gamelog');
+    };
+
+    const latestGameHighlights = useMemo(() => {
+        if (!latestGameId) return [];
+        const firsts = data.careerFirstsByGame?.[latestGameId] || [];
+        const passings = data.allTimePassingsByGame?.[latestGameId] || [];
+        const keyPlays = latestGame?.keyPlays || [];
+        const items = [];
+        if (firsts.length) {
+            items.push({
+                label: 'Career milestones',
+                value: firsts.length,
+                detail: firsts.slice(0, 2).map(f => `${getLastName(f.player_name)} ${shortenMilestone(f.milestone)}`).join(', ')
+            });
+        }
+        if (passings.length) {
+            items.push({
+                label: 'All-time movement',
+                value: passings.length,
+                detail: passings.slice(0, 2).map(p => `${getLastName(p.player_name)} #${p.new_rank} ${p.stat_name}`).join(', ')
+            });
+        }
+        if (keyPlays.length) {
+            items.push({
+                label: 'Key plays',
+                value: keyPlays.length,
+                detail: keyPlays.slice(0, 2).map(p => `${p.batter} ${p.type === 'grand_slam' ? 'grand slam' : 'HR'}`).join(', ')
+            });
+        }
+        if (latestGame?.weather) {
+            items.push({ label: 'Conditions', value: latestGame.temperature ? `${latestGame.temperature}°F` : 'Weather', detail: latestGame.weather });
+        }
+        return items.slice(0, 4);
+    }, [latestGameId, latestGame, data.careerFirstsByGame, data.allTimePassingsByGame]);
+
+    const recentMomentCards = useMemo(() => {
+        const moments = [];
+        (data.careerFirsts || []).forEach(m => moments.push({
+            kind: 'Milestone',
+            tone: 'amber',
+            title: m.milestone,
+            person: m.player_name,
+            date: m.date_display || m.date,
+            sortDate: m.date,
+            gameId: m.game_id
+        }));
+        (data.allTimePassings || []).forEach(p => moments.push({
+            kind: 'History',
+            tone: 'purple',
+            title: `#${p.new_rank} all-time in ${p.stat_name}`,
+            person: p.player_name,
+            date: p.date_display || p.date,
+            sortDate: p.date,
+            gameId: p.game_id
+        }));
+        (data.debuts || []).forEach(d => moments.push({
+            kind: 'Debut',
+            tone: 'green',
+            title: `MLB debut${d.team ? ` with ${d.team}` : ''}`,
+            person: d.player,
+            date: d.date,
+            sortDate: d.date,
+            gameId: d.gameId
+        }));
+        return moments
+            .filter(m => m.person || m.title)
+            .sort((a, b) => toSortDate(b.sortDate).localeCompare(toSortDate(a.sortDate)))
+            .slice(0, 6);
+    }, [data.careerFirsts, data.allTimePassings, data.debuts]);
+
+    const momentTone = {
+        amber: 'bg-amber-50 text-amber-800 border-amber-200',
+        purple: 'bg-purple-50 text-purple-800 border-purple-200',
+        green: 'bg-emerald-50 text-emerald-800 border-emerald-200'
+    };
+
     return (
         <div className="space-y-6">
+            {latestGame && (
+                <section className="bg-white rounded-lg border border-slate-200 overflow-hidden" style={{ boxShadow: 'var(--shadow)' }}>
+                    <div className="p-5 bg-gradient-to-r from-slate-900 to-blue-900 text-white">
+                        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                            <div>
+                                <div className="small-text uppercase tracking-wide text-blue-100 font-semibold mb-1">Latest game</div>
+                                <h2 className="text-2xl font-bold tracking-tight">{latestGame.awayTeam} @ {latestGame.homeTeam}</h2>
+                                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 body-text text-blue-100">
+                                    <span>{latestGame.date}</span>
+                                    <span>{latestGame.venue}</span>
+                                    {latestGame.startTime && <span>{latestGame.startTime}</span>}
+                                    {latestGame.gameType === 'spring' && <span className="px-2 py-0.5 bg-white/15 rounded text-xs font-semibold text-white">Spring Training</span>}
+                                    {latestGame.gameType === 'postseason' && <span className="px-2 py-0.5 bg-yellow-400/25 rounded text-xs font-semibold text-white">Postseason</span>}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                    <div className="small-text uppercase tracking-wide text-blue-100 font-semibold">Final</div>
+                                    <div className="text-3xl font-bold font-mono">{latestGame.score}</div>
+                                </div>
+                                <button onClick={() => openGame(latestGame)} className="px-4 py-2 bg-white text-blue-900 rounded-lg body-text font-bold hover:bg-blue-50">
+                                    Open recap
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {latestGameHighlights.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                            {latestGameHighlights.map((item, i) => (
+                                <button key={`latest-highlight-${i}`} onClick={() => openGame(latestGame)} className="text-left p-4 hover:bg-slate-50">
+                                    <div className="small-text text-slate-500 font-semibold uppercase tracking-wide">{item.label}</div>
+                                    <div className="mt-1 text-xl font-bold text-slate-900">{item.value}</div>
+                                    <div className="small-text text-slate-500 mt-1 truncate">{item.detail}</div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </section>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard title="Games" value={data.games?.length || 0} color="blue" onClick={() => onTabChange && onTabChange('gamelog')} />
                 <StatCard title="Players" value={data.players?.length || 0} color="green" onClick={() => onTabChange && onTabChange('players')} />
                 <StatCard title="Milestones" value={data.milestones?.length || 0} color="purple" onClick={() => onTabChange && onTabChange('milestones')} />
                 <StatCard title="Teams" value={data.teams?.length || 0} color="orange" onClick={() => onTabChange && onTabChange('venues')} />
             </div>
+
+            {recentMomentCards.length > 0 && (
+                <section className="bg-white rounded-lg border border-slate-200 p-5" style={{ boxShadow: 'var(--shadow)' }}>
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h3 className="subsection-title font-bold text-slate-900">Recent Notable Moments</h3>
+                            <p className="small-text text-slate-500 mt-1">Milestones, debuts, and all-time list movement from the latest games.</p>
+                        </div>
+                        <button onClick={() => onTabChange && onTabChange('milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium shrink-0">View all →</button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {recentMomentCards.map((m, i) => (
+                            <button
+                                key={`recent-moment-${m.gameId || i}-${i}`}
+                                onClick={() => {
+                                    if (m.gameId) {
+                                        window._pendingGameId = m.gameId;
+                                        if (onTabChange) onTabChange('gamelog');
+                                    }
+                                }}
+                                className={`text-left rounded-lg border p-3 hover:shadow-sm ${momentTone[m.tone] || momentTone.amber}`}
+                            >
+                                <div className="small-text font-bold uppercase tracking-wide opacity-80">{m.kind}</div>
+                                <div className="body-text font-bold mt-1">{m.person}</div>
+                                <div className="small-text mt-1">{m.title}</div>
+                                <div className="small-text opacity-70 mt-2">{m.date}</div>
+                            </button>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Recent Games + Statcast Records */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -44,14 +44,14 @@ CODE = r'''const BadgeCell = ({ badges, badgeColors, onBadgeClick }) => {
     return (
         <div
             ref={anchorRef}
-            className="relative flex flex-wrap gap-1 max-w-sm"
+            className="relative flex flex-wrap gap-1 min-w-[16rem] max-w-[26rem]"
             onMouseEnter={hasOverflow ? openPopup : undefined}
             onMouseLeave={hasOverflow ? closePopupSoon : undefined}
         >
             {badges.slice(0, MAX_INLINE).map((badge, i) => (
                 <span
                     key={`${badge.type}-${badge.text}-${i}`}
-                    className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${onBadgeClick ? 'cursor-pointer hover:ring-1 hover:ring-blue-300' : ''} ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`}
+                    className={`inline-block max-w-[13rem] overflow-hidden text-ellipsis align-bottom px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${onBadgeClick ? 'cursor-pointer hover:ring-1 hover:ring-blue-300' : ''} ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`}
                     title={badge.title}
                     onClick={onBadgeClick ? handleBadgeClick(badge) : undefined}
                 >
@@ -65,7 +65,7 @@ CODE = r'''const BadgeCell = ({ badges, badgeColors, onBadgeClick }) => {
             )}
             {hasOverflow && open && ReactDOM.createPortal(
                 <div
-                    className="fixed z-50 bg-white rounded-lg shadow-lg border p-2 max-w-md"
+                    className="fixed z-50 bg-white rounded-lg shadow-lg border p-2 max-w-lg"
                     style={{ top: pos.top, left: pos.left }}
                     onMouseEnter={openPopup}
                     onMouseLeave={closePopupSoon}
@@ -74,7 +74,7 @@ CODE = r'''const BadgeCell = ({ badges, badgeColors, onBadgeClick }) => {
                     <div className="flex flex-wrap gap-1">
                         {badges.map((badge, i) => (
                             <span key={`full-${badge.type}-${badge.text}-${i}`}
-                                  className={`px-1.5 py-0.5 rounded text-xs whitespace-nowrap ${onBadgeClick ? 'cursor-pointer hover:ring-1 hover:ring-blue-300' : ''} ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`}
+                                  className={`px-1.5 py-0.5 rounded text-xs whitespace-normal ${onBadgeClick ? 'cursor-pointer hover:ring-1 hover:ring-blue-300' : ''} ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'}`}
                                   title={badge.title}
                                   onClick={onBadgeClick ? handleBadgeClick(badge) : undefined}>
                                 {badge.text}
@@ -1108,7 +1108,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                 columns={[
                     { key: 'date', label: 'Date', render: (v, row) => (
                         <div className="flex items-center gap-1.5">
-                            <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('venues', 'calendar'); }}>{v}</button>
+                            <button className="text-blue-600 hover:underline font-medium" title="Open game recap" onClick={(e) => { e.stopPropagation(); setSelectedGame(row); }}>{v}</button>
                             {row.gameType === 'spring' && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">ST</span>}
                             {row.gameType === 'postseason' && <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-semibold rounded">PS</span>}
                         </div>
@@ -1120,6 +1120,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                     {
                         key: 'badges',
                         label: 'Badges',
+                        className: 'min-w-[18rem] max-w-[30rem]',
+                        headerClassName: 'min-w-[18rem]',
                         render: (_, row) => (
                             <BadgeCell
                                 badges={allBadgesByGame[row.gameId] || []}
@@ -1131,14 +1133,15 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                     {
                         key: 'gameId',
                         label: 'Game',
+                        className: 'min-w-[8.5rem]',
                         render: (v, row) => (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 whitespace-nowrap">
                                 <GameLink gameId={v} />
                                 <button
                                     onClick={() => setSelectedGame(row)}
-                                    className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-semibold"
+                                    className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold"
                                 >
-                                    Details
+                                    Open
                                 </button>
                             </div>
                         )

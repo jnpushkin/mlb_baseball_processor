@@ -1071,21 +1071,24 @@ const PersonalRecords = ({ data }) => {
             : games.length > 3 ? `${games.length} games` : '';
 
         return (
-            <div className={`bg-white rounded-lg border hover:shadow-sm transition-all ${isExpanded ? 'border-blue-300 shadow-sm' : 'border-slate-200'}`}>
+            <div className={`bg-white rounded-lg border hover:shadow-sm transition-all overflow-hidden ${isExpanded ? 'border-blue-300 shadow-sm' : 'border-slate-200'} ${isExpanded && !compact ? 'md:col-span-2 lg:col-span-3' : ''}`}>
                 <div className={`${compact ? 'p-2.5' : 'p-3'} ${hasDetail ? 'cursor-pointer' : ''}`}
                     onClick={() => hasDetail && setExpandedRecord(isExpanded ? null : key)}>
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                            <div className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-slate-900`}>{record.record}</div>
+                            <div className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-slate-900 leading-tight`}>{record.record}</div>
                             {!isExpanded && previewText && (
-                                <div className="text-[11px] text-slate-500 mt-0.5 truncate">{previewText}</div>
+                                <div className="text-[11px] text-slate-500 mt-1 leading-snug"
+                                    style={{ display: '-webkit-box', WebkitLineClamp: compact ? 1 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {previewText}
+                                </div>
                             )}
                         </div>
-                        <div className="text-lg font-bold text-blue-600 flex-shrink-0">{record.value}</div>
+                        <div className={`${compact ? 'text-base' : 'text-xl'} font-bold text-blue-600 flex-shrink-0 leading-none`}>{record.value}</div>
                     </div>
                 </div>
                 {isExpanded && hasDetail && (
-                    <div className="px-3 pb-3 space-y-1.5 border-t pt-2">
+                    <div className="px-3 pb-3 border-t pt-3">
                         {(() => {
                             // Group details + scores into per-game blocks
                             const grouped = [];
@@ -1097,8 +1100,10 @@ const PersonalRecords = ({ data }) => {
                                 if (last && last.gameId === gameId) last.details.push(detail);
                                 else grouped.push({ details: [detail], score, game, gameId });
                             });
-                            return grouped.map((group, gi) => (
-                                <div key={gi} className="bg-slate-50 rounded p-2 text-xs">
+                            return (
+                                <div className={`grid grid-cols-1 ${grouped.length > 1 && !compact ? 'md:grid-cols-2' : ''} gap-2`}>
+                                {grouped.map((group, gi) => (
+                                <div key={gi} className="bg-slate-50 rounded-lg p-2.5 text-xs border border-slate-100">
                                     {(group.score || group.game) && (
                                         <div className="flex items-center justify-between mb-1">
                                             {group.game && (
@@ -1112,11 +1117,13 @@ const PersonalRecords = ({ data }) => {
                                     )}
                                     <div className="space-y-0.5">
                                         {group.details.map((d, di) => (
-                                            <div key={di} className="text-slate-700">{d}</div>
+                                            <div key={di} className="text-slate-700 leading-snug">{d}</div>
                                         ))}
                                     </div>
                                 </div>
-                            ));
+                                ))}
+                                </div>
+                            );
                         })()}
                         {games.length > 0 && detailParts.length === 0 && <GameButtons games={games} />}
                     </div>
@@ -1483,9 +1490,23 @@ const PersonalRecords = ({ data }) => {
                                 {label} {absSortKey === k && (absSortDir === 'asc' ? '↑' : '↓')}
                             </th>
                         );
+                        const RoleRateCell = ({ total, overturned, rate }) => {
+                            if (!total) return <span className="text-slate-400">-</span>;
+                            const resolvedRate = rate != null ? rate : Math.round(((overturned || 0) / total) * 100);
+                            const rateClass = resolvedRate >= 75 ? 'text-green-600' : resolvedRate >= 50 ? 'text-slate-700' : 'text-red-600';
+                            return (
+                                <div className="leading-tight">
+                                    <div className={`font-bold ${rateClass}`}>{resolvedRate}%</div>
+                                    <div className="text-[11px] text-slate-400">({overturned || 0}/{total})</div>
+                                </div>
+                            );
+                        };
                         return (
                         <div className="mt-3 bg-white border border-slate-200 rounded-lg p-4">
-                            <div className="text-xs font-semibold text-slate-400 uppercase mb-3">Player Challenge Leaderboard</div>
+                            <div className="mb-3">
+                                <div className="text-xs font-semibold text-slate-400 uppercase">Player Challenge Leaderboard</div>
+                                <div className="text-[11px] text-slate-500 mt-1">Role columns show success rate; small counts are overturned/challenges.</div>
+                            </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead className="bg-slate-50 border-b">
@@ -1495,9 +1516,9 @@ const PersonalRecords = ({ data }) => {
                                             <AbsHeader k="overturned" label="Overturned" />
                                             <AbsHeader k="upheld" label="Upheld" />
                                             <AbsHeader k="successRate" label="Success %" />
-                                            <AbsHeader k="asBatter" label="Batter" />
-                                            <AbsHeader k="asCatcher" label="Catcher" />
-                                            <AbsHeader k="asPitcher" label="Pitcher" />
+                                            <AbsHeader k="batterSuccessRate" label="Batter %" />
+                                            <AbsHeader k="catcherSuccessRate" label="Catcher %" />
+                                            <AbsHeader k="pitcherSuccessRate" label="Pitcher %" />
                                             <AbsHeader k="avgEdgeDistance" label="Avg Edge" />
                                         </tr>
                                     </thead>
@@ -1513,9 +1534,15 @@ const PersonalRecords = ({ data }) => {
                                                         {p.successRate}%
                                                     </span>
                                                 </td>
-                                                <td className="px-2 py-2 text-center text-slate-600">{p.asBatter || '-'}</td>
-                                                <td className="px-2 py-2 text-center text-slate-600">{p.asCatcher || '-'}</td>
-                                                <td className="px-2 py-2 text-center text-slate-600">{p.asPitcher || '-'}</td>
+                                                <td className="px-2 py-2 text-center text-slate-600">
+                                                    <RoleRateCell total={p.asBatter} overturned={p.batterOverturned} rate={p.batterSuccessRate} />
+                                                </td>
+                                                <td className="px-2 py-2 text-center text-slate-600">
+                                                    <RoleRateCell total={p.asCatcher} overturned={p.catcherOverturned} rate={p.catcherSuccessRate} />
+                                                </td>
+                                                <td className="px-2 py-2 text-center text-slate-600">
+                                                    <RoleRateCell total={p.asPitcher} overturned={p.pitcherOverturned} rate={p.pitcherSuccessRate} />
+                                                </td>
                                                 <td className="px-2 py-2 text-center text-slate-500">{p.avgEdgeDistance != null ? p.avgEdgeDistance.toFixed(3) : '-'}</td>
                                             </tr>
                                         ))}

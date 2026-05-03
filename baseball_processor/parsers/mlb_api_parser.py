@@ -901,12 +901,18 @@ def parse_hit_data(feed_data: dict, bref_id_map: dict = None) -> dict:
                     'batted_balls': [],
                 }
 
+            play_result = play.get('result', {})
+            play_about = play.get('about', {})
             batter_hits[batter_mlb_id]['batted_balls'].append({
                 'speed': hit_data.get('launchSpeed'),
                 'angle': hit_data.get('launchAngle'),
                 'distance': hit_data.get('totalDistance'),
                 'trajectory': hit_data.get('trajectory', ''),
                 'hardness': hit_data.get('hardness', ''),
+                'result': play_result.get('event') or '',
+                'description': play_result.get('description') or '',
+                'inning': play_about.get('inning'),
+                'half': play_about.get('halfInning', ''),
             })
 
     # Build summaries
@@ -921,6 +927,7 @@ def parse_hit_data(feed_data: dict, bref_id_map: dict = None) -> dict:
             if t:
                 trajectories[t] = trajectories.get(t, 0) + 1
 
+        hardest = max(balls, key=lambda b: b.get('speed') or 0) if balls else {}
         result[bdata['player_id']] = {
             'name': bdata['name'],
             'player_id': bdata['player_id'],
@@ -928,6 +935,12 @@ def parse_hit_data(feed_data: dict, bref_id_map: dict = None) -> dict:
             'maxExitVelo': round(max(speeds), 1) if speeds else None,
             'avgExitVelo': round(sum(speeds) / len(speeds), 1) if speeds else None,
             'maxDistance': round(max(distances)) if distances else None,
+            'maxExitVeloDistance': round(hardest.get('distance')) if hardest.get('distance') else None,
+            'maxExitVeloResult': hardest.get('result') or '',
+            'maxExitVeloDescription': hardest.get('description') or '',
+            'maxExitVeloInning': hardest.get('inning'),
+            'maxExitVeloHalf': hardest.get('half') or '',
+            'maxExitVeloTrajectory': hardest.get('trajectory') or '',
             'trajectories': trajectories,
         }
 

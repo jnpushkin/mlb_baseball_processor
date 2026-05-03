@@ -295,6 +295,45 @@ class DataSerializerTests(unittest.TestCase):
             serialized["weatherTiming"],
         )
 
+    def test_serialize_abs_player_stats_includes_role_success_rates(self):
+        raw_games = [
+            {
+                "game_id": "HOM202604300",
+                "abs_challenges": {
+                    "reviews": [
+                        {"challengePlayer": "Two-Way Challenger", "challengerType": "batter", "overturned": True},
+                        {"challengePlayer": "Two-Way Challenger", "challengerType": "batter", "overturned": False},
+                        {"challengePlayer": "Two-Way Challenger", "challengerType": "catcher", "overturned": True},
+                        {"challengePlayer": "Two-Way Challenger", "challengerType": "catcher", "overturned": True},
+                        {"challengePlayer": "Two-Way Challenger", "challengerType": "catcher", "overturned": False},
+                        {"challengePlayer": "Pitcher Challenger", "challengerType": "pitcher", "overturned": True},
+                    ]
+                },
+            }
+        ]
+
+        serialized = DataSerializer()._serialize_abs_player_stats(raw_games)
+        by_name = {player["name"]: player for player in serialized}
+
+        two_way = by_name["Two-Way Challenger"]
+        self.assertEqual(5, two_way["challenges"])
+        self.assertEqual(60, two_way["successRate"])
+        self.assertEqual(2, two_way["asBatter"])
+        self.assertEqual(1, two_way["batterOverturned"])
+        self.assertEqual(1, two_way["batterUpheld"])
+        self.assertEqual(50, two_way["batterSuccessRate"])
+        self.assertEqual(3, two_way["asCatcher"])
+        self.assertEqual(2, two_way["catcherOverturned"])
+        self.assertEqual(1, two_way["catcherUpheld"])
+        self.assertEqual(67, two_way["catcherSuccessRate"])
+        self.assertIsNone(two_way["pitcherSuccessRate"])
+
+        pitcher = by_name["Pitcher Challenger"]
+        self.assertEqual(1, pitcher["asPitcher"])
+        self.assertEqual(1, pitcher["pitcherOverturned"])
+        self.assertEqual(0, pitcher["pitcherUpheld"])
+        self.assertEqual(100, pitcher["pitcherSuccessRate"])
+
     def test_serialize_all_data_snapshot_counts(self):
         raw_games = [
             {

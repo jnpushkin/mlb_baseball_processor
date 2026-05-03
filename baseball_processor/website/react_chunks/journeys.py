@@ -509,15 +509,15 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                 </div>
             </div>
             {paginate && <PaginationControls page={page} setPage={setPage} totalPages={totalPages} totalItems={totalItems} />}
-            <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                <table className="w-full">
-                    <thead className="bg-slate-50 sticky top-0">
-                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
+            <div className="overflow-x-auto relative" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                <table className="w-full min-w-full">
+                    <thead className="bg-slate-50 sticky top-0 z-10 shadow-[0_1px_0_0_rgba(148,163,184,0.25)]">
+                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className={`px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100 ${col.headerClassName || ''}`} style={col.headerStyle}>{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
                     </thead>
                     <tbody className="divide-y">
                         {displayData.map((row, idx) => (
                             <tr key={row.gameId || row.id || `item-${idx}`} className={`hover:bg-blue-50 ${idx % 2 === 1 ? 'bg-slate-50/50' : ''} ${onRowClick ? 'cursor-pointer' : ''}`} onClick={() => onRowClick && onRowClick(row)}>
-                                {columns.map(col => <td key={col.key} className="px-4 py-3 body-text">{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
+                                {columns.map(col => <td key={col.key} className={`px-4 py-3 body-text align-top ${col.className || ''}`} style={col.style}>{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
                             </tr>
                         ))}
                     </tbody>

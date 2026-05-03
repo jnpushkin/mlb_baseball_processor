@@ -13,6 +13,16 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
         return () => window.removeEventListener('keydown', onKey, true);
     }, [onPrev, onNext]);
 
+    const cleanPersonName = (name) => String(name || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+    const compactPlayDescription = (description, playerName) => {
+        let text = String(description || '').replace(/\u00a0/g, ' ').trim();
+        const cleanName = cleanPersonName(playerName);
+        if (cleanName && text.toLowerCase().startsWith(cleanName.toLowerCase())) {
+            text = text.slice(cleanName.length).trim();
+        }
+        return text.replace(/^\s*[.,-]\s*/, '').replace(/\.$/, '');
+    };
+
     const gameData = useMemo(() => {
         if (!game) return null;
 
@@ -74,7 +84,15 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
         if (game.hitData) {
             Object.entries(game.hitData).forEach(([pid, hd]) => {
                 if (hd.maxExitVelo && (!hardestHit || hd.maxExitVelo > hardestHit.velo)) {
-                    hardestHit = { playerId: pid, name: hd.name, velo: hd.maxExitVelo, dist: hd.maxDistance };
+                    const exactDescription = hd.maxExitVeloDescription || hd.maxExitVeloResult || '';
+                    const result = exactDescription ? compactPlayDescription(exactDescription, hd.name) : '';
+                    hardestHit = {
+                        playerId: pid,
+                        name: hd.name,
+                        velo: hd.maxExitVelo,
+                        dist: hd.maxExitVeloDistance || hd.maxDistance,
+                        result
+                    };
                 }
             });
         }
@@ -94,6 +112,66 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
     }, [game, playerGames, pitcherGames, careerFirsts]);
 
     if (!game || !gameData) return null;
+
+    const awayRuns = game.linescore?.away?.runs;
+    const homeRuns = game.linescore?.home?.runs;
+    const winnerTeam = awayRuns != null && homeRuns != null
+        ? awayRuns > homeRuns ? game.awayTeam : homeRuns > awayRuns ? game.homeTeam : 'Tie'
+        : null;
+    const runMargin = awayRuns != null && homeRuns != null ? Math.abs(awayRuns - homeRuns) : null;
+    const formatHardestHitDetail = (hit) => {
+        if (!hit) return '';
+        return `${hit.name}${hit.result ? ` - ${hit.result}` : ''}${hit.dist ? ` (${hit.dist} ft)` : ''}`;
+    };
+    const showMostKsHighlight = gameData.mostKs && gameData.mostKs.so >= 10;
+    const careerMilestoneItems = (careerFirsts || []).map(f => `${getLastName(f.player_name)} ${shortenMilestone(f.milestone)}`);
+    const careerMilestoneDetail = careerMilestoneItems.length > 2
+        ? `${careerMilestoneItems.slice(0, 2).join(', ')}, +${careerMilestoneItems.length - 2} more`
+        : careerMilestoneItems.join(', ');
+    const gameStoryItems = [
+        winnerTeam && winnerTeam !== 'Tie' && {
+            label: 'Result',
+            value: `${winnerTeam} by ${runMargin}`,
+            detail: `${game.awayTeam} ${awayRuns}, ${game.homeTeam} ${homeRuns}`,
+            color: 'blue'
+        },
+        gameData.hardestHit && {
+            label: 'Hardest contact',
+            value: `${gameData.hardestHit.velo} mph`,
+            detail: formatHardestHitDetail(gameData.hardestHit),
+            color: 'slate'
+        },
+        gameData.fastestPitch && {
+            label: 'Fastest pitch',
+            value: `${gameData.fastestPitch.speed} mph`,
+            detail: gameData.fastestPitch.name,
+            color: 'red'
+        },
+        showMostKsHighlight && {
+            label: 'Most strikeouts',
+            value: `${gameData.mostKs.so} K`,
+            detail: `${gameData.mostKs.name} led all pitchers`,
+            color: 'orange'
+        },
+        careerFirsts?.length > 0 && {
+            label: 'Career milestones',
+            value: careerFirsts.length,
+            detail: careerMilestoneDetail,
+            color: 'slate'
+        },
+        allTimePassings?.length > 0 && {
+            label: 'All-time movement',
+            value: allTimePassings.length,
+            detail: allTimePassings.slice(0, 2).map(p => `${getLastName(p.player_name)} #${p.new_rank} ${p.stat_name}`).join(', '),
+            color: 'purple'
+        },
+        game.keyPlays?.length > 0 && {
+            label: 'Key plays',
+            value: game.keyPlays.length,
+            detail: game.keyPlays.slice(0, 2).map(p => `${p.batter} ${p.type === 'grand_slam' ? 'grand slam' : 'HR'}`).join(', '),
+            color: 'green'
+        }
+    ].filter(Boolean).slice(0, 6);
 
     const CareerHighBadges = ({ data }) => {
         if (!data.careerHighs?.length) return null;
@@ -357,9 +435,26 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
             );
         }
         
-        const LineupTable = ({ lineup, team }) => (
+        const LineupTable = ({ lineup, team }) => {
+            const sortedLineup = [...lineup].sort((a, b) => a.slot - b.slot);
+            const startingPitcher = sortedLineup.find(player => player.slot === 0 && player.position === 'P');
+            const battingOrder = sortedLineup.filter(player => !(player.slot === 0 && player.position === 'P'));
+            return (
             <div>
-                <h4 className="subsection-title font-bold mb-3">{team} Starting Lineup</h4>
+                <h4 className="subsection-title font-bold mb-3">{team} Lineup</h4>
+                {startingPitcher && (
+                    <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Starting pitcher</div>
+                            <div className="body-text font-semibold text-slate-800">
+                                <PlayerLink playerId={startingPitcher.playerId} name={startingPitcher.name} />
+                            </div>
+                        </div>
+                        <span className="px-2 py-1 bg-white rounded font-semibold text-slate-700 border border-slate-200">
+                            {startingPitcher.position}
+                        </span>
+                    </div>
+                )}
                 <div className="bg-white rounded-lg overflow-hidden">
                     <table className="w-full small-text">
                         <thead className="bg-slate-50 border-b-2">
@@ -370,7 +465,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                             </tr>
                         </thead>
                         <tbody className="divide-y">
-                            {lineup.sort((a, b) => a.slot - b.slot).map((player) => (
+                            {battingOrder.map((player) => (
                                 <tr key={player.playerId} className="hover:bg-blue-50">
                                     <td className="px-3 py-2 text-center font-bold text-blue-600">{player.slot}</td>
                                     <td className="px-3 py-2">
@@ -391,6 +486,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                 </div>
             </div>
         );
+        };
         
         return (
             <div className="p-6">
@@ -637,6 +733,43 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                 <div className="overflow-y-auto flex-1 min-h-0">
                 {/* Game Context Section */}
                 <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+                    {gameStoryItems.length > 0 && (
+                        <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+                                <div>
+                                    <h5 className="small-text font-bold text-slate-700 uppercase tracking-wide">Game recap</h5>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                                {gameStoryItems.map((item, idx) => {
+                                    const colorClass =
+                                        item.color === 'red' ? 'border-red-200 bg-red-50 text-red-800' :
+                                        item.color === 'orange' ? 'border-orange-200 bg-orange-50 text-orange-800' :
+                                        item.color === 'amber' ? 'border-amber-200 bg-amber-50 text-amber-800' :
+                                        item.color === 'purple' ? 'border-purple-200 bg-purple-50 text-purple-800' :
+                                        item.color === 'green' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' :
+                                        item.color === 'slate' ? 'border-slate-200 bg-slate-50 text-slate-800' :
+                                        'border-blue-200 bg-blue-50 text-blue-800';
+                                    return (
+                                        <div key={`story-${idx}`} className={`rounded-lg border p-3 ${colorClass}`}>
+                                            <div className="small-text font-bold uppercase tracking-wide opacity-75">{item.label}</div>
+                                            <div className="text-lg font-bold mt-1">{item.value}</div>
+                                            {item.details ? (
+                                                <div className="small-text mt-1 opacity-80 space-y-0.5">
+                                                    {item.details.map((detail, detailIdx) => (
+                                                        <div key={`story-detail-${idx}-${detailIdx}`} className="break-words">{detail}</div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="small-text mt-1 opacity-80 break-words">{item.detail}</div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Linescore */}
                     {game.linescore && (
                         <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
@@ -827,7 +960,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                     {activeTab === 'context' && (
                         <div className="p-6 space-y-6">
                             {/* Game Superlatives */}
-                            {(gameData.fastestPitch || gameData.hardestHit || gameData.mostKs) && (
+                            {(gameData.fastestPitch || gameData.hardestHit || showMostKsHighlight) && (
                                 <div>
                                     <h4 className="subsection-title font-bold mb-3">Game Highlights</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -842,10 +975,10 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                             <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                                                 <div className="text-xs text-blue-600 font-semibold">Hardest Hit</div>
                                                 <div className="text-lg font-bold text-blue-700">{gameData.hardestHit.velo} mph</div>
-                                                <div className="text-xs text-slate-600">{gameData.hardestHit.name}{gameData.hardestHit.dist ? ` (${gameData.hardestHit.dist} ft)` : ''}</div>
+                                                <div className="text-xs text-slate-600">{formatHardestHitDetail(gameData.hardestHit)}</div>
                                             </div>
                                         )}
-                                        {gameData.mostKs && gameData.mostKs.so >= 5 && (
+                                        {showMostKsHighlight && (
                                             <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
                                                 <div className="text-xs text-orange-600 font-semibold">Most Strikeouts</div>
                                                 <div className="text-lg font-bold text-orange-700">{gameData.mostKs.so} K</div>

@@ -1656,6 +1656,12 @@ class DataSerializer:
                     'maxExitVelo': hdata.get('maxExitVelo'),
                     'avgExitVelo': hdata.get('avgExitVelo'),
                     'maxDistance': hdata.get('maxDistance'),
+                    'maxExitVeloDistance': hdata.get('maxExitVeloDistance'),
+                    'maxExitVeloResult': hdata.get('maxExitVeloResult', ''),
+                    'maxExitVeloDescription': hdata.get('maxExitVeloDescription', ''),
+                    'maxExitVeloInning': hdata.get('maxExitVeloInning'),
+                    'maxExitVeloHalf': hdata.get('maxExitVeloHalf', ''),
+                    'maxExitVeloTrajectory': hdata.get('maxExitVeloTrajectory', ''),
                     'trajectories': hdata.get('trajectories', {}),
                 }
                 for pid, hdata in hit_data.items()
@@ -2309,7 +2315,7 @@ class DataSerializer:
 
     def _serialize_abs_player_stats(self, raw_games):
         """Build player-level ABS challenge statistics from all games."""
-        player_stats = {}  # name -> {challenges, overturned, upheld, asBatter, asCatcher, games, edgeDistances}
+        player_stats = {}  # name -> ABS challenge totals by player and role
 
         # Build MLB API ID -> name lookup from player bios
         bios = self._load_player_bios()
@@ -2356,21 +2362,31 @@ class DataSerializer:
                         'asBatter': 0,
                         'asCatcher': 0,
                         'asPitcher': 0,
+                        'batterOverturned': 0,
+                        'batterUpheld': 0,
+                        'catcherOverturned': 0,
+                        'catcherUpheld': 0,
+                        'pitcherOverturned': 0,
+                        'pitcherUpheld': 0,
                         'edgeDistances': [],
                         'gameIds': set(),
                     }
                 ps = player_stats[challenger_name]
                 ps['challenges'] += 1
-                if review.get('overturned'):
+                overturned = bool(review.get('overturned'))
+                if overturned:
                     ps['overturned'] += 1
                 else:
                     ps['upheld'] += 1
                 if challenger_type == 'batter':
                     ps['asBatter'] += 1
+                    ps['batterOverturned' if overturned else 'batterUpheld'] += 1
                 elif challenger_type == 'pitcher':
                     ps['asPitcher'] += 1
+                    ps['pitcherOverturned' if overturned else 'pitcherUpheld'] += 1
                 else:
                     ps['asCatcher'] += 1
+                    ps['catcherOverturned' if overturned else 'catcherUpheld'] += 1
                 if review.get('edgeDistance') is not None:
                     ps['edgeDistances'].append(review['edgeDistance'])
                 if game_id:
@@ -2380,6 +2396,9 @@ class DataSerializer:
         result = []
         for ps in player_stats.values():
             avg_edge = round(sum(ps['edgeDistances']) / len(ps['edgeDistances']), 3) if ps['edgeDistances'] else None
+            batter_rate = round(ps['batterOverturned'] / ps['asBatter'] * 100) if ps['asBatter'] > 0 else None
+            catcher_rate = round(ps['catcherOverturned'] / ps['asCatcher'] * 100) if ps['asCatcher'] > 0 else None
+            pitcher_rate = round(ps['pitcherOverturned'] / ps['asPitcher'] * 100) if ps['asPitcher'] > 0 else None
             result.append({
                 'name': ps['name'],
                 'challenges': ps['challenges'],
@@ -2389,6 +2408,15 @@ class DataSerializer:
                 'asBatter': ps['asBatter'],
                 'asCatcher': ps['asCatcher'],
                 'asPitcher': ps['asPitcher'],
+                'batterOverturned': ps['batterOverturned'],
+                'batterUpheld': ps['batterUpheld'],
+                'batterSuccessRate': batter_rate,
+                'catcherOverturned': ps['catcherOverturned'],
+                'catcherUpheld': ps['catcherUpheld'],
+                'catcherSuccessRate': catcher_rate,
+                'pitcherOverturned': ps['pitcherOverturned'],
+                'pitcherUpheld': ps['pitcherUpheld'],
+                'pitcherSuccessRate': pitcher_rate,
                 'avgEdgeDistance': avg_edge,
                 'games': len(ps['gameIds']),
             })
