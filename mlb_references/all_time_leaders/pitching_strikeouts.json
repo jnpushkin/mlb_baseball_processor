@@ -2,7 +2,7 @@
   "stat": "SO",
   "stat_name": "Strikeouts",
   "type": "pitching",
-  "last_updated": "2026-04-21",
+  "last_updated": "2026-05-07",
   "leaders": [
     {
       "rank": 1,
@@ -168,15 +168,15 @@
     },
     {
       "rank": 28,
-      "player_id": "finlech01",
-      "name": "Chuck Finley",
-      "value": 2610
+      "player_id": "salech01",
+      "name": "Chris Sale",
+      "value": 2628
     },
     {
       "rank": 29,
-      "player_id": "salech01",
-      "name": "Chris Sale",
-      "value": 2608
+      "player_id": "finlech01",
+      "name": "Chuck Finley",
+      "value": 2610
     },
     {
       "rank": 30,
@@ -480,14 +480,14 @@
     },
     {
       "rank": 80,
-      "player_id": "darviyu01",
-      "name": "Yu Darvish",
+      "player_id": "dempsry01",
+      "name": "Ryan Dempster",
       "value": 2075
     },
     {
       "rank": 80,
-      "player_id": "dempsry01",
-      "name": "Ryan Dempster",
+      "player_id": "darviyu01",
+      "name": "Yu Darvish",
       "value": 2075
     },
     {
@@ -552,15 +552,15 @@
     },
     {
       "rank": 92,
-      "player_id": "appieke01",
-      "name": "Kevin Appier",
-      "value": 1994
+      "player_id": "gausmke01",
+      "name": "Kevin Gausman",
+      "value": 1997
     },
     {
       "rank": 93,
-      "player_id": "gausmke01",
-      "name": "Kevin Gausman",
-      "value": 1989
+      "player_id": "appieke01",
+      "name": "Kevin Appier",
+      "value": 1994
     },
     {
       "rank": 94,
@@ -576,14 +576,14 @@
     },
     {
       "rank": 96,
-      "player_id": "santaer01",
-      "name": "Ervin Santana",
+      "player_id": "clarkjo01",
+      "name": "John Clarkson",
       "value": 1978
     },
     {
       "rank": 96,
-      "player_id": "clarkjo01",
-      "name": "John Clarkson",
+      "player_id": "santaer01",
+      "name": "Ervin Santana",
       "value": 1978
     },
     {
@@ -638,7 +638,7 @@
       "rank": 106,
       "player_id": "grayso01",
       "name": "Sonny Gray",
-      "value": 1938
+      "value": 1940
     },
     {
       "rank": 107,
@@ -654,15 +654,15 @@
     },
     {
       "rank": 109,
-      "player_id": "reussje01",
-      "name": "Jerry Reuss",
-      "value": 1907
+      "player_id": "nolaaa01",
+      "name": "Aaron Nola",
+      "value": 1916
     },
     {
       "rank": 110,
-      "player_id": "nolaaa01",
-      "name": "Aaron Nola",
-      "value": 1905
+      "player_id": "reussje01",
+      "name": "Jerry Reuss",
+      "value": 1907
     },
     {
       "rank": 111,
@@ -672,27 +672,27 @@
     },
     {
       "rank": 112,
+      "player_id": "degroja01",
+      "name": "Jacob deGrom",
+      "value": 1898
+    },
+    {
+      "rank": 113,
       "player_id": "zitoba01",
       "name": "Barry Zito",
       "value": 1885
     },
     {
-      "rank": 113,
-      "player_id": "degroja01",
-      "name": "Jacob deGrom",
-      "value": 1876
-    },
-    {
       "rank": 114,
-      "player_id": "nichoki01",
-      "name": "Kid Nichols",
-      "value": 1873
+      "player_id": "corbipa01",
+      "name": "Patrick Corbin",
+      "value": 1881
     },
     {
       "rank": 115,
-      "player_id": "corbipa01",
-      "name": "Patrick Corbin",
-      "value": 1872
+      "player_id": "nichoki01",
+      "name": "Kid Nichols",
+      "value": 1873
     },
     {
       "rank": 116,
@@ -738,27 +738,27 @@
     },
     {
       "rank": 123,
+      "player_id": "wheelza01",
+      "name": "Zack Wheeler",
+      "value": 1838
+    },
+    {
+      "rank": 124,
       "player_id": "radboch01",
       "name": "Old Hoss Radbourn",
       "value": 1830
     },
     {
       "rank": 124,
+      "player_id": "quintjo01",
+      "name": "Jose Quintana",
+      "value": 1830
+    },
+    {
+      "rank": 126,
       "player_id": "leecl02",
       "name": "Cliff Lee",
       "value": 1824
-    },
-    {
-      "rank": 125,
-      "player_id": "wheelza01",
-      "name": "Zack Wheeler",
-      "value": 1820
-    },
-    {
-      "rank": 125,
-      "player_id": "quintjo01",
-      "name": "Jose Quintana",
-      "value": 1820
     },
     {
       "rank": 127,
@@ -809,16 +809,16 @@
       "value": 1774
     },
     {
-      "rank": 135,
-      "player_id": "burkejo03",
-      "name": "John Burkett",
-      "value": 1766
+      "rank": 134,
+      "player_id": "rayro02",
+      "name": "Robbie Ray",
+      "value": 1774
     },
     {
       "rank": 136,
-      "player_id": "rayro02",
-      "name": "Robbie Ray",
-      "value": 1765
+      "player_id": "burkejo03",
+      "name": "John Burkett",
+      "value": 1766
     },
     {
       "rank": 137,
@@ -876,14 +876,14 @@
     },
     {
       "rank": 146,
-      "player_id": "pappami01",
-      "name": "Milt Pappas",
+      "player_id": "colemjo05",
+      "name": "Joe Coleman",
       "value": 1728
     },
     {
       "rank": 146,
-      "player_id": "colemjo05",
-      "name": "Joe Coleman",
+      "player_id": "pappami01",
+      "name": "Milt Pappas",
       "value": 1728
     },
     {
@@ -924,14 +924,14 @@
     },
     {
       "rank": 154,
-      "player_id": "saberbr01",
-      "name": "Bret Saberhagen",
+      "player_id": "parkch01",
+      "name": "Chan Ho Park",
       "value": 1715
     },
     {
       "rank": 154,
-      "player_id": "parkch01",
-      "name": "Chan Ho Park",
+      "player_id": "saberbr01",
+      "name": "Bret Saberhagen",
       "value": 1715
     },
     {
@@ -972,21 +972,21 @@
     },
     {
       "rank": 162,
+      "player_id": "carraca01",
+      "name": "Carlos Carrasco",
+      "value": 1698
+    },
+    {
+      "rank": 163,
       "player_id": "carpech01",
       "name": "Chris Carpenter",
       "value": 1697
     },
     {
-      "rank": 162,
+      "rank": 163,
       "player_id": "simmocu01",
       "name": "Curt Simmons",
       "value": 1697
-    },
-    {
-      "rank": 164,
-      "player_id": "carraca01",
-      "name": "Carlos Carrasco",
-      "value": 1696
     },
     {
       "rank": 165,
@@ -1116,26 +1116,26 @@
     },
     {
       "rank": 186,
-      "player_id": "rogerst01",
-      "name": "Steve Rogers",
-      "value": 1621
-    },
-    {
-      "rank": 186,
       "player_id": "powelja01",
       "name": "Jack Powell",
       "value": 1621
     },
     {
       "rank": 186,
-      "player_id": "weaveje02",
-      "name": "Jered Weaver",
+      "player_id": "rogerst01",
+      "name": "Steve Rogers",
       "value": 1621
     },
     {
       "rank": 186,
       "player_id": "garcifr03",
       "name": "Freddy Garcia",
+      "value": 1621
+    },
+    {
+      "rank": 186,
+      "player_id": "weaveje02",
+      "name": "Jered Weaver",
       "value": 1621
     },
     {

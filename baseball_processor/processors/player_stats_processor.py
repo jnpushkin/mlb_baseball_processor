@@ -2,7 +2,7 @@ import pandas as pd
 from collections import defaultdict
 from ..excel.generators import ExcelGeneratorUtils
 from ..utils.helpers import standardize_team_code, normalize_name, join_sorted_gameids, unify_team_code, safe_get_int, safe_get_str
-from ..utils.stat_utils import StatUtils
+from ..utils.stat_utils import StatUtils, extract_extra_batting_stats
 from .base_processor import BaseProcessor
 
 
@@ -84,6 +84,17 @@ class PlayerStatsProcessor(BaseProcessor):
         game_id = game.get("game_id", "UNKNOWN")
         name_to_id = {}
 
+        # Precompute play-by-play extras once per game; both _process_batting_stats
+        # (which credits them per-player) and the footer-skip decision below
+        # depend on it.
+        pbp_extras = extract_extra_batting_stats(game)
+        pbp_has_xbh = any(
+            (s.get('HR') or 0) or (s.get('2B') or 0) or (s.get('3B') or 0)
+            or (s.get('SB') or 0) or (s.get('CS') or 0)
+            or (s.get('HBP') or 0) or (s.get('GIDP') or 0)
+            for s in pbp_extras.values()
+        )
+
         # Process batting and pitching stats
         for side in ("home", "away"):
             team_code = unify_team_code(basic_info.get(f"{side}_team_code", ""))
@@ -91,21 +102,29 @@ class PlayerStatsProcessor(BaseProcessor):
             # Process batting stats
             self._process_batting_stats(game, side, team_code, game_id, all_players,
                                       players_with_stats, hit_tot, hit_team, hit_games, name_to_id,
-                                      hit_by_type, hit_games_by_type, hit_team_by_type, game_type)
+                                      hit_by_type, hit_games_by_type, hit_team_by_type, game_type,
+                                      pbp_extras=pbp_extras)
 
             # Process pitching stats
             self._process_pitching_stats(game, side, team_code, game_id, all_players,
                                        players_with_stats, pit_tot, pit_team, pit_games,
                                        pit_by_type, pit_games_by_type, pit_team_by_type, game_type)
 
-        # Process footer stats (XBH, SB, etc.)
-        self._process_footer_stats(game, name_to_id, hit_tot, players_with_stats,
-                                   hit_by_type, game_type)
+        # Footer-summary fallback for extra-base stats — skipped when the
+        # play-by-play already supplied them (otherwise we'd double-count
+        # 2B/3B/SB/etc. for BREF games, which have both sources populated).
+        if not pbp_has_xbh:
+            self._process_footer_stats(game, name_to_id, hit_tot, players_with_stats,
+                                       hit_by_type, game_type)
     
     def _process_batting_stats(self, game, side, team_code, game_id, all_players,
                             players_with_stats, hit_tot, hit_team, hit_games, name_to_id,
-                            hit_by_type, hit_games_by_type, hit_team_by_type, game_type):
+                            hit_by_type, hit_games_by_type, hit_team_by_type, game_type,
+                            pbp_extras=None):
         """Process batting statistics for one side of a game."""
+        if pbp_extras is None:
+            pbp_extras = extract_extra_batting_stats(game)
+
         for player in game.get("batting", {}).get(side, []):
             player_id = safe_get_str(player, "player_id", "")
             if not player_id:
@@ -117,6 +136,14 @@ class PlayerStatsProcessor(BaseProcessor):
 
             # ✅ Always track player, regardless of stats
             self._track_player(player_id, name, team_code, game_id, position, all_players)
+
+            # BREF box scores list relief pitchers in the batting table even
+            # when they never came to the plate (the row exists for the
+            # substitution record). Skip them as hitters — otherwise the
+            # Hitters tab fills up with pitchers showing G>0 and zeros across
+            # every batting column. A real two-way appearance always has PA>0.
+            if position == "P" and safe_get_int(player, "PA", 0) == 0 and safe_get_int(player, "AB", 0) == 0:
+                continue
 
             # Initialize stats if first time seeing this player
             if player_id not in hit_tot:
@@ -146,11 +173,19 @@ class PlayerStatsProcessor(BaseProcessor):
                 if value > 0:
                     has_meaningful_stats = True
 
-            # Process extra-base hit stats if available in player data (MLB API provides these directly)
+            # Process extra-base hit stats. Prefer play-by-play counts (the
+            # complete source for BREF games) and fall back to the per-player
+            # batting row (MLB API populates these directly there).
+            extras = pbp_extras.get(player_id, {}) or {}
+            pbp_has_xbh = bool(extras.get('HR') or extras.get('2B') or extras.get('3B'))
             for stat in ("HR", "2B", "3B", "SB", "CS", "HBP", "GIDP", "GDP"):
-                value = safe_get_int(player, stat, 0)
+                if pbp_has_xbh and stat in extras:
+                    value = int(extras.get(stat, 0))
+                elif stat == 'GDP':
+                    value = safe_get_int(player, stat, 0)
+                else:
+                    value = int(extras.get(stat, 0)) if extras.get(stat) else safe_get_int(player, stat, 0)
                 if value > 0:
-                    # Map GDP to GIDP for consistency
                     stat_key = "GIDP" if stat == "GDP" else stat
                     hit_tot[player_id][stat_key] += value
                     hit_by_type[game_type][player_id][stat_key] += value

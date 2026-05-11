@@ -468,7 +468,11 @@ def extract_umpires(soup: BeautifulSoup) -> Dict[str, str]:
     Returns:
         Dictionary mapping position codes (HP, 1B, 2B, 3B) to umpire names.
     """
-    pattern = r"([HP123LRFB]+)\s*-\s*([\w\s\.\']+?)(?=,|\.\s|\.?$)"
+    # Negative lookbehind on the period-space terminator prevents the capture
+    # from stopping inside a name initial like "D.J. Reyburn" — the `. ` after
+    # "J" is preceded by an uppercase letter, so it isn't treated as a sentence
+    # boundary.
+    pattern = r"([HP123LRFB]+)\s*-\s*([\w\s\.\']+?)(?=,|(?<![A-Z])\.\s|\.?$)"
 
     for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
         if "Umpires:" in comment:

@@ -228,6 +228,50 @@ def _refresh_all_time_leaders_if_stale(max_age_days=7):
         warn(f"  ⚠️ All-time leaders update error: {e}")
 
 
+def _refresh_drafts(args):
+    """Ensure MLB draft picks (1965..current) are cached.
+
+    Past seasons are immutable, so the network cost is one HTTP per season
+    on first run and just the current-year refresh thereafter.
+    """
+    if _should_skip_network_reference_updates(args):
+        return
+    try:
+        from .scrapers.draft_scraper import update_drafts
+        update_drafts(verbose=True)
+    except Exception as e:
+        warn(f"  ⚠️ Draft refresh skipped: {e}")
+
+
+def _refresh_career_firsts_for_games(games_data, args):
+    """Run the MLB API career-firsts refresh across every attended game.
+
+    The TTL cache makes this essentially free after the first pass —
+    same-day reruns skip entirely. The point of running it from main is to
+    backfill schema changes (e.g., the retirement / career-lasts fields)
+    without forcing the user to re-add every game.
+    """
+    if _should_skip_network_reference_updates(args):
+        return
+    try:
+        from .scrapers.career_firsts_scraper import update_career_firsts_from_api
+    except Exception as e:
+        warn(f"  ⚠️ Career-firsts refresh skipped (import): {e}")
+        return
+    refreshed_games = 0
+    for game in games_data or []:
+        bi = game.get('basic_info') or {}
+        if bi.get('game_type') == 'spring':
+            continue
+        try:
+            update_career_firsts_from_api(game, verbose=False)
+            refreshed_games += 1
+        except Exception as e:
+            warn(f"  ⚠️ Career firsts refresh failed for {game.get('game_id', '?')}: {e}")
+    if refreshed_games:
+        info(f"  ⚡ Career firsts: refreshed across {refreshed_games} games (TTL-cached players skipped)")
+
+
 def _should_skip_network_reference_updates(args):
     """Return True for modes that should be reproducible from local data only."""
     return args.from_cache_only or args.from_db or args.quick_stats
@@ -257,6 +301,100 @@ def _maybe_download_bref_backups(args):
         download_bref_run(verbose=True)
     except Exception as e:
         warn(f"⚠️ BREF HTML backup skipped: {e}")
+
+
+# BREF team codes that themselves start with 'M'; cached game IDs beginning
+# with one of these are already in BREF form and must not have a leading 'M'
+# stripped when normalizing for companions.csv lookup.
+_BREF_M_TEAM_CODES = {'MIA', 'MIL', 'MIN', 'MON'}
+
+
+def _bref_game_id(game_id):
+    if game_id.startswith('M') and game_id[:3] not in _BREF_M_TEAM_CODES:
+        return game_id[1:]
+    return game_id
+
+
+def _sync_companions_csv(games_data):
+    """Append rows for any attended games not yet listed in companions.csv.
+
+    New rows have an empty Companions field so the user can fill them in
+    later. Existing rows are never modified or reordered. Spring training
+    games are skipped (companions tracking is for attended regular/post games).
+    """
+    import csv as _csv
+
+    csv_path = BASE_DIR / "companions.csv"
+    if not csv_path.exists():
+        return
+
+    existing_ids = set()
+    try:
+        with open(csv_path, 'r', encoding='utf-8', newline='') as f:
+            reader = _csv.reader(f)
+            for i, row in enumerate(reader):
+                if not row:
+                    continue
+                first = (row[0] or '').strip()
+                if not first or first.startswith('#') or first == 'GameID':
+                    continue
+                existing_ids.add(first)
+    except Exception as e:
+        warn(f"      ⚠️  Could not read companions.csv for sync: {e}")
+        return
+
+    new_rows = []
+    seen_in_batch = set()
+    for game in games_data:
+        bi = game.get('basic_info') or {}
+        game_id = (game.get('game_id') or bi.get('game_id') or '').strip()
+        if not game_id:
+            continue
+        game_id = _bref_game_id(game_id)
+        if game_id in existing_ids or game_id in seen_in_batch:
+            continue
+        if bi.get('game_type') == 'spring':
+            continue
+        date_yyyymmdd = (bi.get('date_yyyymmdd') or '').strip()
+        if len(date_yyyymmdd) != 8 or not date_yyyymmdd.isdigit():
+            continue
+        date_str = f"{date_yyyymmdd[4:6]}/{date_yyyymmdd[6:8]}/{date_yyyymmdd[:4]}"
+        away = (bi.get('away_team_code') or '').strip()
+        home = (bi.get('home_team_code') or '').strip()
+        matchup = f"{away} @ {home}" if away and home else ''
+        venue = (bi.get('venue') or bi.get('stadium') or '').strip()
+        new_rows.append((date_yyyymmdd, game_id, date_str, matchup, venue))
+        seen_in_batch.add(game_id)
+
+    if not new_rows:
+        return
+
+    new_rows.sort(key=lambda r: (r[0], r[1]))
+
+    needs_leading_newline = False
+    try:
+        with open(csv_path, 'rb') as f:
+            f.seek(0, 2)
+            if f.tell() > 0:
+                f.seek(-1, 2)
+                if f.read(1) != b'\n':
+                    needs_leading_newline = True
+    except Exception:
+        pass
+
+    try:
+        with open(csv_path, 'a', encoding='utf-8', newline='') as f:
+            if needs_leading_newline:
+                f.write('\n')
+            writer = _csv.writer(f, lineterminator='\n')
+            for _, gid, date_str, matchup, venue in new_rows:
+                writer.writerow([gid, '', date_str, matchup, venue])
+    except Exception as e:
+        warn(f"      ⚠️  Could not append to companions.csv: {e}")
+        return
+
+    suffix = '' if len(new_rows) == 1 else 's'
+    info(f"      📝 companions.csv: added {len(new_rows)} new game{suffix} (Companions field blank — fill in to track)")
 
 
 def _count_milestone_events(game):
@@ -1391,6 +1529,10 @@ def main():
     if _should_refresh_all_time_leaders(args):
         _refresh_all_time_leaders_if_stale()
 
+    # Keep the MLB draft cache current — past years are immutable, only the
+    # current season actually hits the network on repeat runs.
+    _refresh_drafts(args)
+
     # Create a fresh umpire tracker for this run
     umpire_tracker = UmpireTracker()
 
@@ -1528,6 +1670,17 @@ def main():
     if not games_data:
         warn("❌ No games data to process. Exiting.")
         return
+
+    # Keep companions.csv in sync with the attended-games set so the user can
+    # fill in companion names later. Skipped in quick-stats mode (no I/O).
+    if not args.quick_stats:
+        _sync_companions_csv(games_data)
+
+    # Refresh per-player career-firsts/lasts via MLB API. TTL caching means
+    # this is cheap on repeat runs; the first run after a schema change
+    # (e.g., adding career_lasts) pays the cost to backfill once.
+    if not args.quick_stats:
+        _refresh_career_firsts_for_games(games_data, args)
 
     # Quick stats mode - just print summary and exit
     if args.quick_stats:

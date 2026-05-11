@@ -1165,8 +1165,335 @@ _API_PITCHING_MAP = {
 }
 
 
+def _extend_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str,
+                                   baseline: dict, current_year: int,
+                                   verbose: bool, session) -> dict | None:
+    """Extend a cached career-firsts entry by fetching only the new years.
+
+    Returns a fresh result dict in the same shape as ``find_career_firsts_mlb_api``.
+    Returns None on parse-time issues so the caller can fall back to a full
+    scrape. Does not handle network errors (those propagate).
+    """
+    last_full_year = baseline.get('last_full_year')
+    if not isinstance(last_full_year, int):
+        return None
+    years_to_fetch = list(range(last_full_year + 1, current_year + 1))
+
+    label = player_name or player_id
+
+    if not years_to_fetch:
+        # Cache already covers through current_year — just refresh scraped_at.
+        if verbose:
+            print(f"  ⚡ MLB API career firsts for {label} (cached, no new years)")
+        refreshed = json.loads(json.dumps(baseline))  # deep copy via json round-trip
+        refreshed['player_id'] = player_id
+        refreshed['scraped_at'] = datetime.now().isoformat()
+        return refreshed
+
+    if verbose:
+        years_label = (str(years_to_fetch[0]) if len(years_to_fetch) == 1
+                       else f"{years_to_fetch[0]}-{years_to_fetch[-1]}")
+        print(f"  ⚡ MLB API career firsts for {label} (mlb_id={mlb_id}, incremental {years_label})...")
+
+    batting_games = _fetch_api_gamelogs_for_years(session, mlb_id, 'hitting', years_to_fetch)
+    pitching_games = _fetch_api_gamelogs_for_years(session, mlb_id, 'pitching', years_to_fetch)
+
+    if verbose:
+        print(f"    +Batting games: {len(batting_games)}, +Pitching games: {len(pitching_games)}")
+
+    # Retirement check. If the player just crossed into "retired" territory
+    # AND we don't have cached lasts to extend, we can't compute lasts from
+    # the incremental fetch alone (their final HR may be from a year we
+    # didn't refetch). Bail to trigger a full re-scrape.
+    new_max_year = max(
+        (int((g.get('date') or '0000')[:4]) for g in batting_games + pitching_games),
+        default=0,
+    )
+    baseline_max_year = baseline.get('max_game_year') or 0
+    max_game_year_now = max(new_max_year, baseline_max_year)
+    is_retired_now = max_game_year_now > 0 and max_game_year_now < (current_year - 1)
+    baseline_had_lasts = bool(baseline.get('batting_lasts') or baseline.get('pitching_lasts'))
+    if is_retired_now and not baseline_had_lasts:
+        if verbose:
+            print(f"    ↩ Newly retired (last game {max_game_year_now}); falling back to full fetch for lasts.")
+        return None
+
+    base_batting = dict(baseline.get('career_totals_baseline', {}).get('batting', {})) or {}
+    base_pitching = dict(baseline.get('career_totals_baseline', {}).get('pitching', {})) or {}
+
+    # Running totals seeded from the cached baseline (= totals through end of last_full_year).
+    batting_totals = {stat: int(base_batting.get(stat, 0)) for stat in BATTING_MILESTONES.keys()}
+    pitching_totals = {stat: int(base_pitching.get(stat, 0)) for stat in PITCHING_MILESTONES.keys()}
+
+    # Keep only cached milestones from years <= last_full_year — current/recent
+    # years get re-derived from the fresh fetch.
+    def _keep_immutable(ms_list):
+        return [m for m in ms_list if isinstance(m.get('year'), int) and m['year'] <= last_full_year]
+
+    cached_batting_ms = baseline.get('batting_milestones', {}) or {}
+    cached_pitching_ms = baseline.get('pitching_milestones', {}) or {}
+
+    new_batting_milestones = {stat: list(_keep_immutable(cached_batting_ms.get(stat, []))) for stat in BATTING_MILESTONES}
+    new_pitching_milestones = {stat: list(_keep_immutable(cached_pitching_ms.get(stat, []))) for stat in PITCHING_MILESTONES}
+
+    batting_milestones_reached = {stat: {m['number'] for m in new_batting_milestones[stat] if 'number' in m}
+                                  for stat in BATTING_MILESTONES}
+    pitching_milestones_reached = {stat: {m['number'] for m in new_pitching_milestones[stat] if 'number' in m}
+                                   for stat in PITCHING_MILESTONES}
+
+    # Firsts are immutable too; keep cached, re-discover any missing from fetched games.
+    cached_batting_firsts = {k: v for k, v in (baseline.get('batting_firsts') or {}).items()
+                              if isinstance(v, dict) and isinstance(v.get('year'), int) and v['year'] <= last_full_year}
+    cached_pitching_firsts = {k: v for k, v in (baseline.get('pitching_firsts') or {}).items()
+                               if isinstance(v, dict) and isinstance(v.get('year'), int) and v['year'] <= last_full_year}
+
+    batting_needed = set(BATTING_FIRSTS.keys()) - set(cached_batting_firsts.keys())
+    pitching_needed = set(PITCHING_FIRSTS.keys()) - set(cached_pitching_firsts.keys())
+
+    new_batting_firsts = dict(cached_batting_firsts)
+    new_pitching_firsts = dict(cached_pitching_firsts)
+
+    # Lasts ride alongside firsts: cached entries are immutable history;
+    # walks below may overwrite for stats that recurred in the new years.
+    new_batting_lasts = dict(baseline.get('batting_lasts') or {})
+    new_pitching_lasts = dict(baseline.get('pitching_lasts') or {})
+
+    # Combined chronological list across fetched years for the G milestone.
+    dh_dates = _build_dh_dates(batting_games, pitching_games, session=session)
+    seen_pks = set()
+    combined_games_chrono = []
+    for game in sorted(batting_games + pitching_games, key=lambda g: g.get('date', '')):
+        pk = game.get('game', {}).get('gamePk')
+        if pk and pk not in seen_pks:
+            seen_pks.add(pk)
+            combined_games_chrono.append((
+                game.get('date', ''),
+                _mlb_game_id_from_split(game, dh_dates),
+                game.get('opponent', {}).get('name', ''),
+            ))
+
+    g_total = batting_totals.get('G', 0)
+    g_milestones_reached = set(batting_milestones_reached.get('G', set()))
+    pre_year_g = g_total  # default — only updated if a current_year game appears
+
+    pre_year_g_locked = False
+    for date_str, game_id, opponent in combined_games_chrono:
+        year = int(date_str[:4]) if date_str else 0
+        if year == current_year and not pre_year_g_locked:
+            pre_year_g = g_total
+            pre_year_g_locked = True
+        old_g = g_total
+        g_total += 1
+        for threshold in BATTING_MILESTONES['G']:
+            if old_g < threshold <= g_total and threshold not in g_milestones_reached:
+                g_milestones_reached.add(threshold)
+                new_batting_milestones.setdefault('G', []).append({
+                    'number': threshold,
+                    'date': date_str.replace('-', ''),
+                    'game_id': game_id,
+                    'opponent': opponent,
+                    'year': year,
+                    'milestone': f"Career Game #{threshold}",
+                    'career_total_after': g_total,
+                })
+                if verbose:
+                    print(f"    ⭐ Career Game #{threshold}: {date_str}")
+    batting_totals['G'] = g_total
+
+    # Walk fetched batting games for non-G stats and firsts.
+    pre_year_batting_nonG = {}  # snapshot at start of current_year, non-G stats only
+    pre_year_batting_locked = False
+    for game in batting_games:
+        stat_data = game.get('stat', {})
+        date_str = game.get('date', '')
+        year = int(date_str[:4]) if date_str else 0
+        opponent = game.get('opponent', {}).get('name', '')
+        game_id = _mlb_game_id_from_split(game, dh_dates)
+
+        if year == current_year and not pre_year_batting_locked:
+            pre_year_batting_nonG = {k: v for k, v in batting_totals.items() if k != 'G'}
+            pre_year_batting_locked = True
+
+        for api_field, our_stat in _API_BATTING_MAP.items():
+            val = stat_data.get(api_field, 0)
+            if not val or val <= 0:
+                continue
+            if our_stat in batting_needed:
+                new_batting_firsts[our_stat] = {
+                    'date': date_str.replace('-', ''),
+                    'game_id': game_id,
+                    'opponent': opponent,
+                    'year': year,
+                    'milestone': BATTING_FIRSTS[our_stat],
+                }
+                batting_needed.discard(our_stat)
+            stat_name = STAT_NAMES.get(our_stat, our_stat)
+            new_batting_lasts[our_stat] = {
+                'date': date_str.replace('-', ''),
+                'game_id': game_id,
+                'opponent': opponent,
+                'year': year,
+                'milestone': f"Final Career {stat_name}",
+                'value_in_game': val,
+            }
+
+        for stat_key in BATTING_MILESTONES:
+            if stat_key == 'G':
+                continue
+            api_field = next((k for k, v in _API_BATTING_MAP.items() if v == stat_key), None)
+            game_value = stat_data.get(api_field, 0) if api_field else 0
+            if game_value > 0:
+                old_total = batting_totals[stat_key]
+                batting_totals[stat_key] += game_value
+                new_total = batting_totals[stat_key]
+                for threshold in BATTING_MILESTONES[stat_key]:
+                    if old_total < threshold <= new_total and threshold not in batting_milestones_reached[stat_key]:
+                        batting_milestones_reached[stat_key].add(threshold)
+                        stat_name = STAT_NAMES.get(stat_key, stat_key)
+                        new_batting_milestones.setdefault(stat_key, []).append({
+                            'number': threshold,
+                            'date': date_str.replace('-', ''),
+                            'game_id': game_id,
+                            'opponent': opponent,
+                            'year': year,
+                            'milestone': f"Career {stat_name} #{threshold}",
+                            'career_total_after': new_total,
+                        })
+                        if verbose:
+                            print(f"    ⭐ Career {stat_name} #{threshold}: {date_str}")
+
+    # Walk fetched pitching games (G = pitching appearances).
+    pre_year_pitching_snap = {}
+    pre_year_pitching_locked = False
+    for game in pitching_games:
+        stat_data = game.get('stat', {})
+        date_str = game.get('date', '')
+        year = int(date_str[:4]) if date_str else 0
+        opponent = game.get('opponent', {}).get('name', '')
+        game_id = _mlb_game_id_from_split(game, dh_dates)
+
+        if year == current_year and not pre_year_pitching_locked:
+            pre_year_pitching_snap = pitching_totals.copy()
+            pre_year_pitching_locked = True
+
+        for api_field, our_stat in _API_PITCHING_MAP.items():
+            if our_stat == 'G':
+                continue
+            val = stat_data.get(api_field, 0)
+            if our_stat == 'IP':
+                val = parse_ip(str(val))
+            if not val or val <= 0:
+                continue
+            if our_stat in pitching_needed:
+                new_pitching_firsts[our_stat] = {
+                    'date': date_str.replace('-', ''),
+                    'game_id': game_id,
+                    'opponent': opponent,
+                    'year': year,
+                    'milestone': PITCHING_FIRSTS[our_stat],
+                }
+                pitching_needed.discard(our_stat)
+            stat_name = STAT_NAMES.get(our_stat, our_stat)
+            new_pitching_lasts[our_stat] = {
+                'date': date_str.replace('-', ''),
+                'game_id': game_id,
+                'opponent': opponent,
+                'year': year,
+                'milestone': f"Final Career {stat_name}",
+                'value_in_game': val,
+            }
+
+        pitching_totals['G'] = pitching_totals.get('G', 0) + 1
+        for stat_key in PITCHING_MILESTONES:
+            if stat_key == 'G':
+                game_value = 1
+            else:
+                api_field = next((k for k, v in _API_PITCHING_MAP.items() if v == stat_key), None)
+                if api_field and stat_key == 'IP':
+                    game_value = parse_ip(str(stat_data.get(api_field, '0')))
+                else:
+                    game_value = stat_data.get(api_field, 0) if api_field else 0
+            if game_value > 0:
+                if stat_key != 'G':
+                    old_total = pitching_totals[stat_key]
+                    pitching_totals[stat_key] += game_value
+                    new_total = pitching_totals[stat_key]
+                else:
+                    old_total = pitching_totals['G'] - 1
+                    new_total = pitching_totals['G']
+                for threshold in PITCHING_MILESTONES[stat_key]:
+                    if old_total < threshold <= new_total and threshold not in pitching_milestones_reached[stat_key]:
+                        pitching_milestones_reached[stat_key].add(threshold)
+                        stat_name = STAT_NAMES.get(stat_key, stat_key)
+                        milestone_label = f"Career Pitching {stat_name} #{threshold}" if stat_key == 'G' else f"Career {stat_name} #{threshold}"
+                        new_pitching_milestones.setdefault(stat_key, []).append({
+                            'number': threshold,
+                            'date': date_str.replace('-', ''),
+                            'game_id': game_id,
+                            'opponent': opponent,
+                            'year': year,
+                            'milestone': milestone_label,
+                            'career_total_after': new_total,
+                        })
+                        if verbose:
+                            human = f"Pitching Game #{threshold}" if stat_key == 'G' else f"{stat_name} #{threshold}"
+                            print(f"    ⭐ Career {human}: {date_str}")
+
+    # Sort milestones by date so cached-old + freshly-found land in chronological order.
+    for stat in new_batting_milestones:
+        new_batting_milestones[stat].sort(key=lambda m: m.get('date', ''))
+    for stat in new_pitching_milestones:
+        new_pitching_milestones[stat].sort(key=lambda m: m.get('date', ''))
+
+    # New baseline = totals at end of (current_year - 1) = right before the
+    # first current_year game we walked. If no current_year games appeared,
+    # the baseline is just our running totals.
+    if pre_year_batting_locked:
+        new_baseline_batting = {**pre_year_batting_nonG, 'G': pre_year_g}
+    else:
+        new_baseline_batting = dict(batting_totals)
+    new_baseline_batting = {k: v for k, v in new_baseline_batting.items() if v > 0}
+
+    if pre_year_pitching_locked:
+        new_baseline_pitching = dict(pre_year_pitching_snap)
+    else:
+        new_baseline_pitching = dict(pitching_totals)
+    new_baseline_pitching = {k: v for k, v in new_baseline_pitching.items() if v > 0}
+
+    # Final retirement gate (mirrors the full path): drop lasts for active
+    # players and remove the G "final game" slot — already covered elsewhere.
+    if not is_retired_now:
+        new_batting_lasts = {}
+        new_pitching_lasts = {}
+    new_batting_lasts.pop('G', None)
+    new_pitching_lasts.pop('G', None)
+
+    return {
+        'player_id': player_id,
+        'batting_firsts': new_batting_firsts,
+        'pitching_firsts': new_pitching_firsts,
+        'batting_milestones': {k: v for k, v in new_batting_milestones.items() if v},
+        'pitching_milestones': {k: v for k, v in new_pitching_milestones.items() if v},
+        'batting_lasts': new_batting_lasts,
+        'pitching_lasts': new_pitching_lasts,
+        'max_game_year': max_game_year_now,
+        'is_retired': is_retired_now,
+        'career_totals': {
+            'batting': {k: v for k, v in batting_totals.items() if v > 0},
+            'pitching': {k: v for k, v in pitching_totals.items() if v > 0},
+        },
+        'last_full_year': current_year - 1,
+        'career_totals_baseline': {
+            'batting': new_baseline_batting,
+            'pitching': new_baseline_pitching,
+        },
+        'scraped_at': datetime.now().isoformat(),
+    }
+
+
 def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '',
-                                verbose: bool = True, session=None) -> dict:
+                                verbose: bool = True, session=None,
+                                baseline: dict | None = None) -> dict:
     """Find career firsts and milestones using MLB API game logs (instant, no BREF needed).
 
     G (total games) is tracked by merging batting + pitching gamelogs into
@@ -1178,10 +1505,35 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
         player_id: BREF-style player ID (for cache key compatibility)
         player_name: Display name (for logging)
         verbose: Print progress
+        session: Optional requests Session.
+        baseline: Optional cached entry from a prior scrape. When provided,
+            past milestones (which never change) are reused and only the years
+            after ``baseline['last_full_year']`` are fetched from the API.
+            ~5-10x fewer HTTP calls per veteran player.
 
     Returns:
         Same dict structure as find_career_firsts() for cache compatibility.
     """
+    if session is None:
+        session = _session
+    current_year = datetime.now().year
+
+    # Fast path: extend a cached entry by fetching only the new years.
+    # `max_game_year` was added with the career-lasts work — legacy entries
+    # without it can't reliably tell active from retired, so they fall through
+    # to a full fetch on first encounter (one-time backfill).
+    if baseline and isinstance(baseline.get('last_full_year'), int) \
+            and isinstance(baseline.get('career_totals_baseline'), dict) \
+            and isinstance(baseline.get('max_game_year'), int):
+        result = _extend_career_firsts_mlb_api(
+            mlb_id, player_id, player_name, baseline,
+            current_year=current_year, verbose=verbose, session=session,
+        )
+        if result is not None:
+            return result
+        # If the incremental path returned None (cache too stale or schema
+        # mismatch), fall through to a full re-scrape.
+
     if verbose:
         label = player_name or player_id
         print(f"  ⚡ MLB API career firsts for {label} (mlb_id={mlb_id})...")
@@ -1192,13 +1544,11 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
         'pitching_firsts': {},
         'batting_milestones': {},
         'pitching_milestones': {},
+        'batting_lasts': {},
+        'pitching_lasts': {},
         'career_totals': {},
         'scraped_at': datetime.now().isoformat(),
     }
-
-    if session is None:
-        session = _session
-    current_year = datetime.now().year
 
     batting_games = _fetch_api_gamelogs(session, mlb_id, 'hitting')
     pitching_games = _fetch_api_gamelogs(session, mlb_id, 'pitching')
@@ -1270,12 +1620,13 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
         if year == current_year and not pre_year_batting:
             pre_year_batting = {k: v for k, v in batting_totals.items() if k != 'G'}
 
-        # Check firsts
+        # Check firsts + record "last" sighting (overwrites each pass so the
+        # final iteration leaves the latest game for each stat in place).
         for api_field, our_stat in _API_BATTING_MAP.items():
-            if our_stat not in batting_needed:
-                continue
             val = stat_data.get(api_field, 0)
-            if val and val > 0:
+            if not val or val <= 0:
+                continue
+            if our_stat in batting_needed:
                 result['batting_firsts'][our_stat] = {
                     'date': date_str.replace('-', ''),
                     'game_id': game_id,
@@ -1284,6 +1635,15 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
                     'milestone': BATTING_FIRSTS[our_stat],
                 }
                 batting_needed.discard(our_stat)
+            stat_name = STAT_NAMES.get(our_stat, our_stat)
+            result['batting_lasts'][our_stat] = {
+                'date': date_str.replace('-', ''),
+                'game_id': game_id,
+                'opponent': opponent,
+                'year': year,
+                'milestone': f"Final Career {stat_name}",
+                'value_in_game': val,
+            }
 
         # Update running totals and check milestones for non-G stats
         for stat_key in BATTING_MILESTONES:
@@ -1331,14 +1691,18 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
         if year == current_year and not pre_year_pitching:
             pre_year_pitching = pitching_totals.copy()
 
-        # Check firsts
+        # Check firsts + record "last" sighting (overwrites each pass).
+        # G last (career final pitching appearance) is already covered by
+        # the Final Games view — skip it here to avoid duplication.
         for api_field, our_stat in _API_PITCHING_MAP.items():
-            if our_stat not in pitching_needed:
+            if our_stat == 'G':
                 continue
             val = stat_data.get(api_field, 0)
             if our_stat == 'IP':
                 val = parse_ip(str(val))
-            if val and val > 0:
+            if not val or val <= 0:
+                continue
+            if our_stat in pitching_needed:
                 result['pitching_firsts'][our_stat] = {
                     'date': date_str.replace('-', ''),
                     'game_id': game_id,
@@ -1347,6 +1711,15 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
                     'milestone': PITCHING_FIRSTS[our_stat],
                 }
                 pitching_needed.discard(our_stat)
+            stat_name = STAT_NAMES.get(our_stat, our_stat)
+            result['pitching_lasts'][our_stat] = {
+                'date': date_str.replace('-', ''),
+                'game_id': game_id,
+                'opponent': opponent,
+                'year': year,
+                'milestone': f"Final Career {stat_name}",
+                'value_in_game': val,
+            }
 
         # Update running totals (G = pitching appearances)
         pitching_totals['G'] = pitching_totals.get('G', 0) + 1
@@ -1401,11 +1774,60 @@ def find_career_firsts_mlb_api(mlb_id: int, player_id: str, player_name: str = '
         'pitching': {k: v for k, v in pre_year_pitching.items() if v > 0},
     }
 
+    # Retirement gate for career-lasts. A player who's missed a full season
+    # is treated as retired — their stat lasts are now stable history. Players
+    # with any games last year or this year are still active and their "last"
+    # values would shift, so we drop them.
+    last_batting_year = max((int((g.get('date') or '0000')[:4]) for g in batting_games), default=0)
+    last_pitching_year = max((int((g.get('date') or '0000')[:4]) for g in pitching_games), default=0)
+    max_game_year = max(last_batting_year, last_pitching_year)
+    result['max_game_year'] = max_game_year
+    is_retired = max_game_year > 0 and max_game_year < (current_year - 1)
+    result['is_retired'] = is_retired
+
+    # Drop G (already covered by Final Games tab) and clear lasts for active players.
+    result['batting_lasts'].pop('G', None)
+    result['pitching_lasts'].pop('G', None)
+    if not is_retired:
+        result['batting_lasts'] = {}
+        result['pitching_lasts'] = {}
+
     # Clean up empty lists
     result['batting_milestones'] = {k: v for k, v in result['batting_milestones'].items() if v}
     result['pitching_milestones'] = {k: v for k, v in result['pitching_milestones'].items() if v}
 
     return result
+
+
+def _fetch_api_gamelogs_for_years(session, mlb_id: int, group: str, years: list[int]) -> list:
+    """Fetch game logs for an explicit set of years (skips yearByYear discovery).
+
+    Used by the incremental path — when we already know the player's
+    cached baseline year, we don't need to ask the API which seasons exist.
+    Empty responses for years the player wasn't active are tolerated.
+    """
+    splits = []
+    for year in sorted(set(years)):
+        url = (
+            f"https://statsapi.mlb.com/api/v1/people/{mlb_id}/stats"
+            f"?stats=gameLog&group={group}&season={year}&gameType=R&sportId=1"
+        )
+        last_exc = None
+        for _ in range(3):
+            try:
+                resp = get_with_retry(session, url, timeout=15)
+                if resp.status_code == 200:
+                    for stat_group in resp.json().get('stats', []):
+                        splits.extend(stat_group.get('splits', []))
+                    last_exc = None
+                    break
+                last_exc = Exception(f"HTTP {resp.status_code}")
+            except Exception as e:
+                last_exc = e
+        if last_exc is not None:
+            raise RuntimeError(f"gameLog {group} {year} for {mlb_id} failed: {last_exc}")
+    splits.sort(key=lambda s: s.get('date', ''))
+    return splits
 
 
 def _fetch_api_gamelogs(session, mlb_id: int, group: str) -> list:
@@ -1466,14 +1888,22 @@ def _fetch_api_gamelogs(session, mlb_id: int, group: str) -> list:
     return all_splits
 
 
-def update_career_firsts_from_api(game_data: dict, verbose: bool = True) -> int:
+_API_CAREER_FIRSTS_TTL_SECONDS = 6 * 3600
+
+
+def update_career_firsts_from_api(game_data: dict, verbose: bool = True, force: bool = False) -> int:
     """Update career firsts cache for all players in a game using MLB API.
 
     This is the fast path called from add_game — no BREF scraping needed.
     Only updates players who have an mlb_id. Merges results into the
     existing career_firsts.json cache without deleting existing BREF data.
 
-    Returns number of players updated.
+    Skips per-player API hits when the cached entry's ``scraped_at`` is
+    within ``_API_CAREER_FIRSTS_TTL_SECONDS`` (6 hours) — an active
+    player's milestone counts can't change without a new MLB game, and
+    same-day re-runs are the common case. Pass ``force=True`` to bypass.
+
+    Returns number of players whose cache entry was created or refreshed.
     """
     cache_path = get_project_root() / 'cache' / 'career_firsts' / 'career_firsts.json'
     cache = {}
@@ -1484,30 +1914,73 @@ def update_career_firsts_from_api(game_data: dict, verbose: bool = True) -> int:
         except (json.JSONDecodeError, IOError):
             pass
 
+    # Build a bref-id -> mlb-id fallback for BREF-parsed games (where the
+    # player rows don't carry mlb_id). Lazy-loaded once and cached.
+    _bref_map = None
+
+    def _resolve_mlb_id(pid):
+        nonlocal _bref_map
+        if _bref_map is None:
+            _bref_map = _build_bref_to_mlb_map()
+        return _bref_map.get(pid)
+
     # Collect players with mlb_ids from the game
     players = {}  # player_id -> (mlb_id, name)
     for side in ('home', 'away'):
         for p in game_data.get('batting', {}).get(side, []):
             pid = p.get('player_id', '')
-            mlb_id = p.get('mlb_id')
-            if pid and mlb_id:
+            if not pid:
+                continue
+            mlb_id = p.get('mlb_id') or _resolve_mlb_id(pid)
+            if mlb_id:
                 players[pid] = (mlb_id, p.get('name', ''))
         for p in game_data.get('pitching', {}).get(side, []):
             pid = p.get('player_id', '')
-            mlb_id = p.get('mlb_id')
-            if pid and mlb_id:
+            if not pid:
+                continue
+            mlb_id = p.get('mlb_id') or _resolve_mlb_id(pid)
+            if mlb_id:
                 players[pid] = (mlb_id, p.get('name', ''))
 
     if not players:
         return 0
 
+    now = datetime.now()
+
+    def _is_fresh(entry):
+        if force or not isinstance(entry, dict):
+            return False
+        # Legacy entries missing the retirement bookkeeping need a fresh fetch
+        # so career_lasts can be computed for any player who's retired.
+        if 'is_retired' not in entry or 'max_game_year' not in entry:
+            return False
+        scraped_at = entry.get('scraped_at')
+        if not scraped_at:
+            return False
+        try:
+            return (now - datetime.fromisoformat(scraped_at)).total_seconds() < _API_CAREER_FIRSTS_TTL_SECONDS
+        except (ValueError, TypeError):
+            return False
+
+    fresh_skipped = sum(1 for pid in players if _is_fresh(cache.get(pid)))
+    to_fetch = len(players) - fresh_skipped
+
     if verbose:
-        print(f"  ⚡ Updating career firsts via MLB API for {len(players)} players...")
+        if to_fetch == 0:
+            print(f"  ⏭️  Career firsts: all {len(players)} players cached fresh (<6h)")
+        else:
+            extra = f" ({fresh_skipped} cached fresh)" if fresh_skipped else ""
+            print(f"  ⚡ Updating career firsts via MLB API for {to_fetch} players{extra}...")
 
     updated = 0
     for pid, (mlb_id, name) in players.items():
+        if _is_fresh(cache.get(pid)):
+            continue
         try:
-            api_result = find_career_firsts_mlb_api(mlb_id, pid, name, verbose=verbose)
+            api_result = find_career_firsts_mlb_api(
+                mlb_id, pid, name, verbose=verbose,
+                baseline=cache.get(pid),
+            )
 
             if pid in cache:
                 existing = cache[pid]
@@ -1522,6 +1995,13 @@ def update_career_firsts_from_api(game_data: dict, verbose: bool = True) -> int:
                 for ms_type in ('batting_milestones', 'pitching_milestones'):
                     for stat, ms_list in api_result.get(ms_type, {}).items():
                         existing.setdefault(ms_type, {})[stat] = ms_list
+                # Replace lasts wholesale — the API walk has authoritative
+                # final-game-with-stat info for retired players, and active
+                # players just get an empty dict.
+                existing['batting_lasts'] = api_result.get('batting_lasts', {}) or {}
+                existing['pitching_lasts'] = api_result.get('pitching_lasts', {}) or {}
+                existing['max_game_year'] = api_result.get('max_game_year') or 0
+                existing['is_retired'] = bool(api_result.get('is_retired'))
                 # Update totals and timestamp
                 existing['career_totals'] = api_result['career_totals']
                 existing['career_totals_baseline'] = api_result.get('career_totals_baseline', {})
@@ -2147,6 +2627,46 @@ def find_witnessed_firsts(career_firsts_cache: dict, attended_games: dict) -> li
                         'type': 'pitching',
                         'category': 'milestone',
                     })
+
+    return witnessed
+
+
+def find_witnessed_lasts(career_firsts_cache: dict, attended_games: dict) -> list[dict]:
+    """Find career-LAST stat events that were witnessed at attended games.
+
+    Mirror of find_witnessed_firsts for the other end of careers. Only
+    retired players have populated lasts (active players' "last hit" is
+    just their most recent and would shift, so we don't emit it).
+    """
+    witnessed = []
+
+    for player_id, data in career_firsts_cache.items():
+        player_name = data.get('player_name', player_id)
+        if not data.get('is_retired'):
+            continue
+
+        for last_type, type_label in (('batting_lasts', 'batting'), ('pitching_lasts', 'pitching')):
+            for stat, last_info in (data.get(last_type) or {}).items():
+                game_id = last_info.get('game_id', '')
+                if not game_id:
+                    continue
+                game = attended_games.get(game_id)
+                if not game:
+                    continue
+                witnessed.append({
+                    'player_id': player_id,
+                    'player_name': player_name,
+                    'milestone': last_info.get('milestone', ''),
+                    'stat': stat,
+                    'date': last_info.get('date', ''),
+                    'game_id': game_id,
+                    'opponent': last_info.get('opponent', ''),
+                    'venue': game.get('venue', ''),
+                    'year': last_info.get('year'),
+                    'value': last_info.get('value_in_game'),
+                    'type': type_label,
+                    'category': 'last',
+                })
 
     return witnessed
 

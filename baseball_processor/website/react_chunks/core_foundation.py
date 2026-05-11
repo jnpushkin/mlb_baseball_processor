@@ -17,6 +17,10 @@ const getLastName = (name) => {
     return parts[parts.length - 1] || name || '?';
 };
 const getHrCount = (detail) => { const match = detail?.match(/(\d+)\s*HR/); return match ? parseInt(match[1], 10) : 0; };
+// Returns true when a cell value should always sink to the bottom of a sort,
+// regardless of direction. Covers nulls, blanks, dash placeholders, and the
+// stringified-NaN that some renders produce for missing numbers.
+const isMissingValue = (v) => v === null || v === undefined || v === '' || v === '-' || v === 'NaN' || (typeof v === 'number' && Number.isNaN(v));
 
 // Aggregation utilities
 const aggregateHitterStats = (playerGames) => {

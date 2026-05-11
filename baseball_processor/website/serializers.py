@@ -263,6 +263,88 @@ def find_witnessed_career_firsts(raw_games, career_firsts_cache):
     return witnessed_firsts, firsts_by_game, firsts_by_player
 
 
+def find_witnessed_career_lasts(raw_games, career_firsts_cache):
+    """Career-LAST stat events that happened at attended games.
+
+    Mirror of find_witnessed_career_firsts but for the other end of careers.
+    Only retired players contribute (active players' "last hit" still moves).
+    """
+    attended_games = {}
+    for game in raw_games:
+        basic_info = game.get('basic_info', {})
+        date_str = basic_info.get('date_yyyymmdd', '')
+        home_code = basic_info.get('home_team_code', '')
+        game_id = game.get('game_id', f"{home_code}{date_str}0")
+        if game_id:
+            attended_games[game_id] = {
+                'home_team': basic_info.get('home_team', ''),
+                'away_team': basic_info.get('away_team', ''),
+                'venue': basic_info.get('venue', ''),
+                'date': basic_info.get('date', ''),
+            }
+
+    player_names = {}
+    for game in raw_games:
+        for side in ('away', 'home'):
+            for batter in game.get('batting', {}).get(side, []):
+                if batter.get('player_id') and batter.get('name'):
+                    player_names[batter['player_id']] = batter['name']
+            for pitcher in game.get('pitching', {}).get(side, []):
+                if pitcher.get('player_id') and pitcher.get('name'):
+                    player_names[pitcher['player_id']] = pitcher['name']
+
+    def find_attended_game(game_id):
+        if not game_id or len(game_id) < 11:
+            return None
+        candidates = [game_id]
+        if game_id.startswith('M') and len(game_id) >= 12:
+            candidates.append(game_id[1:])
+        else:
+            candidates.append('M' + game_id)
+        for cand in candidates:
+            if cand in attended_games:
+                return attended_games[cand]
+            base, last_char = cand[:-1], cand[-1]
+            if last_char in ('1', '2') and (base + '0') in attended_games:
+                return attended_games[base + '0']
+        return None
+
+    witnessed = []
+    for player_id, data in (career_firsts_cache or {}).items():
+        if not data.get('is_retired'):
+            continue
+        player_name = player_names.get(player_id, data.get('player_name', player_id))
+        for last_type, type_label in (('batting_lasts', 'batting'), ('pitching_lasts', 'pitching')):
+            for stat, last_info in (data.get(last_type) or {}).items():
+                game_id = last_info.get('game_id', '')
+                attended = find_attended_game(game_id)
+                if not attended:
+                    continue
+                witnessed.append({
+                    'player_id': player_id,
+                    'player_name': player_name,
+                    'milestone': last_info.get('milestone', ''),
+                    'stat': stat,
+                    'date': last_info.get('date', ''),
+                    'date_display': _format_yyyymmdd(last_info.get('date', '')),
+                    'game_id': game_id,
+                    'opponent': last_info.get('opponent', ''),
+                    'venue': attended.get('venue', ''),
+                    'year': last_info.get('year'),
+                    'value': last_info.get('value_in_game'),
+                    'type': type_label,
+                })
+
+    witnessed.sort(key=lambda r: (r.get('date') or '', r.get('player_name') or ''), reverse=True)
+    return witnessed
+
+
+def _format_yyyymmdd(date_str):
+    if not date_str or len(date_str) != 8 or not date_str.isdigit():
+        return date_str or ''
+    return f"{date_str[4:6]}/{date_str[6:8]}/{date_str[0:4]}"
+
+
 def find_all_time_passings(witnessed_firsts: list, career_firsts_cache: dict, raw_games: list = None) -> tuple[list, dict]:
     """
     Find all-time list passings for witnessed career milestones.
@@ -367,6 +449,9 @@ class DataSerializer:
         )
         self._firsts_by_game = firsts_by_game
         self._firsts_by_player = firsts_by_player
+
+        # Career-lasts: same cache, retired players only.
+        witnessed_lasts = find_witnessed_career_lasts(raw_games, career_firsts_cache)
 
         # Find all-time list passings from witnessed milestones
         all_time_passings, passings_by_game = find_all_time_passings(
@@ -523,6 +608,7 @@ class DataSerializer:
             "divisionChecklist": self._serialize_division_checklist(),
             "companionData": self._serialize_companions(),
             "careerFirsts": witnessed_firsts,
+            "careerLasts": witnessed_lasts,
             "careerFirstsByGame": firsts_by_game,
             "careerFirstsByPlayer": firsts_by_player,
             "allTimePassings": all_time_passings,
@@ -532,6 +618,7 @@ class DataSerializer:
             "absPlayerStats": self._serialize_abs_player_stats(raw_games),
             "umpireLog": self._serialize_umpire_log(raw_games),
             "jerseyLog": self._serialize_jersey_log(raw_games),
+            "firstRoundDraftPicks": self._serialize_first_round_draft_picks(raw_games),
             "playerBios": self._load_player_bios(),
             "generatedAt": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
         }
@@ -1142,55 +1229,15 @@ class DataSerializer:
         return player_games
 
     def _extract_extra_batting_stats(self, game):
-        """Extract 2B, 3B, HR, SB, CS, HBP, GIDP from play-by-play data."""
-        player_stats = {}
-        
-        plays = game.get('play_by_play', [])
-        
-        # Build player_id lookup from batting
-        player_name_to_id = {}
-        for side in ['home', 'away']:
-            for player in game.get('batting', {}).get(side, []):
-                name = player.get('name', '').replace('\u00a0', ' ')
-                player_id = player.get('player_id', '')
-                if player_id:
-                    player_name_to_id[name] = player_id
-        
-        for play in plays:
-            batter = play.get('batter', '').replace('\u00a0', ' ')
-            player_id = player_name_to_id.get(batter)
-            
-            if not player_id:
-                continue
-            
-            if player_id not in player_stats:
-                player_stats[player_id] = {
-                    '2B': 0, '3B': 0, 'HR': 0, 'SB': 0, 'CS': 0, 
-                    'HBP': 0, 'GIDP': 0
-                }
-            
-            # Count extra base hits from play-by-play
-            # BREF format uses boolean flags; MLB API uses event_type strings
-            event_type = play.get('event_type', '')
-            if play.get('double') or event_type == 'double':
-                player_stats[player_id]['2B'] += 1
-            if play.get('triple') or event_type == 'triple':
-                player_stats[player_id]['3B'] += 1
-            if play.get('home_run') or event_type == 'home_run':
-                player_stats[player_id]['HR'] += 1
-            if play.get('hit_by_pitch') or event_type == 'hit_by_pitch':
-                player_stats[player_id]['HBP'] += 1
-            if play.get('double_play') or event_type == 'grounded_into_double_play':
-                player_stats[player_id]['GIDP'] += 1
-            
-            # Check description for SB/CS (they're not always in the main flags)
-            desc = play.get('description', '').lower()
-            if 'steals' in desc or 'stolen base' in desc:
-                player_stats[player_id]['SB'] += 1
-            if 'caught stealing' in desc or play.get('Details') == 'CS':
-                player_stats[player_id]['CS'] += 1
-        
-        return player_stats    
+        """Extract 2B, 3B, HR, SB, CS, HBP, GIDP from play-by-play data.
+
+        Thin wrapper around the shared helper so playerGames totals (here)
+        always match the aggregated player totals computed in
+        ``PlayerStatsProcessor`` \u2014 both call the same extractor.
+        """
+        from ..utils.stat_utils import extract_extra_batting_stats
+        return extract_extra_batting_stats(game)
+
     
     def _serialize_pitcher_games(self, games):
         """Create game-by-game pitching records."""
@@ -2489,6 +2536,186 @@ class DataSerializer:
                     u[field] = f"{d[4:6]}/{d[6:8]}/{d[0:4]}"
 
         return sorted(umpire_stats.values(), key=lambda x: x['games'], reverse=True)
+
+    def _serialize_first_round_draft_picks(self, raw_games):
+        """Build draft-pick collection (first-round grid + by-round grid).
+
+        Cross-references attended players against the cached MLB draft index.
+        BREF-parsed games don't populate mlb_id on player rows, so we fall
+        back to a bref_id -> mlb_id lookup via the Chadwick Register. Without
+        that fallback, anyone seen only in older BREF games (e.g., Heston
+        Kjerstad) silently drops out.
+        """
+        try:
+            from ..scrapers.draft_scraper import load_index as _load_draft_index
+        except Exception:
+            return self._empty_draft_payload()
+
+        try:
+            draft_index = _load_draft_index() or {}
+        except Exception:
+            draft_index = {}
+
+        if not draft_index:
+            return self._empty_draft_payload()
+
+        bref_to_mlb = self._load_bref_to_mlb_map()
+
+        # Collect attended players once, regardless of how many games they appeared in.
+        seen = {}  # mlb_id (str) -> meta
+        for game in raw_games:
+            bi = game.get('basic_info', {}) or {}
+            game_id = game.get('game_id', '')
+            date_yyyymmdd = bi.get('date_yyyymmdd', '') or ''
+            display_date = ''
+            if len(date_yyyymmdd) == 8:
+                display_date = f"{date_yyyymmdd[4:6]}/{date_yyyymmdd[6:8]}/{date_yyyymmdd[0:4]}"
+
+            for side in ('home', 'away'):
+                team_code = bi.get(f'{side}_team_code', '') or ''
+                for section in ('batting', 'pitching'):
+                    for p in game.get(section, {}).get(side, []) or []:
+                        mlb_id = p.get('mlb_id')
+                        if not mlb_id:
+                            # BREF games don't carry mlb_id — fall back to
+                            # bref_id via Chadwick Register.
+                            bref_id = p.get('player_id') or ''
+                            mlb_id = bref_to_mlb.get(bref_id)
+                            if not mlb_id:
+                                continue
+                        key = str(mlb_id)
+                        if key in seen:
+                            seen[key]['teams'].add(team_code)
+                            continue
+                        seen[key] = {
+                            'name': p.get('name', ''),
+                            'teams': {team_code} if team_code else set(),
+                            'firstGameId': game_id,
+                            'firstGameDate': display_date,
+                            'firstGameDateSort': date_yyyymmdd,
+                        }
+
+        # Intersect with the draft index.
+        by_pick = {}        # roundPick (round 1 only) -> [player records]
+        by_round = {}       # round number -> [player records]
+        years_covered = set()
+
+        for mlb_id_str, meta in seen.items():
+            pick = draft_index.get(mlb_id_str)
+            if not pick:
+                continue
+            round_num = pick.get('round')
+            round_pick = pick.get('roundPick')
+            if not isinstance(round_num, int) or not isinstance(round_pick, int):
+                continue
+
+            record = {
+                'mlbId': pick.get('mlb_id'),
+                'name': pick.get('fullName') or meta['name'],
+                'year': pick.get('year'),
+                'round': round_num,
+                'roundPick': round_pick,
+                'overallPick': pick.get('overallPick'),
+                'draftTeam': pick.get('teamAbbrev') or pick.get('team') or '',
+                'school': pick.get('school') or '',
+                'schoolClass': pick.get('schoolClass') or '',
+                'signingBonus': pick.get('signingBonus') or '',
+                'attendedAs': sorted(meta['teams']),
+                'firstGameId': meta['firstGameId'],
+                'firstGameDate': meta['firstGameDate'],
+            }
+
+            if round_num == 1:
+                by_pick.setdefault(round_pick, []).append(record)
+            by_round.setdefault(round_num, []).append(record)
+            years_covered.add(pick.get('year'))
+
+        # Sort entries within each bucket: round 1 grid by draft year desc;
+        # by-round buckets by (round pick asc, year desc) so the lowest pick
+        # in each round bubbles to the top.
+        for pnum in by_pick:
+            by_pick[pnum].sort(key=lambda r: -(r.get('year') or 0))
+        for rnum in by_round:
+            by_round[rnum].sort(key=lambda r: (r.get('roundPick') or 99, -(r.get('year') or 0)))
+
+        # First-round grid sizing: most years cap at 30; comp-era years stretch
+        # to 35-ish. Snap to the actual max present in the index.
+        max_first_round_pick = 0
+        for pick in draft_index.values():
+            if pick.get('round') == 1:
+                rp = pick.get('roundPick') or 0
+                if rp > max_first_round_pick:
+                    max_first_round_pick = rp
+        if max_first_round_pick < 30:
+            max_first_round_pick = 30
+
+        # Rounds grid: bound to the user's deepest round seen (so we don't
+        # render dozens of empty cells from 1970s drafts the user hasn't
+        # touched), but always show at least 50 — the typical pre-2021 depth
+        # — so the "every round" challenge is visible.
+        user_max_round = max(by_round.keys()) if by_round else 0
+        max_round = max(50, user_max_round)
+
+        picks_seen = sum(1 for p in range(1, max_first_round_pick + 1) if by_pick.get(p))
+        rounds_seen = sum(1 for r in range(1, max_round + 1) if by_round.get(r))
+        players_seen = sum(len(v) for v in by_round.values())
+        first_round_player_count = sum(len(v) for v in by_pick.values())
+
+        return {
+            "byPick": {str(k): v for k, v in by_pick.items()},
+            "byRound": {str(k): v for k, v in by_round.items()},
+            "totalPicks": max_first_round_pick,
+            "totalRounds": max_round,
+            "picksSeen": picks_seen,
+            "roundsSeen": rounds_seen,
+            "playersSeen": players_seen,
+            "firstRoundPlayersSeen": first_round_player_count,
+            "yearsCovered": sorted(y for y in years_covered if y),
+        }
+
+    def _empty_draft_payload(self):
+        return {
+            "byPick": {}, "byRound": {},
+            "totalPicks": 0, "totalRounds": 0,
+            "picksSeen": 0, "roundsSeen": 0,
+            "playersSeen": 0, "firstRoundPlayersSeen": 0,
+            "yearsCovered": [],
+        }
+
+    def _load_bref_to_mlb_map(self):
+        """Build {bref_id: mlb_id} from the Chadwick Register CSVs.
+
+        Cached on the instance — same source the career-firsts backfill uses.
+        Returns an empty dict if the register isn't on disk.
+        """
+        cached = getattr(self, '_bref_to_mlb_cache', None)
+        if cached is not None:
+            return cached
+        import csv as _csv
+        from ..utils.constants import BASE_DIR
+        register_dir = BASE_DIR / 'register-master' / 'data'
+        mapping = {}
+        if register_dir.is_dir():
+            for csv_path in sorted(register_dir.glob('people-*.csv')):
+                try:
+                    with open(csv_path, 'r', encoding='utf-8', errors='replace') as f:
+                        reader = _csv.DictReader(f)
+                        for row in reader:
+                            mlbam = (row.get('key_mlbam') or '').strip()
+                            if not mlbam:
+                                continue
+                            try:
+                                mlb_id = int(mlbam)
+                            except ValueError:
+                                continue
+                            for field in ('key_bbref', 'key_bbref_minors'):
+                                bref = (row.get(field) or '').strip()
+                                if bref:
+                                    mapping[bref] = mlb_id
+                except Exception:
+                    continue
+        self._bref_to_mlb_cache = mapping
+        return mapping
 
     def _serialize_jersey_log(self, raw_games):
         """Build jersey number collection: track every number 00-99 seen."""

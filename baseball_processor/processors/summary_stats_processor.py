@@ -156,7 +156,10 @@ class SummaryStatsProcessor(BaseProcessor):
         """Process all summary statistics and build the summary stats DataFrame."""
         print("📊 Processing summary statistics...")
 
-        # Exclude spring training games from records
+        # Records exclude spring training, but the matchup matrix still wants
+        # to count attended spring matchups — keep the unfiltered list around
+        # for that one analysis.
+        self._all_games_with_spring = list(self.games)
         self.games = [g for g in self.games if g.get('basic_info', {}).get('game_type', 'regular') != 'spring']
 
         # Process each game
@@ -2174,7 +2177,11 @@ class SummaryStatsProcessor(BaseProcessor):
                 except Exception:
                     return datetime.min
 
-        sorted_games = sorted(self.games, key=parse_game_date)
+        # Include spring training matchups — the user has attended those
+        # games, so the pairings count. The mlb_team_codes intersection below
+        # still drops non-MLB clubs (e.g. Diablos Rojos / MTY).
+        source_games = getattr(self, '_all_games_with_spring', self.games)
+        sorted_games = sorted(source_games, key=parse_game_date)
 
         first_seen_matchups = {}
         normalized_teams = set()

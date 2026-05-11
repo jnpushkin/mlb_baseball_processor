@@ -52,9 +52,15 @@ MONTH_NAMES = {
 }
 
 
+# BREF team codes that themselves start with 'M'. A cached game ID beginning
+# with one of these is already in BREF format and must not have its leading
+# 'M' stripped (e.g., MIA202605050 → IA202605050 would 404).
+BREF_CODES_STARTING_WITH_M = {'MIA', 'MIL', 'MIN', 'MON'}
+
+
 def bref_game_id(api_game_id):
     """Convert API game ID (MBAL202604120) to BREF game ID (BAL202604120)."""
-    if api_game_id.startswith('M'):
+    if api_game_id.startswith('M') and api_game_id[:3] not in BREF_CODES_STARTING_WITH_M:
         return api_game_id[1:]
     return api_game_id
 

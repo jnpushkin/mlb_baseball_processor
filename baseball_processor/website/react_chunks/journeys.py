@@ -64,6 +64,11 @@ CODE = r'''const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, 
         if (!sortKey) return filtered;
         return [...filtered].sort((a, b) => {
             const aVal = a[sortKey], bVal = b[sortKey];
+            const aMissing = isMissingValue(aVal);
+            const bMissing = isMissingValue(bVal);
+            if (aMissing && bMissing) return 0;
+            if (aMissing) return 1;
+            if (bMissing) return -1;
             const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
             const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
             let result = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(aVal).localeCompare(String(bVal));
@@ -252,6 +257,11 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
         if (!sortKey) return filtered;
         return [...filtered].sort((a, b) => {
             const aVal = a[sortKey], bVal = b[sortKey];
+            const aMissing = isMissingValue(aVal);
+            const bMissing = isMissingValue(bVal);
+            if (aMissing && bMissing) return 0;
+            if (aMissing) return 1;
+            if (bMissing) return -1;
             const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
             const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
             let result = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(aVal).localeCompare(String(bVal));
@@ -429,6 +439,11 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
         const dateToSort = (v) => { if (!v) return ''; const p = String(v).split('/'); return p.length === 3 ? `${p[2]}${p[0].padStart(2,'0')}${p[1].padStart(2,'0')}` : v; };
         return [...filtered].sort((a, b) => {
             const aVal = a[sortKey], bVal = b[sortKey];
+            const aMissing = isMissingValue(aVal);
+            const bMissing = isMissingValue(bVal);
+            if (aMissing && bMissing) return 0;
+            if (aMissing) return 1;
+            if (bMissing) return -1;
             // Detect date columns (MM/DD/YYYY format)
             if (String(aVal).match(/^\d{1,2}\/\d{1,2}\/\d{4}$/) || String(bVal).match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
                 const result = dateToSort(aVal).localeCompare(dateToSort(bVal));
@@ -695,7 +710,7 @@ const Leaderboards = ({ data }) => {
     );
 };
 
-const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTabChange }) => {
+const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimePassings, onTabChange }) => {
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [careerMilestoneSort, setCareerMilestoneSort] = useState('date'); // 'event' or 'date'
@@ -825,8 +840,9 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                 </div>
             </div>
 
-            {/* Career Milestones Section */}
-            {careerFirsts && careerFirsts.length > 0 && (activeCategory === 'all' || activeCategory === 'firsts') && (
+            {/* Career Milestones Section — hidden on All+By Date so career
+                milestones interleave chronologically with batting/pitching. */}
+            {careerFirsts && careerFirsts.length > 0 && ((activeCategory === 'all' && viewMode !== 'date') || activeCategory === 'firsts') && (
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                     <details open={true}>
                         <summary className="cursor-pointer p-4 bg-gradient-to-r from-yellow-500 to-amber-600 text-white hover:opacity-95 transition-opacity">
@@ -1071,10 +1087,59 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                 </div>
             )}
 
+            {/* Career Lasts Witnessed (retired players' final career events) */}
+            {careerLasts && careerLasts.length > 0 && (activeCategory === 'all' || activeCategory === 'firsts') && (
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <details open={true}>
+                        <summary className="cursor-pointer p-4 bg-gradient-to-r from-slate-700 to-slate-800 text-white hover:opacity-95 transition-opacity">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">🏁</span>
+                                    <h3 className="text-lg font-bold">Career Lasts Witnessed</h3>
+                                </div>
+                                <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-bold">
+                                    {careerLasts.length} event{careerLasts.length === 1 ? '' : 's'}
+                                </span>
+                            </div>
+                        </summary>
+                        <div className="p-4 bg-gradient-to-b from-slate-50 to-white">
+                            <p className="text-sm text-slate-700 mb-3">
+                                You were there for these players' final career hit, HR, win, etc. — only counts retired players (active players' "last" stats still move).
+                            </p>
+                            <div className="space-y-2">
+                                {careerLasts
+                                    .filter(l => !searchTerm || (l.player_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (l.milestone || '').toLowerCase().includes(searchTerm.toLowerCase()))
+                                    .map((l, i) => {
+                                        const playerUrl = l.player_id
+                                            ? `https://www.baseball-reference.com/players/${l.player_id.charAt(0).toLowerCase()}/${l.player_id}.shtml`
+                                            : null;
+                                        return (
+                                            <div key={`${l.game_id}-${l.player_id}-${l.stat}-${i}`} className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                                                <span className="text-sm font-medium text-slate-600 min-w-[100px]">{l.date_display || l.date}</span>
+                                                <span className="text-lg">🏁</span>
+                                                {playerUrl ? (
+                                                    <a href={playerUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-slate-800 hover:text-slate-950 hover:underline">
+                                                        {l.player_name}
+                                                    </a>
+                                                ) : (
+                                                    <span className="font-medium text-slate-800">{l.player_name}</span>
+                                                )}
+                                                <span className="text-sm text-slate-800 font-semibold">{l.milestone}</span>
+                                                {l.venue && <span className="text-xs text-slate-500 ml-auto">@ {l.venue}</span>}
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            )}
+
             {/* All-Time List Passings Section */}
             {/* Date view - flat chronological list */}
             {viewMode === 'date' && activeCategory !== 'firsts' && (() => {
-                const allFiltered = (milestones || []).filter(m => {
+                const parseDate = toSortableDate;
+                const battingPitchingItems = (milestones || []).filter(m => {
                     if (activeCategory === 'batting' && categoryConfig[m.type]?.category !== 'batting') return false;
                     if (activeCategory === 'pitching' && categoryConfig[m.type]?.category !== 'pitching') return false;
                     if (searchTerm) {
@@ -1082,15 +1147,34 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                         return (m.player || '').toLowerCase().includes(q) || (m.type || '').toLowerCase().includes(q) || (m.detail || '').toLowerCase().includes(q);
                     }
                     return true;
-                }).sort((a, b) => {
-                    // Sort by game date from gameMap, falling back to gameId parsing
-                    const gameA = gameMap[a.gameId];
-                    const gameB = gameMap[b.gameId];
-                    const parseDate = toSortableDate;
-                    const da = gameA ? parseDate(gameA.date) : '';
-                    const db = gameB ? parseDate(gameB.date) : '';
-                    return db.localeCompare(da);
                 });
+
+                // On the All tab, fold career firsts into the same chronological
+                // stream so they aren't quarantined in a separate banner.
+                const careerItems = (activeCategory === 'all')
+                    ? (careerFirsts || []).filter(f => !searchTerm
+                            || (f.player_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+                            || (f.milestone || '').toLowerCase().includes(searchTerm.toLowerCase())
+                        ).map(f => ({
+                            _isCareer: true,
+                            gameId: f.game_id,
+                            player: f.player_name,
+                            playerId: f.player_id,
+                            type: 'Career Milestone',
+                            detail: f.milestone,
+                            _careerDate: f.date_display || f.date,
+                            _careerSortDate: f.date,
+                        }))
+                    : [];
+
+                const sortKey = (m) => {
+                    if (m._isCareer) return m._careerSortDate || '';
+                    const game = gameMap[m.gameId];
+                    return game ? parseDate(game.date) : '';
+                };
+
+                const allFiltered = [...battingPitchingItems, ...careerItems]
+                    .sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
 
                 return (
                     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -1099,6 +1183,32 @@ const MilestonesView = ({ milestones, games, careerFirsts, allTimePassings, onTa
                         </div>
                         <div className="divide-y" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                             {allFiltered.map((m, i) => {
+                                if (m._isCareer) {
+                                    const game = gameMap[m.gameId];
+                                    const playerUrl = m.playerId
+                                        ? `https://www.baseball-reference.com/players/${m.playerId.charAt(0).toLowerCase()}/${m.playerId}.shtml`
+                                        : null;
+                                    return (
+                                        <div key={`career-${m.gameId}-${m.playerId}-${i}`} className="p-3 hover:bg-amber-50 flex items-start gap-3 bg-amber-50/40">
+                                            <span className="text-lg">⭐</span>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    {playerUrl ? (
+                                                        <a href={playerUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-sm text-amber-700 hover:text-amber-900 hover:underline">{m.player}</a>
+                                                    ) : (
+                                                        <span className="font-semibold text-sm">{m.player}</span>
+                                                    )}
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">Career Milestone</span>
+                                                </div>
+                                                {m.detail && <div className="text-xs text-amber-800 font-medium mt-0.5 truncate">{m.detail}</div>}
+                                            </div>
+                                            <div className="text-right flex-shrink-0">
+                                                <div className="text-xs text-slate-500">{m._careerDate || game?.date || ''}</div>
+                                                <div className="text-[10px] text-slate-400">{game ? `${game.awayTeam} @ ${game.homeTeam}` : ''}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
                                 const config = categoryConfig[m.type] || {};
                                 const game = gameMap[m.gameId];
                                 return (

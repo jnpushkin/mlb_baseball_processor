@@ -240,10 +240,14 @@ def extract_play_features(play_description):
     if re.search(r'(?<!\w)(singled|single)(?!\w)', desc):
         features['hit'] = True
         features['single'] = True
-    if re.search(r'(?<!\w)(doubled|double)(?!\w)', desc):
+    # Guard against "double play" / "triple play" — both phrases contain a
+    # standalone "double"/"triple" word that the boundary regex would
+    # otherwise treat as a hit. Tested cases like "Ground Ball Double Play"
+    # used to be tagged as a double, inflating leaderboard totals.
+    if re.search(r'(?<!\w)(doubled|double)(?!\w)', desc) and 'double play' not in desc:
         features['hit'] = True
         features['double'] = True
-    if re.search(r'(?<!\w)(tripled|triple)(?!\w)', desc):
+    if re.search(r'(?<!\w)(tripled|triple)(?!\w)', desc) and 'triple play' not in desc:
         features['hit'] = True
         features['triple'] = True
     

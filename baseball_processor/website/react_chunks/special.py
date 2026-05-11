@@ -380,7 +380,7 @@ const MilestonesTabV2 = ({ data, onTabChange, initialSubtab, onSubtabChange }) =
                 { id: 'milestones', label: 'Game Milestones' },
                 { id: 'history', label: 'All-Time Passings' },
             ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
-            {view === 'milestones' && (data.milestones?.length ? <MilestonesView milestones={data.milestones} games={data.games || []} careerFirsts={data.careerFirsts || []} allTimePassings={data.allTimePassings || []} onTabChange={onTabChange} /> : <EmptyState icon="🏆" title="No Milestones" message="No milestones have been recorded yet." />)}
+            {view === 'milestones' && (data.milestones?.length ? <MilestonesView milestones={data.milestones} games={data.games || []} careerFirsts={data.careerFirsts || []} careerLasts={data.careerLasts || []} allTimePassings={data.allTimePassings || []} onTabChange={onTabChange} /> : <EmptyState icon="🏆" title="No Milestones" message="No milestones have been recorded yet." />)}
             {view === 'history' && <HistoryWitnessedView allTimePassings={data.allTimePassings || []} careerFirsts={data.careerFirsts || []} games={data.games || []} />}
         </div>
     );

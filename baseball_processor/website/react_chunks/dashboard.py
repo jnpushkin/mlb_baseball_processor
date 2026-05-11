@@ -408,10 +408,10 @@ const PlayerStatDetail = ({ badge, game, games, allBadgesByGame }) => {
     return (
         <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-                <div className="bg-amber-50 border border-amber-200 rounded p-3 text-center">
-                    <div className="text-xs text-amber-700 uppercase tracking-wide">This milestone</div>
-                    <div className="text-2xl font-bold text-amber-900">{ordinal(meta.value || 0)}</div>
-                    <div className="text-xs text-amber-700">{statLabel}</div>
+                <div className="bg-sky-50 border border-sky-200 rounded p-3 text-center">
+                    <div className="text-xs text-sky-700 uppercase tracking-wide">This milestone</div>
+                    <div className="text-2xl font-bold text-sky-900">{ordinal(meta.value || 0)}</div>
+                    <div className="text-xs text-sky-700">{statLabel}</div>
                 </div>
                 <div className="bg-slate-50 border border-slate-200 rounded p-3 text-center">
                     <div className="text-xs text-slate-600 uppercase tracking-wide">Previous</div>
@@ -430,7 +430,7 @@ const PlayerStatDetail = ({ badge, game, games, allBadgesByGame }) => {
                 </div>
                 <div className="border rounded divide-y max-h-72 overflow-y-auto">
                     {crossings.map((c, i) => (
-                        <div key={c.gameId} className={`flex items-center justify-between px-3 py-1.5 text-sm ${c.gameId === game?.gameId ? 'bg-amber-50 font-semibold' : 'bg-white'}`}>
+                        <div key={c.gameId} className={`flex items-center justify-between px-3 py-1.5 text-sm ${c.gameId === game?.gameId ? 'bg-sky-50 font-semibold' : 'bg-white'}`}>
                             <span>{ordinal(c.value)} {meta.kind === 'g' ? 'game' : (RANK_LABEL[stat] || stat)}</span>
                             <span className="text-slate-500 font-mono text-xs">{c.date} • {c.away} @ {c.home}</span>
                         </div>
@@ -907,7 +907,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         'cumulative-stat': 'bg-teal-100 text-teal-800 font-bold',
         'venue-stat': 'bg-purple-100 text-purple-800 font-bold',
         'pitch-velo': 'bg-red-100 text-red-700 font-bold',
-        'player-stat': 'bg-amber-100 text-amber-800 font-bold',
+        'player-stat': 'bg-sky-100 text-sky-800 font-bold',
         'player-rank': 'bg-rose-100 text-rose-800 font-bold'
     };
 
@@ -2377,7 +2377,7 @@ const BadgesDisplay = ({ games, playerGames, pitcherGames, careerFirstsByGame })
             'cumulative-stat': 'bg-teal-100 border-teal-300',
             'venue-stat': 'bg-purple-100 border-purple-300',
             'pitch-velo': 'bg-red-100 border-red-300',
-            'player-stat': 'bg-amber-100 border-amber-300',
+            'player-stat': 'bg-sky-100 border-sky-300',
             'player-rank': 'bg-rose-100 border-rose-300',
         };
         return colors[type] || 'bg-slate-100 border-slate-300';

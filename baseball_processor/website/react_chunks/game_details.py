@@ -390,7 +390,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-4 flex-wrap">
-                                                    {res && <span className={`small-text font-bold px-2 py-0.5 rounded border ${badgeClass}`}>{res.result}</span>}
+                                                    {res && <span className={`small-text font-bold px-2 py-0.5 rounded border ${badgeClass}`} title={`${selectedMatchup.team} ${res.result === 'W' ? 'won' : res.result === 'L' ? 'lost' : 'tied'} ${res.teamScore}-${res.oppScore}`}>{selectedMatchup.team} {res.result}</span>}
                                                     <div className="flex items-center gap-2">
                                                         <span className={`body-text w-12 text-right ${isHomeGame ? 'font-normal' : 'font-bold'}`}>{game.awayTeam}</span>
                                                         <span className="body-text text-slate-500">@</span>

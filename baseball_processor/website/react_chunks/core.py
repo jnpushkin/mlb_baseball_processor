@@ -1223,6 +1223,11 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick, career
         const filtered = opponentFilter ? gamesForPlayer.filter(g => g.opponent === opponentFilter) : gamesForPlayer;
         return [...filtered].sort((a, b) => {
             const aVal = a[sortKey], bVal = b[sortKey];
+            const aMissing = isMissingValue(aVal);
+            const bMissing = isMissingValue(bVal);
+            if (aMissing && bMissing) return 0;
+            if (aMissing) return 1;
+            if (bMissing) return -1;
             const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
             const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
             let result = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(aVal || '').localeCompare(String(bVal || ''));
@@ -1506,6 +1511,11 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, care
         const filtered = opponentFilter ? gamesForPitcher.filter(g => g.opponent === opponentFilter) : gamesForPitcher;
         return [...filtered].sort((a, b) => {
             const aVal = a[sortKey], bVal = b[sortKey];
+            const aMissing = isMissingValue(aVal);
+            const bMissing = isMissingValue(bVal);
+            if (aMissing && bMissing) return 0;
+            if (aMissing) return 1;
+            if (bMissing) return -1;
             const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
             const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
             let result = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(aVal || '').localeCompare(String(bVal || ''));

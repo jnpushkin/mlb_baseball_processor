@@ -316,6 +316,268 @@ const JerseyCollection = ({ jerseyLog }) => {
     );
 };
 
+const DraftPlayerList = ({ players }) => (
+    <div className="space-y-2 max-h-96 overflow-y-auto">
+        {players.map((p, i) => (
+            <div key={`${p.mlbId}-${i}`} className="flex items-center justify-between bg-white rounded p-2 gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-blue-700">{p.year}</span>
+                    <span className="font-semibold">{p.name}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">{p.draftTeam || '—'}</span>
+                    {p.school && <span className="text-xs text-slate-500">{p.school}</span>}
+                    {p.round != null && p.roundPick != null && (
+                        <span className="text-xs text-slate-400">
+                            R{p.round}{p.roundPick > 1 || p.round === 1 ? `.${p.roundPick}` : ''}{p.overallPick ? ` · #${p.overallPick} overall` : ''}
+                        </span>
+                    )}
+                </div>
+                <div className="text-right">
+                    {p.firstGameDate && <div className="text-xs text-slate-500">first seen {p.firstGameDate}</div>}
+                    {p.signingBonus && <div className="text-xs text-slate-400">${Number(p.signingBonus).toLocaleString()}</div>}
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
+const RoundPickBreakdown = ({ roundNumber, players }) => {
+    const [selectedPick, setSelectedPick] = useState(null);
+
+    // Players in this round bucketed by their roundPick — gives us the
+    // within-round pick grid that mirrors the round-1 view.
+    const byRoundPick = useMemo(() => {
+        const map = {};
+        for (const p of players) {
+            const rp = p.roundPick;
+            if (typeof rp !== 'number') continue;
+            (map[rp] = map[rp] || []).push(p);
+        }
+        return map;
+    }, [players]);
+
+    // Cap the sub-grid at the max pick the user has seen in this round
+    // (with a floor of 30 so the typical round footprint is always visible).
+    const maxPickSeen = useMemo(() => {
+        let max = 0;
+        for (const k of Object.keys(byRoundPick)) {
+            const n = parseInt(k, 10);
+            if (n > max) max = n;
+        }
+        return Math.max(30, max);
+    }, [byRoundPick]);
+
+    const cells = useMemo(() => {
+        const grid = [];
+        for (let n = 1; n <= maxPickSeen; n++) {
+            grid.push({ num: n, players: byRoundPick[n] || [] });
+        }
+        return grid;
+    }, [byRoundPick, maxPickSeen]);
+
+    const collected = cells.filter(c => c.players.length > 0).length;
+
+    return (
+        <div className="bg-blue-50 rounded-lg p-4 mt-4">
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="subsection-title font-bold">Round {roundNumber} — pick-by-pick coverage</h3>
+                <span className="small-text text-slate-600">{collected} of {maxPickSeen} picks · {players.length} player{players.length === 1 ? '' : 's'}</span>
+            </div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(10, 1fr)' }}>
+                {cells.map(({ num, players: pickPlayers }) => {
+                    const has = pickPlayers.length > 0;
+                    const isSelected = selectedPick === num;
+                    return (
+                        <button
+                            key={num}
+                            onClick={() => has && setSelectedPick(isSelected ? null : num)}
+                            className={`aspect-square flex items-center justify-center rounded text-xs font-bold transition-all ${
+                                has
+                                    ? isSelected
+                                        ? 'bg-blue-700 text-white ring-2 ring-blue-500'
+                                        : 'bg-blue-200 text-blue-900 hover:bg-blue-300 cursor-pointer'
+                                    : 'bg-slate-100 text-slate-300'
+                            }`}
+                            title={has ? `Round ${roundNumber}, pick ${num}: ${pickPlayers.length} player${pickPlayers.length > 1 ? 's' : ''}` : `Round ${roundNumber}, pick ${num}: not seen yet`}
+                        >
+                            {num}
+                        </button>
+                    );
+                })}
+            </div>
+            {selectedPick && byRoundPick[selectedPick] && (
+                <div className="mt-3 bg-white rounded p-3">
+                    <div className="small-text font-semibold mb-2">Round {roundNumber}, pick {selectedPick} — {byRoundPick[selectedPick].length} player{byRoundPick[selectedPick].length === 1 ? '' : 's'}</div>
+                    <DraftPlayerList players={byRoundPick[selectedPick]} />
+                </div>
+            )}
+        </div>
+    );
+};
+
+const DraftCollectionGrid = ({ title, units, gridSource, total, label, cellPrefix, search, setSearch, renderDetail }) => {
+    const [selected, setSelected] = useState(null);
+
+    const cells = useMemo(() => {
+        const grid = [];
+        for (let n = 1; n <= total; n++) {
+            grid.push({ num: n, players: gridSource[String(n)] || [] });
+        }
+        return grid;
+    }, [gridSource, total]);
+
+    const collected = cells.filter(c => c.players.length > 0).length;
+    const totalPlayers = cells.reduce((acc, c) => acc + c.players.length, 0);
+
+    const matchingCells = useMemo(() => {
+        if (!search) return new Set();
+        const q = search.toLowerCase();
+        const matches = new Set();
+        cells.forEach(({ num, players }) => {
+            if (players.some(p =>
+                (p.name || '').toLowerCase().includes(q) ||
+                (p.school || '').toLowerCase().includes(q) ||
+                (p.draftTeam || '').toLowerCase().includes(q) ||
+                String(p.year || '').includes(q)
+            )) matches.add(num);
+        });
+        return matches;
+    }, [search, cells]);
+
+    return (
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h2 className="section-title font-bold">{title}</h2>
+                        <p className="body-text text-slate-500 mt-1">
+                            {collected} of {total} {units} collected ({Math.round(collected / total * 100)}%) · {totalPlayers} player{totalPlayers === 1 ? '' : 's'}
+                        </p>
+                    </div>
+                    {setSearch && (
+                        <input
+                            type="text" placeholder="Search players, school, team, year..."
+                            value={search} onChange={(e) => setSearch(e.target.value)}
+                            className="px-3 py-1.5 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none w-64"
+                        />
+                    )}
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-3 mt-2">
+                    <div className="bg-blue-600 h-3 rounded-full transition-all" style={{ width: `${(collected / total * 100)}%` }}></div>
+                </div>
+            </div>
+
+            <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(10, 1fr)' }}>
+                {cells.map(({ num, players }) => {
+                    const hasPlayers = players.length > 0;
+                    const isSearchMatch = search && matchingCells.has(num);
+                    return (
+                        <button
+                            key={num}
+                            onClick={() => hasPlayers && setSelected(selected === num ? null : num)}
+                            className={`aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
+                                isSearchMatch
+                                    ? 'bg-amber-400 text-amber-900 ring-2 ring-amber-300 cursor-pointer'
+                                    : hasPlayers
+                                    ? selected === num
+                                        ? 'bg-blue-600 text-white ring-2 ring-blue-400'
+                                        : 'bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer'
+                                    : search ? 'bg-slate-50 text-slate-300' : 'bg-slate-100 text-slate-400'
+                            }`}
+                            title={hasPlayers ? `${cellPrefix}${num}: ${players.length} player${players.length > 1 ? 's' : ''}` : `${cellPrefix}${num}: not seen yet`}
+                        >
+                            {cellPrefix}{num}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {selected && (() => {
+                const entry = cells.find(c => c.num === selected);
+                const players = entry ? entry.players : [];
+                if (players.length === 0) return null;
+                if (renderDetail) {
+                    return renderDetail({ num: selected, players });
+                }
+                return (
+                    <div className="mt-4 bg-blue-50 rounded-lg p-4">
+                        <h3 className="subsection-title font-bold mb-3">{label} {cellPrefix}{selected} — {players.length} player{players.length > 1 ? 's' : ''}</h3>
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                            {players.map((p, i) => (
+                                <div key={`${p.mlbId}-${i}`} className="flex items-center justify-between bg-white rounded p-2 gap-3">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-bold text-blue-700">{p.year}</span>
+                                        <span className="font-semibold">{p.name}</span>
+                                        <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">{p.draftTeam || '—'}</span>
+                                        {p.school && <span className="text-xs text-slate-500">{p.school}</span>}
+                                        {p.round != null && p.roundPick != null && (
+                                            <span className="text-xs text-slate-400">
+                                                R{p.round}{p.roundPick > 1 || p.round === 1 ? `.${p.roundPick}` : ''}{p.overallPick ? ` · #${p.overallPick} overall` : ''}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="text-right">
+                                        {p.firstGameDate && <div className="text-xs text-slate-500">first seen {p.firstGameDate}</div>}
+                                        {p.signingBonus && <div className="text-xs text-slate-400">${Number(p.signingBonus).toLocaleString()}</div>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
+        </div>
+    );
+};
+
+const FirstRoundDraftPicks = ({ firstRoundDraftPicks }) => {
+    const data = firstRoundDraftPicks || {};
+    const [view, setView] = useState('picks');
+    const [search, setSearch] = useState('');
+    const yearsCovered = data.yearsCovered || [];
+
+    return (
+        <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3 px-1">
+                <div className="flex rounded-lg overflow-hidden border border-slate-200">
+                    <button onClick={() => setView('picks')} className={`px-3 py-1.5 small-text font-medium ${view === 'picks' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`}>By First-Round Pick</button>
+                    <button onClick={() => setView('rounds')} className={`px-3 py-1.5 small-text font-medium ${view === 'rounds' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`}>By Round</button>
+                </div>
+                {yearsCovered.length > 0 && (
+                    <span className="small-text text-slate-500">Draft years {yearsCovered[0]}–{yearsCovered[yearsCovered.length - 1]}</span>
+                )}
+            </div>
+
+            {view === 'picks' && (
+                <DraftCollectionGrid
+                    title="First-Round Draft Picks Collection"
+                    units="picks"
+                    label="Pick"
+                    cellPrefix="#"
+                    gridSource={data.byPick || {}}
+                    total={data.totalPicks || 30}
+                    search={search}
+                    setSearch={setSearch}
+                />
+            )}
+            {view === 'rounds' && (
+                <DraftCollectionGrid
+                    title="Draft Rounds Collection"
+                    units="rounds"
+                    label="Round"
+                    cellPrefix="R"
+                    gridSource={data.byRound || {}}
+                    total={data.totalRounds || 20}
+                    search={search}
+                    setSearch={setSearch}
+                    renderDetail={({ num, players }) => (
+                        <RoundPickBreakdown roundNumber={num} players={players} />
+                    )}
+                />
+            )}
+        </div>
+    );
+};
+
 // State abbreviation -> full name mapping for GeoJSON matching
 const STATE_ABBR_TO_NAME = {
     'AL':'Alabama','AK':'Alaska','AZ':'Arizona','AR':'Arkansas','CA':'California','CO':'Colorado',
@@ -1726,7 +1988,7 @@ const ScorigamiChart = ({ games }) => {
     );
 };
 
-const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games, initialSubtab, onSubtabChange }) => {
+const TriviaTab = ({ umpireLog, jerseyLog, firstRoundDraftPicks, playerBios, players, pitchers, games, initialSubtab, onSubtabChange }) => {
     const [view, setView] = useState(initialSubtab || 'jerseys');
     const allPlayers = useMemo(() => {
         const seen = new Set();
@@ -1736,12 +1998,14 @@ const TriviaTab = ({ umpireLog, jerseyLog, playerBios, players, pitchers, games,
         <div>
             <SubNav tabs={[
                 { id: 'jerseys', label: 'Jersey Numbers' },
+                { id: 'drafts', label: 'Draft Picks' },
                 { id: 'origins', label: 'Origins' },
                 { id: 'birthdays', label: 'Birthdays' },
                 { id: 'scorigami', label: 'Scorigami' },
                 { id: 'umpires', label: 'Umpires' },
             ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'jerseys' && <JerseyCollection jerseyLog={jerseyLog} />}
+            {view === 'drafts' && <FirstRoundDraftPicks firstRoundDraftPicks={firstRoundDraftPicks} />}
             {view === 'origins' && <PlayerOrigins playerBios={playerBios} allPlayers={allPlayers} />}
             {view === 'birthdays' && <PlayerBirthdays playerBios={playerBios} allPlayers={allPlayers} />}
             {view === 'scorigami' && <ScorigamiChart games={games} />}

@@ -2,7 +2,7 @@
   "stat": "TB",
   "stat_name": "Total Bases",
   "type": "batting",
-  "last_updated": "2026-04-21",
+  "last_updated": "2026-05-07",
   "leaders": [
     {
       "rank": 1,
@@ -444,15 +444,15 @@
     },
     {
       "rank": 74,
-      "player_id": "stargwi01",
-      "name": "Willie Stargell",
-      "value": 4190
+      "player_id": "freemfr01",
+      "name": "Freddie Freeman",
+      "value": 4205
     },
     {
       "rank": 75,
-      "player_id": "freemfr01",
-      "name": "Freddie Freeman",
-      "value": 4187
+      "player_id": "stargwi01",
+      "name": "Willie Stargell",
+      "value": 4190
     },
     {
       "rank": 76,
@@ -678,27 +678,27 @@
     },
     {
       "rank": 113,
+      "player_id": "goldspa01",
+      "name": "Paul Goldschmidt",
+      "value": 3853
+    },
+    {
+      "rank": 114,
       "player_id": "medwijo01",
       "name": "Joe Medwick",
       "value": 3852
     },
     {
-      "rank": 114,
+      "rank": 115,
       "player_id": "cruzne02",
       "name": "Nelson Cruz",
       "value": 3847
     },
     {
-      "rank": 115,
+      "rank": 116,
       "player_id": "tejadmi01",
       "name": "Miguel Tejada",
       "value": 3842
-    },
-    {
-      "rank": 116,
-      "player_id": "goldspa01",
-      "name": "Paul Goldschmidt",
-      "value": 3839
     },
     {
       "rank": 117,
@@ -710,7 +710,7 @@
       "rank": 118,
       "player_id": "mccutan01",
       "name": "Andrew McCutchen",
-      "value": 3824
+      "value": 3830
     },
     {
       "rank": 119,
@@ -738,14 +738,14 @@
     },
     {
       "rank": 123,
-      "player_id": "santoro01",
-      "name": "Ron Santo",
+      "player_id": "nettlgr01",
+      "name": "Graig Nettles",
       "value": 3779
     },
     {
       "rank": 123,
-      "player_id": "nettlgr01",
-      "name": "Graig Nettles",
+      "player_id": "santoro01",
+      "name": "Ron Santo",
       "value": 3779
     },
     {
@@ -810,15 +810,15 @@
     },
     {
       "rank": 135,
-      "player_id": "martied01",
-      "name": "Edgar Martinez",
-      "value": 3718
+      "player_id": "altuvjo01",
+      "name": "Jose Altuve",
+      "value": 3722
     },
     {
       "rank": 136,
-      "player_id": "altuvjo01",
-      "name": "Jose Altuve",
-      "value": 3712
+      "player_id": "martied01",
+      "name": "Edgar Martinez",
+      "value": 3718
     },
     {
       "rank": 137,
@@ -870,44 +870,44 @@
     },
     {
       "rank": 145,
+      "player_id": "machama01",
+      "name": "Manny Machado",
+      "value": 3652
+    },
+    {
+      "rank": 146,
       "player_id": "whitalo01",
       "name": "Lou Whitaker",
       "value": 3651
     },
     {
-      "rank": 146,
+      "rank": 147,
       "player_id": "benchjo01",
       "name": "Johnny Bench",
       "value": 3644
     },
     {
-      "rank": 147,
+      "rank": 148,
       "player_id": "berrayo01",
       "name": "Yogi Berra",
       "value": 3643
     },
     {
-      "rank": 148,
+      "rank": 149,
       "player_id": "mcgwima01",
       "name": "Mark McGwire",
       "value": 3639
     },
     {
-      "rank": 149,
+      "rank": 150,
       "player_id": "cansejo01",
-      "name": "Jose Canseco",
+      "name": "Jos\u00e9 Canseco",
       "value": 3631
     },
     {
-      "rank": 150,
+      "rank": 151,
       "player_id": "aloumo01",
       "name": "Moises Alou",
-      "value": 3629
-    },
-    {
-      "rank": 150,
-      "player_id": "machama01",
-      "name": "Manny Machado",
       "value": 3629
     },
     {
@@ -978,14 +978,14 @@
     },
     {
       "rank": 163,
-      "player_id": "keelewi01",
-      "name": "Willie Keeler",
+      "player_id": "clarkwi02",
+      "name": "Will Clark",
       "value": 3562
     },
     {
       "rank": 163,
-      "player_id": "clarkwi02",
-      "name": "Will Clark",
+      "player_id": "keelewi01",
+      "name": "Willie Keeler",
       "value": 3562
     },
     {
@@ -1061,52 +1061,52 @@
       "value": 3502
     },
     {
-      "rank": 177,
+      "rank": 176,
+      "player_id": "arenano01",
+      "name": "Nolan Arenado",
+      "value": 3502
+    },
+    {
+      "rank": 178,
       "player_id": "johnsbo01",
       "name": "Bob Johnson",
       "value": 3501
     },
     {
-      "rank": 178,
+      "rank": 179,
       "player_id": "cartega01",
       "name": "Gary Carter",
       "value": 3497
     },
     {
-      "rank": 179,
+      "rank": 180,
       "player_id": "mayle01",
       "name": "Lee May",
       "value": 3495
     },
     {
-      "rank": 180,
+      "rank": 181,
       "player_id": "encared01",
       "name": "Edwin Encarnaci\u00f3n",
       "value": 3494
     },
     {
-      "rank": 181,
+      "rank": 182,
       "player_id": "youngmi02",
       "name": "Michael Young",
       "value": 3491
     },
     {
-      "rank": 182,
+      "rank": 183,
       "player_id": "berkmla01",
       "name": "Lance Berkman",
       "value": 3485
     },
     {
-      "rank": 183,
+      "rank": 184,
       "player_id": "broutda01",
       "name": "Dan Brouthers",
       "value": 3484
-    },
-    {
-      "rank": 184,
-      "player_id": "arenano01",
-      "name": "Nolan Arenado",
-      "value": 3481
     },
     {
       "rank": 185,
@@ -1116,33 +1116,33 @@
     },
     {
       "rank": 186,
+      "player_id": "troutmi01",
+      "name": "Mike Trout",
+      "value": 3473
+    },
+    {
+      "rank": 187,
       "player_id": "crossla01",
       "name": "Lave Cross",
       "value": 3467
     },
     {
-      "rank": 187,
+      "rank": 188,
       "player_id": "gonzaad01",
       "name": "Adri\u00e1n Gonz\u00e1lez",
       "value": 3462
     },
     {
-      "rank": 188,
+      "rank": 189,
       "player_id": "puckeki01",
       "name": "Kirby Puckett",
       "value": 3453
     },
     {
-      "rank": 189,
+      "rank": 190,
       "player_id": "dahlebi01",
       "name": "Bill Dahlen",
       "value": 3449
-    },
-    {
-      "rank": 190,
-      "player_id": "troutmi01",
-      "name": "Mike Trout",
-      "value": 3446
     },
     {
       "rank": 191,
@@ -1188,14 +1188,14 @@
     },
     {
       "rank": 198,
-      "player_id": "grissma02",
-      "name": "Marquis Grissom",
+      "player_id": "cramedo01",
+      "name": "Doc Cramer",
       "value": 3430
     },
     {
       "rank": 198,
-      "player_id": "cramedo01",
-      "name": "Doc Cramer",
+      "player_id": "grissma02",
+      "name": "Marquis Grissom",
       "value": 3430
     },
     {
