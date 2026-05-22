@@ -1117,6 +1117,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                     { key: 'homeTeam', label: 'Home', render: (v) => <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('progress', 'matchups'); }}><TeamToken code={v} logoSize={18} /></button> },
                     { key: 'score', label: 'Score' },
                     { key: 'venue', label: 'Venue', render: (v) => <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('venues'); }}>{v}</button> },
+                    { key: 'source', label: 'Source', render: (_, row) => <SourceBadge game={row} compact /> },
                     {
                         key: 'badges',
                         label: 'Badges',

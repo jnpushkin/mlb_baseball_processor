@@ -118,11 +118,25 @@ class HTMLTemplate:
         .dark .border-slate-100, .dark .border-slate-200, .dark .border-slate-300 {{
             border-color: var(--color-border) !important;
         }}
+        .dark .border {{
+            border-color: var(--color-border);
+        }}
+        .dark .shadow-lg,
+        .dark .shadow-md,
+        .dark .shadow-sm {{
+            box-shadow: 0 1px 0 rgba(148, 163, 184, 0.08), 0 14px 28px rgba(0, 0, 0, 0.22) !important;
+        }}
         .dark table {{ color: var(--color-text); }}
         .dark thead {{ background-color: #1e293b !important; }}
         .dark tbody tr {{ border-color: var(--color-border); }}
         .dark tbody tr:hover {{ background-color: rgba(255,255,255,0.04) !important; }}
+        .dark tbody tr.bg-slate-50\\/50 {{
+            background-color: rgba(15, 23, 42, 0.36) !important;
+        }}
         .dark .divide-slate-100 > * + * {{ border-color: var(--color-border); }}
+        .dark .divide-y > * + * {{
+            border-color: var(--color-border) !important;
+        }}
 
         /* Native controls and generated table classes need explicit dark rules. */
         .dark input:not([type="checkbox"]):not([type="radio"]):not([class*="bg-"]),
@@ -154,6 +168,7 @@ class HTMLTemplate:
         /* Colored tint backgrounds in dark mode */
         .dark .bg-blue-50 {{ background-color: rgba(59, 130, 246, 0.12) !important; }}
         .dark .bg-green-50 {{ background-color: rgba(34, 197, 94, 0.12) !important; }}
+        .dark .bg-emerald-50 {{ background-color: rgba(16, 185, 129, 0.12) !important; }}
         .dark .bg-orange-50 {{ background-color: rgba(249, 115, 22, 0.12) !important; }}
         .dark .bg-purple-50 {{ background-color: rgba(168, 85, 247, 0.12) !important; }}
         .dark .bg-red-50 {{ background-color: rgba(239, 68, 68, 0.12) !important; }}
@@ -164,6 +179,7 @@ class HTMLTemplate:
         /* Badge chips use 100-level palettes; keep them tinted, not glowing. */
         .dark .bg-blue-100, .dark .bg-sky-100 {{ background-color: rgba(59, 130, 246, 0.18) !important; }}
         .dark .bg-green-100 {{ background-color: rgba(34, 197, 94, 0.18) !important; }}
+        .dark .bg-emerald-100 {{ background-color: rgba(16, 185, 129, 0.18) !important; }}
         .dark .bg-orange-100 {{ background-color: rgba(249, 115, 22, 0.18) !important; }}
         .dark .bg-purple-100, .dark .bg-violet-100 {{ background-color: rgba(168, 85, 247, 0.18) !important; }}
         .dark .bg-red-100, .dark .bg-rose-100 {{ background-color: rgba(239, 68, 68, 0.18) !important; }}
@@ -173,6 +189,7 @@ class HTMLTemplate:
         .dark .bg-pink-100 {{ background-color: rgba(236, 72, 153, 0.18) !important; }}
         .dark .border-blue-300, .dark .border-sky-300 {{ border-color: rgba(96, 165, 250, 0.35) !important; }}
         .dark .border-green-300 {{ border-color: rgba(74, 222, 128, 0.35) !important; }}
+        .dark .border-emerald-200, .dark .border-emerald-300 {{ border-color: rgba(52, 211, 153, 0.35) !important; }}
         .dark .border-orange-300 {{ border-color: rgba(251, 146, 60, 0.35) !important; }}
         .dark .border-purple-300, .dark .border-violet-300 {{ border-color: rgba(192, 132, 252, 0.35) !important; }}
         .dark .border-red-300, .dark .border-rose-300 {{ border-color: rgba(248, 113, 113, 0.35) !important; }}
@@ -182,6 +199,7 @@ class HTMLTemplate:
         .dark .border-pink-300 {{ border-color: rgba(244, 114, 182, 0.35) !important; }}
         .dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800 {{ color: #60a5fa !important; }}
         .dark .text-green-600, .dark .text-green-700, .dark .text-green-800 {{ color: #86efac !important; }}
+        .dark .text-emerald-600, .dark .text-emerald-700, .dark .text-emerald-800 {{ color: #6ee7b7 !important; }}
         .dark .text-orange-600, .dark .text-orange-700, .dark .text-orange-800 {{ color: #fdba74 !important; }}
         .dark .text-purple-600, .dark .text-purple-700, .dark .text-purple-800, .dark .text-violet-600, .dark .text-violet-700, .dark .text-violet-800 {{ color: #c4b5fd !important; }}
         .dark .text-red-600, .dark .text-red-700, .dark .text-red-800, .dark .text-rose-600, .dark .text-rose-700, .dark .text-rose-800 {{ color: #fca5a5 !important; }}
@@ -190,6 +208,19 @@ class HTMLTemplate:
         .dark .text-sky-600, .dark .text-sky-700, .dark .text-sky-800 {{ color: #7dd3fc !important; }}
         .dark .text-indigo-600, .dark .text-indigo-700, .dark .text-indigo-800 {{ color: #a5b4fc !important; }}
         .dark .text-pink-600, .dark .text-pink-700, .dark .text-pink-800 {{ color: #f9a8d4 !important; }}
+
+        .dark [class*="from-blue-50"],
+        .dark [class*="to-indigo-50"],
+        .dark [class*="from-slate-50"],
+        .dark [class*="to-white"] {{
+            background-image: linear-gradient(to right, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.92)) !important;
+        }}
+        .dark [class*="from-amber-50"] {{
+            background-image: linear-gradient(to bottom, rgba(69, 48, 12, 0.34), rgba(30, 41, 59, 0.96)) !important;
+        }}
+        .dark .backdrop-blur {{
+            border-color: rgba(148, 163, 184, 0.18);
+        }}
 
         /* Scrollbar styling */
         ::-webkit-scrollbar {{ width: 6px; height: 6px; }}

@@ -715,6 +715,15 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
     const [searchTerm, setSearchTerm] = useState('');
     const [careerMilestoneSort, setCareerMilestoneSort] = useState('date'); // 'event' or 'date'
     const [viewMode, setViewMode] = useState('date'); // 'date' or 'category'
+    const [timelineQuickFilter, setTimelineQuickFilter] = useState('all');
+
+    useEffect(() => {
+        if (!window._pendingMilestoneSearch) return;
+        setSearchTerm(window._pendingMilestoneSearch);
+        setActiveCategory('all');
+        setViewMode('date');
+        window._pendingMilestoneSearch = null;
+    });
 
     // Build game lookup for additional context
     const gameMap = useMemo(() => {
@@ -793,6 +802,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
     const careerEventsCount = careerFirstsCount + careerLastsCount;
     const allTimePassingsCount = allTimePassings?.length || 0;
     const isCareerCategory = activeCategory === 'firsts' || activeCategory === 'career-firsts' || activeCategory === 'career-lasts';
+    const isDateOnlyCategory = activeCategory === 'all-time';
     const careerEvents = useMemo(() => [
         ...(careerFirsts || []).map(f => ({
             ...f,
@@ -850,7 +860,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                         <p className="text-slate-500 mt-1">Special performances you've witnessed</p>
                     </div>
                     <div className="flex items-center gap-4">
-                        {!isCareerCategory && (
+                        {!isCareerCategory && !isDateOnlyCategory && (
                             <div className="flex rounded-lg overflow-hidden border">
                                 <button onClick={() => setViewMode('date')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'date' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>📅 By Date</button>
                                 <button onClick={() => setViewMode('category')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'category' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>📂 By Category</button>
@@ -869,16 +879,17 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                 {/* Category filters */}
                 <div className="flex flex-wrap gap-2 mt-4">
                     {[
-                        { id: 'all', label: 'All', count: totalCount + careerEventsCount },
+                        { id: 'all', label: 'All', count: totalCount + careerEventsCount + allTimePassingsCount },
                         { id: 'firsts', label: '⭐ Career Events', count: careerEventsCount },
                         { id: 'career-firsts', label: 'Firsts', count: firstCareerEventsCount },
                         { id: 'career-lasts', label: 'Lasts', count: careerLastsCount },
+                        { id: 'all-time', label: '📈 All-Time', count: allTimePassingsCount },
                         { id: 'batting', label: '🏏 Batting', count: battingCount },
                         { id: 'pitching', label: '⚾ Pitching', count: pitchingCount },
                     ].map(cat => (
                         <button
                             key={cat.id}
-                            onClick={() => setActiveCategory(cat.id)}
+                            onClick={() => { setActiveCategory(cat.id); if (cat.id === 'all-time') setViewMode('date'); }}
                             className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
                                 activeCategory === cat.id
                                     ? 'bg-blue-600 text-white'
@@ -889,6 +900,31 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                         </button>
                     ))}
                 </div>
+
+                {viewMode === 'date' && !isCareerCategory && (
+                    <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
+                        {[
+                            { id: 'all', label: 'Everything' },
+                            { id: 'career-count', label: 'Career Count' },
+                            { id: 'firsts', label: 'Firsts' },
+                            { id: 'lasts', label: 'Lasts' },
+                            { id: 'all-time', label: 'All-Time' },
+                            { id: 'big-game', label: 'Big Game' },
+                            { id: 'batting', label: 'Batting' },
+                            { id: 'pitching', label: 'Pitching' },
+                        ].map(filter => (
+                            <button
+                                key={filter.id}
+                                onClick={() => setTimelineQuickFilter(filter.id)}
+                                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                    timelineQuickFilter === filter.id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                            >
+                                {filter.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Career Events Section — hidden on All+By Date so career
@@ -1138,9 +1174,23 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
             {/* Date view - flat chronological list */}
             {viewMode === 'date' && !isCareerCategory && (() => {
                 const parseDate = toSortableDate;
+                const bigGameTypes = new Set(['4+ Hit Games', '5+ RBI Games', 'Grand Slams', 'Multi-HR Games', '10+ K Games', 'Complete Games & Shutouts', 'Walk-Offs']);
+                const passesQuickFilter = (m) => {
+                    if (timelineQuickFilter === 'all') return true;
+                    if (timelineQuickFilter === 'batting') return !m._isCareer && !m._isAllTime && categoryConfig[m.type]?.category === 'batting';
+                    if (timelineQuickFilter === 'pitching') return !m._isCareer && !m._isAllTime && categoryConfig[m.type]?.category === 'pitching';
+                    if (timelineQuickFilter === 'big-game') return !m._isCareer && !m._isAllTime && bigGameTypes.has(m.type);
+                    if (timelineQuickFilter === 'firsts') return m._isCareer && isFirstCareerEvent(m.detail);
+                    if (timelineQuickFilter === 'lasts') return m._isCareer && m._careerKind === 'last';
+                    if (timelineQuickFilter === 'career-count') return m._isCareer && m._careerKind !== 'last' && !isFirstCareerEvent(m.detail);
+                    if (timelineQuickFilter === 'all-time') return m._isAllTime;
+                    return true;
+                };
                 const battingPitchingItems = (milestones || []).filter(m => {
+                    if (activeCategory === 'all-time') return false;
                     if (activeCategory === 'batting' && categoryConfig[m.type]?.category !== 'batting') return false;
                     if (activeCategory === 'pitching' && categoryConfig[m.type]?.category !== 'pitching') return false;
+                    if (activeCategory !== 'all' && activeCategory !== 'batting' && activeCategory !== 'pitching') return false;
                     if (searchTerm) {
                         const q = searchTerm.toLowerCase();
                         return (m.player || '').toLowerCase().includes(q) || (m.type || '').toLowerCase().includes(q) || (m.detail || '').toLowerCase().includes(q);
@@ -1165,38 +1215,61 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                             _careerSortDate: f.date,
                         }))
                     : [];
+                const allTimeItems = (activeCategory === 'all' || activeCategory === 'all-time')
+                    ? (allTimePassings || []).filter(p => {
+                        if (!searchTerm) return true;
+                        const q = searchTerm.toLowerCase();
+                        return (p.player_name || '').toLowerCase().includes(q) || (p.stat_name || '').toLowerCase().includes(q);
+                    }).map(p => ({
+                        _isAllTime: true,
+                        gameId: p.game_id,
+                        player: p.player_name,
+                        playerId: p.player_id,
+                        type: 'All-Time Movement',
+                        detail: `#${p.new_rank} ${p.stat_name}`,
+                        _allTimeDate: formatLongDate(p.date || p.date_display),
+                        _allTimeSortDate: p.date,
+                    }))
+                    : [];
 
                 const sortKey = (m) => {
+                    if (m._isAllTime) return m._allTimeSortDate || '';
                     if (m._isCareer) return m._careerSortDate || '';
                     const game = gameMap[m.gameId];
                     return game ? parseDate(game.date) : '';
                 };
 
-                const allFiltered = [...battingPitchingItems, ...careerItems].map((m, i) => {
+                const allFiltered = [...battingPitchingItems, ...careerItems, ...allTimeItems].map((m, i) => {
                     const game = gameMap[m.gameId];
                     const config = categoryConfig[m.type] || {};
                     const sort = sortKey(m);
                     const isLast = m._careerKind === 'last';
-                    const dateRaw = m._isCareer ? (m._careerSortDate || m._careerDate) : (game?.date || m.date || sort);
+                    const dateRaw = m._isAllTime ? (m._allTimeSortDate || m._allTimeDate) : m._isCareer ? (m._careerSortDate || m._careerDate) : (game?.date || m.date || sort);
                     return {
                         ...m,
                         _idx: i,
                         game,
                         sort,
                         dateLabel: formatLongDate(dateRaw),
-                        icon: m._isCareer ? m._careerIcon : (config.icon || '🏆'),
-                        badgeLabel: m._isCareer ? m._careerLabel : m.type,
-                        badgeClass: m._isCareer
+                        icon: m._isAllTime ? '📈' : m._isCareer ? m._careerIcon : (config.icon || '🏆'),
+                        badgeLabel: m._isAllTime ? 'All-Time Movement' : m._isCareer ? m._careerLabel : m.type,
+                        badgeClass: m._isAllTime
+                            ? 'bg-purple-100 text-purple-700'
+                            : m._isCareer
                             ? (isLast ? 'bg-slate-200 text-slate-700' : 'bg-amber-100 text-amber-700')
                             : 'bg-slate-100 text-slate-700',
-                        rowClass: m._isCareer
+                        rowClass: m._isAllTime
+                            ? 'hover:bg-purple-50'
+                            : m._isCareer
                             ? (isLast ? 'hover:bg-slate-50' : 'hover:bg-amber-50')
                             : 'hover:bg-blue-50',
-                        detailClass: m._isCareer
+                        detailClass: m._isAllTime
+                            ? 'text-purple-700'
+                            : m._isCareer
                             ? (isLast ? 'text-slate-700' : 'text-amber-800')
                             : 'text-slate-600',
                     };
-                }).sort((a, b) => b.sort.localeCompare(a.sort));
+                }).filter(passesQuickFilter).sort((a, b) => b.sort.localeCompare(a.sort));
 
                 const dateGroups = [];
                 const dateLookup = {};

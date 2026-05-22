@@ -541,6 +541,7 @@ const Dashboard = ({ data, onTabChange }) => {
                                     <TeamToken code={latestGame.homeTeam} logoSize={26} />
                                 </h2>
                                 <span className="small-text font-semibold text-slate-500">Final</span>
+                                <SourceBadge game={latestGame} compact />
                             </div>
                             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 body-text text-slate-500">
                                 <span>{latestGame.date}</span>

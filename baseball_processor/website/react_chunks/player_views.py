@@ -144,6 +144,9 @@ const App = () => {
         const q = searchQuery.toLowerCase();
         const items = [];
         let totalPlayers = 0;
+        const pushLimited = (item, type, limit) => {
+            if (items.filter(r => r.type === type).length < limit) items.push(item);
+        };
 
         // Search players (with stats context)
         const seenPlayers = new Set();
@@ -152,7 +155,7 @@ const App = () => {
                 seenPlayers.add(p.playerId);
                 totalPlayers++;
                 if (items.filter(r => r.type === 'player' || r.type === 'pitcher').length < 6) {
-                    items.push({ type: 'player', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.avg || ''} AVG, ${p.hr || 0} HR`, tab: 'players', id: p.playerId });
+                    items.push({ type: 'player', icon: '👤', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.avg || ''} AVG, ${p.hr || 0} HR`, tab: 'players', id: p.playerId });
                 }
             }
         });
@@ -161,33 +164,102 @@ const App = () => {
                 seenPlayers.add(p.playerId);
                 totalPlayers++;
                 if (items.filter(r => r.type === 'player' || r.type === 'pitcher').length < 6) {
-                    items.push({ type: 'pitcher', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.era || ''} ERA, ${p.so || 0} K`, tab: 'players', id: p.playerId });
+                    items.push({ type: 'pitcher', icon: '⚾', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.era || ''} ERA, ${p.so || 0} K`, tab: 'players', id: p.playerId });
                 }
             }
         });
 
-        // Search games (by team name or date)
+        // Search teams
+        const teamRows = data.teams || [];
+        teamRows.forEach(t => {
+            const code = t.team || '';
+            const name = TEAM_CODE_TO_NAME[code] || '';
+            const text = `${code} ${name}`.toLowerCase();
+            if (text.includes(q)) {
+                pushLimited({ type: 'team', icon: '🧢', label: code, sub: `${name || 'Team'} • ${t.games || 0} games`, tab: 'venues', searchValue: code }, 'team', 4);
+            }
+        });
+
+        // Search venues
+        (data.stadiums || []).forEach(v => {
+            const stadiumName = v.name || v.stadium || '';
+            const text = `${stadiumName} ${v.city || ''} ${v.state || ''} ${v.team || ''}`.toLowerCase();
+            if (text.includes(q)) {
+                pushLimited({ type: 'venue', icon: '🏟️', label: stadiumName, sub: `${v.games || 0} games${v.city ? ` • ${v.city}` : ''}`, tab: 'venues', searchValue: stadiumName }, 'venue', 4);
+            }
+        });
+
+        // Search games (by team, date, venue, score, id)
         const seenGames = new Set();
         (data.games || []).forEach(g => {
-            if (items.filter(r => r.type === 'game').length >= 4) return;
-            const text = `${g.awayTeam || ''} ${g.homeTeam || ''} ${g.date || ''} ${g.venue || ''}`.toLowerCase();
+            if (items.filter(r => r.type === 'game').length >= 5) return;
+            const text = `${g.awayTeam || ''} ${g.homeTeam || ''} ${g.date || ''} ${g.venue || ''} ${g.score || ''} ${g.gameId || ''}`.toLowerCase();
             if (text.includes(q) && !seenGames.has(g.gameId)) {
                 seenGames.add(g.gameId);
-                items.push({ type: 'game', label: `${g.awayTeam} @ ${g.homeTeam}`, sub: g.date || '', tab: 'gamelog', id: g.gameId });
+                items.push({ type: 'game', icon: '📋', label: `${g.awayTeam} @ ${g.homeTeam}`, sub: `${g.date || ''} • ${g.score || ''} • ${g.venue || ''}`, tab: 'gamelog', id: g.gameId });
             }
         });
 
         // Search milestones
         (data.milestones || []).forEach(m => {
-            if (items.filter(r => r.type === 'milestone').length >= 4) return;
-            const text = `${m.player || ''} ${m.type || ''} ${m.description || ''}`.toLowerCase();
+            if (items.filter(r => r.type === 'milestone').length >= 5) return;
+            const text = `${m.player || ''} ${m.type || ''} ${m.description || ''} ${m.detail || ''} ${m.team || ''}`.toLowerCase();
             if (text.includes(q)) {
-                items.push({ type: 'milestone', label: m.player || m.type, sub: m.description || m.type || '', tab: 'milestones' });
+                items.push({ type: 'milestone', icon: '🏆', label: m.player || m.type, sub: `${m.type || ''}${m.date ? ` • ${m.date}` : ''}`, tab: 'milestones', searchValue: m.player || m.type || searchQuery });
+            }
+        });
+        (data.careerFirsts || []).forEach(m => {
+            if (items.filter(r => r.type === 'career').length >= 4) return;
+            const text = `${m.player_name || ''} ${m.milestone || ''} ${m.venue || ''} ${m.opponent || ''}`.toLowerCase();
+            if (text.includes(q)) {
+                items.push({ type: 'career', icon: '⭐', label: m.player_name || 'Career event', sub: `${m.milestone || ''}${m.date_display ? ` • ${m.date_display}` : ''}`, tab: 'milestones', searchValue: m.player_name || m.milestone || searchQuery });
+            }
+        });
+        (data.careerLasts || []).forEach(m => {
+            if (items.filter(r => r.type === 'last').length >= 3) return;
+            const text = `${m.player_name || ''} ${m.milestone || ''} ${m.venue || ''} ${m.opponent || ''}`.toLowerCase();
+            if (text.includes(q)) {
+                items.push({ type: 'last', icon: '🏁', label: m.player_name || 'Career last', sub: `${m.milestone || ''}${m.date_display ? ` • ${m.date_display}` : ''}`, tab: 'milestones', searchValue: m.player_name || m.milestone || searchQuery });
+            }
+        });
+        (data.allTimePassings || []).forEach(p => {
+            if (items.filter(r => r.type === 'history').length >= 3) return;
+            const text = `${p.player_name || ''} ${p.stat_name || ''} ${p.new_rank || ''}`.toLowerCase();
+            if (text.includes(q)) {
+                items.push({ type: 'history', icon: '📈', label: p.player_name || 'All-time movement', sub: `#${p.new_rank} ${p.stat_name || ''}${p.date_display ? ` • ${p.date_display}` : ''}`, tab: 'milestones', subtab: 'history', searchValue: p.player_name || p.stat_name || searchQuery });
             }
         });
 
         return { items, totalPlayers };
     }, [data, searchQuery]);
+
+    const handleSearchResult = (r) => {
+        if (r.type === 'player' || r.type === 'pitcher') {
+            window._pendingPlayerSelect = { id: r.id, name: r.label };
+        }
+        if (r.type === 'game') {
+            window._pendingGameId = r.id;
+        }
+        if (['milestone', 'career', 'last', 'history'].includes(r.type)) {
+            window._pendingMilestoneSearch = r.searchValue || r.label;
+        }
+        if (r.type === 'venue') {
+            window._pendingVenueSearch = r.searchValue || r.label;
+            localStorage.setItem('dt_stadiums_search', JSON.stringify(r.searchValue || r.label));
+        }
+        if (r.type === 'team') {
+            window._pendingTeamSearch = r.searchValue || r.label;
+            localStorage.setItem('dt_teams_search', JSON.stringify(r.searchValue || r.label));
+        }
+        if (r.subtab) {
+            setSubtab(r.subtab);
+            setTabRaw(r.tab);
+        } else {
+            setTab(r.tab);
+        }
+        setSearchQuery('');
+        setSearchOpen(false);
+    };
 
     useEffect(() => {
         if (!searchOpen) return;
@@ -271,9 +343,10 @@ const App = () => {
                                             const idx = r.label.toLowerCase().indexOf(q);
                                             const highlighted = idx >= 0 ? <>{r.label.slice(0, idx)}<span className="bg-yellow-200 text-yellow-900 rounded px-0.5">{r.label.slice(idx, idx + searchQuery.length)}</span>{r.label.slice(idx + searchQuery.length)}</> : r.label;
                                             return (
-                                                <button key={`search-${r.type}-${r.id || r.label}-${i}`} onClick={() => { setTab(r.tab); if (r.id && r.type !== 'game') { window._pendingPlayerSelect = { id: r.id, name: r.label }; } if (r.type === 'game') { window._pendingGameId = r.id; } setSearchQuery(''); setSearchOpen(false); }}
+                                                <button key={`search-${r.type}-${r.id || r.label}-${i}`} onClick={() => handleSearchResult(r)}
                                                     className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${darkMode ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-blue-50 text-slate-800'}`}>
-                                                    <span className="text-xs font-medium uppercase opacity-50 w-14 shrink-0">{r.type}</span>
+                                                    <span className="text-lg shrink-0 w-6 text-center">{r.icon || '•'}</span>
+                                                    <span className="text-xs font-medium uppercase opacity-50 w-16 shrink-0">{r.type}</span>
                                                     <div className="min-w-0">
                                                         <div className="text-sm font-medium truncate">{highlighted}</div>
                                                         {r.sub && <div className={`text-xs truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{r.sub}</div>}

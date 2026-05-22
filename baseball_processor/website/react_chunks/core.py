@@ -119,10 +119,16 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
         ? awayRuns > homeRuns ? game.awayTeam : homeRuns > awayRuns ? game.homeTeam : 'Tie'
         : null;
     const runMargin = awayRuns != null && homeRuns != null ? Math.abs(awayRuns - homeRuns) : null;
+    const sourceProfile = getGameSourceProfile(game, {
+        batterRows: gameData.homeHitters.length + gameData.awayHitters.length,
+        pitcherRows: gameData.homePitchers.length + gameData.awayPitchers.length,
+    });
     const formatHardestHitDetail = (hit) => {
         if (!hit) return '';
         return `${hit.name}${hit.result ? ` - ${hit.result}` : ''}${hit.dist ? ` (${hit.dist} ft)` : ''}`;
     };
+    const showHardestHitHighlight = gameData.hardestHit && gameData.hardestHit.velo >= 105;
+    const showFastestPitchHighlight = gameData.fastestPitch && gameData.fastestPitch.speed >= 100;
     const showMostKsHighlight = gameData.mostKs && gameData.mostKs.so >= 10;
     const careerMilestoneItems = (careerFirsts || []).map(f => `${getLastName(f.player_name)} ${shortenMilestone(f.milestone)}`);
     const careerMilestoneDetail = careerMilestoneItems.length > 2
@@ -135,13 +141,13 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
             detail: `${game.awayTeam} ${awayRuns}, ${game.homeTeam} ${homeRuns}`,
             color: 'blue'
         },
-        gameData.hardestHit && {
+        showHardestHitHighlight && {
             label: 'Hardest contact',
             value: `${gameData.hardestHit.velo} mph`,
             detail: formatHardestHitDetail(gameData.hardestHit),
             color: 'slate'
         },
-        gameData.fastestPitch && {
+        showFastestPitchHighlight && {
             label: 'Fastest pitch',
             value: `${gameData.fastestPitch.speed} mph`,
             detail: gameData.fastestPitch.name,
@@ -702,6 +708,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                             </h3>
                             {game.gameType === 'spring' && <span className="px-2 py-0.5 bg-white/20 text-white text-xs font-semibold rounded">Spring Training</span>}
                             {game.gameType === 'postseason' && <span className="px-2 py-0.5 bg-yellow-400/30 text-white text-xs font-semibold rounded">Postseason</span>}
+                            <SourceBadge profile={sourceProfile} />
                         </div>
                         <button onClick={onClose} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
                     </div>
