@@ -789,7 +789,56 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
     const battingCount = (milestones || []).filter(m => categoryConfig[m.type]?.category === 'batting').length;
     const pitchingCount = (milestones || []).filter(m => categoryConfig[m.type]?.category === 'pitching').length;
     const careerFirstsCount = careerFirsts?.length || 0;
+    const careerLastsCount = careerLasts?.length || 0;
+    const careerEventsCount = careerFirstsCount + careerLastsCount;
     const allTimePassingsCount = allTimePassings?.length || 0;
+    const isCareerCategory = activeCategory === 'firsts' || activeCategory === 'career-firsts' || activeCategory === 'career-lasts';
+    const careerEvents = useMemo(() => [
+        ...(careerFirsts || []).map(f => ({
+            ...f,
+            kind: 'milestone',
+            icon: '⭐',
+            eventLabel: 'Career Milestone',
+            rowTone: 'amber',
+        })),
+        ...(careerLasts || []).map(l => ({
+            ...l,
+            kind: 'last',
+            icon: '🏁',
+            eventLabel: 'Career Last',
+            rowTone: 'slate',
+        })),
+    ], [careerFirsts, careerLasts]);
+    const firstCareerEventsCount = careerEvents.filter(e => isFirstCareerEvent(e.milestone)).length;
+    const filteredCareerEvents = useMemo(() => {
+        const q = searchTerm.toLowerCase();
+        return careerEvents.filter(e =>
+            (activeCategory !== 'career-firsts' || isFirstCareerEvent(e.milestone)) &&
+            (activeCategory !== 'career-lasts' || e.kind === 'last') &&
+            (!searchTerm ||
+                (e.player_name || '').toLowerCase().includes(q) ||
+                (e.milestone || '').toLowerCase().includes(q) ||
+                (e.venue || '').toLowerCase().includes(q) ||
+                (e.opponent || '').toLowerCase().includes(q)
+            )
+        );
+    }, [careerEvents, searchTerm, activeCategory]);
+    const careerSectionTitle = activeCategory === 'career-firsts'
+        ? 'First Career Events'
+        : activeCategory === 'career-lasts'
+            ? 'Career Lasts'
+            : 'Career Events Witnessed';
+    const careerSectionDescription = activeCategory === 'career-firsts'
+        ? 'True first-career stat events you witnessed.'
+        : activeCategory === 'career-lasts'
+            ? 'Final career stat events you witnessed for retired players.'
+            : 'Career milestones and final career stat events you witnessed.';
+    const openMilestoneGame = (gameId) => {
+        if (!gameId || gameId === 'UNKNOWN') return;
+        window._pendingGameId = gameId;
+        if (window.__navigateTab) window.__navigateTab('gamelog');
+        else if (onTabChange) onTabChange('gamelog');
+    };
 
     return (
         <div className="space-y-6">
@@ -801,7 +850,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                         <p className="text-slate-500 mt-1">Special performances you've witnessed</p>
                     </div>
                     <div className="flex items-center gap-4">
-                        {activeCategory !== 'firsts' && (
+                        {!isCareerCategory && (
                             <div className="flex rounded-lg overflow-hidden border">
                                 <button onClick={() => setViewMode('date')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'date' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>📅 By Date</button>
                                 <button onClick={() => setViewMode('category')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'category' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>📂 By Category</button>
@@ -820,8 +869,10 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                 {/* Category filters */}
                 <div className="flex flex-wrap gap-2 mt-4">
                     {[
-                        { id: 'all', label: 'All', count: totalCount + careerFirstsCount },
-                        { id: 'firsts', label: '⭐ Career Milestones', count: careerFirstsCount },
+                        { id: 'all', label: 'All', count: totalCount + careerEventsCount },
+                        { id: 'firsts', label: '⭐ Career Events', count: careerEventsCount },
+                        { id: 'career-firsts', label: 'Firsts', count: firstCareerEventsCount },
+                        { id: 'career-lasts', label: 'Lasts', count: careerLastsCount },
                         { id: 'batting', label: '🏏 Batting', count: battingCount },
                         { id: 'pitching', label: '⚾ Pitching', count: pitchingCount },
                     ].map(cat => (
@@ -840,26 +891,26 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                 </div>
             </div>
 
-            {/* Career Milestones Section — hidden on All+By Date so career
-                milestones interleave chronologically with batting/pitching. */}
-            {careerFirsts && careerFirsts.length > 0 && ((activeCategory === 'all' && viewMode !== 'date') || activeCategory === 'firsts') && (
+            {/* Career Events Section — hidden on All+By Date so career
+                milestones and final career events interleave chronologically
+                with batting/pitching. */}
+            {careerEventsCount > 0 && ((activeCategory === 'all' && viewMode !== 'date') || isCareerCategory) && (
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <details open={true}>
-                        <summary className="cursor-pointer p-4 bg-gradient-to-r from-yellow-500 to-amber-600 text-white hover:opacity-95 transition-opacity">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-2xl">⭐</span>
-                                    <h3 className="text-lg font-bold">Career Milestones Witnessed</h3>
-                                </div>
-                                <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-bold">
-                                    {Object.keys(careerFirsts.reduce((acc, f) => { acc[f.player_id] = true; return acc; }, {})).length} players
-                                </span>
+                    <div className="p-4 bg-gradient-to-r from-amber-500 to-slate-700 text-white">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl">⭐</span>
+                                <h3 className="text-lg font-bold">{careerSectionTitle}</h3>
                             </div>
-                        </summary>
-                        <div className="p-4 bg-gradient-to-b from-amber-50 to-white">
+                            <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-bold">
+                                {filteredCareerEvents.length} event{filteredCareerEvents.length === 1 ? '' : 's'}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-gradient-to-b from-amber-50 to-white">
                             <div className="flex items-center justify-between mb-4">
                                 <p className="text-sm text-amber-700">
-                                    You witnessed these players achieve career milestones!
+                                    {careerSectionDescription}
                                 </p>
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs text-amber-600">Sort by:</span>
@@ -875,11 +926,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                                 </div>
                             </div>
                             {(() => {
-                                // Filter by search
-                                const filtered = careerFirsts.filter(f => !searchTerm ||
-                                    f.player_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                    f.milestone?.toLowerCase().includes(searchTerm.toLowerCase())
-                                );
+                                const filtered = filteredCareerEvents;
 
                                 // Get event type from milestone text
                                 const getEventType = (m) => {
@@ -906,6 +953,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
 
                                 // Extract milestone number (1st, 100th, 500th, etc.)
                                 const getMilestoneNumber = (m) => {
+                                    if (m.toLowerCase().includes('final career')) return { num: 999999, label: 'Final' };
                                     if (m.toLowerCase().includes('first career')) return { num: 1, label: '1st' };
                                     const match = m.match(/#?(\d+)/);
                                     if (match) return { num: parseInt(match[1]), label: `#${match[1]}` };
@@ -947,7 +995,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                                                 const event = getEventType(m.milestone);
                                                 return (
                                                     <div key={mIdx} className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                                                        <span className="text-sm font-medium text-amber-600 min-w-[100px]">{m.date_display || m.date}</span>
+                                                        <span className="text-sm font-medium text-amber-600 min-w-[170px]">{formatLongDate(m.date || m.date_display)}</span>
                                                         <span className="text-lg">{event.icon}</span>
                                                         {playerUrl ? (
                                                             <a href={playerUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-amber-700 hover:text-amber-900 hover:underline">
@@ -1012,7 +1060,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                                                                             <div key={mIdx} className="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded px-2 py-1">
                                                                                 <span>{event.icon}</span>
                                                                                 <span className="text-sm font-medium text-amber-800">{shortenMilestone(m.milestone)}</span>
-                                                                                <span className="text-xs text-slate-500">({m.date_display || m.date})</span>
+                                                                                <span className="text-xs text-slate-500">({formatLongDate(m.date || m.date_display)})</span>
                                                                                 {gameUrl && (
                                                                                     <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:text-amber-700 ml-1">→</a>
                                                                                 )}
@@ -1066,7 +1114,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                                                                                 ) : (
                                                                                     <span className="font-medium text-slate-800">{m.player_name}</span>
                                                                                 )}
-                                                                                <span className="text-xs text-slate-500">({m.date_display || m.date})</span>
+                                                                                <span className="text-xs text-slate-500">({formatLongDate(m.date || m.date_display)})</span>
                                                                                 {gameUrl && (
                                                                                     <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:text-amber-700">→</a>
                                                                                 )}
@@ -1082,62 +1130,13 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                                     </div>
                                 );
                             })()}
-                        </div>
-                    </details>
-                </div>
-            )}
-
-            {/* Career Lasts Witnessed (retired players' final career events) */}
-            {careerLasts && careerLasts.length > 0 && (activeCategory === 'all' || activeCategory === 'firsts') && (
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <details open={true}>
-                        <summary className="cursor-pointer p-4 bg-gradient-to-r from-slate-700 to-slate-800 text-white hover:opacity-95 transition-opacity">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-2xl">🏁</span>
-                                    <h3 className="text-lg font-bold">Career Lasts Witnessed</h3>
-                                </div>
-                                <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-bold">
-                                    {careerLasts.length} event{careerLasts.length === 1 ? '' : 's'}
-                                </span>
-                            </div>
-                        </summary>
-                        <div className="p-4 bg-gradient-to-b from-slate-50 to-white">
-                            <p className="text-sm text-slate-700 mb-3">
-                                You were there for these players' final career hit, HR, win, etc. — only counts retired players (active players' "last" stats still move).
-                            </p>
-                            <div className="space-y-2">
-                                {careerLasts
-                                    .filter(l => !searchTerm || (l.player_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (l.milestone || '').toLowerCase().includes(searchTerm.toLowerCase()))
-                                    .map((l, i) => {
-                                        const playerUrl = l.player_id
-                                            ? `https://www.baseball-reference.com/players/${l.player_id.charAt(0).toLowerCase()}/${l.player_id}.shtml`
-                                            : null;
-                                        return (
-                                            <div key={`${l.game_id}-${l.player_id}-${l.stat}-${i}`} className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                                                <span className="text-sm font-medium text-slate-600 min-w-[100px]">{l.date_display || l.date}</span>
-                                                <span className="text-lg">🏁</span>
-                                                {playerUrl ? (
-                                                    <a href={playerUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-slate-800 hover:text-slate-950 hover:underline">
-                                                        {l.player_name}
-                                                    </a>
-                                                ) : (
-                                                    <span className="font-medium text-slate-800">{l.player_name}</span>
-                                                )}
-                                                <span className="text-sm text-slate-800 font-semibold">{l.milestone}</span>
-                                                {l.venue && <span className="text-xs text-slate-500 ml-auto">@ {l.venue}</span>}
-                                            </div>
-                                        );
-                                    })}
-                            </div>
-                        </div>
-                    </details>
+                    </div>
                 </div>
             )}
 
             {/* All-Time List Passings Section */}
             {/* Date view - flat chronological list */}
-            {viewMode === 'date' && activeCategory !== 'firsts' && (() => {
+            {viewMode === 'date' && !isCareerCategory && (() => {
                 const parseDate = toSortableDate;
                 const battingPitchingItems = (milestones || []).filter(m => {
                     if (activeCategory === 'batting' && categoryConfig[m.type]?.category !== 'batting') return false;
@@ -1149,20 +1148,20 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                     return true;
                 });
 
-                // On the All tab, fold career firsts into the same chronological
+                // On the All tab, fold career events into the same chronological
                 // stream so they aren't quarantined in a separate banner.
                 const careerItems = (activeCategory === 'all')
-                    ? (careerFirsts || []).filter(f => !searchTerm
-                            || (f.player_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-                            || (f.milestone || '').toLowerCase().includes(searchTerm.toLowerCase())
-                        ).map(f => ({
+                    ? filteredCareerEvents.map(f => ({
                             _isCareer: true,
+                            _careerKind: f.kind,
+                            _careerIcon: f.icon,
+                            _careerLabel: f.eventLabel,
                             gameId: f.game_id,
                             player: f.player_name,
                             playerId: f.player_id,
-                            type: 'Career Milestone',
+                            type: f.eventLabel,
                             detail: f.milestone,
-                            _careerDate: f.date_display || f.date,
+                            _careerDate: formatLongDate(f.date || f.date_display),
                             _careerSortDate: f.date,
                         }))
                     : [];
@@ -1173,68 +1172,142 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                     return game ? parseDate(game.date) : '';
                 };
 
-                const allFiltered = [...battingPitchingItems, ...careerItems]
-                    .sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
+                const allFiltered = [...battingPitchingItems, ...careerItems].map((m, i) => {
+                    const game = gameMap[m.gameId];
+                    const config = categoryConfig[m.type] || {};
+                    const sort = sortKey(m);
+                    const isLast = m._careerKind === 'last';
+                    const dateRaw = m._isCareer ? (m._careerSortDate || m._careerDate) : (game?.date || m.date || sort);
+                    return {
+                        ...m,
+                        _idx: i,
+                        game,
+                        sort,
+                        dateLabel: formatLongDate(dateRaw),
+                        icon: m._isCareer ? m._careerIcon : (config.icon || '🏆'),
+                        badgeLabel: m._isCareer ? m._careerLabel : m.type,
+                        badgeClass: m._isCareer
+                            ? (isLast ? 'bg-slate-200 text-slate-700' : 'bg-amber-100 text-amber-700')
+                            : 'bg-slate-100 text-slate-700',
+                        rowClass: m._isCareer
+                            ? (isLast ? 'hover:bg-slate-50' : 'hover:bg-amber-50')
+                            : 'hover:bg-blue-50',
+                        detailClass: m._isCareer
+                            ? (isLast ? 'text-slate-700' : 'text-amber-800')
+                            : 'text-slate-600',
+                    };
+                }).sort((a, b) => b.sort.localeCompare(a.sort));
+
+                const dateGroups = [];
+                const dateLookup = {};
+                allFiltered.forEach(item => {
+                    const dateKey = item.sort || 'unknown-date';
+                    if (!dateLookup[dateKey]) {
+                        dateLookup[dateKey] = { key: dateKey, label: item.dateLabel || 'Unknown date', games: [], gameLookup: {} };
+                        dateGroups.push(dateLookup[dateKey]);
+                    }
+                    const group = dateLookup[dateKey];
+                    const gameKey = item.gameId || `unknown-${dateKey}`;
+                    if (!group.gameLookup[gameKey]) {
+                        const game = item.game;
+                        group.gameLookup[gameKey] = {
+                            key: gameKey,
+                            gameId: item.gameId,
+                            game,
+                            label: game ? `${game.awayTeam} @ ${game.homeTeam}` : (item.gameId || 'Unknown game'),
+                            items: [],
+                        };
+                        group.games.push(group.gameLookup[gameKey]);
+                    }
+                    group.gameLookup[gameKey].items.push(item);
+                });
 
                 return (
                     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                        <div className="p-4 border-b bg-slate-50">
-                            <span className="font-bold body-text">{allFiltered.length} milestones</span>
+                        <div className="p-4 border-b bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                            <span className="font-bold body-text">{allFiltered.length} events</span>
+                            <span className="text-xs font-medium text-slate-500">Grouped by date and game</span>
                         </div>
-                        <div className="divide-y" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                            {allFiltered.map((m, i) => {
-                                if (m._isCareer) {
-                                    const game = gameMap[m.gameId];
-                                    const playerUrl = m.playerId
-                                        ? `https://www.baseball-reference.com/players/${m.playerId.charAt(0).toLowerCase()}/${m.playerId}.shtml`
-                                        : null;
-                                    return (
-                                        <div key={`career-${m.gameId}-${m.playerId}-${i}`} className="p-3 hover:bg-amber-50 flex items-start gap-3 bg-amber-50/40">
-                                            <span className="text-lg">⭐</span>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    {playerUrl ? (
-                                                        <a href={playerUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-sm text-amber-700 hover:text-amber-900 hover:underline">{m.player}</a>
-                                                    ) : (
-                                                        <span className="font-semibold text-sm">{m.player}</span>
-                                                    )}
-                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">Career Milestone</span>
-                                                </div>
-                                                {m.detail && <div className="text-xs text-amber-800 font-medium mt-0.5 truncate">{m.detail}</div>}
-                                            </div>
-                                            <div className="text-right flex-shrink-0">
-                                                <div className="text-xs text-slate-500">{m._careerDate || game?.date || ''}</div>
-                                                <div className="text-[10px] text-slate-400">{game ? `${game.awayTeam} @ ${game.homeTeam}` : ''}</div>
-                                            </div>
-                                        </div>
-                                    );
-                                }
-                                const config = categoryConfig[m.type] || {};
-                                const game = gameMap[m.gameId];
-                                return (
-                                    <div key={`${m.gameId}-${m.type}-${m.player}-${i}`} className="p-3 hover:bg-slate-50 flex items-start gap-3">
-                                        <span className="text-lg">{config.icon || '🏆'}</span>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="font-semibold text-sm">{m.player}</span>
-                                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium bg-${config.color || 'gray'}-100 text-${config.color || 'gray'}-700`}>{m.type}</span>
-                                            </div>
-                                            {m.detail && <div className="text-xs text-slate-600 mt-0.5 truncate">{m.detail}</div>}
-                                        </div>
-                                        <div className="text-right flex-shrink-0">
-                                            <div className="text-xs text-slate-500">{game?.date || ''}</div>
-                                            <div className="text-[10px] text-slate-400">{game?.awayTeam || ''} @ {game?.homeTeam || ''}</div>
-                                        </div>
+                        <div className="bg-slate-50/70" style={{ maxHeight: '720px', overflowY: 'auto' }}>
+                            {dateGroups.map(dateGroup => (
+                                <section key={dateGroup.key} className="border-b border-slate-200 last:border-b-0">
+                                    <div className="sticky top-0 z-10 px-4 py-3 bg-slate-100/95 backdrop-blur border-b border-slate-200 flex items-center justify-between gap-3">
+                                        <h3 className="text-sm font-bold text-slate-900">{dateGroup.label}</h3>
+                                        <span className="text-xs font-medium text-slate-500">{dateGroup.games.reduce((sum, g) => sum + g.items.length, 0)} event{dateGroup.games.reduce((sum, g) => sum + g.items.length, 0) === 1 ? '' : 's'}</span>
                                     </div>
-                                );
-                            })}
+                                    <div className="p-3 space-y-3">
+                                        {dateGroup.games.map(gameGroup => {
+                                            const game = gameGroup.game;
+                                            const canOpen = gameGroup.gameId && gameGroup.gameId !== 'UNKNOWN';
+                                            const score = game && game.awayScore !== undefined && game.homeScore !== undefined
+                                                ? `${game.awayTeam} ${game.awayScore} - ${game.homeScore} ${game.homeTeam}`
+                                                : '';
+                                            return (
+                                                <div key={gameGroup.key} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                                                    <div className="px-3 py-2 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                                                                {game ? (
+                                                                    <>
+                                                                        <TeamToken code={game.awayTeam} logoSize={16} />
+                                                                        <span className="text-slate-400">@</span>
+                                                                        <TeamToken code={game.homeTeam} logoSize={16} />
+                                                                    </>
+                                                                ) : (
+                                                                    <span>{gameGroup.label}</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-xs text-slate-500 truncate">
+                                                                {[score, game?.venue].filter(Boolean).join(' • ')}
+                                                            </div>
+                                                        </div>
+                                                        {canOpen && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openMilestoneGame(gameGroup.gameId)}
+                                                                className="self-start sm:self-center text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                                                            >
+                                                                Open game
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="divide-y divide-slate-100">
+                                                        {gameGroup.items.map(item => (
+                                                            <button
+                                                                key={`${item._isCareer ? item._careerKind : 'milestone'}-${item.gameId}-${item.playerId || item.player}-${item.type}-${item._idx}`}
+                                                                type="button"
+                                                                disabled={!canOpen}
+                                                                onClick={() => openMilestoneGame(item.gameId)}
+                                                                className={`w-full px-3 py-2.5 text-left flex items-start gap-3 transition-colors ${canOpen ? `cursor-pointer ${item.rowClass}` : 'cursor-default'}`}
+                                                            >
+                                                                <span className="text-lg leading-5 shrink-0">{item.icon}</span>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                                        <span className="font-semibold text-sm text-slate-900">{item.player}</span>
+                                                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${item.badgeClass}`}>{item.badgeLabel}</span>
+                                                                    </div>
+                                                                    {item.detail && <div className={`text-xs font-medium mt-0.5 truncate ${item.detailClass}`}>{item.detail}</div>}
+                                                                </div>
+                                                                {canOpen && <span className="text-xs font-semibold text-blue-500 shrink-0 mt-0.5">Open</span>}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+                            ))}
+                            {allFiltered.length === 0 && (
+                                <div className="p-8 text-center text-sm text-slate-500">No events match the current filters.</div>
+                            )}
                         </div>
                     </div>
                 );
             })()}
 
             {/* Milestone groups - category view */}
-            {viewMode === 'category' && activeCategory !== 'firsts' && (
+            {viewMode === 'category' && !isCareerCategory && (
             <div className="space-y-4">
                 {filteredTypes.map(type => {
                     const items = groupedMilestones[type] || [];

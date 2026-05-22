@@ -1113,8 +1113,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                             {row.gameType === 'postseason' && <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-semibold rounded">PS</span>}
                         </div>
                     )},
-                    { key: 'awayTeam', label: 'Away', render: (v) => <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('progress', 'matchups'); }}>{v}</button> },
-                    { key: 'homeTeam', label: 'Home', render: (v) => <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('progress', 'matchups'); }}>{v}</button> },
+                    { key: 'awayTeam', label: 'Away', render: (v) => <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('progress', 'matchups'); }}><TeamToken code={v} logoSize={18} /></button> },
+                    { key: 'homeTeam', label: 'Home', render: (v) => <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('progress', 'matchups'); }}><TeamToken code={v} logoSize={18} /></button> },
                     { key: 'score', label: 'Score' },
                     { key: 'venue', label: 'Venue', render: (v) => <button className="text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('venues'); }}>{v}</button> },
                     {

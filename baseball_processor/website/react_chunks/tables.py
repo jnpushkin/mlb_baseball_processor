@@ -516,47 +516,58 @@ const Dashboard = ({ data, onTabChange }) => {
             .slice(0, 6);
     }, [data.careerFirsts, data.allTimePassings, data.debuts]);
 
-    const momentTone = {
-        amber: 'bg-amber-50 text-amber-800 border-amber-200',
-        purple: 'bg-purple-50 text-purple-800 border-purple-200',
-        green: 'bg-emerald-50 text-emerald-800 border-emerald-200'
+    const momentAccent = {
+        amber: 'border-l-amber-400',
+        purple: 'border-l-purple-400',
+        green: 'border-l-emerald-400'
+    };
+    const momentPill = {
+        amber: 'bg-amber-100 text-amber-700',
+        purple: 'bg-purple-100 text-purple-700',
+        green: 'bg-green-100 text-green-700'
     };
 
     return (
         <div className="space-y-6">
             {latestGame && (
-                <section className="bg-white rounded-lg border border-slate-200 overflow-hidden" style={{ boxShadow: 'var(--shadow)' }}>
-                    <div className="p-5 bg-gradient-to-r from-slate-900 to-blue-900 text-white">
-                        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-                            <div>
-                                <div className="small-text uppercase tracking-wide text-blue-100 font-semibold mb-1">Latest game</div>
-                                <h2 className="text-2xl font-bold tracking-tight">{latestGame.awayTeam} @ {latestGame.homeTeam}</h2>
-                                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 body-text text-blue-100">
-                                    <span>{latestGame.date}</span>
-                                    <span>{latestGame.venue}</span>
-                                    {latestGame.startTime && <span>{latestGame.startTime}</span>}
-                                    {latestGame.gameType === 'spring' && <span className="px-2 py-0.5 bg-white/15 rounded text-xs font-semibold text-white">Spring Training</span>}
-                                    {latestGame.gameType === 'postseason' && <span className="px-2 py-0.5 bg-yellow-400/25 rounded text-xs font-semibold text-white">Postseason</span>}
-                                </div>
+                <section className="bg-white rounded-lg border border-slate-200 p-5" style={{ boxShadow: 'var(--shadow)' }}>
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+                        <div className="min-w-0">
+                            <div className="small-text uppercase tracking-wide text-slate-500 font-semibold mb-1">Latest game</div>
+                            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                <h2 className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight text-slate-900">
+                                    <TeamToken code={latestGame.awayTeam} logoSize={26} />
+                                    <span className="text-slate-400">@</span>
+                                    <TeamToken code={latestGame.homeTeam} logoSize={26} />
+                                </h2>
+                                <span className="small-text font-semibold text-slate-500">Final</span>
                             </div>
-                            <div className="flex items-center gap-4">
-                                <div className="text-right">
-                                    <div className="small-text uppercase tracking-wide text-blue-100 font-semibold">Final</div>
-                                    <div className="text-3xl font-bold font-mono">{latestGame.score}</div>
-                                </div>
-                                <button onClick={() => openGame(latestGame)} className="px-4 py-2 bg-white text-blue-900 rounded-lg body-text font-bold hover:bg-blue-50">
-                                    Open recap
-                                </button>
+                            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 body-text text-slate-500">
+                                <span>{latestGame.date}</span>
+                                <span>{latestGame.venue}</span>
+                                {latestGame.startTime && <span>{latestGame.startTime}</span>}
+                                {latestGame.gameType === 'spring' && <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-semibold">Spring Training</span>}
+                                {latestGame.gameType === 'postseason' && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">Postseason</span>}
                             </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2">
+                                <div className="text-2xl font-bold font-mono text-slate-900">{latestGame.score}</div>
+                            </div>
+                            <button onClick={() => openGame(latestGame)} className="px-4 py-2 bg-blue-600 text-white rounded-lg body-text font-bold hover:bg-blue-700">
+                                Open recap
+                            </button>
                         </div>
                     </div>
                     {latestGameHighlights.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                        <div className="mt-4 flex flex-wrap gap-2">
                             {latestGameHighlights.map((item, i) => (
-                                <button key={`latest-highlight-${i}`} onClick={() => openGame(latestGame)} className="text-left p-4 hover:bg-slate-50">
+                                <button key={`latest-highlight-${i}`} onClick={() => openGame(latestGame)} className="text-left rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 hover:bg-slate-100 min-w-[12rem]">
                                     <div className="small-text text-slate-500 font-semibold uppercase tracking-wide">{item.label}</div>
-                                    <div className="mt-1 text-xl font-bold text-slate-900">{item.value}</div>
-                                    <div className="small-text text-slate-500 mt-1 truncate">{item.detail}</div>
+                                    <div className="mt-1 flex items-baseline gap-2">
+                                        <span className="text-lg font-bold text-slate-900">{item.value}</span>
+                                        <span className="small-text text-slate-500 truncate">{item.detail}</span>
+                                    </div>
                                 </button>
                             ))}
                         </div>
@@ -580,7 +591,7 @@ const Dashboard = ({ data, onTabChange }) => {
                         </div>
                         <button onClick={() => onTabChange && onTabChange('milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium shrink-0">View all →</button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
                         {recentMomentCards.map((m, i) => (
                             <button
                                 key={`recent-moment-${m.gameId || i}-${i}`}
@@ -590,12 +601,14 @@ const Dashboard = ({ data, onTabChange }) => {
                                         if (onTabChange) onTabChange('gamelog');
                                     }
                                 }}
-                                className={`text-left rounded-lg border p-3 hover:shadow-sm ${momentTone[m.tone] || momentTone.amber}`}
+                                className={`text-left rounded-lg border border-slate-200 border-l-4 bg-slate-50 p-3 hover:bg-slate-100 hover:shadow-sm ${momentAccent[m.tone] || momentAccent.amber}`}
                             >
-                                <div className="small-text font-bold uppercase tracking-wide opacity-80">{m.kind}</div>
-                                <div className="body-text font-bold mt-1">{m.person}</div>
-                                <div className="small-text mt-1">{m.title}</div>
-                                <div className="small-text opacity-70 mt-2">{m.date}</div>
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className={`small-text font-bold uppercase tracking-wide rounded px-2 py-0.5 ${momentPill[m.tone] || momentPill.amber}`}>{m.kind}</span>
+                                    <span className="small-text text-slate-400 shrink-0">{m.date}</span>
+                                </div>
+                                <div className="body-text font-bold text-slate-900 mt-2">{m.person}</div>
+                                <div className="small-text text-slate-500 mt-1">{m.title}</div>
                             </button>
                         ))}
                     </div>
@@ -615,6 +628,13 @@ const Dashboard = ({ data, onTabChange }) => {
                                 <div key={`rg-${g.gameId || i}`} className="flex items-center justify-between py-2 border-b last:border-0">
                                     <div>
                                         <span className="body-text font-semibold text-slate-900">{g.score}</span>
+                                        <span className="ml-2 inline-flex items-center gap-1.5 small-text text-slate-500">
+                                            <TeamLogo code={g.awayTeam} size={16} />
+                                            <span>{g.awayTeam}</span>
+                                            <span>@</span>
+                                            <TeamLogo code={g.homeTeam} size={16} />
+                                            <span>{g.homeTeam}</span>
+                                        </span>
                                         <span className="small-text text-slate-500 ml-2">{g.venue}</span>
                                     </div>
                                     <span className="small-text text-slate-400">{g.date}</span>

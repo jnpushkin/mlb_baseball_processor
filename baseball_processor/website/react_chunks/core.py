@@ -695,7 +695,11 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                 <div className={`p-6 border-b ${game.gameType === 'spring' ? 'bg-gradient-to-r from-green-600 to-green-700' : 'bg-gradient-to-r from-blue-600 to-blue-700'} text-white flex-shrink-0`}>
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
-                            <h3 className="section-title font-bold">{game.awayTeam} @ {game.homeTeam}</h3>
+                            <h3 className="section-title font-bold flex flex-wrap items-center gap-2">
+                                <TeamToken code={game.awayTeam} logoSize={26} />
+                                <span className="text-white/70">@</span>
+                                <TeamToken code={game.homeTeam} logoSize={26} />
+                            </h3>
                             {game.gameType === 'spring' && <span className="px-2 py-0.5 bg-white/20 text-white text-xs font-semibold rounded">Spring Training</span>}
                             {game.gameType === 'postseason' && <span className="px-2 py-0.5 bg-yellow-400/30 text-white text-xs font-semibold rounded">Postseason</span>}
                         </div>
@@ -789,7 +793,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                     </thead>
                                     <tbody>
                                         <tr className="border-b">
-                                            <td className="px-3 py-2 text-left font-semibold">{game.awayTeam}</td>
+                                            <td className="px-3 py-2 text-left font-semibold"><TeamToken code={game.awayTeam} logoSize={18} /></td>
                                             {Array.from({ length: Math.max(game.linescore.away?.innings?.length || 9, game.linescore.home?.innings?.length || 9, 9) }, (_, i) => (
                                                 <td key={`away-inning-${i}`} className="px-2 py-2">
                                                     {game.linescore.away?.innings?.[i] !== undefined ? game.linescore.away.innings[i] : '-'}
@@ -800,7 +804,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                             <td className="px-3 py-2 font-bold">{game.linescore.away?.errors || 0}</td>
                                         </tr>
                                         <tr>
-                                            <td className="px-3 py-2 text-left font-semibold">{game.homeTeam}</td>
+                                            <td className="px-3 py-2 text-left font-semibold"><TeamToken code={game.homeTeam} logoSize={18} /></td>
                                             {Array.from({ length: Math.max(game.linescore.away?.innings?.length || 9, game.linescore.home?.innings?.length || 9, 9) }, (_, i) => (
                                                 <td key={`home-inning-${i}`} className="px-2 py-2">
                                                     {game.linescore.home?.innings?.[i] !== undefined ? game.linescore.home.innings[i] : '-'}
@@ -1006,7 +1010,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                     <h4 className="subsection-title font-bold mb-3">⚖️ ABS Challenges</h4>
                                     <div className="grid grid-cols-2 gap-3 mb-3">
                                         <div className="bg-slate-50 rounded-lg p-3 text-sm">
-                                            <div className="font-semibold mb-1">{game.awayTeam}</div>
+                                            <div className="font-semibold mb-1"><TeamToken code={game.awayTeam} logoSize={18} /></div>
                                             <div className="flex gap-3">
                                                 <span className="text-green-600">✓ {awayOvt}</span>
                                                 <span className="text-red-600">✗ {awayFailed}</span>
@@ -1014,7 +1018,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                             </div>
                                         </div>
                                         <div className="bg-slate-50 rounded-lg p-3 text-sm">
-                                            <div className="font-semibold mb-1">{game.homeTeam}</div>
+                                            <div className="font-semibold mb-1"><TeamToken code={game.homeTeam} logoSize={18} /></div>
                                             <div className="flex gap-3">
                                                 <span className="text-green-600">✓ {homeOvt}</span>
                                                 <span className="text-red-600">✗ {homeFailed}</span>

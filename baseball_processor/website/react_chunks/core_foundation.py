@@ -5,9 +5,31 @@ CODE = r'''const { useState, useMemo, useEffect, useRef } = React;
 // ── Global utilities (shared across all components) ──
 const toSortableDate = (d) => {
     if (!d) return '';
-    if (d.includes('/')) { const [m, dd, y] = d.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; }
-    return d;
+    const text = String(d).trim();
+    if (/^\d{8}$/.test(text)) return text;
+    if (text.includes('/')) { const [m, dd, y] = text.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; }
+    const parsed = Date.parse(text);
+    if (!Number.isNaN(parsed)) {
+        const date = new Date(parsed);
+        return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+    }
+    return text;
 };
+const formatLongDate = (d) => {
+    const key = toSortableDate(d);
+    if (!/^\d{8}$/.test(key)) return d || '';
+    const year = Number(key.slice(0, 4));
+    const month = Number(key.slice(4, 6)) - 1;
+    const day = Number(key.slice(6, 8));
+    return new Date(Date.UTC(year, month, day)).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+    });
+};
+const isFirstCareerEvent = (m) => /^(first|1st)\s+career/i.test(m || '');
 const shortenMilestone = (m) => (m || '').replace('First Career ', '1st Career ').replace('Home Run', 'HR').replace('Stolen Base', 'SB').replace('Run Scored', 'Run').replace('Strikeout', 'K').replace('Inning Pitched', 'IP').replace('Double', '2B').replace('Triple', '3B');
 const getLastName = (name) => {
     const suffixes = ['jr.', 'jr', 'sr.', 'sr', 'ii', 'iii', 'iv'];
@@ -262,6 +284,80 @@ const GameLink = ({ gameId, mlbGamePk, source }) => {
     const url = `https://www.baseball-reference.com/boxes/${teamCode}/${gameId}.shtml`;
     return <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-mono small-text">{gameId}</a>;
 };
+
+const TEAM_LOGO_IDS = {
+    ARI: 109,
+    ATL: 144,
+    BAL: 110,
+    BOS: 111,
+    CHC: 112, CHN: 112,
+    CIN: 113,
+    CLE: 114,
+    COL: 115,
+    CWS: 145, CHA: 145, CHW: 145,
+    DET: 116,
+    HOU: 117,
+    KC: 118, KCA: 118,
+    LAA: 108, ANA: 108,
+    LAD: 119, LAN: 119, LA: 119,
+    MIA: 146, FLA: 146,
+    MIL: 158,
+    MIN: 142,
+    MTY: 562,
+    NYM: 121, NYN: 121,
+    NYY: 147, NYA: 147,
+    OAK: 133, ATH: 133,
+    PHI: 143,
+    PIT: 134,
+    SD: 135, SDN: 135,
+    SEA: 136,
+    SF: 137, SFN: 137,
+    STL: 138, SLN: 138,
+    TB: 139, TBA: 139,
+    TEX: 140,
+    TOR: 141,
+    WSH: 120, WAS: 120, WSN: 120
+};
+
+const getTeamLogoUrl = (code) => {
+    const id = TEAM_LOGO_IDS[String(code || '').trim().toUpperCase()];
+    return id ? `https://www.mlbstatic.com/team-logos/${id}.svg` : null;
+};
+
+const TeamLogo = ({ code, size = 22, className = '' }) => {
+    const [failed, setFailed] = useState(false);
+    const cleanCode = String(code || '').trim().toUpperCase();
+    const url = failed ? null : getTeamLogoUrl(cleanCode);
+    const style = { width: size, height: size };
+    const wrapperClass = `inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/95 ring-1 ring-slate-200 ${className}`;
+
+    if (!url) {
+        return (
+            <span className={wrapperClass} style={style} title={cleanCode || 'Team'}>
+                <span className="text-[9px] font-bold leading-none text-slate-500">{(cleanCode || '?').slice(0, 3)}</span>
+            </span>
+        );
+    }
+
+    return (
+        <span className={wrapperClass} style={style} title={`${cleanCode} logo`}>
+            <img
+                src={url}
+                alt={`${cleanCode} logo`}
+                loading="lazy"
+                className="h-full w-full object-contain p-0.5"
+                onError={() => setFailed(true)}
+            />
+        </span>
+    );
+};
+
+const TeamToken = ({ code, logoSize = 20, className = '' }) => (
+    <span className={`inline-flex items-center gap-1.5 ${className}`}>
+        <TeamLogo code={code} size={logoSize} />
+        <span>{code}</span>
+    </span>
+);
 
 
 const EmptyState = ({ icon = '📭', title = 'No data', message = 'There is nothing to display.' }) => (
