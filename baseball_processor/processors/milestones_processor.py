@@ -263,7 +263,6 @@ class MilestonesProcessor(BaseProcessor):
             "Efficient Starts": [],
             "Dominant Starts": [],
             "No-Walk Starts": [],
-            "Scoreless Relief": [],
             "3 Strikeout Innings": [],
         }
     
@@ -369,7 +368,6 @@ class MilestonesProcessor(BaseProcessor):
             ("efficient_starts", "Efficient Starts", lambda x: f"6+ IP, {x.get('pitch_count', '?')} P - {pitching_line(x)}"),
             ("dominant_starts", "Dominant Starts", lambda x: f"7+ IP, {x.get('strikeouts', 0)} K - {pitching_line(x)}"),
             ("no_walk_starts", "No-Walk Starts", lambda x: f"0 BB - {pitching_line(x)}"),
-            ("scoreless_relief", "Scoreless Relief", lambda x: f"3+ IP, 0 ER - {pitching_line(x)}"),
             # Special events (handled separately but mapped here for grand slams)
             ("grand_slams", "Grand Slams", lambda x: f"{x.get('half', '').title()} {x.get('inning', '')} - Grand Slam"),
         ]
@@ -571,7 +569,7 @@ class MilestonesProcessor(BaseProcessor):
                 "Maddux Games", "7-Inning Shutouts", "Low-Hit CG",
                 "One-Hitters", "Two-Hitters", "CGSO No Walks", "High K Low BB",
                 "Saves", "Wins", "Efficient Starts", "Dominant Starts",
-                "No-Walk Starts", "Scoreless Relief"
+                "No-Walk Starts"
             ]
             if tab in pitching_tabs:
                 # Add pitching stats for pitching milestones
@@ -1816,7 +1814,6 @@ def integrate_practical_enhancements(milestone_dfs, games):
         "Efficient Starts": enhancer.enhance_quality_starts,
         "Dominant Starts": enhancer.enhance_quality_starts,
         "No-Walk Starts": enhancer.enhance_quality_starts,
-        "Scoreless Relief": enhancer.enhance_quality_starts,
     }
     
     enhanced_dfs = {}

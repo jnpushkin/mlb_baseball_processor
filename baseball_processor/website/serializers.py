@@ -670,7 +670,7 @@ class DataSerializer:
         'Multi-2B Games',
         # Pitching - routine occurrences
         '8+ K Games', 'Saves', 'Wins', 'Efficient Starts',
-        'No-Walk Starts', 'Scoreless Relief', 'High K Low BB',
+        'No-Walk Starts', 'High K Low BB',
         '7-Inning Shutouts', 'Dominant Starts', '3 Pitch Innings',
     }
 
@@ -719,7 +719,7 @@ class DataSerializer:
                     "Maddux Games", "7-Inning Shutouts", "Low-Hit CG",
                     "One-Hitters", "Two-Hitters", "CGSO No Walks", "High K Low BB",
                     "Saves", "Wins", "Efficient Starts", "Dominant Starts",
-                    "No-Walk Starts", "Scoreless Relief", "Complete Games & Shutouts"
+                    "No-Walk Starts", "Complete Games & Shutouts"
                 ]
 
                 if milestone_type == "Consecutive HR Instances":

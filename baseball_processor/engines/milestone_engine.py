@@ -25,12 +25,16 @@ class MilestoneEngine:
         self.game_data = game_data
         ms = self.game_data.setdefault('milestone_stats', {})
 
-        # Initialize all keys (including removed ones that detection code still references)
+        # Initialize all active keys and clear retired categories that may exist
+        # in older cache entries.
+        for removed_key in ('scoreless_relief',):
+            ms.pop(removed_key, None)
+
         ALL_DETECTION_KEYS = self.MILESTONE_KEYS + [
             'three_hit_games', 'eight_k_games', 'four_walk_games', 'perfect_batting_games',
             'three_run_games', 'four_run_games', 'hit_for_extra_bases', 'three_total_bases_games',
             'multi_double_games', 'save_games', 'win_games', 'efficient_starts',
-            'no_walk_starts', 'scoreless_relief', 'high_k_low_bb', 'golden_sombreros',
+            'no_walk_starts', 'high_k_low_bb', 'golden_sombreros',
         ]
         for key in ALL_DETECTION_KEYS:
             ms.setdefault(key, [])
@@ -349,7 +353,7 @@ class MilestoneEngine:
             'eight_k_games', 'maddux_games', 'seven_inning_shutouts', 'low_hit_cg',
             'one_hitters', 'two_hitters', 'cgso_no_walks', 'immaculate_inning_pitchers',
             'dominant_starts', 'save_games', 'win_games', 'efficient_starts',
-            'no_walk_starts', 'scoreless_relief', 'high_k_low_bb',
+            'no_walk_starts', 'high_k_low_bb',
         ]
         for key in pitching_keys:
             ms[key] = []
@@ -522,10 +526,6 @@ class MilestoneEngine:
                 # No walk start (5+ IP, 0 BB)
                 if outs >= 15 and walks == 0:
                     ms['no_walk_starts'].append(dict(milestone_common))
-
-                # Scoreless relief (3+ IP, 0 ER, not a starter)
-                if outs >= 9 and outs < 18 and er == 0:
-                    ms['scoreless_relief'].append(dict(milestone_common))
 
                 # Win games
                 if decision and decision.upper() == 'W':

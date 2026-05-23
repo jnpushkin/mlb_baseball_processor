@@ -131,7 +131,7 @@ def fetch_and_save_game(game_pk, force=False):
         # Use MLB API for career firsts (instant, no BREF rate limits)
         try:
             from .career_firsts_scraper import update_career_firsts_from_api
-            update_career_firsts_from_api(game_data, verbose=True)
+            update_career_firsts_from_api(game_data, verbose=True, force=True)
         except Exception as e:
             print(f"  ⚠️ Career firsts (API) skipped: {e}")
         try:
@@ -145,7 +145,13 @@ def fetch_and_save_game(game_pk, force=False):
 def run_processor(website_only=True):
     """Run the main processor to rebuild the website."""
     print("\nProcessing and deploying website...")
-    cmd = ['python3', '-m', 'baseball_processor']
+    cmd = [
+        'python3',
+        '-m',
+        'baseball_processor',
+        '--from-cache-only',
+        '--skip-debut-update',
+    ]
     if website_only:
         cmd.append('--website-only')
     result = subprocess.run(cmd, cwd=str(PROJECT_DIR))

@@ -1464,6 +1464,11 @@ def main():
         help='Scrape career firsts for players in processed games (skips already cached players)'
     )
     parser.add_argument(
+        '--refresh-career-events',
+        action='store_true',
+        help='Maintenance: refresh career firsts/lasts via MLB API across all processed games'
+    )
+    parser.add_argument(
         '--export-players',
         action='store_true',
         help='Export shared player data for cross-project linking with NCAA processor'
@@ -1676,10 +1681,9 @@ def main():
     if not args.quick_stats:
         _sync_companions_csv(games_data)
 
-    # Refresh per-player career-firsts/lasts via MLB API. TTL caching means
-    # this is cheap on repeat runs; the first run after a schema change
-    # (e.g., adding career_lasts) pays the cost to backfill once.
-    if not args.quick_stats:
+    # Expensive maintenance path. Normal builds read the cached career-events
+    # file; add_game refreshes only players from the newly added game.
+    if args.refresh_career_events and not args.quick_stats:
         _refresh_career_firsts_for_games(games_data, args)
 
     # Quick stats mode - just print summary and exit
