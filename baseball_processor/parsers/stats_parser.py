@@ -2,19 +2,6 @@ import re
 from bs4 import BeautifulSoup, Comment
 from ..utils.constants import LABEL_MAP
 from ..utils.log import warn
-
-def get_team_defensive_innings(game_data, team_side):
-    """Return the number of innings the team pitched based on linescore and opponent's innings played."""
-    linescore = game_data.get("linescore", {})
-
-    if team_side == "home":
-        opponent = "away"
-    else:
-        opponent = "home"
-
-    opponent_innings = linescore.get(opponent, {}).get("innings", [])
-
-    return len(opponent_innings)
     
 def extract_batting_stats(soup, team_name, is_home=False):
     """Extract full batting statistics for the specified team."""
@@ -150,22 +137,6 @@ def extract_pitching_stats(soup, team_name, is_home=False):
             pitchers_stats.append(pitcher_data)
     
     return pitchers_stats
-
-def get_player_rbi_from_box(game, player_id=None, player_name=None):
-    """Get a player's RBI total from the box score."""
-    try:
-        for side in ("home", "away"):
-            for player in game.get("batting", {}).get(side, []):
-                # Match by player_id first (more reliable)
-                if player_id and player.get("player_id") == player_id:
-                    return player.get("RBI", 0)
-                # Fallback to name matching
-                if player_name and player.get("name") == player_name:
-                    return player.get("RBI", 0)
-    except (KeyError, TypeError, AttributeError):
-        # Game data structure is invalid or missing expected fields
-        pass
-    return None
 
 def find_team_table(soup, team_name, stat_type):
     """Find the correct table for a team by trying different possible ID formats."""

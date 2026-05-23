@@ -270,6 +270,24 @@ const PlayerLink = ({ playerId, name, external }) => {
     );
 };
 
+const requestGameDetails = (gameId, options = {}) => {
+    if (!gameId) return;
+    const request = {
+        gameId,
+        focus: options.focus || null,
+        tab: options.tab || options.focus?.tab || null,
+    };
+    window.__pendingGameDetailsRequest = request;
+    window.dispatchEvent(new CustomEvent('gameDetailsRequest', { detail: request }));
+    if (window.__navigateTab) window.__navigateTab('gamelog');
+};
+
+const consumePendingGameDetailsRequest = () => {
+    const request = window.__pendingGameDetailsRequest || null;
+    window.__pendingGameDetailsRequest = null;
+    return request;
+};
+
 const GameLink = ({ gameId, mlbGamePk, source }) => {
     if (!gameId || gameId === 'UNKNOWN') return <span className="small-text">{gameId}</span>;
 

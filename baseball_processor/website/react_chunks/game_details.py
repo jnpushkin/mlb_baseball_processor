@@ -176,7 +176,7 @@ CODE = r'''const Calendar = ({ games }) => {
                             <div className="divide-y">
                                 {selectedDate.games.sort((a, b) => new Date(b.date) - new Date(a.date)).map((game) => (
                                     <div key={game.gameId} className="p-4 hover:bg-blue-50 transition-colors cursor-pointer"
-                                        onClick={() => { window._pendingGameId = game.gameId; setShowModal(false); if (window.__navigateTab) window.__navigateTab('gamelog'); }}>
+                                        onClick={() => { requestGameDetails(game.gameId); setShowModal(false); }}>
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-3">
                                                 <span className="body-text font-bold text-blue-600">{game.date}</span>
@@ -379,7 +379,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
                                             : 'bg-slate-100 text-slate-600 border-slate-300';
                                         return (
                                             <div key={game.gameId} className="p-4 hover:bg-blue-50 transition-colors cursor-pointer"
-                                                onClick={() => { window._pendingGameId = game.gameId; setShowModal(false); if (window.__navigateTab) window.__navigateTab('gamelog'); }}>
+                                                onClick={() => { requestGameDetails(game.gameId); setShowModal(false); }}>
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-3">
                                                         <span className="body-text font-bold text-blue-600">{game.date}</span>
@@ -1381,7 +1381,7 @@ const CompanionsView = ({ companionData }) => {
                                 {selectedCompanion.games.map((game) => (
                                     <div key={game.gameId || `${game.date}-${game.awayTeam}-${game.homeTeam}`}
                                         className="p-4 hover:bg-blue-50 transition-colors cursor-pointer"
-                                        onClick={() => { if (game.gameId) { window._pendingGameId = game.gameId; setShowGames(false); if (window.__navigateTab) window.__navigateTab('gamelog'); } }}>
+                                        onClick={() => { if (game.gameId) { requestGameDetails(game.gameId); setShowGames(false); } }}>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-4">
                                                 <span className="font-bold text-blue-600">{(game.date || '').split(' ')[0]}</span>

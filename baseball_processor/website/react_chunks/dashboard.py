@@ -876,20 +876,31 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
     const [badgeTypeFilter, setBadgeTypeFilter] = useState('all');
     const [badgeTextFilter, setBadgeTextFilter] = useState('');
 
-    // Check for pending game selection (from player timeline click)
+    // Check for pending game selection (from cross-tab links)
     useEffect(() => {
-        if (window._pendingGameId) {
-            const gameId = window._pendingGameId;
-            const focus = window._pendingGameFocus || null;
-            window._pendingGameId = null;
-            window._pendingGameFocus = null;
-            const game = (games || []).find(g => g.gameId === gameId);
+        const openRequestedGame = (request) => {
+            if (!request?.gameId) return;
+            const game = (games || []).find(g => g.gameId === request.gameId);
             if (game) {
                 setSelectedGame(game);
-                setModalIntent(focus && (!focus.gameId || focus.gameId === gameId) ? focus : null);
+                const focus = request.focus;
+                const intent = focus
+                    ? { ...focus, gameId: request.gameId, tab: request.tab || focus.tab }
+                    : request.tab
+                        ? { gameId: request.gameId, tab: request.tab }
+                        : null;
+                setModalIntent(intent);
             }
-        }
-    });
+        };
+
+        const onGameDetailsRequest = (event) => {
+            window.__pendingGameDetailsRequest = null;
+            openRequestedGame(event.detail);
+        };
+        openRequestedGame(consumePendingGameDetailsRequest());
+        window.addEventListener('gameDetailsRequest', onGameDetailsRequest);
+        return () => window.removeEventListener('gameDetailsRequest', onGameDetailsRequest);
+    }, [games]);
 
 
     // Compute milestones for badge display
@@ -2486,8 +2497,7 @@ const BadgesDisplay = ({ games, playerGames, pitcherGames, careerFirstsByGame })
                     allBadgesByGame={allBadgesByGame}
                     onClose={() => setSelectedBadge(null)}
                     onGoToGame={() => {
-                        window._pendingGameId = selectedBadge.gameId;
-                        if (window.__navigateTab) window.__navigateTab('gamelog');
+                        requestGameDetails(selectedBadge.gameId);
                     }}
                 />
             )}

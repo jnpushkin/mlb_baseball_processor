@@ -1392,35 +1392,6 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
     return game_data
 
 
-def parse_mlb_games_from_file(filepath: str, verbose: bool = False) -> list:
-    """
-    Parse multiple MLB games from a file of URLs/IDs.
-
-    Args:
-        filepath: Path to file with one URL or game ID per line
-        verbose: Print progress messages
-
-    Returns:
-        List of game data dicts
-    """
-    games = []
-
-    with open(filepath, 'r') as f:
-        lines = [line.strip() for line in f if line.strip() and not line.startswith('#')]
-
-    for i, line in enumerate(lines):
-        if verbose:
-            print(f"\n[{i+1}/{len(lines)}] Processing: {line}")
-
-        try:
-            game_data = parse_mlb_game(line, verbose=verbose)
-            games.append(game_data)
-        except Exception as e:
-            print(f"  Error: {e}")
-
-    return games
-
-
 def update_cached_games_with_resolved_ids(cache_dir: str = None, verbose: bool = False) -> dict:
     """
     Update existing cached games to resolve register-format IDs to MLB-format IDs.

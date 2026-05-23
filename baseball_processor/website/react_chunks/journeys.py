@@ -181,8 +181,7 @@ CODE = r'''const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, 
                                 debuts={(debuts || []).filter(d => d.playerId === selectedPlayer.id)}
                                 finalGames={(finalGames || []).filter(f => f.playerId === selectedPlayer.id)}
                                 onGameClick={(gameId) => {
-                                    window._pendingGameId = gameId;
-                                    if (window.__navigateTab) window.__navigateTab('gamelog');
+                                    requestGameDetails(gameId);
                                 }}
                             />
                         </div>
@@ -376,8 +375,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
                                 debuts={(debuts || []).filter(d => d.playerId === selectedPitcher.id)}
                                 finalGames={(finalGames || []).filter(f => f.playerId === selectedPitcher.id)}
                                 onGameClick={(gameId) => {
-                                    window._pendingGameId = gameId;
-                                    if (window.__navigateTab) window.__navigateTab('gamelog');
+                                    requestGameDetails(gameId);
                                 }}
                             />
                         </div>
@@ -845,9 +843,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
             : 'Career milestones and final career stat events you witnessed.';
     const openMilestoneGame = (gameId) => {
         if (!gameId || gameId === 'UNKNOWN') return;
-        window._pendingGameId = gameId;
-        if (window.__navigateTab) window.__navigateTab('gamelog');
-        else if (onTabChange) onTabChange('gamelog');
+        requestGameDetails(gameId);
     };
 
     return (

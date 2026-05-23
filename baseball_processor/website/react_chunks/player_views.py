@@ -238,7 +238,7 @@ const App = () => {
             window._pendingPlayerSelect = { id: r.id, name: r.label };
         }
         if (r.type === 'game') {
-            window._pendingGameId = r.id;
+            requestGameDetails(r.id);
         }
         if (['milestone', 'career', 'last', 'history'].includes(r.type)) {
             window._pendingMilestoneSearch = r.searchValue || r.label;

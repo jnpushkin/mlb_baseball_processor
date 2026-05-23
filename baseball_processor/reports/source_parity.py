@@ -624,20 +624,6 @@ def collect_source_parity_issues(records: list[CacheGameRecord], checks=("metada
     return issues
 
 
-def generate_metadata_parity_report(cache_dir: Path = CACHE_DIR) -> dict[str, Any]:
-    records = load_cache_game_records(cache_dir)
-    issues = collect_metadata_parity_issues(records)
-    paired_game_ids = {
-        issue["game_id"]
-        for issue in issues
-    }
-    return {
-        "records_checked": len(records),
-        "paired_games_with_issues": len(paired_game_ids),
-        "issues": issues,
-    }
-
-
 def generate_source_parity_report(cache_dir: Path = CACHE_DIR, checks=("metadata", "batting", "pitching")) -> dict[str, Any]:
     records = load_cache_game_records(cache_dir)
     issues = collect_source_parity_issues(records, checks=checks)

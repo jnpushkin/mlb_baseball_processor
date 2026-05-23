@@ -6,6 +6,7 @@ from .game_details import CODE as GAME_DETAILS_CODE
 from .journeys import CODE as JOURNEYS_CODE
 from .tables import CODE as TABLES_CODE
 from .dashboard import CODE as DASHBOARD_CODE
+from .home_away import CODE as HOME_AWAY_CODE
 from .badges import CODE as BADGES_CODE
 from .special import CODE as SPECIAL_CODE
 from .player_views import CODE as PLAYER_VIEWS_CODE
@@ -17,6 +18,7 @@ REACT_CHUNKS = [
     JOURNEYS_CODE,
     TABLES_CODE,
     DASHBOARD_CODE,
+    HOME_AWAY_CODE,
     BADGES_CODE,
     SPECIAL_CODE,
     PLAYER_VIEWS_CODE,

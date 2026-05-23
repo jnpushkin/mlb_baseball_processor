@@ -275,50 +275,6 @@ class AllTimePassingEngine:
         ]
 
 
-def find_all_time_passings_for_milestone(
-    engine: AllTimePassingEngine,
-    milestone: dict,
-    career_totals: dict
-) -> list[dict]:
-    """
-    Check if a career milestone also represents passing someone on the all-time list.
-
-    Args:
-        engine: AllTimePassingEngine instance
-        milestone: Milestone dict from career_firsts (has stat, milestone_number, game_id, etc.)
-        career_totals: Player's career totals dict (batting/pitching -> stat -> value)
-
-    Returns:
-        List of passing events
-    """
-    stat = milestone.get('stat', '')
-    stat_type = milestone.get('type', 'batting')
-
-    # Get the career total for this stat after the milestone
-    if stat_type == 'batting':
-        totals = career_totals.get('batting', {})
-    else:
-        totals = career_totals.get('pitching', {})
-
-    # The milestone_number IS the value reached (e.g., 400th save means career total is now 400)
-    # For "first" milestones, use career_total_after if available
-    career_value = milestone.get('career_total_after') or milestone.get('milestone_number', 0)
-
-    if not career_value:
-        return []
-
-    return engine.check_for_passings(
-        player_id=milestone.get('player_id', ''),
-        player_name=milestone.get('player_name', ''),
-        stat=stat,
-        stat_type=stat_type,
-        new_value=career_value,
-        game_id=milestone.get('game_id', ''),
-        date=milestone.get('date', ''),
-        venue=milestone.get('venue', '')
-    )
-
-
 def load_gamelogs_cache() -> dict:
     """Load the gamelogs cache with accurate career totals per game."""
     cache_file = get_project_root() / 'cache' / 'career_gamelogs.json'

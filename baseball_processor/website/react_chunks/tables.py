@@ -444,8 +444,7 @@ const Dashboard = ({ data, onTabChange }) => {
     const latestGameId = latestGame?.gameId;
     const openGame = (game) => {
         if (!game?.gameId) return;
-        window._pendingGameId = game.gameId;
-        if (onTabChange) onTabChange('gamelog');
+        requestGameDetails(game.gameId);
     };
 
     const latestGameHighlights = useMemo(() => {
@@ -598,8 +597,7 @@ const Dashboard = ({ data, onTabChange }) => {
                                 key={`recent-moment-${m.gameId || i}-${i}`}
                                 onClick={() => {
                                     if (m.gameId) {
-                                        window._pendingGameId = m.gameId;
-                                        if (onTabChange) onTabChange('gamelog');
+                                        requestGameDetails(m.gameId);
                                     }
                                 }}
                                 className={`text-left rounded-lg border border-slate-200 border-l-4 bg-slate-50 p-3 hover:bg-slate-100 hover:shadow-sm ${momentAccent[m.tone] || momentAccent.amber}`}

@@ -2631,46 +2631,6 @@ def find_witnessed_firsts(career_firsts_cache: dict, attended_games: dict) -> li
     return witnessed
 
 
-def find_witnessed_lasts(career_firsts_cache: dict, attended_games: dict) -> list[dict]:
-    """Find career-LAST stat events that were witnessed at attended games.
-
-    Mirror of find_witnessed_firsts for the other end of careers. Only
-    retired players have populated lasts (active players' "last hit" is
-    just their most recent and would shift, so we don't emit it).
-    """
-    witnessed = []
-
-    for player_id, data in career_firsts_cache.items():
-        player_name = data.get('player_name', player_id)
-        if not data.get('is_retired'):
-            continue
-
-        for last_type, type_label in (('batting_lasts', 'batting'), ('pitching_lasts', 'pitching')):
-            for stat, last_info in (data.get(last_type) or {}).items():
-                game_id = last_info.get('game_id', '')
-                if not game_id:
-                    continue
-                game = attended_games.get(game_id)
-                if not game:
-                    continue
-                witnessed.append({
-                    'player_id': player_id,
-                    'player_name': player_name,
-                    'milestone': last_info.get('milestone', ''),
-                    'stat': stat,
-                    'date': last_info.get('date', ''),
-                    'game_id': game_id,
-                    'opponent': last_info.get('opponent', ''),
-                    'venue': game.get('venue', ''),
-                    'year': last_info.get('year'),
-                    'value': last_info.get('value_in_game'),
-                    'type': type_label,
-                    'category': 'last',
-                })
-
-    return witnessed
-
-
 def _incremental_update(player_id, existing, scraper, years, verbose=False):
     """Update career data by only scraping specific years.
 
