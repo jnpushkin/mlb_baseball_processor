@@ -210,6 +210,74 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertEqual(2, len(games[0]["raw_plays"]))
         self.assertEqual("Batter Two", games[0]["raw_plays"][1]["batter"])
 
+    def test_cache_loader_dedupes_api_and_bref_play_aliases_by_batter_slot(self):
+        api_game = {
+            "game_id": "game-1",
+            "source": "mlb",
+            "basic_info": {"game_type": "regular", "source": "mlb"},
+            "batting": {"away": [{"name": "Miguel Vargas", "player_id": "vargami01", "AB": 2}], "home": []},
+            "pitching": {"away": [], "home": []},
+            "raw_plays": [
+                {
+                    "inning": 5,
+                    "half": "top",
+                    "batter": "Miguel Vargas",
+                    "batter_id": "vargami01",
+                    "event_type": "single",
+                    "description": "Miguel Vargas singles on a ground ball to left fielder Tyler Soderstrom.",
+                },
+                {
+                    "inning": 5,
+                    "half": "top",
+                    "batter": "Munetaka Murakami",
+                    "batter_id": "murakmu01",
+                    "event_type": "home_run",
+                    "description": "Munetaka Murakami homers on a fly ball to right field. Miguel Vargas scores.",
+                },
+            ],
+        }
+        bref_game = {
+            "game_id": "game-1",
+            "source": "bref",
+            "basic_info": {"game_type": "regular", "source": "bref"},
+            "batting": {"away": [], "home": []},
+            "pitching": {"away": [], "home": []},
+            "raw_plays": [
+                {
+                    "inning": 5,
+                    "half": "top",
+                    "batter": "Miguel\xa0Vargas",
+                    "description": "Single to LF (Ground Ball)",
+                },
+                {
+                    "inning": 5,
+                    "half": "top",
+                    "batter": "Munetaka\xa0Murakami",
+                    "description": "Home Run (Fly Ball to Deep RF Line); M.\xa0Vargas Scores",
+                },
+                {
+                    "inning": 5,
+                    "half": "top",
+                    "batter": "Next\xa0Batter",
+                    "description": "Wild Pitch; M.\xa0Vargas to 2B",
+                },
+            ],
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_dir = Path(tmpdir)
+            (cache_dir / "api.json").write_text(json.dumps(api_game), encoding="utf-8")
+            (cache_dir / "bref.json").write_text(json.dumps(bref_game), encoding="utf-8")
+
+            games, _, duplicates_skipped = _load_games_from_cache(cache_dir)
+
+        self.assertEqual(1, duplicates_skipped)
+        self.assertEqual(3, len(games[0]["raw_plays"]))
+        self.assertEqual(
+            ["Miguel Vargas", "Munetaka Murakami", "Next\xa0Batter"],
+            [play["batter"] for play in games[0]["raw_plays"]],
+        )
+
     def test_cache_loader_ignores_zero_pa_pitcher_batting_placeholders_for_quality(self):
         bref_game = {
             "game_id": "game-1",

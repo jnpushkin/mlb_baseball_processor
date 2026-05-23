@@ -583,6 +583,44 @@ def _play_signature(play):
     )
 
 
+def _is_probable_plate_appearance(play):
+    event_type = _normalize_cache_name(play.get('event_type') or play.get('event'))
+    if event_type in {
+        'single', 'double', 'triple', 'home run', 'walk', 'intent walk',
+        'hit by pitch', 'strikeout', 'field out', 'force out',
+        'grounded into double play', 'double play', 'triple play',
+        'fielders choice', 'fielders choice out', 'sacrifice fly',
+        'sacrifice bunt', 'catcher interference', 'field error',
+        'fielders choice error',
+    }:
+        return True
+
+    description = _normalize_cache_name(play.get('description', ''))
+    if not description:
+        return False
+    if re.match(
+        r'^(wild pitch|passed ball|stolen base|caught stealing|pickoff|balk|'
+        r'defensive indifference|mound visit)',
+        description,
+    ):
+        return False
+    return bool(re.search(
+        r'(single|double|triple|home run|homer|walk|hit by pitch|'
+        r'strikeout|strikes out|called out on strikes|ground|line|fly|flies|'
+        r'pop|pops|force out|fielder.?s choice|reaches on|sacrifice|'
+        r'catcher interference|interference|double play|triple play)',
+        description,
+    ))
+
+
+def _play_batter_slot(play):
+    return (
+        play.get('inning'),
+        str(play.get('half', '')).lower(),
+        _normalize_cache_name(play.get('batter', '')),
+    )
+
+
 def _merge_play_list(base, incoming, key):
     incoming_plays = incoming.get(key) or []
     if not incoming_plays:
@@ -594,7 +632,19 @@ def _merge_play_list(base, incoming, key):
         return
 
     seen = {_play_signature(play) for play in base_plays}
+    remaining_base_pa_slots = {}
+    for play in base_plays:
+        if _is_probable_plate_appearance(play):
+            slot = _play_batter_slot(play)
+            remaining_base_pa_slots[slot] = remaining_base_pa_slots.get(slot, 0) + 1
+
     for play in incoming_plays:
+        if _is_probable_plate_appearance(play):
+            slot = _play_batter_slot(play)
+            if remaining_base_pa_slots.get(slot, 0) > 0:
+                remaining_base_pa_slots[slot] -= 1
+                continue
+
         signature = _play_signature(play)
         if signature not in seen:
             base_plays.append(copy.deepcopy(play))
