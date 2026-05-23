@@ -871,6 +871,7 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
 
 const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGame, allTimePassingsByGame }) => {
     const [selectedGame, setSelectedGame] = useState(null);
+    const [modalIntent, setModalIntent] = useState(null);
     const [selectedBadge, setSelectedBadge] = useState(null);  // { badge, gameId }
     const [badgeTypeFilter, setBadgeTypeFilter] = useState('all');
     const [badgeTextFilter, setBadgeTextFilter] = useState('');
@@ -879,9 +880,14 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
     useEffect(() => {
         if (window._pendingGameId) {
             const gameId = window._pendingGameId;
+            const focus = window._pendingGameFocus || null;
             window._pendingGameId = null;
+            window._pendingGameFocus = null;
             const game = (games || []).find(g => g.gameId === gameId);
-            if (game) setSelectedGame(game);
+            if (game) {
+                setSelectedGame(game);
+                setModalIntent(focus && (!focus.gameId || focus.gameId === gameId) ? focus : null);
+            }
         }
     });
 
@@ -1164,11 +1170,13 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                         careerFirsts={dedupedCareerFirstsByGame[selectedGame.gameId] || []}
                         allTimePassings={(allTimePassingsByGame || {})[selectedGame.gameId] || []}
                         badges={allBadgesByGame?.[selectedGame.gameId] || []}
-                        onClose={() => setSelectedGame(null)}
-                        onPrev={prevGame ? () => setSelectedGame(prevGame) : null}
-                        onNext={nextGame ? () => setSelectedGame(nextGame) : null}
+                        onClose={() => { setSelectedGame(null); setModalIntent(null); }}
+                        onPrev={prevGame ? () => { setModalIntent(null); setSelectedGame(prevGame); } : null}
+                        onNext={nextGame ? () => { setModalIntent(null); setSelectedGame(nextGame); } : null}
                         gameIndex={idx >= 0 ? idx + 1 : null}
                         totalGames={sortedGames.length}
+                        initialTab={modalIntent?.tab}
+                        focusInning={modalIntent}
                     />
                 );
             })()}

@@ -1860,6 +1860,54 @@ const SpecialTab = ({ data, initialSubtab, onSubtabChange }) => {
 
 const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) => {
     const [lineMetric, setLineMetric] = useState('runs');
+    const [gameTypeFilter, setGameTypeFilter] = useState('all');
+    const [teamFilter, setTeamFilter] = useState('all');
+    const [venueFilter, setVenueFilter] = useState('all');
+    const [startYear, setStartYear] = useState('');
+    const [endYear, setEndYear] = useState('');
+    const [battingSort, setBattingSort] = useState({ key: 'pa', dir: 'desc' });
+    const [repeatSort, setRepeatSort] = useState({ key: 'pa', dir: 'desc' });
+    const [repeatSearch, setRepeatSearch] = useState('');
+    const [showAllBatting, setShowAllBatting] = useState(false);
+    const [showAllRepeat, setShowAllRepeat] = useState(false);
+    const yearForGame = (game) => {
+        const match = String(game?.date || '').match(/(\d{4})/);
+        return match ? Number.parseInt(match[1], 10) : null;
+    };
+    const filterMeta = useMemo(() => {
+        const teams = new Set();
+        const venues = new Set();
+        const years = new Set();
+        (games || []).forEach(game => {
+            if (game.awayTeam) teams.add(game.awayTeam);
+            if (game.homeTeam) teams.add(game.homeTeam);
+            if (game.venue) venues.add(game.venue);
+            const year = yearForGame(game);
+            if (year) years.add(year);
+        });
+        const sortedYears = [...years].sort((a, b) => a - b);
+        return {
+            teams: [...teams].sort(),
+            venues: [...venues].sort(),
+            minYear: sortedYears[0] || '',
+            maxYear: sortedYears[sortedYears.length - 1] || '',
+        };
+    }, [games]);
+    const filteredGames = useMemo(() => {
+        const start = startYear ? Number.parseInt(startYear, 10) : null;
+        const end = endYear ? Number.parseInt(endYear, 10) : null;
+        return (games || []).filter(game => {
+            if (!game || !game.gameId) return false;
+            const gameType = game.gameType || 'regular';
+            if (gameTypeFilter !== 'all' && gameType !== gameTypeFilter) return false;
+            if (teamFilter !== 'all' && game.awayTeam !== teamFilter && game.homeTeam !== teamFilter) return false;
+            if (venueFilter !== 'all' && game.venue !== venueFilter) return false;
+            const year = yearForGame(game);
+            if (start && (!year || year < start)) return false;
+            if (end && (!year || year > end)) return false;
+            return true;
+        });
+    }, [games, gameTypeFilter, teamFilter, venueFilter, startYear, endYear]);
     const data = useMemo(() => {
         const sideTemplate = (label) => ({
             label,
@@ -1954,7 +2002,7 @@ const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) => {
             }
         };
 
-        (games || []).forEach(game => {
+        (filteredGames || []).forEach(game => {
             if (!game || !game.gameId) return;
             gameById[game.gameId] = game;
             const awayRuns = getRuns(game, 'away');
@@ -2080,10 +2128,9 @@ const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) => {
                 ...batter,
                 group,
             })))
-            .sort((a, b) => b.appearances - a.appearances || b.group.plateAppearances - a.group.plateAppearances || toSortableDate(b.group.date).localeCompare(toSortableDate(a.group.date)))
-            .slice(0, 30);
+            .sort((a, b) => b.appearances - a.appearances || b.group.plateAppearances - a.group.plateAppearances || toSortableDate(b.group.date).localeCompare(toSortableDate(a.group.date)));
         return { sideStats, halfRows, lineInnings, lineRows, biggestHalves, longHalfInnings, repeatBatterEvents };
-    }, [games, playerGames, pitcherGames]);
+    }, [filteredGames, playerGames, pitcherGames]);
 
     const fmtAvg = (value, denom, places = 2) => denom ? (value / denom).toFixed(places) : '-';
     const fmtPct = (value, denom) => denom ? `${Math.round((value / denom) * 100)}%` : '-';
@@ -2150,10 +2197,76 @@ const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) => {
         if (/^(forceout|force out)/.test(lowered)) return 'Force';
         return 'PA';
     };
-    const openGame = (gameId) => {
+    const openGame = (gameId, focus) => {
         if (!gameId) return;
         window._pendingGameId = gameId;
+        window._pendingGameFocus = focus ? { ...focus, gameId, tab: 'playbyplay' } : null;
         if (window.__navigateTab) window.__navigateTab('gamelog');
+    };
+    const focusForGroup = (group) => ({ inning: group.inning, half: group.half });
+    const focusForHalfRow = (row) => ({
+        inning: row.inning,
+        half: row.side === 'away' ? 'top' : 'bottom',
+    });
+    const sortValue = (item, key, kind) => {
+        const group = kind === 'repeat' ? item.group : item;
+        if (key === 'date') return toSortableDate(group.date || '');
+        if (key === 'game') return group.matchup || '';
+        if (key === 'team') return group.battingTeam || '';
+        if (key === 'inning') return (group.inning || 0) + (group.half === 'bottom' ? 0.5 : 0);
+        if (key === 'pa') return kind === 'repeat' ? item.appearances : group.plateAppearances;
+        if (key === 'runs') return group.runs ?? -1;
+        if (key === 'repeat') return group.repeatBatters?.length || 0;
+        if (key === 'player') return item.name || '';
+        return '';
+    };
+    const compareBySort = (a, b, sort, kind) => {
+        const av = sortValue(a, sort.key, kind);
+        const bv = sortValue(b, sort.key, kind);
+        const base = typeof av === 'number' && typeof bv === 'number'
+            ? av - bv
+            : String(av).localeCompare(String(bv));
+        return sort.dir === 'asc' ? base : -base;
+    };
+    const toggleSort = (current, setSort, key) => {
+        setSort(current.key === key
+            ? { key, dir: current.dir === 'asc' ? 'desc' : 'asc' }
+            : { key, dir: ['player', 'game', 'team', 'inning', 'date'].includes(key) ? 'asc' : 'desc' });
+    };
+    const SortHeader = ({ label, sortKey, sort, setSort, align = 'left' }) => (
+        <button
+            onClick={() => toggleSort(sort, setSort, sortKey)}
+            className={`w-full flex items-center gap-1 ${align === 'right' ? 'justify-end text-right' : 'justify-start text-left'} font-semibold text-slate-600 hover:text-blue-700`}
+        >
+            <span>{label}</span>
+            {sort.key === sortKey && <span className="text-blue-600">{sort.dir === 'asc' ? '↑' : '↓'}</span>}
+        </button>
+    );
+    const repeatQuery = repeatSearch.trim().toLowerCase();
+    const filteredRepeatEvents = data.repeatBatterEvents.filter(event => {
+        if (!repeatQuery) return true;
+        const haystack = [
+            event.name,
+            event.group?.battingTeam,
+            event.group?.matchup,
+            event.group?.date,
+            event.group?.score,
+            ...(event.results || []).map(result => summarizeResult(result, event.name)),
+        ].join(' ').toLowerCase();
+        return haystack.includes(repeatQuery);
+    });
+    const sortedBattingAround = [...data.longHalfInnings].sort((a, b) => compareBySort(a, b, battingSort, 'batting'));
+    const sortedRepeatEvents = [...filteredRepeatEvents].sort((a, b) => compareBySort(a, b, repeatSort, 'repeat'));
+    const visibleBattingAround = showAllBatting ? sortedBattingAround : sortedBattingAround.slice(0, 12);
+    const visibleRepeatEvents = showAllRepeat ? sortedRepeatEvents : sortedRepeatEvents.slice(0, 30);
+    const activeFilters = gameTypeFilter !== 'all' || teamFilter !== 'all' || venueFilter !== 'all' || startYear || endYear;
+    const clearFilters = () => {
+        setGameTypeFilter('all');
+        setTeamFilter('all');
+        setVenueFilter('all');
+        setStartYear('');
+        setEndYear('');
+        setRepeatSearch('');
     };
 
     const StatBlock = ({ label, value, tone = 'blue' }) => {
@@ -2173,6 +2286,57 @@ const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) => {
 
     return (
         <div className="space-y-6">
+            <section className="bg-white rounded-lg border border-slate-200 p-4" style={{ boxShadow: 'var(--shadow)' }}>
+                <div className="flex flex-col lg:flex-row lg:items-end gap-3">
+                    <div className="min-w-0 flex-1">
+                        <h2 className="section-title font-bold">Home/Away Filters</h2>
+                        <p className="body-text text-slate-500 mt-1">
+                            {filteredGames.length} of {(games || []).length} games included in these splits.
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 w-full lg:w-auto">
+                        <label className="text-xs font-semibold text-slate-500">
+                            Type
+                            <select value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-sm text-slate-800">
+                                <option value="all">All types</option>
+                                <option value="regular">Regular</option>
+                                <option value="postseason">Postseason</option>
+                                <option value="spring">Spring</option>
+                            </select>
+                        </label>
+                        <label className="text-xs font-semibold text-slate-500">
+                            Team
+                            <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-sm text-slate-800">
+                                <option value="all">All teams</option>
+                                {filterMeta.teams.map(team => <option key={team} value={team}>{team}</option>)}
+                            </select>
+                        </label>
+                        <label className="text-xs font-semibold text-slate-500 md:col-span-2">
+                            Venue
+                            <select value={venueFilter} onChange={(e) => setVenueFilter(e.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-sm text-slate-800">
+                                <option value="all">All venues</option>
+                                {filterMeta.venues.map(venue => <option key={venue} value={venue}>{venue}</option>)}
+                            </select>
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <label className="text-xs font-semibold text-slate-500">
+                                From
+                                <input type="number" inputMode="numeric" min={filterMeta.minYear || undefined} max={filterMeta.maxYear || undefined} placeholder={filterMeta.minYear || 'Year'} value={startYear} onChange={(e) => setStartYear(e.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-sm text-slate-800" />
+                            </label>
+                            <label className="text-xs font-semibold text-slate-500">
+                                To
+                                <input type="number" inputMode="numeric" min={filterMeta.minYear || undefined} max={filterMeta.maxYear || undefined} placeholder={filterMeta.maxYear || 'Year'} value={endYear} onChange={(e) => setEndYear(e.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-sm text-slate-800" />
+                            </label>
+                        </div>
+                    </div>
+                    {activeFilters && (
+                        <button onClick={clearFilters} className="self-start lg:self-end rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                            Clear
+                        </button>
+                    )}
+                </div>
+            </section>
+
             <section className="bg-white rounded-lg border border-slate-200 p-5" style={{ boxShadow: 'var(--shadow)' }}>
                 <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
                     <div>
@@ -2296,7 +2460,7 @@ const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) => {
                         <h3 className="subsection-title font-bold mb-3">Biggest Half-Inning Bursts</h3>
                         <div className="space-y-2">
                             {data.biggestHalves.map(row => (
-                                <button key={`${row.key}-${row.maxGame?.gameId || ''}`} onClick={() => openGame(row.maxGame?.gameId)}
+                                <button key={`${row.key}-${row.maxGame?.gameId || ''}`} onClick={() => openGame(row.maxGame?.gameId, focusForHalfRow(row))}
                                     className="w-full text-left rounded-lg border border-slate-200 bg-slate-50 p-3 hover:bg-blue-50 transition-colors">
                                     <div className="flex items-center justify-between gap-3">
                                         <span className="font-semibold">{row.key}</span>
@@ -2316,22 +2480,25 @@ const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) => {
                     <div className="min-w-0 flex-1">
                         <div className="mb-4">
                             <h2 className="section-title font-bold">Batting Around</h2>
-                            <p className="body-text text-slate-500 mt-1">Half-innings with 9+ plate appearances, including every player who came up more than once.</p>
+                            <p className="body-text text-slate-500 mt-1">
+                                Half-innings with 9+ plate appearances and at least one batter who came up more than once.
+                            </p>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead className="bg-slate-50">
                                     <tr>
-                                        <th className="px-3 py-2 text-left">Inning</th>
-                                        <th className="px-3 py-2 text-left">Game</th>
-                                        <th className="px-3 py-2 text-right">PA</th>
-                                        <th className="px-3 py-2 text-right">Runs</th>
-                                        <th className="px-3 py-2 text-left">Repeat Batters</th>
+                                        <th className="px-3 py-2 text-left"><SortHeader label="Inning" sortKey="inning" sort={battingSort} setSort={setBattingSort} /></th>
+                                        <th className="px-3 py-2 text-left"><SortHeader label="Game" sortKey="date" sort={battingSort} setSort={setBattingSort} /></th>
+                                        <th className="px-3 py-2 text-right"><SortHeader label="PA" sortKey="pa" sort={battingSort} setSort={setBattingSort} align="right" /></th>
+                                        <th className="px-3 py-2 text-right"><SortHeader label="Runs" sortKey="runs" sort={battingSort} setSort={setBattingSort} align="right" /></th>
+                                        <th className="px-3 py-2 text-left"><SortHeader label="Repeat Batters" sortKey="repeat" sort={battingSort} setSort={setBattingSort} /></th>
+                                        <th className="px-3 py-2 text-right">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {data.longHalfInnings.slice(0, 12).map(group => (
-                                        <tr key={group.key} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => openGame(group.gameId)}>
+                                    {visibleBattingAround.map(group => (
+                                        <tr key={group.key} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => openGame(group.gameId, focusForGroup(group))}>
                                             <td className="px-3 py-3">
                                                 <div className="font-semibold">{halfLabel(group)}</div>
                                                 <div className="text-xs text-slate-500">{group.battingTeam}</div>
@@ -2355,22 +2522,71 @@ const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) => {
                                                     <span className="text-slate-400">None</span>
                                                 )}
                                             </td>
+                                            <td className="px-3 py-3 text-right">
+                                                <button onClick={(e) => { e.stopPropagation(); openGame(group.gameId, focusForGroup(group)); }} className="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-blue-700">
+                                                    Open inning
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
+                        {!visibleBattingAround.length && (
+                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                                No batting-around innings match these filters.
+                            </div>
+                        )}
+                        {sortedBattingAround.length > 12 && (
+                            <button onClick={() => setShowAllBatting(!showAllBatting)} className="mt-3 rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                                {showAllBatting ? 'Show top 12' : `Show all ${sortedBattingAround.length}`}
+                            </button>
+                        )}
                     </div>
 
                     <aside className="lg:w-96">
-                        <h3 className="subsection-title font-bold mb-3">Repeat PA In One Inning</h3>
-                        <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
-                            {data.repeatBatterEvents.map(event => (
-                                <button key={`${event.group.key}-${event.playerId || event.name}`} onClick={() => openGame(event.group.gameId)}
+                        <div className="mb-3">
+                            <h3 className="subsection-title font-bold">Repeat PA In One Inning</h3>
+                            <p className="text-xs text-slate-500 mt-1">
+                                Batters who made more than one plate appearance in the same half-inning. This is not capped at two.
+                            </p>
+                        </div>
+                        <div className="space-y-3">
+                            <input
+                                type="search"
+                                value={repeatSearch}
+                                onChange={(e) => setRepeatSearch(e.target.value)}
+                                placeholder="Search player, team, result..."
+                                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
+                            />
+                            <div className="grid grid-cols-4 gap-1 rounded-lg bg-slate-100 p-1">
+                                {[
+                                    ['pa', 'PA'],
+                                    ['date', 'Date'],
+                                    ['player', 'Player'],
+                                    ['inning', 'Inning'],
+                                ].map(([key, label]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => toggleSort(repeatSort, setRepeatSort, key)}
+                                        className={`rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${
+                                            repeatSort.key === key
+                                                ? 'bg-white text-blue-700 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-800'
+                                        }`}
+                                    >
+                                        {label}{repeatSort.key === key ? (repeatSort.dir === 'asc' ? ' ↑' : ' ↓') : ''}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="mt-3 space-y-2 max-h-[560px] overflow-y-auto pr-1">
+                            {visibleRepeatEvents.map(event => (
+                                <button key={`${event.group.key}-${event.playerId || event.name}`} onClick={() => openGame(event.group.gameId, focusForGroup(event.group))}
                                     className="w-full text-left rounded-lg border border-slate-200 bg-slate-50 p-3 hover:bg-blue-50 transition-colors">
                                     <div className="flex items-start justify-between gap-3">
-                                        <div>
-                                            <div className="font-semibold">{event.name}</div>
+                                        <div className="min-w-0">
+                                            <div className="font-semibold truncate">{event.name}</div>
                                             <div className="text-xs text-slate-500">{halfLabel(event.group)} - {event.group.battingTeam} - {event.group.date}</div>
                                         </div>
                                         <span className="font-mono font-bold text-blue-700 whitespace-nowrap">{event.appearances} PA</span>
@@ -2382,15 +2598,23 @@ const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) => {
                                             </span>
                                         ))}
                                     </div>
-                                    <div className="text-xs text-slate-400 mt-2">{event.group.matchup}</div>
+                                    <div className="mt-2 flex items-center justify-between gap-2">
+                                        <div className="text-xs text-slate-400 truncate">{event.group.matchup}</div>
+                                        <span className="text-xs font-semibold text-blue-700 whitespace-nowrap">Open inning</span>
+                                    </div>
                                 </button>
                             ))}
-                            {!data.repeatBatterEvents.length && (
+                            {!visibleRepeatEvents.length && (
                                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                                    No repeat plate appearances found.
+                                    No repeat plate appearances match these filters.
                                 </div>
                             )}
                         </div>
+                        {sortedRepeatEvents.length > 30 && (
+                            <button onClick={() => setShowAllRepeat(!showAllRepeat)} className="mt-3 rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                                {showAllRepeat ? 'Show top 30' : `Show all ${sortedRepeatEvents.length}`}
+                            </button>
+                        )}
                     </aside>
                 </div>
             </section>

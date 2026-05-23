@@ -1,7 +1,7 @@
 """React app chunk: core."""
 
-CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, badges, onClose, onPrev, onNext, gameIndex, totalGames }) => {
-    const [activeTab, setActiveTab] = useState('boxscore');
+CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, badges, onClose, onPrev, onNext, gameIndex, totalGames, initialTab, focusInning }) => {
+    const [activeTab, setActiveTab] = useState(initialTab || 'boxscore');
 
     useEffect(() => {
         const onKey = (e) => {
@@ -12,6 +12,19 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
         window.addEventListener('keydown', onKey, true);
         return () => window.removeEventListener('keydown', onKey, true);
     }, [onPrev, onNext]);
+
+    useEffect(() => {
+        setActiveTab(initialTab || 'boxscore');
+    }, [game?.gameId, initialTab]);
+
+    useEffect(() => {
+        if (activeTab !== 'playbyplay' || !focusInning) return;
+        const targetId = `pbp-${game.gameId}-${focusInning.half}-${focusInning.inning}`;
+        window.setTimeout(() => {
+            const target = document.getElementById(targetId);
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+    }, [activeTab, focusInning, game?.gameId]);
 
     const cleanPersonName = (name) => String(name || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
     const compactPlayDescription = (description, playerName) => {
@@ -627,8 +640,10 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
         return (
             <div className="p-6">
                 <div className="space-y-6">
-                    {sortedInnings.map((inning) => (
-                        <div key={`${inning.half}-${inning.inning}`} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                    {sortedInnings.map((inning) => {
+                        const isFocused = focusInning && String(focusInning.half) === String(inning.half) && Number(focusInning.inning) === Number(inning.inning);
+                        return (
+                        <div id={`pbp-${game.gameId}-${inning.half}-${inning.inning}`} key={`${inning.half}-${inning.inning}`} className={`bg-white rounded-lg shadow-sm overflow-hidden scroll-mt-20 ${isFocused ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}>
                             <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2">
                                 <span className="body-text font-bold">
                                     {inning.half.charAt(0).toUpperCase() + inning.half.slice(1)} of {inning.inning}
@@ -688,7 +703,8 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                 ))}
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         );
