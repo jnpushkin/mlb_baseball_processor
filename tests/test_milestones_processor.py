@@ -1,6 +1,7 @@
 import contextlib
 import io
 import unittest
+from datetime import datetime
 
 import pandas as pd
 
@@ -54,6 +55,37 @@ class MilestonesProcessorTests(unittest.TestCase):
             milestones, *_ = MilestonesProcessor(games).process_all_milestones()
 
         self.assertEqual(21, len(milestones["Multi-SB Games"]))
+
+    def test_comprehensive_summary_only_prints_notable_categories(self):
+        current_year = datetime.now().year
+        milestone_dfs = {
+            "Multi-HR Games": pd.DataFrame(
+                [{"Date": f"{current_year}-04-03", "Player": "Power Bat", "Team": "HOM"}]
+            ),
+            "Quality Starts": pd.DataFrame(
+                [{"Date": f"{current_year}-04-04", "Player": "Routine Starter", "Team": "AWY"}]
+            ),
+            "3+ Hit Games": pd.DataFrame(
+                [{"Date": f"{current_year}-04-05", "Player": "Three Hit Bat", "Team": "HOM"}]
+            ),
+            "Saves": pd.DataFrame(
+                [{"Date": f"{current_year}-04-06", "Player": "Routine Closer", "Team": "AWY"}]
+            ),
+        }
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            MilestonesProcessor([]).print_comprehensive_summary(milestone_dfs)
+
+        text = output.getvalue()
+        self.assertIn("OVERALL NOTABLE TOTALS", text)
+        self.assertIn("NOTABLE EVENTS FROM", text)
+        self.assertIn("Multi-HR Games: 1", text)
+        self.assertIn(f"Total {current_year} notable events: 1", text)
+        self.assertIn("Routine/stat-tracking categories hidden from report: 3 categories, 3 events", text)
+        self.assertNotIn("Quality Starts:", text)
+        self.assertNotIn("3+ Hit Games:", text)
+        self.assertNotIn("Saves:", text)
 
 
 if __name__ == "__main__":

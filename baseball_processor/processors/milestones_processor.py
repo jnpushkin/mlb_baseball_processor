@@ -7,6 +7,46 @@ from ..utils.stat_utils import StatUtils
 from .base_processor import BaseProcessor
 
 class MilestonesProcessor(BaseProcessor):
+    # The run summary is meant to answer "what should I notice?", not mirror every
+    # generated milestone table. Routine/stat-tracking categories still exist in
+    # the data, website, and exports, but they stay out of the console report.
+    REPORT_CATEGORY_ORDER = (
+        "Walk-Offs",
+        "Grand Slams",
+        "Leadoff HRs",
+        "Inside-the-Park HRs",
+        "Pinch Hit HRs",
+        "3+ HR Games",
+        "Multi-HR Games",
+        "Cycles",
+        "5+ Hit Games",
+        "4+ Hit Games",
+        "6+ RBI Games",
+        "5+ RBI Games",
+        "Multi-3B Games",
+        "Multi-SB Games",
+        "4+ Walk Games",
+        "Golden Sombreros",
+        "4+ Run Games",
+        "8+ Total Bases",
+        "Complete Games & Shutouts",
+        "No-Hitters",
+        "Perfect Games",
+        "Maddux Games",
+        "Low-Hit CG",
+        "One-Hitters",
+        "Two-Hitters",
+        "CGSO No Walks",
+        "15+ K Games",
+        "12+ K Games",
+        "10+ K Games",
+        "Immaculate Innings",
+        "3 Strikeout Innings",
+        "Triple Plays",
+        "Consecutive HR Instances",
+    )
+    REPORT_CATEGORY_SET = set(REPORT_CATEGORY_ORDER)
+
     # Shared keyword lists for play classification
     # Keywords used to detect non-strikeout outs in play descriptions. Covers
     # both BREF's compact phrasing ("groundout") and MLB API's expanded form
@@ -1313,13 +1353,14 @@ class MilestonesProcessor(BaseProcessor):
         
         # Section 1: New vs Previous Run Comparison
         if previous_run_file and os.path.exists(previous_run_file):
-            print(f"\nNEW ITEMS vs PREVIOUS RUN:")
+            print(f"\nNEW NOTABLE ITEMS vs PREVIOUS RUN:")
             print("-" * 30)
             
             total_new_vs_previous = 0
             
-            for category, df in milestone_dfs.items():
-                if df.empty:
+            for category in self.REPORT_CATEGORY_ORDER:
+                df = milestone_dfs.get(category)
+                if df is None or df.empty:
                     continue
                     
                 try:
@@ -1347,11 +1388,9 @@ class MilestonesProcessor(BaseProcessor):
                                 print(f"   • {player} ({team}) - {date}")
                         
                         total_new_vs_previous += new_count
-                    elif new_count == 0:
-                        print(f"{category}: No new items")
                         
-                except Exception as e:
-                    print(f"{category}: Unable to compare (file may not exist yet)")
+                except Exception:
+                    continue
             
             if total_new_vs_previous > 0:
                 print(f"\nTotal new items since last run: {total_new_vs_previous}")
@@ -1359,52 +1398,68 @@ class MilestonesProcessor(BaseProcessor):
                 print(f"\nNo new items since last run")
         
         # Section 2: Overall Totals
-        print(f"\n\nOVERALL TOTALS:")
+        print(f"\n\nOVERALL NOTABLE TOTALS:")
         print("-" * 30)
         
         categories_with_data = []
+        hidden_categories = []
         grand_total = 0
+        hidden_total = 0
         
+        for category in self.REPORT_CATEGORY_ORDER:
+            df = milestone_dfs.get(category)
+            if df is None or df.empty:
+                continue
+            count = len(df)
+            categories_with_data.append((category, count))
+            grand_total += count
+            print(f"{category}: {count}")
+
         for category, df in milestone_dfs.items():
-            if not df.empty:
-                count = len(df)
-                categories_with_data.append((category, count))
-                grand_total += count
-                print(f"{category}: {count}")
+            if category in self.REPORT_CATEGORY_SET or df.empty:
+                continue
+            hidden_categories.append((category, len(df)))
+            hidden_total += len(df)
         
-        print(f"\nTotal milestone events: {grand_total}")
-        print(f"Categories with data: {len(categories_with_data)}")
+        print(f"\nTotal notable events: {grand_total}")
+        print(f"Notable categories with data: {len(categories_with_data)}")
+        if hidden_categories:
+            print(
+                f"Routine/stat-tracking categories hidden from report: "
+                f"{len(hidden_categories)} categories, {hidden_total} events"
+            )
         
         # Section 3: Current year events (moved to end)
         current_year = datetime.now().year
         cutoff_date = datetime(current_year, 1, 1)
 
-        print(f"\n\nEVENTS FROM {current_year}:")
+        print(f"\n\nNOTABLE EVENTS FROM {current_year}:")
         print("-" * 30)
 
-        total_2025 = 0
-        events_2025_by_category = {}
+        total_current_year = 0
+        events_current_year_by_category = {}
         
-        for category, df in milestone_dfs.items():
-            if df.empty:
+        for category in self.REPORT_CATEGORY_ORDER:
+            df = milestone_dfs.get(category)
+            if df is None or df.empty:
                 continue
                 
             try:
                 df_copy = df.copy()
                 df_copy['Date'] = pd.to_datetime(df_copy['Date'])
-                events_2025 = df_copy[df_copy['Date'] >= cutoff_date]
+                events_current_year = df_copy[df_copy['Date'] >= cutoff_date]
                 
-                if not events_2025.empty:
-                    events_2025_by_category[category] = events_2025
-                    total_2025 += len(events_2025)
+                if not events_current_year.empty:
+                    events_current_year_by_category[category] = events_current_year
+                    total_current_year += len(events_current_year)
             except Exception:
                 continue
         
-        if events_2025_by_category:
-            for category, events_2025 in events_2025_by_category.items():
-                print(f"\n{category} ({len(events_2025)} in {current_year}):")
+        if events_current_year_by_category:
+            for category, events_current_year in events_current_year_by_category.items():
+                print(f"\n{category} ({len(events_current_year)} in {current_year}):")
                 
-                for _, row in events_2025.iterrows():
+                for _, row in events_current_year.iterrows():
                     # Handle both 'Player' (singular) and 'Players' (plural, for consecutive HRs)
                     player = row.get('Player', row.get('Players', 'Unknown'))
                     date = row['Date'].strftime('%m/%d/%Y')
@@ -1424,9 +1479,9 @@ class MilestonesProcessor(BaseProcessor):
                     else:
                         print(f"   • {player} ({team}) - {date}")
             
-            print(f"\nTotal {current_year} events: {total_2025}")
+            print(f"\nTotal {current_year} notable events: {total_current_year}")
         else:
-            print(f"No events found in {current_year}")
+            print(f"No notable events found in {current_year}")
         
         print("="*60)
 
@@ -1462,18 +1517,20 @@ class MilestonesProcessor(BaseProcessor):
         non_empty_categories = []
         total_items = 0
         
-        for category, df in milestone_dfs.items():
-            if not df.empty:
-                count = len(df)
-                non_empty_categories.append((category, count))
-                total_items += count
+        for category in self.REPORT_CATEGORY_ORDER:
+            df = milestone_dfs.get(category)
+            if df is None or df.empty:
+                continue
+            count = len(df)
+            non_empty_categories.append((category, count))
+            total_items += count
         
         if non_empty_categories:
-            print("Categories with data:")
+            print("Notable categories with data:")
             for category, count in non_empty_categories:
                 print(f"  {category}: {count}")
             
-            print(f"\nTotal milestone events: {total_items}")
+            print(f"\nTotal notable events: {total_items}")
             
             # Highlight strikeout innings specifically
             strikeout_categories = [cat for cat, count in non_empty_categories 
