@@ -20,7 +20,14 @@ from ..processors.sabermetrics_tracker import SabermetricsTracker
 from ..processors.situational_hitting_tracker import SituationalHittingTracker
 from ..processors.defensive_lineup_tracker import DefensiveLineupTracker
 from ..utils.constants import BIOFILE_PATH, REGISTER_DIR
-from ..utils.helpers import load_final_game_dates, load_id_mapping, standardize_team_code, join_sorted_gameids, ensure_sorted_gameids
+from ..utils.helpers import (
+    ensure_sorted_gameids,
+    join_sorted_gameids,
+    load_final_game_dates,
+    load_id_mapping,
+    normalize_name,
+    standardize_team_code,
+)
 from ..utils.stat_utils import StatUtils
 from ..utils.log import info, warn, debug
 
@@ -1433,6 +1440,36 @@ def write_calendar_grid(xl, game_log, workbook):
         logging.error(f"Error writing calendar grid: {e}")
 
 # Legacy functions (kept for now to avoid breaking existing functionality)
+_DEBUT_TEAM_CODE_ALIASES = {
+    "CHW": "CWS",
+    "KCR": "KC",
+    "SDP": "SD",
+    "SFG": "SF",
+    "TBR": "TB",
+    "WSN": "WAS",
+}
+
+
+def _normalize_debut_team_code(team):
+    code = standardize_team_code(team)
+    return _DEBUT_TEAM_CODE_ALIASES.get(code, code)
+
+
+def _matches_debut_entry(player, entry, side, home_team, away_team):
+    entry_id = entry.get("PlayerID")
+    if entry_id and entry_id in {player.get("player_id"), player.get("bref_id")}:
+        return True
+
+    # Fresh debuts can precede Chadwick/Register ID availability. In that window
+    # API-sourced games may carry a generated fallback ID, so match by date,
+    # normalized full name, and team.
+    if normalize_name(player.get("name", "")) != normalize_name(entry.get("Player", "")):
+        return False
+
+    player_team = home_team if side == "home" else away_team
+    return _normalize_debut_team_code(player_team) == _normalize_debut_team_code(entry.get("Team", ""))
+
+
 def check_mlb_debuts(game, debut_entries):
     """Fixed debut detection - captures defensive-only players."""
     debut_matches = []
@@ -1470,7 +1507,7 @@ def check_mlb_debuts(game, debut_entries):
         # Method 1: Check batting lineup
         for side in ("home", "away"):
             for player in game.get("batting", {}).get(side, []):
-                if player.get("player_id") == pid:
+                if _matches_debut_entry(player, entry, side, home_team, away_team):
                     player_team = home_team if side == "home" else away_team
                     opponent_team = away_team if side == "home" else home_team
                     player_position = player.get("position", "").strip()
@@ -1492,7 +1529,7 @@ def check_mlb_debuts(game, debut_entries):
         # Method 2: Check pitching
         for side in ("home", "away"):
             for player in game.get("pitching", {}).get(side, []):
-                if player.get("player_id") == pid:
+                if _matches_debut_entry(player, entry, side, home_team, away_team):
                     ip = player.get("IP", "0")
                     
                     try:

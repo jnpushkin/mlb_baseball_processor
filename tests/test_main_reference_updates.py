@@ -24,6 +24,7 @@ def make_args(**overrides):
         "quick_stats": False,
         "website_only": False,
         "skip_debut_update": False,
+        "update_debuts": False,
         "deploy": False,
         "no_deploy": False,
         "surge_domain": None,
@@ -60,6 +61,18 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertTrue(_should_refresh_all_time_leaders(args))
         self.assertTrue(_should_update_debuts(args))
         self.assertTrue(_should_download_bref_backups(args))
+
+    def test_debut_update_can_be_enabled_for_cache_only_runs(self):
+        args = make_args(from_cache_only=True, update_debuts=True)
+
+        self.assertFalse(_should_refresh_all_time_leaders(args))
+        self.assertTrue(_should_update_debuts(args))
+        self.assertFalse(_should_download_bref_backups(args))
+
+    def test_skip_debut_update_overrides_forced_debut_update(self):
+        args = make_args(from_cache_only=True, update_debuts=True, skip_debut_update=True)
+
+        self.assertFalse(_should_update_debuts(args))
 
     def test_cache_loader_dedupes_game_id_aliases_and_keeps_richer_record(self):
         sparse_game = {

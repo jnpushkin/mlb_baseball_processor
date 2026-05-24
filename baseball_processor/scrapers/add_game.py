@@ -150,7 +150,7 @@ def run_processor(website_only=True):
         '-m',
         'baseball_processor',
         '--from-cache-only',
-        '--skip-debut-update',
+        '--update-debuts',
     ]
     if website_only:
         cmd.append('--website-only')

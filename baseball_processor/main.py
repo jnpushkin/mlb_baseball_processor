@@ -282,7 +282,11 @@ def _should_refresh_all_time_leaders(args):
 
 
 def _should_update_debuts(args):
-    return not args.skip_debut_update and not _should_skip_network_reference_updates(args)
+    if args.skip_debut_update:
+        return False
+    if getattr(args, 'update_debuts', False):
+        return True
+    return not _should_skip_network_reference_updates(args)
 
 
 def _should_download_bref_backups(args):
@@ -1484,6 +1488,11 @@ def main():
         '--skip-debut-update',
         action='store_true',
         help='Skip auto-updating MLB debut data from Baseball-Reference'
+    )
+    parser.add_argument(
+        '--update-debuts',
+        action='store_true',
+        help='Update MLB debut data even when running from local game cache'
     )
     parser.add_argument(
         '--debut-year',
