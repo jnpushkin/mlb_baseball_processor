@@ -628,7 +628,7 @@ const ProgressTab = ({ data, initialSubtab, onSubtabChange }) => {
                 { id: 'matchups', label: 'Matchups' },
             ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'checklist' && <DivisionChecklist divisionChecklist={data.divisionChecklist} games={data.games || []} />}
-            {view === 'badges' && <BadgesDisplay games={data.games || []} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} />}
+            {view === 'badges' && <BadgesDisplay games={data.games || []} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} debuts={data.debuts || []} finalGames={data.finalGames || []} />}
             {view === 'matchups' && (data.matchupMatrix ? <MatchupMatrix matchupData={data.matchupMatrix} games={data.games || []} /> : <EmptyState icon="🎯" title="No Matchup Data" message="No matchup data available." />)}
         </div>
     );

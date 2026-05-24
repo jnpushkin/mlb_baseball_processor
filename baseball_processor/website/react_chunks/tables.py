@@ -451,8 +451,21 @@ const Dashboard = ({ data, onTabChange }) => {
         if (!latestGameId) return [];
         const firsts = data.careerFirstsByGame?.[latestGameId] || [];
         const passings = data.allTimePassingsByGame?.[latestGameId] || [];
+        const debuts = (data.debuts || []).filter(d => d.gameId === latestGameId);
+        const finals = (data.finalGames || []).filter(f => f.gameId === latestGameId);
         const keyPlays = latestGame?.keyPlays || [];
         const items = [];
+        if (debuts.length || finals.length) {
+            const eventDetails = [
+                ...debuts.map(d => `${getLastName(d.player)} debut`),
+                ...finals.map(f => `${getLastName(f.player)} final game`),
+            ];
+            items.push({
+                label: 'Debuts / finals',
+                value: debuts.length + finals.length,
+                detail: eventDetails.slice(0, 2).join(', ') + (eventDetails.length > 2 ? `, +${eventDetails.length - 2}` : '')
+            });
+        }
         if (firsts.length) {
             items.push({
                 label: 'Career milestones',
@@ -478,7 +491,7 @@ const Dashboard = ({ data, onTabChange }) => {
             items.push({ label: 'Conditions', value: latestGame.temperature ? `${latestGame.temperature}°F` : 'Weather', detail: latestGame.weather });
         }
         return items.slice(0, 4);
-    }, [latestGameId, latestGame, data.careerFirstsByGame, data.allTimePassingsByGame]);
+    }, [latestGameId, latestGame, data.careerFirstsByGame, data.allTimePassingsByGame, data.debuts, data.finalGames]);
 
     const recentMomentCards = useMemo(() => {
         const moments = [];
@@ -509,21 +522,32 @@ const Dashboard = ({ data, onTabChange }) => {
             sortDate: d.date,
             gameId: d.gameId
         }));
+        (data.finalGames || []).forEach(f => moments.push({
+            kind: 'Final',
+            tone: 'slate',
+            title: `Final MLB game${f.team ? ` with ${f.team}` : ''}`,
+            person: f.player,
+            date: formatLongDate(f.date),
+            sortDate: f.date,
+            gameId: f.gameId
+        }));
         return moments
             .filter(m => m.person || m.title)
             .sort((a, b) => toSortDate(b.sortDate).localeCompare(toSortDate(a.sortDate)))
             .slice(0, 6);
-    }, [data.careerFirsts, data.allTimePassings, data.debuts]);
+    }, [data.careerFirsts, data.allTimePassings, data.debuts, data.finalGames]);
 
     const momentAccent = {
         amber: 'border-l-amber-400',
         purple: 'border-l-purple-400',
-        green: 'border-l-emerald-400'
+        green: 'border-l-emerald-400',
+        slate: 'border-l-slate-400'
     };
     const momentPill = {
         amber: 'bg-amber-100 text-amber-700',
         purple: 'bg-purple-100 text-purple-700',
-        green: 'bg-green-100 text-green-700'
+        green: 'bg-green-100 text-green-700',
+        slate: 'bg-slate-200 text-slate-700'
     };
 
     return (
@@ -586,7 +610,7 @@ const Dashboard = ({ data, onTabChange }) => {
                     <div className="flex items-center justify-between gap-3 mb-4">
                         <div>
                             <h3 className="subsection-title font-bold text-slate-900">Recent Notable Moments</h3>
-                            <p className="small-text text-slate-500 mt-1">Milestones, debuts, and all-time list movement from the latest games.</p>
+                            <p className="small-text text-slate-500 mt-1">Milestones, debuts, final games, and all-time list movement from the latest games.</p>
                         </div>
                         <button onClick={() => onTabChange && onTabChange('milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium shrink-0">View all →</button>
                     </div>

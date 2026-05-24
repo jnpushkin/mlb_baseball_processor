@@ -869,7 +869,7 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
     return badges;
 };
 
-const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGame, allTimePassingsByGame }) => {
+const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGame, allTimePassingsByGame, debuts, finalGames }) => {
     const [selectedGame, setSelectedGame] = useState(null);
     const [modalIntent, setModalIntent] = useState(null);
     const [selectedBadge, setSelectedBadge] = useState(null);  // { badge, gameId }
@@ -921,6 +921,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         'matchup': 'bg-slate-100 text-slate-700',
         'holiday': 'bg-red-100 text-red-700',
         'career-first': 'bg-amber-100 text-amber-800 font-bold',
+        'debut': 'bg-emerald-100 text-emerald-800 font-bold',
+        'final-game': 'bg-slate-200 text-slate-800 font-bold',
         'cumulative-stat': 'bg-teal-100 text-teal-800 font-bold',
         'venue-stat': 'bg-purple-100 text-purple-800 font-bold',
         'pitch-velo': 'bg-red-100 text-red-700 font-bold',
@@ -938,6 +940,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         'matchup': 'Matchup',
         'holiday': 'Holiday',
         'career-first': 'Career First',
+        'debut': 'MLB Debut',
+        'final-game': 'Final Game',
         'cumulative-stat': 'Cumulative Stat',
         'venue-stat': 'Venue Stat',
         'pitch-velo': '100+ mph',
@@ -966,6 +970,28 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
         return result;
     }, [careerFirstsByGame]);
 
+    const debutsByGame = useMemo(() => {
+        const result = {};
+        (debuts || []).forEach(d => {
+            const gid = d.gameId;
+            if (!gid) return;
+            if (!result[gid]) result[gid] = [];
+            result[gid].push(d);
+        });
+        return result;
+    }, [debuts]);
+
+    const finalGamesByGame = useMemo(() => {
+        const result = {};
+        (finalGames || []).forEach(f => {
+            const gid = f.gameId;
+            if (!gid) return;
+            if (!result[gid]) result[gid] = [];
+            result[gid].push(f);
+        });
+        return result;
+    }, [finalGames]);
+
     // Precompute all badges per game for filtering
     const allBadgesByGame = useMemo(() => {
         const result = {};
@@ -988,10 +1014,31 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                     careerTotalAfter: f.career_total_after,
                 }
             }));
-            result[gid] = [...regularBadges, ...careerFirstBadges, ...(cumulativeBadges[gid] || [])].filter(b => b.text && b.text.trim());
+            const debutBadges = (debutsByGame[gid] || []).map(d => ({
+                type: 'debut',
+                text: `MLB debut: ${getLastName(d.player)}`,
+                title: `${d.player || 'Unknown'}'s MLB debut${d.team ? ` with ${d.team}` : ''}`,
+                meta: {
+                    playerId: d.playerId,
+                    playerName: d.player,
+                    team: d.team,
+                    opponent: d.opponent,
+                }
+            }));
+            const finalGameBadges = (finalGamesByGame[gid] || []).map(f => ({
+                type: 'final-game',
+                text: `Final game: ${getLastName(f.player)}`,
+                title: `${f.player || 'Unknown'}'s final MLB game${f.team ? ` with ${f.team}` : ''}`,
+                meta: {
+                    playerId: f.playerId,
+                    playerName: f.player,
+                    team: f.team,
+                }
+            }));
+            result[gid] = [...regularBadges, ...careerFirstBadges, ...debutBadges, ...finalGameBadges, ...(cumulativeBadges[gid] || [])].filter(b => b.text && b.text.trim());
         });
         return result;
-    }, [games, gameMilestones, dedupedCareerFirstsByGame, cumulativeBadges]);
+    }, [games, gameMilestones, dedupedCareerFirstsByGame, debutsByGame, finalGamesByGame, cumulativeBadges]);
 
     // Collect all badge types that actually appear
     const availableBadgeTypes = useMemo(() => {
@@ -1179,6 +1226,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                         pitcherGames={pitcherGames}
                         careerFirsts={dedupedCareerFirstsByGame[selectedGame.gameId] || []}
                         allTimePassings={(allTimePassingsByGame || {})[selectedGame.gameId] || []}
+                        debuts={debutsByGame[selectedGame.gameId] || []}
+                        finalGames={finalGamesByGame[selectedGame.gameId] || []}
                         badges={allBadgesByGame?.[selectedGame.gameId] || []}
                         onClose={() => { setSelectedGame(null); setModalIntent(null); }}
                         onPrev={prevGame ? () => { setModalIntent(null); setSelectedGame(prevGame); } : null}
@@ -2280,7 +2329,7 @@ const DivisionChecklist = ({ divisionChecklist, games }) => {
 };
 
 // Badges Display Component
-const BadgesDisplay = ({ games, playerGames, pitcherGames, careerFirstsByGame }) => {
+const BadgesDisplay = ({ games, playerGames, pitcherGames, careerFirstsByGame, debuts, finalGames }) => {
     const [filter, setFilter] = useState('all');
     const [selectedBadge, setSelectedBadge] = useState(null);  // { badge, gameId }
     const milestoneData = useMemo(() => computeGameMilestones(games), [games]);
@@ -2308,7 +2357,29 @@ const BadgesDisplay = ({ games, playerGames, pitcherGames, careerFirstsByGame })
         return result;
     }, [careerFirstsByGame]);
 
-    // Collect all badges (regular game milestones + cumulative + career firsts)
+    const debutsByGame = useMemo(() => {
+        const result = {};
+        (debuts || []).forEach(d => {
+            const gid = d.gameId;
+            if (!gid) return;
+            if (!result[gid]) result[gid] = [];
+            result[gid].push(d);
+        });
+        return result;
+    }, [debuts]);
+
+    const finalGamesByGame = useMemo(() => {
+        const result = {};
+        (finalGames || []).forEach(f => {
+            const gid = f.gameId;
+            if (!gid) return;
+            if (!result[gid]) result[gid] = [];
+            result[gid].push(f);
+        });
+        return result;
+    }, [finalGames]);
+
+    // Collect all badges (regular game milestones + cumulative + career events)
     const allBadges = useMemo(() => {
         const badges = [];
         const sortedGames = [...(games || [])].sort((a, b) => toSortableDate(b.date).localeCompare(toSortableDate(a.date)));
@@ -2330,10 +2401,33 @@ const BadgesDisplay = ({ games, playerGames, pitcherGames, careerFirstsByGame })
                 },
                 ...meta,
             }));
+            (debutsByGame[game.gameId] || []).forEach(d => badges.push({
+                type: 'debut',
+                text: `MLB debut: ${getLastName(d.player)}`,
+                title: `${d.player || 'Unknown'}'s MLB debut${d.team ? ` with ${d.team}` : ''}`,
+                meta: {
+                    playerId: d.playerId,
+                    playerName: d.player,
+                    team: d.team,
+                    opponent: d.opponent,
+                },
+                ...meta,
+            }));
+            (finalGamesByGame[game.gameId] || []).forEach(f => badges.push({
+                type: 'final-game',
+                text: `Final game: ${getLastName(f.player)}`,
+                title: `${f.player || 'Unknown'}'s final MLB game${f.team ? ` with ${f.team}` : ''}`,
+                meta: {
+                    playerId: f.playerId,
+                    playerName: f.player,
+                    team: f.team,
+                },
+                ...meta,
+            }));
         });
 
         return badges;
-    }, [games, milestoneData, cumulativeBadges, dedupedCareerFirstsByGame]);
+    }, [games, milestoneData, cumulativeBadges, dedupedCareerFirstsByGame, debutsByGame, finalGamesByGame]);
 
     // Need allBadgesByGame structure for the GenericBadgeDetail "previous occurrence" lookup
     const allBadgesByGame = useMemo(() => {
@@ -2371,6 +2465,8 @@ const BadgesDisplay = ({ games, playerGames, pitcherGames, careerFirstsByGame })
             'matchup': '⚔️',
             'holiday': '🎉',
             'career-first': '⭐',
+            'debut': 'MLB',
+            'final-game': 'END',
             'cumulative-stat': '📊',
             'venue-stat': '🏟️',
             'pitch-velo': '🚀',
@@ -2393,6 +2489,8 @@ const BadgesDisplay = ({ games, playerGames, pitcherGames, careerFirstsByGame })
             'holiday': 'bg-red-100 border-red-300',
             'div-stadiums': 'bg-indigo-100 border-indigo-300',
             'career-first': 'bg-amber-100 border-amber-300',
+            'debut': 'bg-emerald-100 border-emerald-300',
+            'final-game': 'bg-slate-100 border-slate-300',
             'cumulative-stat': 'bg-teal-100 border-teal-300',
             'venue-stat': 'bg-purple-100 border-purple-300',
             'pitch-velo': 'bg-red-100 border-red-300',

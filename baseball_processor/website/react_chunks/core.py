@@ -1,6 +1,6 @@
 """React app chunk: core."""
 
-CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, badges, onClose, onPrev, onNext, gameIndex, totalGames, initialTab, focusInning }) => {
+CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, debuts, finalGames, badges, onClose, onPrev, onNext, gameIndex, totalGames, initialTab, focusInning }) => {
     const [activeTab, setActiveTab] = useState(initialTab || 'boxscore');
 
     useEffect(() => {
@@ -136,6 +136,22 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
         if (!hit) return '';
         return `${hit.name}${hit.result ? ` - ${hit.result}` : ''}${hit.dist ? ` (${hit.dist} ft)` : ''}`;
     };
+    const formatCareerEventPerformance = (r) => {
+        if (!r) return '';
+        if (r.ip && r.ip !== '' && r.ip !== '0.0') {
+            return `${r.ip} IP, ${r.h_p || 0} H, ${r.er || 0} ER, ${r.bb_p || 0} BB, ${r.so_p || 0} SO${r.decision ? ` (${r.decision})` : ''}`;
+        }
+        if ((r.ab || 0) > 0) {
+            const parts = [`${r.h || 0}-${r.ab}`];
+            if ((r.hr || 0) > 0) parts.push(`${r.hr} HR`);
+            if ((r.rbi || 0) > 0) parts.push(`${r.rbi} RBI`);
+            if ((r.r || 0) > 0) parts.push(`${r.r} R`);
+            if ((r.bb || 0) > 0) parts.push(`${r.bb} BB`);
+            if ((r.so || 0) > 0) parts.push(`${r.so} SO`);
+            return parts.join(', ');
+        }
+        return r.position ? `${r.position} appearance` : 'Defensive appearance';
+    };
     const showHardestHitHighlight = gameData.hardestHit && gameData.hardestHit.velo >= 105;
     const showFastestPitchHighlight = gameData.fastestPitch && gameData.fastestPitch.speed >= 100;
     const showMostKsHighlight = gameData.mostKs && gameData.mostKs.so >= 10;
@@ -143,12 +159,24 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
     const careerMilestoneDetail = careerMilestoneItems.length > 2
         ? `${careerMilestoneItems.slice(0, 2).join(', ')}, +${careerMilestoneItems.length - 2} more`
         : careerMilestoneItems.join(', ');
+    const careerBookendItems = [
+        ...(debuts || []).map(d => ({ ...d, kind: 'Debut', summary: `${getLastName(d.player)} debut` })),
+        ...(finalGames || []).map(f => ({ ...f, kind: 'Final Game', summary: `${getLastName(f.player)} final game` })),
+    ];
+    const careerBookendDetails = careerBookendItems.slice(0, 4).map(e => `${e.summary}${e.team ? ` (${e.team})` : ''}`);
+    if (careerBookendItems.length > 4) careerBookendDetails.push(`+${careerBookendItems.length - 4} more`);
     const gameStoryItems = [
         winnerTeam && winnerTeam !== 'Tie' && {
             label: 'Result',
             value: `${winnerTeam} by ${runMargin}`,
             detail: `${game.awayTeam} ${awayRuns}, ${game.homeTeam} ${homeRuns}`,
             color: 'blue'
+        },
+        careerBookendItems.length > 0 && {
+            label: 'Debuts / finals',
+            value: `${careerBookendItems.length} event${careerBookendItems.length === 1 ? '' : 's'}`,
+            details: careerBookendDetails,
+            color: 'green'
         },
         showHardestHitHighlight && {
             label: 'Hardest contact',
@@ -967,7 +995,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                  tab === 'lineups' ? 'Lineups' :
                                  tab === 'substitutions' ? 'Substitutions' :
                                  tab === 'playbyplay' ? 'Play-by-Play' :
-                                 `Context${(careerFirsts?.length || 0) + (allTimePassings?.length || 0) + (badges?.length || 0) > 0 ? ' ✦' : ''}`}
+                                 `Context${(careerFirsts?.length || 0) + (allTimePassings?.length || 0) + (debuts?.length || 0) + (finalGames?.length || 0) + (badges?.length || 0) > 0 ? ' ✦' : ''}`}
                             </button>
                         ))}
                     </div>
@@ -1075,6 +1103,37 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                             <span key={`badge-${i}`} className="px-3 py-1.5 bg-blue-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200" title={b.title}>
                                                 {b.text}
                                             </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {careerBookendItems.length > 0 && (
+                                <div>
+                                    <h4 className="subsection-title font-bold mb-3">Career Bookends</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {(debuts || []).map((debut, i) => (
+                                            <div key={`context-debut-${debut.playerId || debut.player}-${i}`} className="flex items-start gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                                                <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold flex-shrink-0">MLB</span>
+                                                <div className="min-w-0">
+                                                    <div className="font-semibold body-text">
+                                                        <PlayerLink playerId={debut.playerId} name={debut.player} /> — MLB debut{debut.team ? ` with ${debut.team}` : ''}
+                                                    </div>
+                                                    <div className="small-text text-slate-600 mt-0.5">{formatCareerEventPerformance(debut)}</div>
+                                                    {debut.opponent && <div className="small-text text-slate-500 mt-0.5">vs {debut.opponent}</div>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {(finalGames || []).map((finalGame, i) => (
+                                            <div key={`context-final-${finalGame.playerId || finalGame.player}-${i}`} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                                <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-slate-200 text-slate-700 text-xs font-bold flex-shrink-0">FINAL</span>
+                                                <div className="min-w-0">
+                                                    <div className="font-semibold body-text">
+                                                        <PlayerLink playerId={finalGame.playerId} name={finalGame.player} /> — Final MLB game{finalGame.team ? ` with ${finalGame.team}` : ''}
+                                                    </div>
+                                                    <div className="small-text text-slate-600 mt-0.5">{formatCareerEventPerformance(finalGame)}</div>
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
