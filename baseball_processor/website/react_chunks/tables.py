@@ -505,7 +505,7 @@ const Dashboard = ({ data, onTabChange }) => {
             tone: 'green',
             title: `MLB debut${d.team ? ` with ${d.team}` : ''}`,
             person: d.player,
-            date: d.date,
+            date: formatLongDate(d.date),
             sortDate: d.date,
             gameId: d.gameId
         }));
