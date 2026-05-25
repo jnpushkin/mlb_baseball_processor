@@ -179,6 +179,19 @@ class DataSerializerTests(unittest.TestCase):
                     }
                 ]
             ),
+            "4+ RBI Games": pd.DataFrame(
+                [
+                    {
+                        "Date": "2026-04-28",
+                        "Player": "Strong Day",
+                        "Team": "HOM",
+                        "Opponent": "AWY",
+                        "GameID": "game-3",
+                        "H": 2,
+                        "RBI": 4,
+                    }
+                ]
+            ),
         }
 
         serialized = DataSerializer()._serialize_milestones(milestones)

@@ -667,7 +667,7 @@ class DataSerializer:
         # Batting - too common or low tier
         '3+ Hit Games', '4+ Walk Games', 'Perfect Batting Games',
         '3+ Run Games', '4+ Run Games', '2+ XBH Games', '8+ Total Bases',
-        'Multi-2B Games',
+        'Multi-2B Games', '4+ RBI Games',
         # Pitching - routine occurrences
         '8+ K Games', 'Saves', 'Wins', 'Efficient Starts',
         'No-Walk Starts', 'High K Low BB',
