@@ -330,8 +330,18 @@ class MilestonesProcessor(BaseProcessor):
             from ..engines.special_events_engine import SpecialEventsEngine
             special_engine = SpecialEventsEngine(game)
             special_engine.detect_walkoff()
-            if not special_events.get("leadoff_hrs"):
+            existing_leadoff_hrs = list(special_events.get("leadoff_hrs") or [])
+            needs_leadoff_refresh = (
+                not existing_leadoff_hrs
+                or any(not lh.get("pitch_count") for lh in existing_leadoff_hrs)
+            )
+            if needs_leadoff_refresh:
+                special_events["leadoff_hrs"] = []
+                special_engine.special_events["leadoff_hrs"] = []
                 special_engine.detect_leadoff_home_runs()
+                if existing_leadoff_hrs and not special_events.get("leadoff_hrs"):
+                    special_events["leadoff_hrs"] = existing_leadoff_hrs
+                    special_engine.special_events["leadoff_hrs"] = existing_leadoff_hrs
             special_engine.detect_grand_slams()
             special_events = game.get("special_events", {})
         except Exception:

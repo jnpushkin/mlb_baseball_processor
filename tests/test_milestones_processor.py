@@ -192,6 +192,68 @@ class MilestonesProcessorTests(unittest.TestCase):
             row["Detail"],
         )
 
+    def test_cached_leadoff_hr_refreshes_pitch_context_from_play(self):
+        game = {
+            "game_id": "HOM202605250",
+            "source": "bref",
+            "basic_info": {
+                "date_yyyymmdd": "20260525",
+                "away_team": "Away Team",
+                "home_team": "Home Team",
+                "away_team_code": "AWY",
+                "home_team_code": "HOM",
+                "away_score_value": 1,
+                "home_score_value": 4,
+            },
+            "linescore": {
+                "away": {"innings": ["1", "0", "0", "0", "0", "0", "0", "0", "0"], "R": 1},
+                "home": {"innings": ["1", "0", "0", "0", "0", "0", "3", "0"], "R": 4},
+            },
+            "batting": {
+                "away": [{"name": "First Batter", "player_id": "first01", "AB": 4, "H": 1, "HR": 1}],
+                "home": [],
+            },
+            "pitching": {
+                "home": [{"name": "Home Pitcher", "player_id": "pitch01"}],
+                "away": [],
+            },
+            "play_by_play": [
+                {
+                    "inning": 1,
+                    "half": "top",
+                    "batting_team": "AWY",
+                    "pitching_team": "HOM",
+                    "home_run": True,
+                    "batter": "First Batter",
+                    "batter_id": "first01",
+                    "pitcher": "Home Pitcher",
+                    "description": "Home Run (Fly Ball to Deep RF)",
+                    "pitch_count": 3,
+                }
+            ],
+            "special_events": {
+                "leadoff_hrs": [
+                    {
+                        "batter": "First Batter",
+                        "batter_id": "first01",
+                        "team": "Away Team",
+                        "team_code": "AWY",
+                        "opposing_team": "Home Team",
+                        "opponent_code": "HOM",
+                        "half": "top",
+                        "pitcher": "Home Pitcher",
+                    }
+                ]
+            },
+            "milestone_stats": {},
+        }
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            milestones, *_ = MilestonesProcessor([game]).process_all_milestones()
+
+        row = milestones["Leadoff HRs"].iloc[0]
+        self.assertEqual("Top 1st (off Home Pitcher) - 3rd pitch", row["Detail"])
+
     def test_bref_footer_multi_homer_recomputes_total_bases(self):
         game = {
             "game_id": "HOM202605240",
