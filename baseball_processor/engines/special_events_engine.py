@@ -204,6 +204,13 @@ class SpecialEventsEngine:
         # Try exact match first, then normalized
         return self._name_to_id.get(name, "") or self._name_to_id.get(self._normalize_name_for_comparison(name), "")
 
+    def _is_home_run_play(self, play):
+        """Return True for both BREF and MLB API home-run play shapes."""
+        if play.get("home_run", False):
+            return True
+        event_type = str(play.get("event_type") or "").strip().lower().replace(" ", "_")
+        return event_type == "home_run"
+
     def get_footer_stat_count(self, player_name, team_type, stat_type):
         """Get stat count for player from footer data."""
         footer_summary = self.game_data.get("footer_summary", {})
@@ -315,7 +322,7 @@ class SpecialEventsEngine:
             if last_play and last_play.get("half") == "bottom" and (
                 last_play.get("run_scored", False)
                 or last_play.get("is_scoring_play", False)
-                or last_play.get("home_run", False)
+                or self._is_home_run_play(last_play)
             ):
                 batter_name = last_play.get("batter", "Unknown")
                 self.special_events["walkoff"] = {
@@ -343,7 +350,7 @@ class SpecialEventsEngine:
                     (half == "top" and i == 0) or
                     (half == "bottom" and all(p.get("half") != "bottom" for p in plays[:i]))
                 )
-                if is_first and play.get("home_run", False):
+                if is_first and self._is_home_run_play(play):
                     team = play.get("batting_team", "")
                     team_code = self.basic.get("away_team_code" if half == "top" else "home_team_code")
                     opp_team = self.home_team if team == self.away_team else self.away_team
@@ -539,7 +546,7 @@ class SpecialEventsEngine:
                                 actual_player_id = player_id
                                 break
                     
-                    if play.get('home_run', False):
+                    if self._is_home_run_play(play):
                         
                         # Show all name matching attempts
                         if actual_player_id:
@@ -648,7 +655,7 @@ class SpecialEventsEngine:
             logging.exception("Error details:")
 
     def determine_play_type(self, play):
-        if play.get("home_run", False):
+        if self._is_home_run_play(play):
             return "Home Run"
         elif play.get("triple", False):
             return "Triple"

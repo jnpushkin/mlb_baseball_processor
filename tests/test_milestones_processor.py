@@ -118,6 +118,72 @@ class MilestonesProcessorTests(unittest.TestCase):
         self.assertEqual(5, row["RBI"])
         self.assertEqual(1, row["HR"])
 
+    def test_api_event_type_home_run_becomes_leadoff_hr(self):
+        game = {
+            "game_id": "SFN202605240",
+            "source": "mlb",
+            "basic_info": {
+                "date_yyyymmdd": "20260524",
+                "away_team": "Chicago White Sox",
+                "home_team": "San Francisco Giants",
+                "away_team_code": "CWS",
+                "home_team_code": "SF",
+                "away_score_value": 5,
+                "home_score_value": 8,
+            },
+            "linescore": {
+                "away": {"innings": ["1", "0", "0", "1", "3", "0", "0", "0", "0"], "R": 5},
+                "home": {"innings": ["2", "0", "2", "0", "0", "4", "0", "0"], "R": 8},
+            },
+            "batting": {
+                "away": [
+                    {
+                        "name": "Chase Meidroth",
+                        "player_id": "meidrch01",
+                        "AB": 5,
+                        "H": 1,
+                        "R": 1,
+                        "RBI": 1,
+                        "HR": 1,
+                    }
+                ],
+                "home": [],
+            },
+            "pitching": {
+                "home": [{"name": "Robbie Ray", "player_id": "rayro02"}],
+                "away": [],
+            },
+            "play_by_play": [
+                {
+                    "inning": 1,
+                    "half": "top",
+                    "batting_team": "CWS",
+                    "pitching_team": "SF",
+                    "event_type": "home_run",
+                    "batter": "Chase Meidroth",
+                    "batter_id": "meidrch01",
+                    "pitcher": "Robbie Ray",
+                    "pitcher_id": "rayro02",
+                    "description": "Chase Meidroth homers (4) on a fly ball to left center field.",
+                    "rbi": 1,
+                    "outs_before": 0,
+                }
+            ],
+            "special_events": {},
+            "milestone_stats": {},
+        }
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            milestones, *_ = MilestonesProcessor([game]).process_all_milestones()
+
+        leadoff_hrs = milestones["Leadoff HRs"]
+        self.assertEqual(1, len(leadoff_hrs))
+        row = leadoff_hrs.iloc[0]
+        self.assertEqual("Chase Meidroth", row["Player"])
+        self.assertEqual("CWS", row["Team"])
+        self.assertEqual("SF", row["Opponent"])
+        self.assertEqual("Top 1st (off Robbie Ray)", row["Detail"])
+
     def test_bref_footer_multi_homer_recomputes_total_bases(self):
         game = {
             "game_id": "HOM202605240",
