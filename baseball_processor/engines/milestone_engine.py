@@ -92,7 +92,7 @@ class MilestoneEngine:
         """Get stat count prioritizing footer over box score."""
         footer_count = self.get_footer_stat_count(player.get('name', ''), team_type, stat_key)
         box_count = player.get(box_score_key, 0)
-        return footer_count if footer_count > 0 else box_count
+        return footer_count if footer_count > 0 else (box_count or 0)
 
     def get_footer_prioritized_player_stats(self, player_name, player_box_stats, team_type):
         """Get complete player stats with footer data prioritized over box score."""

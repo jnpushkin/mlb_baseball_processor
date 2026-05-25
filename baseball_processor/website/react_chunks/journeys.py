@@ -784,6 +784,21 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
         'Consecutive HR Instances': { icon: '🔗', color: 'pink', category: 'team' },
     };
 
+    const displayMilestoneType = (type) => ({
+        '3+ Hit Games': '3-Hit Games',
+        '4+ Hit Games': '4-Hit Games',
+        '5+ Hit Games': '5+ Hit Games',
+        '4+ RBI Games': '4-RBI Games',
+        '5+ RBI Games': '5-RBI Games',
+        '6+ RBI Games': '6+ RBI Games',
+        '3+ Run Games': '3-Run Games',
+        '4+ Run Games': '4+ Run Games',
+        '8+ K Games': '8-K Games',
+        '10+ K Games': '10-K Games',
+        '12+ K Games': '12-K Games',
+        '15+ K Games': '15+ K Games',
+    }[type] || type);
+
     // Group milestones by type
     const groupedMilestones = useMemo(() => {
         const groups = {};
@@ -819,6 +834,7 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                 return milestones.some(m =>
                     m.player?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     m.team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    displayMilestoneType(m.type || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                     m.detail?.toLowerCase().includes(searchTerm.toLowerCase())
                 );
             }
@@ -1237,7 +1253,12 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                     if (activeCategory !== 'all' && activeCategory !== 'batting' && activeCategory !== 'pitching') return false;
                     if (searchTerm) {
                         const q = searchTerm.toLowerCase();
-                        return (m.player || '').toLowerCase().includes(q) || (m.type || '').toLowerCase().includes(q) || (m.detail || '').toLowerCase().includes(q);
+                        return (
+                            (m.player || '').toLowerCase().includes(q) ||
+                            (m.type || '').toLowerCase().includes(q) ||
+                            displayMilestoneType(m.type || '').toLowerCase().includes(q) ||
+                            (m.detail || '').toLowerCase().includes(q)
+                        );
                     }
                     return true;
                 });
@@ -1296,7 +1317,7 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                         sort,
                         dateLabel: formatLongDate(dateRaw),
                         icon: m._isAllTime ? '📈' : m._isCareer ? m._careerIcon : (config.icon || '🏆'),
-                        badgeLabel: m._isAllTime ? 'All-Time Movement' : m._isCareer ? m._careerLabel : m.type,
+                        badgeLabel: m._isAllTime ? 'All-Time Movement' : m._isCareer ? m._careerLabel : displayMilestoneType(m.type),
                         badgeClass: m._isAllTime
                             ? 'bg-purple-100 text-purple-700'
                             : m._isCareer
@@ -1458,7 +1479,7 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <span className="text-2xl">{config.icon}</span>
-                                            <h3 className="text-lg font-bold">{type}</h3>
+                                            <h3 className="text-lg font-bold">{displayMilestoneType(type)}</h3>
                                         </div>
                                         <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-bold">
                                             {filteredItems.length}

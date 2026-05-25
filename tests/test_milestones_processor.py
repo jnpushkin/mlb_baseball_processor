@@ -118,6 +118,56 @@ class MilestonesProcessorTests(unittest.TestCase):
         self.assertEqual(5, row["RBI"])
         self.assertEqual(1, row["HR"])
 
+    def test_bref_footer_multi_homer_recomputes_total_bases(self):
+        game = {
+            "game_id": "HOM202605240",
+            "source": "bref",
+            "basic_info": {
+                "date_yyyymmdd": "20260524",
+                "away_team": "Away Team",
+                "home_team": "Home Team",
+                "away_team_code": "AWY",
+                "home_team_code": "HOM",
+                "away_score_value": 1,
+                "home_score_value": 4,
+            },
+            "batting": {
+                "home": [
+                    {
+                        "name": "Power Bat",
+                        "player_id": "power01",
+                        "AB": 4,
+                        "H": 2,
+                        "R": 2,
+                        "RBI": 2,
+                        "HR": None,
+                        "2B": None,
+                        "3B": None,
+                    }
+                ],
+                "away": [],
+            },
+            "pitching": {"home": [], "away": []},
+            "footer_summary": {
+                "home": {
+                    "HR": "Power Bat 2 (2, 1 off Away Pitcher, 1st inn, 0 on, 0 outs, 1 off Away Pitcher, 3rd inn, 0 on, 0 outs).",
+                    "TB": "Power Bat 8.",
+                },
+                "away": {},
+            },
+            "milestone_stats": {},
+        }
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            milestones, *_ = MilestonesProcessor([game]).process_all_milestones()
+
+        self.assertEqual(1, len(milestones["Multi-HR Games"]))
+        self.assertEqual(1, len(milestones["8+ Total Bases"]))
+        row = milestones["8+ Total Bases"].iloc[0]
+        self.assertEqual("Power Bat", row["Player"])
+        self.assertEqual(2, row["HR"])
+        self.assertEqual(2, row["H"])
+
     def test_comprehensive_summary_only_prints_notable_categories(self):
         current_year = datetime.now().year
         milestone_dfs = {

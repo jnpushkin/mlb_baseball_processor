@@ -310,14 +310,14 @@ class MilestonesProcessor(BaseProcessor):
         """Extract milestone data from a processed game."""
         basic_info = game.get("basic_info", {})
         source = str(game.get("source") or basic_info.get("source") or "").lower()
-        if source == "mlb" or source.startswith("mlb_"):
-            try:
+        try:
+            from ..engines.milestone_engine import MilestoneEngine
+            if source == "mlb" or source.startswith("mlb_"):
                 from ..parsers.mlb_api_parser import normalize_api_batting_rows
-                from ..engines.milestone_engine import MilestoneEngine
                 normalize_api_batting_rows(game)
-                MilestoneEngine(game).process()
-            except Exception:
-                pass
+            MilestoneEngine(game).process()
+        except Exception:
+            pass
 
         milestones = game.get("milestone_stats", {})
         special_events = game.get("special_events", {})
