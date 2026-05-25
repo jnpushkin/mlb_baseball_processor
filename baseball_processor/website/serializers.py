@@ -477,9 +477,13 @@ class DataSerializer:
         except Exception as e:
             print(f"      Note: NCAA cross-reference not available: {e}")
 
+        curated_milestones = self._serialize_milestones(data.get('milestones', {}))
+        all_milestones = self._serialize_milestones(data.get('milestones', {}), include_excluded=True)
+
         json_data = {
             "summary": self._serialize_summary(data.get('summary_rows', [])),
-            "milestones": self._serialize_milestones(data.get('milestones', {})),
+            "milestones": curated_milestones,
+            "allMilestones": all_milestones,
             "players": self._serialize_players(data.get('hitters')),
             "pitchers": self._serialize_pitchers(data.get('pitchers')),
             "playersWithoutStats": self._serialize_players_without_stats(data.get('players_without_stats')),
@@ -629,6 +633,7 @@ class DataSerializer:
         counts = [
             f"Summary: {len(json_data['summary'])}",
             f"Milestones: {len(json_data['milestones'])}",
+            f"AllMilestones: {len(json_data['allMilestones'])}",
             f"Players: {len(json_data['players'])}",
             f"Pitchers: {len(json_data['pitchers'])}",
             f"HallOfFamers: {len(json_data['hallOfFamers'])}",
@@ -674,7 +679,7 @@ class DataSerializer:
         '7-Inning Shutouts', 'Dominant Starts', '3 Pitch Innings',
     }
 
-    def _serialize_milestones(self, milestones_dict):
+    def _serialize_milestones(self, milestones_dict, include_excluded=False):
         """Convert all milestone DataFrames to combined JSON list."""
         all_milestones = []
 
@@ -684,7 +689,8 @@ class DataSerializer:
         for milestone_type, df in milestones_dict.items():
             if df is None or df.empty:
                 continue
-            if milestone_type in self.EXCLUDED_MILESTONE_TYPES:
+            is_routine = milestone_type in self.EXCLUDED_MILESTONE_TYPES
+            if is_routine and not include_excluded:
                 continue
             
             df_sorted = df.copy()
@@ -699,7 +705,8 @@ class DataSerializer:
                     "playerId": str(row.get("Player ID", "")) if "Player ID" in row else "",
                     "team": str(row.get("Team", "")),
                     "opponent": str(row.get("Opponent", "")),
-                    "gameId": str(row.get("GameID", ""))
+                    "gameId": str(row.get("GameID", "")),
+                    "routine": is_routine
                 }
                 
                 # Batting milestones

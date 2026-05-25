@@ -708,12 +708,14 @@ const Leaderboards = ({ data }) => {
     );
 };
 
-const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimePassings, onTabChange }) => {
+const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, careerLasts, allTimePassings, onTabChange }) => {
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [careerMilestoneSort, setCareerMilestoneSort] = useState('date'); // 'event' or 'date'
     const [viewMode, setViewMode] = useState('date'); // 'date' or 'category'
     const [timelineQuickFilter, setTimelineQuickFilter] = useState('all');
+    const [milestoneScope, setMilestoneScope] = useState('curated');
+    const visibleMilestones = milestoneScope === 'all' ? (allMilestones || milestones || []) : (milestones || []);
 
     useEffect(() => {
         if (!window._pendingMilestoneSearch) return;
@@ -733,16 +735,48 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
     // Category configurations with icons and colors
     const categoryConfig = {
         'Walk-Offs': { icon: '🎉', color: 'green', category: 'batting' },
+        'Cycles': { icon: '♻️', color: 'purple', category: 'batting' },
+        '5+ Hit Games': { icon: '🔥', color: 'orange', category: 'batting' },
         '4+ Hit Games': { icon: '🔥', color: 'orange', category: 'batting' },
+        '3+ Hit Games': { icon: '📈', color: 'orange', category: 'batting' },
+        '6+ RBI Games': { icon: '💪', color: 'red', category: 'batting' },
         '5+ RBI Games': { icon: '💪', color: 'red', category: 'batting' },
+        '4+ RBI Games': { icon: '💪', color: 'red', category: 'batting' },
         'Grand Slams': { icon: '💣', color: 'purple', category: 'batting' },
+        '3+ HR Games': { icon: '🚀', color: 'rose', category: 'batting' },
         'Multi-HR Games': { icon: '🚀', color: 'rose', category: 'batting' },
+        'Multi-2B Games': { icon: '2️⃣', color: 'blue', category: 'batting' },
+        'Multi-3B Games': { icon: '3️⃣', color: 'emerald', category: 'batting' },
+        'Multi-SB Games': { icon: '🏃', color: 'green', category: 'batting' },
+        '2+ XBH Games': { icon: '📊', color: 'blue', category: 'batting' },
+        '8+ Total Bases': { icon: '📊', color: 'cyan', category: 'batting' },
+        '4+ Walk Games': { icon: '👟', color: 'green', category: 'batting' },
+        'Perfect Batting Games': { icon: '🎯', color: 'emerald', category: 'batting' },
+        '4+ Run Games': { icon: '🏃', color: 'amber', category: 'batting' },
+        '3+ Run Games': { icon: '🏃', color: 'amber', category: 'batting' },
         'Leadoff HRs': { icon: '1️⃣', color: 'blue', category: 'batting' },
         'Inside-the-Park HRs': { icon: '🏃', color: 'emerald', category: 'batting' },
         'Pinch Hit HRs': { icon: '🎯', color: 'amber', category: 'batting' },
         'Golden Sombreros': { icon: '🎩', color: 'slate', category: 'batting' },
+        '15+ K Games': { icon: '🔥', color: 'indigo', category: 'pitching' },
+        '12+ K Games': { icon: '🔥', color: 'indigo', category: 'pitching' },
         '10+ K Games': { icon: '🔥', color: 'indigo', category: 'pitching' },
+        '8+ K Games': { icon: '🔥', color: 'indigo', category: 'pitching' },
         'Quality Starts': { icon: '✅', color: 'green', category: 'pitching' },
+        'Maddux Games': { icon: '⏱️', color: 'cyan', category: 'pitching' },
+        'No-Hitters': { icon: '💎', color: 'cyan', category: 'pitching' },
+        'Perfect Games': { icon: '💎', color: 'purple', category: 'pitching' },
+        'One-Hitters': { icon: '1️⃣', color: 'slate', category: 'pitching' },
+        'Two-Hitters': { icon: '2️⃣', color: 'slate', category: 'pitching' },
+        'Low-Hit CG': { icon: '🛡️', color: 'slate', category: 'pitching' },
+        'CGSO No Walks': { icon: '🎯', color: 'slate', category: 'pitching' },
+        '7-Inning Shutouts': { icon: '🛡️', color: 'slate', category: 'pitching' },
+        'High K Low BB': { icon: '🎯', color: 'indigo', category: 'pitching' },
+        'Saves': { icon: '🔒', color: 'green', category: 'pitching' },
+        'Wins': { icon: '✅', color: 'green', category: 'pitching' },
+        'Efficient Starts': { icon: '⏱️', color: 'cyan', category: 'pitching' },
+        'Dominant Starts': { icon: '⚡', color: 'violet', category: 'pitching' },
+        'No-Walk Starts': { icon: '🎯', color: 'teal', category: 'pitching' },
         '3 Strikeout Innings': { icon: '⚡', color: 'violet', category: 'pitching' },
         'Immaculate Innings': { icon: '💎', color: 'cyan', category: 'pitching' },
         'Complete Games & Shutouts': { icon: '🛡️', color: 'slate', category: 'pitching' },
@@ -753,7 +787,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
     // Group milestones by type
     const groupedMilestones = useMemo(() => {
         const groups = {};
-        (milestones || []).forEach(m => {
+        (visibleMilestones || []).forEach(m => {
             const type = m.type || 'Other';
             if (!groups[type]) groups[type] = [];
             groups[type].push(m);
@@ -763,7 +797,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
             groups[type].sort((a, b) => new Date(b.date) - new Date(a.date));
         });
         return groups;
-    }, [milestones]);
+    }, [visibleMilestones]);
 
     // Get sorted types by count
     const sortedTypes = useMemo(() => {
@@ -792,9 +826,12 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
         });
     }, [sortedTypes, activeCategory, searchTerm, groupedMilestones]);
 
-    const totalCount = milestones?.length || 0;
-    const battingCount = (milestones || []).filter(m => categoryConfig[m.type]?.category === 'batting').length;
-    const pitchingCount = (milestones || []).filter(m => categoryConfig[m.type]?.category === 'pitching').length;
+    const totalCount = visibleMilestones?.length || 0;
+    const curatedCount = milestones?.length || 0;
+    const trackedCount = allMilestones?.length || curatedCount;
+    const routineCount = Math.max(0, trackedCount - curatedCount);
+    const battingCount = (visibleMilestones || []).filter(m => categoryConfig[m.type]?.category === 'batting').length;
+    const pitchingCount = (visibleMilestones || []).filter(m => categoryConfig[m.type]?.category === 'pitching').length;
     const careerFirstsCount = careerFirsts?.length || 0;
     const careerLastsCount = careerLasts?.length || 0;
     const careerEventsCount = careerFirstsCount + careerLastsCount;
@@ -856,6 +893,12 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                         <p className="text-slate-500 mt-1">Special performances you've witnessed</p>
                     </div>
                     <div className="flex items-center gap-4">
+                        {trackedCount > curatedCount && (
+                            <div className="flex rounded-lg overflow-hidden border">
+                                <button onClick={() => setMilestoneScope('curated')} className={`px-3 py-2 text-sm font-medium ${milestoneScope === 'curated' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>Curated</button>
+                                <button onClick={() => setMilestoneScope('all')} className={`px-3 py-2 text-sm font-medium ${milestoneScope === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>All tracked</button>
+                            </div>
+                        )}
                         {!isCareerCategory && !isDateOnlyCategory && (
                             <div className="flex rounded-lg overflow-hidden border">
                                 <button onClick={() => setViewMode('date')} className={`px-3 py-2 text-sm font-medium ${viewMode === 'date' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>📅 By Date</button>
@@ -871,6 +914,11 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                         />
                     </div>
                 </div>
+                {milestoneScope === 'all' && routineCount > 0 && (
+                    <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                        Showing {routineCount} routine/stat-tracking events that are hidden from the curated view.
+                    </div>
+                )}
 
                 {/* Category filters */}
                 <div className="flex flex-wrap gap-2 mt-4">
@@ -1182,7 +1230,7 @@ const MilestonesView = ({ milestones, games, careerFirsts, careerLasts, allTimeP
                     if (timelineQuickFilter === 'all-time') return m._isAllTime;
                     return true;
                 };
-                const battingPitchingItems = (milestones || []).filter(m => {
+                const battingPitchingItems = (visibleMilestones || []).filter(m => {
                     if (activeCategory === 'all-time') return false;
                     if (activeCategory === 'batting' && categoryConfig[m.type]?.category !== 'batting') return false;
                     if (activeCategory === 'pitching' && categoryConfig[m.type]?.category !== 'pitching') return false;

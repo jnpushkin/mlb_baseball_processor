@@ -198,6 +198,42 @@ class DataSerializerTests(unittest.TestCase):
 
         self.assertEqual(["Multi-HR Games", "Quality Starts"], [m["type"] for m in serialized])
 
+    def test_serialize_milestones_can_include_routine_categories(self):
+        milestones = {
+            "4+ RBI Games": pd.DataFrame(
+                [
+                    {
+                        "Date": "2026-04-28",
+                        "Player": "Strong Day",
+                        "Team": "HOM",
+                        "Opponent": "AWY",
+                        "GameID": "game-3",
+                        "H": 2,
+                        "RBI": 4,
+                    }
+                ]
+            ),
+            "5+ RBI Games": pd.DataFrame(
+                [
+                    {
+                        "Date": "2026-04-29",
+                        "Player": "Huge Day",
+                        "Team": "HOM",
+                        "Opponent": "AWY",
+                        "GameID": "game-4",
+                        "H": 3,
+                        "RBI": 5,
+                    }
+                ]
+            ),
+        }
+
+        serialized = DataSerializer()._serialize_milestones(milestones, include_excluded=True)
+
+        self.assertEqual(["5+ RBI Games", "4+ RBI Games"], [m["type"] for m in serialized])
+        self.assertFalse(serialized[0]["routine"])
+        self.assertTrue(serialized[1]["routine"])
+
     def test_serialize_hall_of_famers_preserves_ids_and_stats(self):
         df = pd.DataFrame(
             [
