@@ -756,6 +756,11 @@ class DataSerializer:
                         milestone["detail"] = str(row.get("Detail", ""))
                     else:
                         milestone["detail"] = f"{h} H ({doubles} 2B, {triples} 3B, {hr} HR), {rbi} RBI"
+                    if milestone_type in ("4+ Run Games", "3+ Run Games") and runs:
+                        run_prefix = f"{runs} R"
+                        detail = milestone.get("detail", "")
+                        if not detail.startswith(run_prefix):
+                            milestone["detail"] = f"{run_prefix} - {detail}" if detail else run_prefix
 
                 elif milestone_type in pitching_types:
                     ip = str(row.get("IP", "0.0"))

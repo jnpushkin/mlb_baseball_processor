@@ -234,6 +234,33 @@ class DataSerializerTests(unittest.TestCase):
         self.assertFalse(serialized[0]["routine"])
         self.assertTrue(serialized[1]["routine"])
 
+    def test_serialize_run_milestones_show_run_total(self):
+        milestones = {
+            "4+ Run Games": pd.DataFrame(
+                [
+                    {
+                        "Date": "2026-05-05",
+                        "Player": "Fast Scorer",
+                        "Team": "HOM",
+                        "Opponent": "AWY",
+                        "GameID": "game-5",
+                        "H": 2,
+                        "R": 4,
+                        "RBI": 2,
+                        "2B": 1,
+                        "3B": 0,
+                        "HR": 0,
+                        "Detail": "2 H (1 2B, 0 3B, 0 HR), 2 RBI",
+                    }
+                ]
+            )
+        }
+
+        serialized = DataSerializer()._serialize_milestones(milestones, include_excluded=True)
+
+        self.assertEqual("4 R - 2 H (1 2B, 0 3B, 0 HR), 2 RBI", serialized[0]["detail"])
+        self.assertEqual(4, serialized[0]["r"])
+
     def test_serialize_hall_of_famers_preserves_ids_and_stats(self):
         df = pd.DataFrame(
             [
