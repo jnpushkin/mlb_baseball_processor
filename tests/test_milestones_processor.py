@@ -167,6 +167,11 @@ class MilestonesProcessorTests(unittest.TestCase):
                     "description": "Chase Meidroth homers (4) on a fly ball to left center field.",
                     "rbi": 1,
                     "outs_before": 0,
+                    "pitch_count": 8,
+                    "pitch_number": 8,
+                    "pitch_count_at_play": "3-2",
+                    "pitch_type": "Four-Seam Fastball",
+                    "pitch_speed": 93.6,
                 }
             ],
             "special_events": {},
@@ -182,7 +187,10 @@ class MilestonesProcessorTests(unittest.TestCase):
         self.assertEqual("Chase Meidroth", row["Player"])
         self.assertEqual("CWS", row["Team"])
         self.assertEqual("SF", row["Opponent"])
-        self.assertEqual("Top 1st (off Robbie Ray)", row["Detail"])
+        self.assertEqual(
+            "Top 1st (off Robbie Ray) - 8th pitch, 3-2, Four-Seam Fastball, 93.6 mph",
+            row["Detail"],
+        )
 
     def test_bref_footer_multi_homer_recomputes_total_bases(self):
         game = {

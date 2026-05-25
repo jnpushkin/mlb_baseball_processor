@@ -1205,6 +1205,25 @@ def parse_play_by_play(feed_data: dict, bref_id_map: dict = None) -> list:
             'pitcher_id': pitcher_bref or (f"mlb_{pitcher_mlb_id}" if pitcher_mlb_id else None),
         }
 
+        pitch_events = [event for event in play.get('playEvents', []) if event.get('isPitch')]
+        if pitch_events:
+            last_pitch = pitch_events[-1]
+            pitch_details = last_pitch.get('details', {})
+            pitch_type = pitch_details.get('type', {})
+            pitch_data = last_pitch.get('pitchData', {})
+            pitch_count = last_pitch.get('count') or play.get('count') or {}
+            pitch_number = last_pitch.get('pitchNumber') or len(pitch_events)
+
+            play_data['pitch_count'] = len(pitch_events)
+            play_data['pitch_number'] = pitch_number
+            play_data['pitch_count_at_play'] = f"{pitch_count.get('balls', 0)}-{pitch_count.get('strikes', 0)}"
+            play_data['pitch_call'] = pitch_details.get('description', '')
+            if isinstance(pitch_type, dict):
+                play_data['pitch_type'] = pitch_type.get('description', '')
+                play_data['pitch_type_code'] = pitch_type.get('code', '')
+            if pitch_data.get('startSpeed') is not None:
+                play_data['pitch_speed'] = pitch_data.get('startSpeed')
+
         # Add runner movement if available
         runners = play.get('runners', [])
         if runners:

@@ -356,7 +356,7 @@ class SpecialEventsEngine:
                     opp_team = self.home_team if team == self.away_team else self.away_team
                     opp_code = self.basic.get("home_team_code" if half == "top" else "away_team_code")
                     leadoff_batter = play.get("batter", "Unknown")
-                    self.special_events["leadoff_hrs"].append({
+                    leadoff_event = {
                         "batter": leadoff_batter,
                         "batter_id": play.get("batter_id", "") or self._resolve_player_id(leadoff_batter),
                         "team": team,
@@ -369,7 +369,15 @@ class SpecialEventsEngine:
                         "game_id": self.game_id,
                         "game_date": self.game_date,
                         "final_score": self.final_score
-                    })
+                    }
+                    for field in (
+                        "pitch_count", "pitch_number", "pitch_count_at_play",
+                        "pitch_call", "pitch_type", "pitch_type_code", "pitch_speed",
+                    ):
+                        value = play.get(field)
+                        if value not in (None, ""):
+                            leadoff_event[field] = value
+                    self.special_events["leadoff_hrs"].append(leadoff_event)
 
     def detect_grand_slams(self):
         fs = self.game_data.get("footer_summary", {})

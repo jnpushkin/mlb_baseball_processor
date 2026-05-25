@@ -104,6 +104,74 @@ class MlbApiParserTests(unittest.TestCase):
         self.assertTrue(plays[0]["run_scored"])
         self.assertEqual("bottom", plays[0]["half"])
 
+    def test_parse_play_by_play_keeps_terminal_pitch_context(self):
+        feed_data = {
+            "gameData": {
+                "teams": {
+                    "away": {"id": 145, "abbreviation": "CWS"},
+                    "home": {"id": 137, "abbreviation": "SF"},
+                }
+            },
+            "liveData": {
+                "plays": {
+                    "allPlays": [
+                        {
+                            "result": {
+                                "eventType": "home_run",
+                                "event": "Home Run",
+                                "description": "Leadoff Batter homers on a fly ball.",
+                                "rbi": 1,
+                                "awayScore": 1,
+                                "homeScore": 0,
+                            },
+                            "about": {
+                                "inning": 1,
+                                "halfInning": "top",
+                                "isScoringPlay": True,
+                            },
+                            "count": {"balls": 1, "strikes": 0, "outs": 0},
+                            "matchup": {
+                                "batter": {"id": 10, "fullName": "Leadoff Batter"},
+                                "pitcher": {"id": 20, "fullName": "Home Pitcher"},
+                            },
+                            "playEvents": [
+                                {
+                                    "isPitch": True,
+                                    "pitchNumber": 1,
+                                    "details": {
+                                        "description": "Ball",
+                                        "type": {"code": "FF", "description": "Four-Seam Fastball"},
+                                    },
+                                    "count": {"balls": 1, "strikes": 0, "outs": 0},
+                                    "pitchData": {"startSpeed": 93.2},
+                                },
+                                {
+                                    "isPitch": True,
+                                    "pitchNumber": 2,
+                                    "details": {
+                                        "description": "In play, run(s)",
+                                        "type": {"code": "SL", "description": "Slider"},
+                                    },
+                                    "count": {"balls": 1, "strikes": 0, "outs": 0},
+                                    "pitchData": {"startSpeed": 84.7},
+                                },
+                            ],
+                        }
+                    ]
+                }
+            },
+        }
+
+        plays = parse_play_by_play(feed_data, bref_id_map={10: "batter01", 20: "pitch01"})
+
+        self.assertEqual(1, len(plays))
+        self.assertEqual(2, plays[0]["pitch_count"])
+        self.assertEqual(2, plays[0]["pitch_number"])
+        self.assertEqual("1-0", plays[0]["pitch_count_at_play"])
+        self.assertEqual("Slider", plays[0]["pitch_type"])
+        self.assertEqual("SL", plays[0]["pitch_type_code"])
+        self.assertEqual(84.7, plays[0]["pitch_speed"])
+
     def test_normalize_api_batting_rows_restores_cached_runner_only_player(self):
         game = {
             "basic_info": {"home_team_code": "MIA", "away_team_code": "BAL"},

@@ -449,6 +449,40 @@ class MilestonesProcessor(BaseProcessor):
         # Process inside-the-park home runs from play-by-play
         self._process_inside_park_hrs(game, milestone_tabs, basic_info, max_innings, resolve)
 
+    def _ordinal(self, value):
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            return str(value)
+        if 10 <= number % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
+        return f"{number}{suffix}"
+
+    def _format_pitch_context(self, item):
+        parts = []
+        pitch_number = safe_get_int(item, "pitch_number", 0) or safe_get_int(item, "pitch_count", 0)
+        if pitch_number:
+            parts.append(f"{self._ordinal(pitch_number)} pitch")
+
+        count = safe_get_str(item, "pitch_count_at_play", "")
+        if count:
+            parts.append(count)
+
+        pitch_type = safe_get_str(item, "pitch_type", "")
+        if pitch_type:
+            parts.append(pitch_type)
+
+        pitch_speed = item.get("pitch_speed")
+        if pitch_speed not in (None, ""):
+            try:
+                parts.append(f"{float(pitch_speed):.1f} mph")
+            except (TypeError, ValueError):
+                parts.append(f"{pitch_speed} mph")
+
+        return ", ".join(parts)
+
     def _process_special_events(self, special_events, milestone_tabs, basic_info, max_innings):
         """Process special events from SpecialEventsEngine."""
         try:
@@ -467,6 +501,9 @@ class MilestonesProcessor(BaseProcessor):
                 detail = f"{half} {inning}"
                 if pitcher:
                     detail += f" (off {pitcher})"
+                pitch_context = self._format_pitch_context(leadoff_hr)
+                if pitch_context:
+                    detail += f" - {pitch_context}"
 
                 self._add_milestone(milestone_tabs, "Leadoff HRs", basic_info, leadoff_hr, detail, max_innings)
             
