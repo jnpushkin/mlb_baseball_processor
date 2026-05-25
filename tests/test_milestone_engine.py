@@ -43,6 +43,48 @@ class MilestoneEngineTests(unittest.TestCase):
         self.assertEqual("player-1", multi_steal_games[0]["player_id"])
         self.assertEqual(2, multi_steal_games[0]["sb"])
 
+    def test_api_pitcher_win_flag_counts_as_win_milestone(self):
+        game_data = {
+            "game_id": "test-game",
+            "basic_info": {
+                "date_yyyymmdd": "20260524",
+                "home_team": "Home",
+                "away_team": "Away",
+                "home_team_code": "HOM",
+                "away_team_code": "AWY",
+                "home_score_value": 6,
+                "away_score_value": 4,
+            },
+            "linescore": {
+                "home": {"innings": ["1", "0", "0", "0", "5"], "R": 6},
+                "away": {"innings": ["0", "0", "1", "0", "3"], "R": 4},
+            },
+            "batting": {"home": [], "away": []},
+            "pitching": {
+                "home": [
+                    {
+                        "player_id": "winner-1",
+                        "name": "API Winner",
+                        "IP": "1.0",
+                        "H": 0,
+                        "R": 0,
+                        "ER": 0,
+                        "BB": 0,
+                        "SO": 1,
+                        "win": True,
+                    }
+                ],
+                "away": [],
+            },
+        }
+
+        MilestoneEngine(game_data).process_pitching_milestones()
+
+        win_games = game_data["milestone_stats"]["win_games"]
+        self.assertEqual(1, len(win_games))
+        self.assertEqual("API Winner", win_games[0]["player"])
+        self.assertEqual("W", win_games[0]["decision"])
+
     def test_representative_cache_records_process_without_errors(self):
         cache_dir = Path(__file__).resolve().parents[1] / "cache"
         representative_files = {

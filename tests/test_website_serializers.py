@@ -240,6 +240,28 @@ class DataSerializerTests(unittest.TestCase):
         self.assertEqual(1, len(serialized["basesLoaded"]))
         self.assertEqual(1, len(serialized["lateClose"]))
 
+    def test_extract_game_details_marks_api_grand_slam_key_play(self):
+        raw_game = {
+            "basic_info": {"game_type": "regular", "source": "mlb"},
+            "play_by_play": [
+                {
+                    "inning": 5,
+                    "half": "bottom",
+                    "event_type": "home_run",
+                    "description": "Power Bat hits a grand slam (7) to left field. Runner A scores. Runner B scores. Runner C scores.",
+                    "rbi": 4,
+                    "batter": "Power Bat",
+                    "pitcher": "Away Pitcher",
+                }
+            ],
+        }
+
+        details = DataSerializer()._extract_game_details(raw_game)
+
+        self.assertEqual("grand_slam", details["keyPlays"][0]["type"])
+        self.assertEqual("Power Bat", details["keyPlays"][0]["batter"])
+        self.assertEqual(4, details["keyPlays"][0]["rbi"])
+
     def test_serialize_all_data_includes_wpa_leaders(self):
         processed_data = {
             "summary_rows": [],

@@ -171,6 +171,13 @@ def process_all_game_data(games, debut_entries, hof_df):
     logging.info(f"Processing {len(games)} games for analysis...")
     
     try:
+        from ..parsers.mlb_api_parser import normalize_api_batting_rows
+        for game in games:
+            basic = game.get('basic_info', {})
+            source = str(game.get('source') or basic.get('source') or '').lower()
+            if source == 'mlb' or source.startswith('mlb_'):
+                normalize_api_batting_rows(game)
+
         # Core data processing
         game_log = GameLogProcessor(games).create_game_log_dataframe()
         

@@ -290,7 +290,44 @@ def _should_update_debuts(args):
 
 
 def _should_download_bref_backups(args):
-    return not _should_skip_network_reference_updates(args)
+    return getattr(args, 'download_bref_backups', False) or not _should_skip_network_reference_updates(args)
+
+
+def _maybe_check_bref_backup_parity(args):
+    if getattr(args, 'skip_bref_parity', False):
+        return
+    try:
+        from .reports.bref_backup_parity import (
+            clear_issues_csv,
+            DEFAULT_REPORT_PATH,
+            generate_bref_backup_parity_report,
+            write_issues_csv,
+        )
+        report = generate_bref_backup_parity_report(recent_days=45)
+    except Exception as e:
+        warn(f"⚠️ API/BREF backup parity check skipped: {e}")
+        return
+
+    checked = report.get('checked', 0)
+    issues = report.get('issues', [])
+    parse_errors = report.get('parse_errors', [])
+    if parse_errors:
+        warn(f"⚠️ API/BREF backup parity: {len(parse_errors)} pair(s) could not be compared")
+    if not checked:
+        info("API/BREF backup parity: no local backup pairs to compare")
+        return
+    if not issues:
+        clear_issues_csv(DEFAULT_REPORT_PATH)
+        info(f"API/BREF backup parity: no discrepancies across {checked} pair(s)")
+        return
+
+    write_issues_csv(issues, DEFAULT_REPORT_PATH)
+    warn(
+        f"⚠️ API/BREF backup parity: {len(issues)} discrepancy/discrepancies "
+        f"across {checked} pair(s); see {DEFAULT_REPORT_PATH}"
+    )
+    for issue in issues[:5]:
+        warn(f"   - {issue.get('message')}")
 
 
 def _maybe_download_bref_backups(args):
@@ -305,6 +342,9 @@ def _maybe_download_bref_backups(args):
         download_bref_run(verbose=True)
     except Exception as e:
         warn(f"⚠️ BREF HTML backup skipped: {e}")
+        return
+
+    _maybe_check_bref_backup_parity(args)
 
 
 # BREF team codes that themselves start with 'M'; cached game IDs beginning
@@ -1493,6 +1533,16 @@ def main():
         '--update-debuts',
         action='store_true',
         help='Update MLB debut data even when running from local game cache'
+    )
+    parser.add_argument(
+        '--download-bref-backups',
+        action='store_true',
+        help='Download missing BREF HTML backups even when running from local game cache'
+    )
+    parser.add_argument(
+        '--skip-bref-parity',
+        action='store_true',
+        help='Skip API-vs-BREF backup discrepancy checks after BREF backup download'
     )
     parser.add_argument(
         '--debut-year',

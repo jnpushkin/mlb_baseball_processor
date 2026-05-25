@@ -54,7 +54,69 @@ class MilestonesProcessorTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             milestones, *_ = MilestonesProcessor(games).process_all_milestones()
 
-        self.assertEqual(21, len(milestones["Multi-SB Games"]))
+        self.assertEqual(22, len(milestones["Multi-SB Games"]))
+
+    def test_api_play_by_play_grand_slam_becomes_milestone(self):
+        game = {
+            "game_id": "HOM202605240",
+            "basic_info": {
+                "date_yyyymmdd": "20260524",
+                "away_team": "Away Team",
+                "home_team": "Home Team",
+                "away_team_code": "AWY",
+                "home_team_code": "HOM",
+                "away_score_value": 5,
+                "home_score_value": 8,
+            },
+            "linescore": {
+                "away": {"innings": ["0", "0", "0", "0", "5"], "R": 5},
+                "home": {"innings": ["0", "0", "0", "0", "8"], "R": 8},
+            },
+            "batting": {
+                "home": [
+                    {
+                        "name": "Power Bat",
+                        "player_id": "power01",
+                        "AB": 4,
+                        "H": 2,
+                        "R": 1,
+                        "RBI": 5,
+                        "HR": 1,
+                    }
+                ],
+                "away": [],
+            },
+            "pitching": {"home": [], "away": [{"name": "Away Pitcher", "player_id": "pitch01"}]},
+            "play_by_play": [
+                {
+                    "inning": 5,
+                    "half": "bottom",
+                    "batting_team": "HOM",
+                    "pitching_team": "AWY",
+                    "event_type": "home_run",
+                    "description": "Power Bat hits a grand slam (7) to left field. Runner A scores. Runner B scores. Runner C scores.",
+                    "rbi": 4,
+                    "batter": "Power Bat",
+                    "batter_id": "power01",
+                    "pitcher": "Away Pitcher",
+                    "pitcher_id": "pitch01",
+                }
+            ],
+            "special_events": {},
+            "milestone_stats": {},
+        }
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            milestones, *_ = MilestonesProcessor([game]).process_all_milestones()
+
+        grand_slams = milestones["Grand Slams"]
+        self.assertEqual(1, len(grand_slams))
+        row = grand_slams.iloc[0]
+        self.assertEqual("Power Bat", row["Player"])
+        self.assertEqual("Bottom 5", row["Inning"])
+        self.assertEqual("Away Pitcher", row["Pitcher"])
+        self.assertEqual(5, row["RBI"])
+        self.assertEqual(1, row["HR"])
 
     def test_comprehensive_summary_only_prints_notable_categories(self):
         current_year = datetime.now().year

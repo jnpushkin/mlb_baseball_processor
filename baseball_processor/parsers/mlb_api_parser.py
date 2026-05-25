@@ -19,6 +19,8 @@ import requests
 from datetime import datetime
 from typing import Optional, Union
 
+from ..engines.milestone_engine import MilestoneEngine
+from ..engines.special_events_engine import SpecialEventsEngine
 from ..utils.http import create_retry_session, get_with_retry
 
 _session = create_retry_session()
@@ -637,6 +639,22 @@ def parse_basic_info(feed_data: dict, box_data: dict) -> dict:
     }
 
 
+def _has_game_batting_activity(stats: dict) -> bool:
+    """Return True for players who contributed as batters or baserunners."""
+    for key in (
+        'plateAppearances', 'atBats', 'runs', 'hits', 'rbi', 'baseOnBalls',
+        'strikeOuts', 'stolenBases', 'caughtStealing', 'hitByPitch',
+        'sacFlies', 'sacBunts', 'doubles', 'triples', 'homeRuns',
+        'groundIntoDoublePlay',
+    ):
+        try:
+            if int(stats.get(key, 0) or 0) > 0:
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False
+
+
 def parse_batting(box_data: dict, side: str, bref_id_map: dict = None, game_year: int = None) -> list:
     """Parse batting stats for a team."""
     team_data = box_data.get('teams', {}).get(side, {})
@@ -711,11 +729,96 @@ def parse_batting(box_data: dict, side: str, bref_id_map: dict = None, game_year
             'is_starter': is_starter,
         }
 
-        # Only include players who had plate appearances or are starters
-        if stats.get('plateAppearances', 0) > 0 or is_starter:
+        # Include no-PA baserunners too; pinch runners can score/steal without
+        # getting a plate appearance, and those stats drive milestone detection.
+        if is_starter or _has_game_batting_activity(stats):
             result.append(batter_data)
 
     return result
+
+
+def normalize_api_batting_rows(game_data: dict) -> dict:
+    """Backfill no-PA baserunners into cached API batting rows.
+
+    Older API caches were created before parse_batting kept pinch runners who
+    scored or stole without a plate appearance. The play-by-play runner
+    movements are enough to restore those rows for processing.
+    """
+    batting = game_data.setdefault('batting', {})
+    basic = game_data.get('basic_info', {})
+    side_by_code = {
+        basic.get('away_team_code'): 'away',
+        basic.get('home_team_code'): 'home',
+    }
+    existing_aliases = set()
+    for side in ('away', 'home'):
+        for player in batting.get(side, []) or []:
+            for key in ('player_id', 'bref_id', 'register_id'):
+                if player.get(key):
+                    existing_aliases.add((side, str(player.get(key))))
+            if player.get('mlb_id'):
+                existing_aliases.add((side, f"mlb_{player.get('mlb_id')}"))
+            if player.get('name'):
+                existing_aliases.add((side, f"name:{str(player.get('name')).casefold()}"))
+    runner_rows = {}
+
+    for play in game_data.get('play_by_play', []) or []:
+        side = side_by_code.get(play.get('batting_team'))
+        if not side:
+            half = str(play.get('half', '')).lower()
+            side = 'away' if half == 'top' else 'home' if half == 'bottom' else ''
+        if side not in ('away', 'home'):
+            continue
+
+        for runner in play.get('runners', []) or []:
+            player_id = runner.get('player_id')
+            name = runner.get('name', '')
+            if not player_id:
+                continue
+            if (side, str(player_id)) in existing_aliases or (side, f"name:{str(name).casefold()}") in existing_aliases:
+                continue
+
+            key = (side, player_id)
+            row = runner_rows.setdefault(key, {
+                'name': name,
+                'player_id': player_id,
+                'position': 'PR',
+                'AB': 0,
+                'R': 0,
+                'H': 0,
+                'RBI': 0,
+                'BB': 0,
+                'SO': 0,
+                'PA': 0,
+                'HR': 0,
+                '2B': 0,
+                '3B': 0,
+                'SB': 0,
+                'CS': 0,
+                'HBP': 0,
+                'SF': 0,
+                'SH': 0,
+                'GDP': 0,
+                'TB': 0,
+                'lineup_slot': None,
+                'is_starter': False,
+            })
+            event = str(runner.get('event', '')).lower()
+            if 'stolen base' in event:
+                row['SB'] += 1
+            if 'caught stealing' in event:
+                row['CS'] += 1
+            if runner.get('end') == 'score' and not runner.get('is_out'):
+                row['R'] += 1
+
+    for (side, player_id), row in runner_rows.items():
+        if row['R'] or row['SB'] or row['CS']:
+            batting.setdefault(side, []).append(row)
+            existing_aliases.add((side, str(player_id)))
+            if row.get('name'):
+                existing_aliases.add((side, f"name:{str(row.get('name')).casefold()}"))
+
+    return game_data
 
 
 def parse_pitching(box_data: dict, side: str, bref_id_map: dict = None, game_year: int = None) -> list:
@@ -1049,6 +1152,9 @@ def parse_play_by_play(feed_data: dict, bref_id_map: dict = None) -> list:
         event_type = result.get('eventType', '')
         if not event_type:
             continue
+        description = result.get('description', '')
+        is_grand_slam = 'grand slam' in description.lower()
+        is_home_run = event_type == 'home_run' or is_grand_slam
 
         half = about.get('halfInning', '')
         # Top of inning: away bats, home pitches. Bottom: reverse.
@@ -1085,9 +1191,12 @@ def parse_play_by_play(feed_data: dict, bref_id_map: dict = None) -> list:
             'outs_before': play.get('count', {}).get('outs', 0),
             'event': result.get('event', ''),
             'event_type': event_type,
-            'description': result.get('description', ''),
+            'description': description,
+            'home_run': is_home_run,
+            'grand_slam': is_grand_slam,
             'rbi': result.get('rbi', 0),
             'is_scoring_play': about.get('isScoringPlay', False),
+            'run_scored': about.get('isScoringPlay', False),
             'away_score': result.get('awayScore', 0),
             'home_score': result.get('homeScore', 0),
             'batter': batter_name,
@@ -1357,9 +1466,18 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
     for side in ['away', 'home']:
         for pitcher in pitching[side]:
             mlb_id = pitcher.get('mlb_id')
-            pitcher['win'] = mlb_id == decision_mlb_ids.get('winner')
-            pitcher['loss'] = mlb_id == decision_mlb_ids.get('loser')
-            pitcher['save'] = mlb_id == decision_mlb_ids.get('save')
+            is_winner = mlb_id == decision_mlb_ids.get('winner')
+            is_loser = mlb_id == decision_mlb_ids.get('loser')
+            is_save = mlb_id == decision_mlb_ids.get('save')
+            pitcher['win'] = is_winner
+            pitcher['loss'] = is_loser
+            pitcher['save'] = is_save
+            if is_winner:
+                pitcher['decision'] = 'W'
+            elif is_loser:
+                pitcher['decision'] = 'L'
+            elif is_save:
+                pitcher['decision'] = 'S'
 
     game_data = {
         'basic_info': basic_info,
@@ -1388,6 +1506,9 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
 
     # Resolve any register-format player IDs to MLB-format IDs
     game_data = resolve_player_ids_in_game(game_data, verbose=verbose)
+    normalize_api_batting_rows(game_data)
+    SpecialEventsEngine(game_data).detect()
+    MilestoneEngine(game_data).process()
 
     return game_data
 

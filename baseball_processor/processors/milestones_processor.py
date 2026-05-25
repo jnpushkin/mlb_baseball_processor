@@ -309,9 +309,33 @@ class MilestonesProcessor(BaseProcessor):
     def _extract_game_milestones(self, game, milestone_tabs):
         """Extract milestone data from a processed game."""
         basic_info = game.get("basic_info", {})
+        source = str(game.get("source") or basic_info.get("source") or "").lower()
+        if source == "mlb" or source.startswith("mlb_"):
+            try:
+                from ..parsers.mlb_api_parser import normalize_api_batting_rows
+                from ..engines.milestone_engine import MilestoneEngine
+                normalize_api_batting_rows(game)
+                MilestoneEngine(game).process()
+            except Exception:
+                pass
+
         milestones = game.get("milestone_stats", {})
         special_events = game.get("special_events", {})
         linescore = game.get("linescore", {})
+
+        # API-sourced cached games may not have BREF footer-derived special events.
+        # Re-read grand slams from play-by-play descriptions so current API-first
+        # games do not miss them.
+        try:
+            from ..engines.special_events_engine import SpecialEventsEngine
+            special_engine = SpecialEventsEngine(game)
+            special_engine.detect_walkoff()
+            if not special_events.get("leadoff_hrs"):
+                special_engine.detect_leadoff_home_runs()
+            special_engine.detect_grand_slams()
+            special_events = game.get("special_events", {})
+        except Exception:
+            pass
 
         # Calculate max innings for score display
         max_innings = self._calculate_max_innings(linescore)

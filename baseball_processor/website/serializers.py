@@ -1571,24 +1571,28 @@ class DataSerializer:
         # Key plays/moments from play-by-play
         key_plays = []
         for play in raw_game.get('play_by_play', []):
-            # Home runs
-            if play.get('home_run'):
-                key_plays.append({
-                    'type': 'home_run',
-                    'inning': f"{play.get('half', '').title()} {play.get('inning', '')}",
-                    'batter': play.get('batter', ''),
-                    'pitcher': play.get('pitcher', ''),
-                    'description': play.get('description', ''),
-                    'rbi': play.get('rbi', 1)
-                })
-            # Grand slams
-            elif play.get('grand_slam'):
+            description = str(play.get('description', ''))
+            is_grand_slam = play.get('grand_slam') or 'grand slam' in description.lower()
+            is_home_run = play.get('home_run') or play.get('event_type') == 'home_run' or is_grand_slam
+
+            # Grand slams must be checked before generic home runs.
+            if is_grand_slam:
                 key_plays.append({
                     'type': 'grand_slam',
                     'inning': f"{play.get('half', '').title()} {play.get('inning', '')}",
                     'batter': play.get('batter', ''),
                     'pitcher': play.get('pitcher', ''),
-                    'description': play.get('description', '')
+                    'description': description,
+                    'rbi': play.get('rbi', 4)
+                })
+            elif is_home_run:
+                key_plays.append({
+                    'type': 'home_run',
+                    'inning': f"{play.get('half', '').title()} {play.get('inning', '')}",
+                    'batter': play.get('batter', ''),
+                    'pitcher': play.get('pitcher', ''),
+                    'description': description,
+                    'rbi': play.get('rbi', 1)
                 })
         
         if key_plays:

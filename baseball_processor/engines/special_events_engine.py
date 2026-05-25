@@ -159,13 +159,17 @@ class SpecialEventsEngine:
         self.game_date = self.basic.get("date_yyyymmdd", "")
         self.final_score = f"{self.basic.get('away_team_code')} {self.basic.get('away_score_value')} – {self.basic.get('home_score_value')} {self.basic.get('home_team_code')}"
 
-        self.special_events = game_data.setdefault("special_events", {
+        default_special_events = {
             'walkoff': None,
             'immaculate_innings': [],
             'leadoff_hrs': [],
             'grand_slams': [],
             'pinch_hit_hrs': [],
-        })
+        }
+        self.special_events = game_data.setdefault("special_events", {})
+        for key, default_value in default_special_events.items():
+            if key not in self.special_events:
+                self.special_events[key] = list(default_value) if isinstance(default_value, list) else default_value
 
         # Build name-to-player-ID lookup from batting/pitching rosters
         self._name_to_id = {}
@@ -238,6 +242,59 @@ class SpecialEventsEngine:
         
         return stats
 
+    def _grand_slam_signature(self, player, inning, half):
+        return (
+            self._normalize_name_for_comparison(player),
+            str(inning or ""),
+            str(half or "").strip().lower(),
+        )
+
+    def _append_grand_slam(self, batter, side, half, inning, pitcher, description="Grand Slam"):
+        if not batter:
+            return
+
+        signature = self._grand_slam_signature(batter, inning, half)
+        existing = {
+            self._grand_slam_signature(
+                event.get("player", ""),
+                event.get("inning", ""),
+                event.get("half", ""),
+            )
+            for event in self.special_events.get("grand_slams", [])
+        }
+        if signature in existing:
+            return
+
+        enhanced_stats = self.get_footer_prioritized_player_stats(batter, side)
+        team_code = self.basic.get(f"{side}_team_code", "")
+        opponent_side = "away" if side == "home" else "home"
+        opponent_code = self.basic.get(f"{opponent_side}_team_code", "")
+
+        self.special_events["grand_slams"].append({
+            "player": batter,
+            "player_id": self._resolve_player_id(batter),
+            "team": self.home_team if side == "home" else self.away_team,
+            "team_code": team_code,
+            "opposing_team": self.away_team if side == "home" else self.home_team,
+            "opponent_code": opponent_code,
+            "description": description or "Grand Slam",
+            "pitcher": pitcher or "Unknown",
+            "game_id": self.game_id,
+            "game_date": self.game_date,
+            "final_score": self.final_score,
+            "half": half,
+            "inning": str(inning or ""),
+            "home_runs": enhanced_stats.get('HR', 1),
+            "doubles": enhanced_stats.get('2B', 0),
+            "triples": enhanced_stats.get('3B', 0),
+            "hits": enhanced_stats.get('H', 1),
+            "runs": enhanced_stats.get('R', 0),
+            "rbi": enhanced_stats.get('RBI', 4),
+            "ab": enhanced_stats.get('AB', 1),
+            "bb": enhanced_stats.get('BB', 0),
+            "so": enhanced_stats.get('SO', 0),
+        })
+
     def detect(self):
         self.detect_walkoff()
         self.detect_leadoff_home_runs()
@@ -255,7 +312,11 @@ class SpecialEventsEngine:
         if self.home_score > self.away_score:
             plays = self.game_data.get("play_by_play", [])
             last_play = plays[-1] if plays else None
-            if last_play and last_play.get("half") == "bottom" and (last_play.get("run_scored", False) or last_play.get("home_run", False)):
+            if last_play and last_play.get("half") == "bottom" and (
+                last_play.get("run_scored", False)
+                or last_play.get("is_scoring_play", False)
+                or last_play.get("home_run", False)
+            ):
                 batter_name = last_play.get("batter", "Unknown")
                 self.special_events["walkoff"] = {
                     "batter": batter_name,
@@ -347,45 +408,32 @@ class SpecialEventsEngine:
                     inning = inning_match.group(1)
                     matched_half = "Top" if side == "away" else "Bottom"
 
-                    # ADDED: Get complete batting stats using footer-prioritized lookup
-                    enhanced_stats = self.get_footer_prioritized_player_stats(batter, side)
-                    
-                    # Extract specific stats with Grand Slam minimums
-                    home_runs = enhanced_stats.get('HR', 1)  # At least 1 for the grand slam
-                    doubles = enhanced_stats.get('2B', 0)
-                    triples = enhanced_stats.get('3B', 0)
-                    hits = enhanced_stats.get('H', 1)        # At least 1 for the grand slam
-                    runs = enhanced_stats.get('R', 0)
-                    rbi = enhanced_stats.get('RBI', 4)       # At least 4 for the grand slam
-                    ab = enhanced_stats.get('AB', 1)         # At least 1 AB
-                    bb = enhanced_stats.get('BB', 0)
-                    so = enhanced_stats.get('SO', 0)
+                    self._append_grand_slam(batter, side, matched_half, inning, pitcher, "Grand Slam")
 
-                    self.special_events["grand_slams"].append({
-                        "player": batter,
-                        "player_id": self._resolve_player_id(batter),
-                        "team": self.home_team if side == "home" else self.away_team,
-                        "team_code": self.basic.get(f"{side}_team_code", ""),
-                        "opposing_team": self.away_team if side == "home" else self.home_team,
-                        "opponent_code": self.basic.get("away_team_code" if side == "home" else "home_team_code"),
-                        "description": "Grand Slam",
-                        "pitcher": pitcher or "Unknown",
-                        "game_id": self.game_id,
-                        "game_date": self.game_date,
-                        "final_score": self.final_score,
-                        "half": matched_half,
-                        "inning": inning,
-                        # ADDED: Complete batting stats with footer-prioritized data
-                        "home_runs": home_runs,
-                        "doubles": doubles, 
-                        "triples": triples,
-                        "hits": hits,
-                        "runs": runs,
-                        "rbi": rbi,
-                        "ab": ab,
-                        "bb": bb,
-                        "so": so
-                    })
+        for play in self.game_data.get("play_by_play", []):
+            description = unicodedata.normalize("NFKD", str(play.get("description", ""))).strip()
+            if not play.get("grand_slam") and "grand slam" not in description.lower():
+                continue
+
+            half = str(play.get("half", "")).lower()
+            if half not in ("top", "bottom"):
+                batting_team = play.get("batting_team", "")
+                if batting_team == self.basic.get("away_team_code"):
+                    half = "top"
+                elif batting_team == self.basic.get("home_team_code"):
+                    half = "bottom"
+            if half not in ("top", "bottom"):
+                continue
+
+            side = "away" if half == "top" else "home"
+            self._append_grand_slam(
+                batter=play.get("batter", ""),
+                side=side,
+                half=half.title(),
+                inning=play.get("inning", ""),
+                pitcher=play.get("pitcher", ""),
+                description=description or "Grand Slam",
+            )
 
     def detect_pinch_hit_hrs_from_html(self):
         """Detect pinch hit home runs with chronological substitution processing."""

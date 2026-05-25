@@ -164,7 +164,7 @@ class CacheDataQualityTests(unittest.TestCase):
 
         self.assertNotIn("Scoreless Relief", milestones)
         self.assertNotIn("scoreless_relief", milestones)
-        self.assertEqual(21, len(milestones["Multi-SB Games"]))
+        self.assertEqual(22, len(milestones["Multi-SB Games"]))
 
 
 if __name__ == "__main__":

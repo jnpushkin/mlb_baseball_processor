@@ -151,6 +151,7 @@ def run_processor(website_only=True):
         'baseball_processor',
         '--from-cache-only',
         '--update-debuts',
+        '--download-bref-backups',
     ]
     if website_only:
         cmd.append('--website-only')

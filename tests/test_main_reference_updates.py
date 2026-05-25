@@ -25,6 +25,8 @@ def make_args(**overrides):
         "website_only": False,
         "skip_debut_update": False,
         "update_debuts": False,
+        "download_bref_backups": False,
+        "skip_bref_parity": False,
         "deploy": False,
         "no_deploy": False,
         "surge_domain": None,
@@ -68,6 +70,13 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertTrue(_should_update_debuts(args))
         self.assertFalse(_should_download_bref_backups(args))
+
+    def test_bref_backup_download_can_be_enabled_for_cache_only_runs(self):
+        args = make_args(from_cache_only=True, download_bref_backups=True)
+
+        self.assertFalse(_should_refresh_all_time_leaders(args))
+        self.assertFalse(_should_update_debuts(args))
+        self.assertTrue(_should_download_bref_backups(args))
 
     def test_skip_debut_update_overrides_forced_debut_update(self):
         args = make_args(from_cache_only=True, update_debuts=True, skip_debut_update=True)

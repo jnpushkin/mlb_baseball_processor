@@ -359,6 +359,7 @@ class MilestoneEngine:
             ms[key] = []
         linescore = self.game_data.get("linescore", {})
         basic = self.game_data.get("basic_info", {})
+        pitcher_decisions = self.game_data.get("pitcher_decisions", {}) or {}
         game_id = self.game_data.get("game_id", "")
         game_date = basic.get("date_yyyymmdd", "")
 
@@ -390,7 +391,7 @@ class MilestoneEngine:
                 runs = pitcher.get('R', 0)
                 er = pitcher.get('ER', 0)
                 walks = pitcher.get('BB', 0)
-                decision = pitcher.get('decision', '')
+                decision = str(pitcher.get('decision', '') or '').upper()
                 pitches = (
                     pitcher.get('Pit')
                     or pitcher.get('PIT')
@@ -399,6 +400,27 @@ class MilestoneEngine:
                     or 0
                 )
                 save = pitcher.get('save', False)
+
+                if not decision:
+                    if (
+                        pitcher.get('win')
+                        or pid == pitcher_decisions.get('winning_pitcher_id')
+                        or name == pitcher_decisions.get('winning_pitcher')
+                    ):
+                        decision = 'W'
+                    elif (
+                        pitcher.get('loss')
+                        or pid == pitcher_decisions.get('losing_pitcher_id')
+                        or name == pitcher_decisions.get('losing_pitcher')
+                    ):
+                        decision = 'L'
+                    elif (
+                        save
+                        or pid == pitcher_decisions.get('save_pitcher_id')
+                        or name == pitcher_decisions.get('save_pitcher')
+                    ):
+                        decision = 'S'
+                save = save or decision == 'S'
 
                 try:
                     outs = StatUtils.ip_to_outs(ip)
