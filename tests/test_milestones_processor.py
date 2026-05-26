@@ -304,6 +304,77 @@ class MilestonesProcessorTests(unittest.TestCase):
         self.assertEqual(2, row["HR"])
         self.assertEqual(2, row["H"])
 
+    def test_consecutive_home_runs_include_game_context(self):
+        game = {
+            "game_id": "BAL200405270",
+            "source": "bref",
+            "basic_info": {
+                "date_yyyymmdd": "20040527",
+                "away_team": "New York Yankees",
+                "home_team": "Baltimore Orioles",
+                "away_team_code": "NYY",
+                "home_team_code": "BAL",
+                "away_score_value": 18,
+                "home_score_value": 5,
+            },
+            "linescore": {
+                "away": {"innings": ["0", "0", "0", "3", "0", "8", "2", "0", "5"], "R": 18},
+                "home": {"innings": ["0", "0", "3", "0", "0", "0", "0", "1", "1"], "R": 5},
+            },
+            "raw_plays": [
+                {
+                    "inning": 3,
+                    "half": "bottom",
+                    "batting_team": "Baltimore Orioles",
+                    "pitching_team": "New York Yankees",
+                    "batter": "Miguel\xa0Tejada",
+                    "pitcher": "Jose Contreras",
+                    "outs": 2,
+                    "description": "Home Run (Fly Ball to Deep LF); M. Mora Scores",
+                    "score": "0-0",
+                    "pitch_count": 2,
+                },
+                {
+                    "inning": 3,
+                    "half": "bottom",
+                    "batting_team": "Baltimore Orioles",
+                    "pitching_team": "New York Yankees",
+                    "batter": "Rafael Palmeiro",
+                    "pitcher": "Jose Contreras",
+                    "outs": 2,
+                    "description": "Home Run (Fly Ball to Deep RF)",
+                    "score": "2-0",
+                    "pitch_count": 4,
+                },
+                {
+                    "inning": 3,
+                    "half": "bottom",
+                    "batting_team": "Baltimore Orioles",
+                    "pitching_team": "New York Yankees",
+                    "batter": "Javy Lopez",
+                    "pitcher": "Jose Contreras",
+                    "outs": 2,
+                    "description": "Groundout: SS-1B",
+                },
+            ],
+            "play_by_play": [],
+            "special_events": {},
+            "milestone_stats": {},
+        }
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            milestones, _, _, _, b2b_only_df, *_ = MilestonesProcessor([game]).process_all_milestones()
+
+        row = b2b_only_df.iloc[0]
+        expected_detail = (
+            "Bottom 3, 2 outs: Miguel Tejada 2-run HR (2nd pitch), "
+            "Rafael Palmeiro solo HR (4th pitch) - off Jose Contreras - BAL 0-0 -> 3-0"
+        )
+        self.assertEqual(expected_detail, row["Detail"])
+        self.assertEqual(f"05/27/2004 vs NYY - {expected_detail}", row["Summary Detail"])
+        self.assertEqual("BAL 0-0 -> 3-0", row["Score Swing"])
+        self.assertEqual(expected_detail, milestones["Consecutive HR Instances"].iloc[0]["Detail"])
+
     def test_comprehensive_summary_only_prints_notable_categories(self):
         current_year = datetime.now().year
         milestone_dfs = {

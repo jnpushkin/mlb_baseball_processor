@@ -1184,6 +1184,125 @@ class MilestonesProcessor(BaseProcessor):
             total_b2b_events = 0
             longest_hr_chain = 0
 
+            def clean_name(value):
+                if value is None:
+                    return ""
+                return re.sub(r"\s+", " ", str(value).replace("\xa0", " ")).strip()
+
+            def hr_rbi(play):
+                rbi = safe_get_int(play, "rbi", 0)
+                if rbi:
+                    return rbi
+                description = safe_get_str(play, "description", "")
+                scored = len(re.findall(r"\bScores\b", description, flags=re.IGNORECASE))
+                return max(1, min(4, scored + 1))
+
+            def hr_value_label(rbi):
+                if rbi == 1:
+                    return "solo HR"
+                if rbi == 4:
+                    return "grand slam"
+                return f"{rbi}-run HR"
+
+            def score_tuple(score):
+                score_text = "" if score is None else str(score)
+                match = re.search(r"(\d+)\s*(?:-|\u2013)\s*(\d+)", score_text)
+                if not match:
+                    return None
+                return int(match.group(1)), int(match.group(2))
+
+            def score_swing(play, rbi, side, team_code, opp_code):
+                # MLB API scores are post-play; BREF play rows store the score before the play.
+                if play.get("away_score") not in (None, "") and play.get("home_score") not in (None, ""):
+                    after_away = safe_get_int(play, "away_score", 0)
+                    after_home = safe_get_int(play, "home_score", 0)
+                    before_away = after_away - rbi if side == "away" else after_away
+                    before_home = after_home - rbi if side == "home" else after_home
+                else:
+                    parsed = score_tuple(play.get("score"))
+                    if not parsed:
+                        return ""
+                    before_team, before_opp = parsed
+                    return f"{team_code} {before_team}-{before_opp} -> {before_team + rbi}-{before_opp}"
+
+                if side == "away":
+                    before = f"{before_away}-{before_home}"
+                    after = f"{after_away}-{after_home}"
+                else:
+                    before = f"{before_home}-{before_away}"
+                    after = f"{after_home}-{after_away}"
+                return f"{team_code} {before} -> {after}"
+
+            def unique_ordered(values):
+                seen = set()
+                ordered = []
+                for value in values:
+                    if value and value not in seen and value != "Unknown":
+                        seen.add(value)
+                        ordered.append(value)
+                return ordered
+
+            def append_chain(chain, game_id, date, inning, half):
+                nonlocal total_b2b_events, longest_hr_chain
+                if len(chain) < 2:
+                    return
+
+                total_b2b_events += 1
+                longest_hr_chain = max(longest_hr_chain, len(chain))
+
+                inning_label = f"{half.title()} {inning}" if half and inning else "Unknown"
+                outs = chain[0].get("outs")
+                inning_detail = inning_label
+                if outs not in (None, ""):
+                    out_count = safe_get_int(chain[0], "outs", 0)
+                    inning_detail += f", {out_count} {'out' if out_count == 1 else 'outs'}"
+
+                player_parts = []
+                for event in chain:
+                    player_part = f"{event['batter']} {hr_value_label(event['rbi'])}"
+                    pitch_context = self._format_pitch_context(event)
+                    if pitch_context:
+                        player_part += f" ({pitch_context})"
+                    player_parts.append(player_part)
+
+                pitcher_names = unique_ordered(event.get("pitcher", "") for event in chain)
+                detail_parts = [f"{inning_detail}: {', '.join(player_parts)}"]
+                if pitcher_names:
+                    detail_parts.append(f"off {' / '.join(pitcher_names)}")
+
+                first_swing = chain[0].get("score_before_after", "")
+                last_swing = chain[-1].get("score_before_after", "")
+                score_context = ""
+                if first_swing and last_swing:
+                    first_before = first_swing.split(" -> ", 1)[0]
+                    last_after = last_swing.split(" -> ", 1)[-1]
+                    score_context = f"{first_before} -> {last_after}"
+                    detail_parts.append(score_context)
+
+                detail = " - ".join(detail_parts)
+                date_display = ""
+                if date and len(str(date)) == 8:
+                    date_display = f"{str(date)[4:6]}/{str(date)[6:8]}/{str(date)[0:4]}"
+                opponent = chain[0].get("opp_code", "")
+                summary_detail = detail
+                if date_display:
+                    summary_detail = f"{date_display} vs {opponent} - {detail}"
+
+                b2b_rows.append({
+                    "Date": date,
+                    "Team": chain[0]["team_code"],
+                    "Opponent": opponent,
+                    "Inning": inning_label,
+                    "Players": ", ".join(event["batter"] for event in chain),
+                    "Pitchers": ", ".join(pitcher_names),
+                    "HR Count": len(chain),
+                    "HR Details": ", ".join(player_parts),
+                    "Score Swing": score_context,
+                    "Detail": detail,
+                    "Summary Detail": summary_detail,
+                    "GameID": game_id
+                })
+
             for game in self.games:
                 game_id = self.get_game_id(game)
                 basic_info = self.get_basic_info(game)
@@ -1195,6 +1314,8 @@ class MilestonesProcessor(BaseProcessor):
 
                 home_team = safe_get_str(basic_info, "home_team", "")
                 away_team = safe_get_str(basic_info, "away_team", "")
+                home_code = unify_team_code(standardize_team_code(safe_get_str(basic_info, "home_team_code", "")))
+                away_code = unify_team_code(standardize_team_code(safe_get_str(basic_info, "away_team_code", "")))
 
                 current_team = None
                 current_inning = None
@@ -1213,13 +1334,17 @@ class MilestonesProcessor(BaseProcessor):
                     team = safe_get_str(play, "batting_team", "")
                     inning = safe_get_int(play, "inning", 0)
                     half = safe_get_str(play, "half", "")
-                    batter = safe_get_str(play, "batter", "Unknown")
-                    pitcher = safe_get_str(play, "pitcher", "Unknown")
+                    batter = clean_name(play.get("batter", "Unknown")) or "Unknown"
+                    pitcher = clean_name(play.get("pitcher", "Unknown")) or "Unknown"
 
-                    # Apply team code standardization
-                    team_code = unify_team_code(standardize_team_code(team))
-                    opp_name = home_team if team == away_team else away_team
-                    opp_code = unify_team_code(standardize_team_code(opp_name))
+                    if team in (away_team, away_code) or half.lower() == "top":
+                        side = "away"
+                        team_code = away_code
+                        opp_code = home_code
+                    else:
+                        side = "home"
+                        team_code = home_code
+                        opp_code = away_code
 
                     is_same_context = (
                         team == current_team and
@@ -1228,56 +1353,37 @@ class MilestonesProcessor(BaseProcessor):
                     )
 
                     if event_is_hr:
+                        rbi = hr_rbi(play)
+                        hr_event = {
+                            "batter": batter,
+                            "pitcher": pitcher,
+                            "team_code": team_code,
+                            "opp_code": opp_code,
+                            "rbi": rbi,
+                            "outs": play.get("outs_before", play.get("outs")),
+                            "score_before_after": score_swing(play, rbi, side, team_code, opp_code),
+                        }
+                        for field in (
+                            "pitch_count", "pitch_number", "pitch_count_at_play",
+                            "pitch_call", "pitch_type", "pitch_type_code", "pitch_speed",
+                        ):
+                            value = play.get(field)
+                            if value not in (None, ""):
+                                hr_event[field] = value
                         if is_same_context:
-                            hr_chain.append((batter, pitcher, team_code, opp_code))
+                            hr_chain.append(hr_event)
                         else:
-                            if len(hr_chain) >= 2:
-                                total_b2b_events += 1
-                                longest_hr_chain = max(longest_hr_chain, len(hr_chain))
-                                b2b_rows.append({
-                                    "Date": date,
-                                    "Team": hr_chain[0][2],
-                                    "Opponent": hr_chain[0][3],
-                                    "Inning": f"{current_half.title()} {current_inning}" if current_half and current_inning else "Unknown",
-                                    "Players": ", ".join(p[0] for p in hr_chain),
-                                    "Pitchers": ", ".join(set(p[1] for p in hr_chain)),
-                                    "HR Count": len(hr_chain),
-                                    "GameID": game_id
-                                })
-                            hr_chain = [(batter, pitcher, team_code, opp_code)]
+                            append_chain(hr_chain, game_id, date, current_inning, current_half)
+                            hr_chain = [hr_event]
                             current_team = team
                             current_inning = inning
                             current_half = half
                     else:
-                        if len(hr_chain) >= 2:
-                            total_b2b_events += 1
-                            longest_hr_chain = max(longest_hr_chain, len(hr_chain))
-                            b2b_rows.append({
-                                "Date": date,
-                                "Team": hr_chain[0][2],
-                                "Opponent": hr_chain[0][3],
-                                "Inning": f"{current_half.title()} {current_inning}" if current_half and current_inning else "Unknown",
-                                "Players": ", ".join(p[0] for p in hr_chain),
-                                "Pitchers": ", ".join(set(p[1] for p in hr_chain)),
-                                "HR Count": len(hr_chain),
-                                "GameID": game_id
-                            })
+                        append_chain(hr_chain, game_id, date, current_inning, current_half)
                         hr_chain = []
 
                 # Check final chain
-                if len(hr_chain) >= 2:
-                    total_b2b_events += 1
-                    longest_hr_chain = max(longest_hr_chain, len(hr_chain))
-                    b2b_rows.append({
-                        "Date": date,
-                        "Team": hr_chain[0][2],
-                        "Opponent": hr_chain[0][3],
-                        "Inning": f"{current_half.title()} {current_inning}" if current_half and current_inning else "Unknown",
-                        "Players": ", ".join(p[0] for p in hr_chain),
-                        "Pitchers": ", ".join(set(p[1] for p in hr_chain)),
-                        "HR Count": len(hr_chain),
-                        "GameID": game_id
-                    })
+                append_chain(hr_chain, game_id, date, current_inning, current_half)
 
             # Create DataFrames
             df_b2b2b = self.create_dataframe(b2b_rows)
@@ -1294,7 +1400,7 @@ class MilestonesProcessor(BaseProcessor):
             
         except Exception as e:
             print(f"   ⚠️ Error detecting consecutive home runs: {e}")
-            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     
     def _clean_play_description(self, description):
         """Clean up play descriptions for better readability with proper name capitalization."""

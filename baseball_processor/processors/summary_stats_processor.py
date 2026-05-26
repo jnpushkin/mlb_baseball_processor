@@ -1478,7 +1478,13 @@ class SummaryStatsProcessor(BaseProcessor):
                 inning = str(row.get("Inning", ""))
                 hr_count = int(row.get("HR Count", 0)) if pd.notna(row.get("HR Count")) else streak_len
                 game_id = str(row.get("GameID", ""))
-                detail = f"{inning}: {players}" if inning and players else players or f"{hr_count} consecutive HRs"
+                summary_detail = row.get("Summary Detail", "")
+                detail = str(summary_detail).strip() if pd.notna(summary_detail) else ""
+                if not detail:
+                    row_detail = row.get("Detail", "")
+                    detail = str(row_detail).strip() if pd.notna(row_detail) else ""
+                if not detail:
+                    detail = f"{inning}: {players}" if inning and players else players or f"{hr_count} consecutive HRs"
                 details.append(detail)
                 # Try to get score from game data
                 try:

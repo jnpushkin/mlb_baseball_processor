@@ -733,9 +733,17 @@ class DataSerializer:
                     players = str(row.get("Players", ""))
                     hr_count = int(row.get("HR Count", 0)) if pd.notna(row.get("HR Count")) else 0
                     inning = str(row.get("Inning", ""))
+                    detail_value = row.get("Detail", "")
+                    detail = str(detail_value).strip() if pd.notna(detail_value) else ""
+                    if not detail:
+                        detail = f"{hr_count} consecutive HRs in {inning}: {players}"
                     milestone.update({
                         "player": players,
-                        "detail": f"{hr_count} consecutive HRs in {inning}: {players}"
+                        "detail": detail,
+                        "hrCount": hr_count,
+                        "inning": inning,
+                        "pitchers": str(row.get("Pitchers", "")),
+                        "scoreSwing": str(row.get("Score Swing", "")),
                     })
 
                 elif milestone_type in batting_types:

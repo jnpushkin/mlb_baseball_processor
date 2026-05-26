@@ -261,6 +261,35 @@ class DataSerializerTests(unittest.TestCase):
         self.assertEqual("4 R - 2 H (1 2B, 0 3B, 0 HR), 2 RBI", serialized[0]["detail"])
         self.assertEqual(4, serialized[0]["r"])
 
+    def test_serialize_consecutive_hr_milestones_preserves_context(self):
+        milestones = {
+            "Consecutive HR Instances": pd.DataFrame(
+                [
+                    {
+                        "Date": "2004-05-27",
+                        "Team": "BAL",
+                        "Opponent": "NYY",
+                        "GameID": "BAL200405270",
+                        "Inning": "Bottom 3",
+                        "Players": "Miguel Tejada, Rafael Palmeiro",
+                        "Pitchers": "Jose Contreras",
+                        "HR Count": 2,
+                        "Score Swing": "BAL 0-0 -> 3-0",
+                        "Detail": "Bottom 3, 2 outs: Miguel Tejada 2-run HR, Rafael Palmeiro solo HR - off Jose Contreras - BAL 0-0 -> 3-0",
+                    }
+                ]
+            )
+        }
+
+        serialized = DataSerializer()._serialize_milestones(milestones)
+
+        self.assertEqual("Consecutive HR Instances", serialized[0]["type"])
+        self.assertEqual("Miguel Tejada, Rafael Palmeiro", serialized[0]["player"])
+        self.assertEqual(2, serialized[0]["hrCount"])
+        self.assertEqual("Jose Contreras", serialized[0]["pitchers"])
+        self.assertEqual("BAL 0-0 -> 3-0", serialized[0]["scoreSwing"])
+        self.assertIn("2-run HR", serialized[0]["detail"])
+
     def test_serialize_hall_of_famers_preserves_ids_and_stats(self):
         df = pd.DataFrame(
             [
