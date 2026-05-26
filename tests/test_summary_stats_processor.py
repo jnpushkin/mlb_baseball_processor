@@ -6,7 +6,7 @@ from baseball_processor.processors.summary_stats_processor import SummaryStatsPr
 def make_processor():
     return SummaryStatsProcessor(
         games=[],
-        all_players=[],
+        all_players={},
         b2b_only_df=pd.DataFrame(),
         b2b2b_only_df=pd.DataFrame(),
         b2b2b2b_only_df=pd.DataFrame(),
@@ -15,6 +15,28 @@ def make_processor():
         pitchers_df=pd.DataFrame(),
         milestones={},
     )
+
+
+def make_summary_game(game_id, away, home, date_yyyymmdd, away_score, home_score):
+    return {
+        "game_id": game_id,
+        "basic_info": {
+            "away_team_code": away,
+            "home_team_code": home,
+            "date_yyyymmdd": date_yyyymmdd,
+            "away_score_value": away_score,
+            "home_score_value": home_score,
+        },
+        "linescore": {
+            "away": {"R": away_score, "H": 0, "innings": ["0"] * 9},
+            "home": {"R": home_score, "H": 0, "innings": ["0"] * 9},
+        },
+    }
+
+
+def summary_row(processor, record):
+    rows = processor._build_summary_rows(pd.DataFrame())
+    return next(row for row in rows if row["Record"] == record)
 
 
 def test_formats_inside_the_park_home_run_detail_with_play_context():
@@ -165,6 +187,53 @@ def test_formats_combined_hit_extreme_as_hit_totals_only():
     detail = processor._make_combined_detail(game, "H")
 
     assert detail == "7 total hits: LAD 4 H, SF 3 H (10 innings)"
+
+
+def test_most_sb_player_summary_keeps_game_context_aligned_with_player_details():
+    processor = make_processor()
+    processor.games = [
+        make_summary_game("BAL202506240", "TEX", "BAL", "20250624", 6, 5),
+        make_summary_game("SFN202404090", "WAS", "SF", "20240409", 8, 1),
+        make_summary_game("SFN202404080", "WAS", "SF", "20240408", 5, 3),
+    ]
+    processor.most_sb_player = 3
+    processor.most_sb_player_gameids = [
+        "BAL202506240",
+        "SFN202404090",
+        "SFN202404080",
+    ]
+    processor.most_sb_player_labels = [
+        "Sam Haggerty (3)",
+        "Trey Lipscomb (3)",
+        "Jacob Young (3)",
+    ]
+
+    row = summary_row(processor, "Most SBs by One Player")
+
+    assert row["Detail"] == "Jacob Young (3); Trey Lipscomb (3); Sam Haggerty (3)"
+    assert row["Score"] == "WAS 5 – 3 SF; WAS 8 – 1 SF; TEX 6 – 5 BAL"
+    assert row["GameIDs"] == "SFN202404080, SFN202404090, BAL202506240"
+
+
+def test_consecutive_hr_summary_preserves_duplicate_game_ids_per_event():
+    processor = make_processor()
+    processor.games = [
+        make_summary_game("BAL200405270", "NYY", "BAL", "20040527", 18, 5),
+        make_summary_game("BAL200808220", "NYY", "BAL", "20080822", 9, 4),
+    ]
+    processor.b2b_only_df = pd.DataFrame(
+        [
+            {"GameID": "BAL200808220", "Summary Detail": "Bottom 5: first pair"},
+            {"GameID": "BAL200405270", "Summary Detail": "Bottom 3: early pair"},
+            {"GameID": "BAL200808220", "Summary Detail": "Top 9: second pair"},
+        ]
+    )
+
+    row = summary_row(processor, "Back-to-Back HR Events")
+
+    assert row["Detail"] == "Bottom 3: early pair; Bottom 5: first pair; Top 9: second pair"
+    assert row["Score"] == "NYY 18 – 5 BAL; NYY 9 – 4 BAL; NYY 9 – 4 BAL"
+    assert row["GameIDs"] == "BAL200405270, BAL200808220, BAL200808220"
 
 
 def test_home_run_record_counts_multi_homer_players_from_footer():

@@ -1294,6 +1294,22 @@ class SummaryStatsProcessor(BaseProcessor):
         summary_rows = []
         
         # Helper functions
+        def game_id_sort_key(game_id):
+            gid = str(game_id or "")
+            date_part = gid[3:11] if len(gid) >= 11 and gid[3:11].isdigit() else gid
+            return (date_part, gid)
+
+        def sorted_context_rows(ids, details, scores):
+            rows = [
+                (str(gid), str(detail), str(score))
+                for gid, detail, score in zip(ids, details, scores)
+                if str(gid or "").strip()
+            ]
+            return sorted(rows, key=lambda row: game_id_sort_key(row[0]))
+
+        def join_gameids_in_order(ids):
+            return ", ".join(str(gid).strip() for gid in ids if str(gid or "").strip())
+
         def group_games_by_value(value, label, ids, teams=None, stat_key="R"):
             grouped = []
             for idx, gid in enumerate(ids):
@@ -1335,33 +1351,48 @@ class SummaryStatsProcessor(BaseProcessor):
             details = []
             for name, stat in zip(self.most_pitches_pitcher_names, self.most_pitches_pitcher_statlines):
                 details.append(f"{name} — {stat}")
+            rows = sorted_context_rows(
+                self.most_pitches_pitcher_gameids,
+                details,
+                self.most_pitches_pitcher_scores,
+            )
 
             summary_rows.append({
                 "Record": "Most Pitches by One Pitcher",
                 "Value": self.most_pitches_single_game,
-                "Detail": "; ".join(details),
-                "Score": "; ".join(self.most_pitches_pitcher_scores),
-                "GameIDs": join_sorted_gameids(self.most_pitches_pitcher_gameids)
+                "Detail": "; ".join(row[1] for row in rows),
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         # Most Pitchers Used
         if self.most_pitchers_used > 0:
+            rows = sorted_context_rows(
+                self.most_pitchers_used_gameids,
+                self.most_pitchers_used_details,
+                self.most_pitchers_used_scores,
+            )
             summary_rows.append({
                 "Record": "Most Pitchers Used",
                 "Value": self.most_pitchers_used,
-                "Detail": "; ".join(self.most_pitchers_used_details),
-                "Score": "; ".join(self.most_pitchers_used_scores),
-                "GameIDs": join_sorted_gameids(self.most_pitchers_used_gameids)
+                "Detail": "; ".join(row[1] for row in rows),
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         # Fewest Pitchers Used
         if self.fewest_pitchers_used != float('inf') and self.fewest_pitchers_used_gameids:
+            rows = sorted_context_rows(
+                self.fewest_pitchers_used_gameids,
+                self.fewest_pitchers_used_details,
+                self.fewest_pitchers_used_scores,
+            )
             summary_rows.append({
                 "Record": "Fewest Pitchers Used",
                 "Value": self.fewest_pitchers_used,
-                "Detail": "; ".join(self.fewest_pitchers_used_details),
-                "Score": "; ".join(self.fewest_pitchers_used_scores),
-                "GameIDs": join_sorted_gameids(self.fewest_pitchers_used_gameids)
+                "Detail": "; ".join(row[1] for row in rows),
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         # Add most runs in a single inning
@@ -1467,54 +1498,47 @@ class SummaryStatsProcessor(BaseProcessor):
                     scores.append(self._create_score_string(game["basic_info"]))
                 except Exception:
                     scores.append("")
+            rows = sorted_context_rows(self.inside_park_hr_gameids, self.inside_park_hr_details, scores)
             
             summary_rows.append({
                 "Record": "Inside-the-Park Home Runs",
                 "Value": self.inside_park_hrs,
-                "Detail": "; ".join(self.inside_park_hr_details),
-                "Score": "; ".join(scores),
-                "GameIDs": join_sorted_gameids(sorted(set(self.inside_park_hr_gameids)))
+                "Detail": "; ".join(row[1] for row in rows),
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         # Most RBIs in a Game
         if self.most_rbi_gameids:
-            seen_ids = set()
-            combined = []
-            scores = []
+            rows = []
             for gid, label in zip(self.most_rbi_gameids, self.most_rbi_players):
-                if gid in seen_ids:
-                    continue
-                seen_ids.add(gid)
                 game = next(g for g in self.games if g["game_id"] == gid)
                 basic_info = game["basic_info"]
-                combined.append(label)
-                scores.append(self._create_score_string(basic_info))
+                rows.append((gid, label, self._create_score_string(basic_info)))
+            rows = sorted(rows, key=lambda row: game_id_sort_key(row[0]))
             summary_rows.append({
                 "Record": "Most RBIs in a Game",
                 "Value": self.most_rbi,
-                "Detail": "; ".join(combined),
-                "Score": "; ".join(scores),
-                "GameIDs": join_sorted_gameids(sorted(seen_ids))
+                "Detail": "; ".join(row[1] for row in rows),
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
         
         # Most SBs by One Player
         if self.most_sb_player_gameids:
-            scores = []
-            seen_ids = set()
-            for gid in self.most_sb_player_gameids:
-                if gid in seen_ids:
-                    continue
-                seen_ids.add(gid)
+            rows = []
+            for gid, label in zip(self.most_sb_player_gameids, self.most_sb_player_labels):
                 game = next(g for g in self.games if g["game_id"] == gid)
                 basic_info = game["basic_info"]
-                scores.append(self._create_score_string(basic_info))
+                rows.append((gid, label, self._create_score_string(basic_info)))
+            rows = sorted(rows, key=lambda row: game_id_sort_key(row[0]))
             
             summary_rows.append({
                 "Record": "Most SBs by One Player",
                 "Value": self.most_sb_player,
-                "Detail": "; ".join(self.most_sb_player_labels),
-                "Score": "; ".join(scores),
-                "GameIDs": join_sorted_gameids(sorted(seen_ids))
+                "Detail": "; ".join(row[1] for row in rows),
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
         
         # Most teams seen for any player (treat ATH and OAK as the same team)
@@ -1560,9 +1584,6 @@ class SummaryStatsProcessor(BaseProcessor):
             })
 
         # Simple tallies that always appear
-        def sorted_context_rows(ids, details, scores):
-            return sorted(zip(ids, details, scores), key=lambda row: row[0])
-
         games_1_0_rows = sorted_context_rows(self.games_1_0, self.games_1_0_details, self.games_1_0_scores)
         extra_inning_rows = sorted_context_rows(
             self.games_extra_innings, self.extra_inning_details, self.extra_inning_scores
@@ -1576,6 +1597,11 @@ class SummaryStatsProcessor(BaseProcessor):
         one_run_rows = sorted_context_rows(self.games_one_run, self.one_run_details, self.one_run_scores)
         biggest_victory_rows = sorted_context_rows(
             self.biggest_victory_gameids, self.biggest_victory_details, self.biggest_victory_scores
+        )
+        ten_plus_run_inning_rows = sorted_context_rows(
+            self.ten_plus_run_inning_gameids,
+            self.ten_plus_run_inning_details,
+            [""] * len(self.ten_plus_run_inning_details),
         )
 
         summary_rows.extend([
@@ -1610,16 +1636,15 @@ class SummaryStatsProcessor(BaseProcessor):
             {
                 "Record": "10+ Run Innings",
                 "Value": self.ten_plus_run_innings,
-                "Detail": "; ".join(self.ten_plus_run_inning_details),
+                "Detail": "; ".join(row[1] for row in ten_plus_run_inning_rows),
                 "Score": "",
-                "GameIDs": join_sorted_gameids(sorted(self.ten_plus_run_inning_gameids))
+                "GameIDs": join_gameids_in_order(row[0] for row in ten_plus_run_inning_rows)
             }
         ])
 
         # Add consecutive HR events with full details (players, inning)
-        def _build_consec_hr_detail(df, streak_len):
-            details = []
-            scores = []
+        def _build_consec_hr_rows(df, streak_len):
+            rows = []
             for _, row in df.iterrows():
                 players = str(row.get("Players", ""))
                 inning = str(row.get("Inning", ""))
@@ -1632,43 +1657,43 @@ class SummaryStatsProcessor(BaseProcessor):
                     detail = str(row_detail).strip() if pd.notna(row_detail) else ""
                 if not detail:
                     detail = f"{inning}: {players}" if inning and players else players or f"{hr_count} consecutive HRs"
-                details.append(detail)
                 # Try to get score from game data
                 try:
                     game = next(g for g in self.games if g["game_id"] == game_id)
-                    scores.append(self._create_score_string(game["basic_info"]))
+                    score = self._create_score_string(game["basic_info"])
                 except (StopIteration, KeyError):
-                    scores.append("")
-            return "; ".join(details), "; ".join(scores)
+                    score = ""
+                rows.append((game_id, detail, score))
+            return sorted(rows, key=lambda row: game_id_sort_key(row[0]))
 
         if len(self.b2b_only_df) > 0:
-            detail, score = _build_consec_hr_detail(self.b2b_only_df, 2)
+            rows = _build_consec_hr_rows(self.b2b_only_df, 2)
             summary_rows.append({
                 "Record": "Back-to-Back HR Events",
                 "Value": len(self.b2b_only_df),
-                "Detail": detail,
-                "Score": score,
-                "GameIDs": join_sorted_gameids(sorted(self.b2b_only_df["GameID"].unique()))
+                "Detail": "; ".join(row[1] for row in rows),
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         if len(self.b2b2b_only_df) > 0:
-            detail, score = _build_consec_hr_detail(self.b2b2b_only_df, 3)
+            rows = _build_consec_hr_rows(self.b2b2b_only_df, 3)
             summary_rows.append({
                 "Record": "Back-to-Back-to-Back HR Events",
                 "Value": len(self.b2b2b_only_df),
-                "Detail": detail,
-                "Score": score,
-                "GameIDs": join_sorted_gameids(sorted(self.b2b2b_only_df["GameID"].unique()))
+                "Detail": "; ".join(row[1] for row in rows),
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         if len(self.b2b2b2b_only_df) > 0:
-            detail, score = _build_consec_hr_detail(self.b2b2b2b_only_df, 4)
+            rows = _build_consec_hr_rows(self.b2b2b2b_only_df, 4)
             summary_rows.append({
                 "Record": "Back-to-Back-to-Back-to-Back HR Events",
                 "Value": len(self.b2b2b2b_only_df),
-                "Detail": detail,
-                "Score": score,
-                "GameIDs": join_sorted_gameids(sorted(self.b2b2b2b_only_df["GameID"].unique()))
+                "Detail": "; ".join(row[1] for row in rows),
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         # Player and total statistics
