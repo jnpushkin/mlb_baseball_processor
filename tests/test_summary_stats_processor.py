@@ -150,3 +150,37 @@ def test_formats_combined_hr_extreme_with_score_context():
         "BAL 4 HR: Seth Smith, Trey Mancini, Mark Trumbo, Welington Castillo - "
         "STL 5, BAL 8 (13 runs, 18 hits)"
     )
+
+
+def test_home_run_record_counts_multi_homer_players_from_footer():
+    processor = make_processor()
+    game = {
+        "basic_info": {"away_team_code": "BAL", "home_team_code": "MIN"},
+        "linescore": {
+            "away": {"R": 15, "H": 17, "innings": ["0"] * 9},
+            "home": {"R": 2, "H": 4, "innings": ["0"] * 9},
+        },
+        "batting": {
+            "away": [
+                {"name": "Austin Hays", "HR": 1},
+                {"name": "Ramon Urias", "HR": 1},
+                {"name": "Aaron Hicks", "HR": 1},
+                {"name": "Adley Rutschman", "HR": 1},
+                {"name": "Anthony Santander", "HR": 1},
+            ],
+            "home": [],
+        },
+        "footer_summary": {
+            "away": {
+                "HR": "Austin Hays (1); Ramon Urias (1); Aaron Hicks (1); "
+                "Adley Rutschman (1); Anthony Santander 2 (2)."
+            },
+            "home": {},
+        },
+    }
+
+    processor._process_home_run_statistics(game, "MIN202307090", game["basic_info"])
+
+    assert processor.most_hr == 6
+    assert processor.most_hr_teams == ["BAL"]
+    assert processor.most_hr_gameids == ["MIN202307090"]

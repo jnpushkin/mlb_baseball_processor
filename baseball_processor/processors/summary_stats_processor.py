@@ -738,27 +738,8 @@ class SummaryStatsProcessor(BaseProcessor):
 
     def _process_home_run_statistics(self, game, game_id, basic_info):
         """Process home run statistics."""
-        def parse_footer_hr_count(blob):
-            if not isinstance(blob, str) or not blob.strip():
-                return 0
-            pattern = r"\((\d+)\)"
-            counts = [int(n) for n in re.findall(pattern, blob)]
-            return sum(counts) if counts else len(blob.split(";"))
-        
-        # Get HR counts from batting box scores
-        hr_home_box = sum(p.get("HR", 0) for p in game.get("batting", {}).get("home", []))
-        hr_away_box = sum(p.get("HR", 0) for p in game.get("batting", {}).get("away", []))
-        
-        # Get HR counts from footer
-        hr_home_footer_blob = game.get("footer_summary", {}).get("home", {}).get("HR", "")
-        hr_away_footer_blob = game.get("footer_summary", {}).get("away", {}).get("HR", "")
-        
-        hr_home_footer = parse_footer_hr_count(hr_home_footer_blob)
-        hr_away_footer = parse_footer_hr_count(hr_away_footer_blob)
-        
-        # Use the maximum of box score and footer
-        hr_home = max(hr_home_box, hr_home_footer)
-        hr_away = max(hr_away_box, hr_away_footer)
+        hr_home, _ = self._team_hr_breakdown(game, "home")
+        hr_away, _ = self._team_hr_breakdown(game, "away")
         
         self.total_hr += hr_home + hr_away
         combined_hr = hr_home + hr_away
