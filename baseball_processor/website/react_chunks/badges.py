@@ -1358,7 +1358,7 @@ const PersonalRecords = ({ data }) => {
                                 const game = games[di] || null;
                                 const gameId = game?.gameId || score || di;
                                 const last = grouped[grouped.length - 1];
-                                if (last && last.gameId === gameId) last.details.push(detail);
+                                if (last && (last.gameId === gameId || (!game && !score))) last.details.push(detail);
                                 else grouped.push({ details: [detail], score, game, gameId });
                             });
                             return (
