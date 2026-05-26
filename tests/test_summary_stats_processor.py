@@ -152,6 +152,21 @@ def test_formats_combined_hr_extreme_with_score_context():
     )
 
 
+def test_formats_combined_hit_extreme_as_hit_totals_only():
+    processor = make_processor()
+    game = {
+        "basic_info": {"away_team_code": "LAD", "home_team_code": "SF"},
+        "linescore": {
+            "away": {"R": 1, "H": 4, "innings": ["0"] * 10},
+            "home": {"R": 5, "H": 3, "innings": ["0"] * 10},
+        },
+    }
+
+    detail = processor._make_combined_detail(game, "H")
+
+    assert detail == "7 total hits: LAD 4 H, SF 3 H (10 innings)"
+
+
 def test_home_run_record_counts_multi_homer_players_from_footer():
     processor = make_processor()
     game = {

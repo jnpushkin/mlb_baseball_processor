@@ -2393,6 +2393,13 @@ class SummaryStatsProcessor(BaseProcessor):
         elif stat_key == "H":
             a_val = game["linescore"]["away"].get("H", 0)
             h_val = game["linescore"]["home"].get("H", 0)
+            innings_played = max(
+                len(game.get("linescore", {}).get("away", {}).get("innings", []) or []),
+                len(game.get("linescore", {}).get("home", {}).get("innings", []) or []),
+            )
+            innings_label = f" ({innings_played} innings)" if innings_played > 9 else ""
+            total = self._safe_int(a_val) + self._safe_int(h_val)
+            return f"{total} total hits: {a_code} {a_val} H, {h_code} {h_val} H{innings_label}"
         elif stat_key == "SO":
             a_val = sum(p.get("SO", 0) for p in game["pitching"]["away"])
             h_val = sum(p.get("SO", 0) for p in game["pitching"]["home"])
