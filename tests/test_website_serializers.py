@@ -261,6 +261,109 @@ class DataSerializerTests(unittest.TestCase):
         self.assertEqual("4 R - 2 H (1 2B, 0 3B, 0 HR), 2 RBI", serialized[0]["detail"])
         self.assertEqual(4, serialized[0]["r"])
 
+    def test_serialize_batting_milestones_highlight_defining_stat(self):
+        milestones = {
+            "8+ Total Bases": pd.DataFrame(
+                [
+                    {
+                        "Date": "2026-04-03",
+                        "Player": "Power Bat",
+                        "Team": "AWY",
+                        "Opponent": "HOM",
+                        "GameID": "game-6",
+                        "H": 2,
+                        "R": 2,
+                        "RBI": 2,
+                        "2B": 0,
+                        "3B": 0,
+                        "HR": 2,
+                    }
+                ]
+            ),
+            "Multi-SB Games": pd.DataFrame(
+                [
+                    {
+                        "Date": "2026-04-04",
+                        "Player": "Fast Runner",
+                        "Team": "HOM",
+                        "Opponent": "AWY",
+                        "GameID": "game-7",
+                        "H": 1,
+                        "R": 1,
+                        "RBI": 0,
+                        "SB": 3,
+                    }
+                ]
+            ),
+        }
+
+        serialized = DataSerializer()._serialize_milestones(milestones, include_excluded=True)
+        by_type = {row["type"]: row for row in serialized}
+
+        self.assertEqual("8 TB - 2 H (0 2B, 0 3B, 2 HR), 2 R, 2 RBI", by_type["8+ Total Bases"]["detail"])
+        self.assertEqual(8, by_type["8+ Total Bases"]["tb"])
+        self.assertEqual("3 SB - 1 H (0 2B, 0 3B, 0 HR), 1 R, 0 RBI", by_type["Multi-SB Games"]["detail"])
+
+    def test_serialize_pitching_milestones_show_runs_pitches_and_decision(self):
+        milestones = {
+            "10+ K Games": pd.DataFrame(
+                [
+                    {
+                        "Date": "2025-09-12",
+                        "Player": "Ace Starter",
+                        "Team": "AWY",
+                        "Opponent": "HOM",
+                        "GameID": "game-8",
+                        "IP": "7.0",
+                        "H": 1,
+                        "R": 1,
+                        "ER": 1,
+                        "BB": 1,
+                        "SO": 10,
+                        "Pitches": 91,
+                        "Decision": "W",
+                    }
+                ]
+            )
+        }
+
+        serialized = DataSerializer()._serialize_milestones(milestones)
+
+        self.assertEqual("10 K - 7.0 IP, 1 H, 1 R, 1 ER, 1 BB, 91 P, W", serialized[0]["detail"])
+        self.assertEqual("W", serialized[0]["decision"])
+
+    def test_serialize_grand_slams_rebuilds_enhanced_context(self):
+        milestones = {
+            "Grand Slams": pd.DataFrame(
+                [
+                    {
+                        "Date": "2026-05-24",
+                        "Player": "Big Swing",
+                        "Team": "HOM",
+                        "Opponent": "AWY",
+                        "GameID": "game-9",
+                        "Inning": "Bottom 5",
+                        "Pitcher": "Away Pitcher",
+                        "H": 2,
+                        "R": 1,
+                        "RBI": 5,
+                        "2B": 1,
+                        "3B": 0,
+                        "HR": 1,
+                    }
+                ]
+            )
+        }
+
+        serialized = DataSerializer()._serialize_milestones(milestones)
+
+        self.assertEqual(
+            "Bottom 5 grand slam off Away Pitcher - 2 H (1 2B, 0 3B, 1 HR), 1 R, 5 RBI",
+            serialized[0]["detail"],
+        )
+        self.assertEqual("Bottom 5", serialized[0]["inning"])
+        self.assertEqual("Away Pitcher", serialized[0]["pitcher"])
+
     def test_serialize_consecutive_hr_milestones_preserves_context(self):
         milestones = {
             "Consecutive HR Instances": pd.DataFrame(

@@ -679,6 +679,176 @@ class DataSerializer:
         '7-Inning Shutouts', 'Dominant Starts', '3 Pitch Innings',
     }
 
+    @staticmethod
+    def _row_int(row, key, default=0):
+        value = row.get(key, default)
+        if value in (None, "") or pd.isna(value):
+            return default
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _clean_row_text(row, key):
+        value = row.get(key, "")
+        if value in (None, "") or pd.isna(value):
+            return ""
+        return str(value).strip()
+
+    @staticmethod
+    def _truthy_row_value(row, key):
+        value = row.get(key, False)
+        if value in (None, "") or pd.isna(value):
+            return False
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "y"}
+        return bool(value)
+
+    def _format_batting_milestone_detail(self, milestone_type, stats, existing_detail=""):
+        h = stats["h"]
+        doubles = stats["2b"]
+        triples = stats["3b"]
+        hr = stats["hr"]
+        rbi = stats["rbi"]
+        runs = stats["r"]
+        bb = stats["bb"]
+        sb = stats["sb"]
+        so = stats["so"]
+        ab = stats["ab"]
+        singles = max(0, h - doubles - triples - hr)
+        xbh = doubles + triples + hr
+        tb = singles + (2 * doubles) + (3 * triples) + (4 * hr)
+
+        stat_parts = [f"{h} H ({doubles} 2B, {triples} 3B, {hr} HR)"]
+        skip = set()
+        prefix_parts = []
+
+        if milestone_type in ("3+ HR Games", "Multi-HR Games") and hr:
+            prefix_parts.append(f"{hr} HR")
+            if tb:
+                prefix_parts.append(f"{tb} TB")
+        elif milestone_type == "8+ Total Bases" and tb:
+            prefix_parts.append(f"{tb} TB")
+        elif milestone_type == "2+ XBH Games" and xbh:
+            prefix_parts.append(f"{xbh} XBH")
+            if tb:
+                prefix_parts.append(f"{tb} TB")
+        elif milestone_type == "Multi-2B Games" and doubles:
+            prefix_parts.append(f"{doubles} 2B")
+            if tb:
+                prefix_parts.append(f"{tb} TB")
+        elif milestone_type == "Multi-3B Games" and triples:
+            prefix_parts.append(f"{triples} 3B")
+            if tb:
+                prefix_parts.append(f"{tb} TB")
+        elif milestone_type in ("6+ RBI Games", "5+ RBI Games", "4+ RBI Games") and rbi:
+            prefix_parts.append(f"{rbi} RBI")
+            skip.add("rbi")
+        elif milestone_type in ("4+ Run Games", "3+ Run Games") and runs:
+            prefix_parts.append(f"{runs} R")
+            skip.add("r")
+        elif milestone_type == "Multi-SB Games" and sb:
+            prefix_parts.append(f"{sb} SB")
+            skip.add("sb")
+        elif milestone_type == "4+ Walk Games" and bb:
+            prefix_parts.append(f"{bb} BB")
+            skip.add("bb")
+        elif milestone_type in ("5+ Hit Games", "4+ Hit Games", "3+ Hit Games") and h:
+            prefix_parts.append(f"{h} H")
+        elif milestone_type == "Cycles":
+            prefix_parts.append(f"Cycle: {singles} 1B, {doubles} 2B, {triples} 3B, {hr} HR")
+            if tb:
+                prefix_parts.append(f"{tb} TB")
+        elif milestone_type == "Perfect Batting Games" and ab:
+            prefix_parts.append(f"{h}-for-{ab}")
+            skip.add("so")
+        elif milestone_type == "Golden Sombreros" and so:
+            line = f"{h}-for-{ab}" if ab else f"{h} H"
+            extra = []
+            if bb:
+                extra.append(f"{bb} BB")
+            if runs:
+                extra.append(f"{runs} R")
+            if rbi:
+                extra.append(f"{rbi} RBI")
+            return f"{so} K - {line}" + (f", {', '.join(extra)}" if extra else "")
+
+        if runs and "r" not in skip:
+            stat_parts.append(f"{runs} R")
+        if "rbi" not in skip:
+            stat_parts.append(f"{rbi} RBI")
+        if bb and "bb" not in skip:
+            stat_parts.append(f"{bb} BB")
+        if so and "so" not in skip:
+            stat_parts.append(f"{so} K")
+        if sb and "sb" not in skip:
+            stat_parts.append(f"{sb} SB")
+
+        base_detail = ", ".join(stat_parts)
+        if prefix_parts:
+            return f"{', '.join(prefix_parts)} - {base_detail}"
+        return existing_detail or base_detail
+
+    def _format_pitching_milestone_detail(self, milestone_type, stats, row):
+        ip = stats["ip"]
+        h = stats["h"]
+        r = stats["r"]
+        er = stats["er"]
+        bb = stats["bb"]
+        so = stats["so"]
+        pitches = stats["pitches"]
+        decision = self._clean_row_text(row, "Decision")
+
+        is_strikeout_milestone = milestone_type in ("15+ K Games", "12+ K Games", "10+ K Games", "8+ K Games")
+        line_parts = [f"{ip} IP", f"{h} H", f"{r} R", f"{er} ER", f"{bb} BB"]
+        if not is_strikeout_milestone:
+            line_parts.append(f"{so} K")
+        if str(pitches).strip() not in {"", "?", "0"}:
+            line_parts.append(f"{pitches} P")
+        if decision and decision != "ND":
+            line_parts.append(decision)
+
+        prefix = ""
+        if is_strikeout_milestone and so:
+            prefix = f"{so} K"
+        elif milestone_type == "Maddux Games":
+            prefix = f"Maddux ({pitches} P)" if str(pitches).strip() not in {"", "?", "0"} else "Maddux"
+        elif milestone_type == "Low-Hit CG":
+            prefix = f"{h} H CG"
+        elif milestone_type == "CGSO No Walks":
+            prefix = "CGSO, 0 BB"
+        elif milestone_type == "High K Low BB":
+            prefix = f"{so} K, {bb} BB"
+        elif milestone_type == "Efficient Starts":
+            prefix = f"Efficient start ({pitches} P)" if str(pitches).strip() not in {"", "?", "0"} else "Efficient start"
+        elif milestone_type == "Dominant Starts" and so:
+            prefix = f"Dominant start, {so} K"
+        elif milestone_type == "No-Walk Starts":
+            prefix = "0 BB"
+        elif milestone_type == "Complete Games & Shutouts":
+            labels = []
+            if self._truthy_row_value(row, "CG"):
+                labels.append("CG")
+            if self._truthy_row_value(row, "SHO") or (ip.startswith("9") and r == 0):
+                labels.append("SHO")
+            prefix = " ".join(labels)
+
+        detail = ", ".join(line_parts)
+        return f"{prefix} - {detail}" if prefix else detail
+
+    def _format_grand_slam_detail(self, row, stats):
+        inning = self._clean_row_text(row, "Inning")
+        pitcher = self._clean_row_text(row, "Pitcher")
+        intro = "Grand slam"
+        if inning:
+            intro = f"{inning} grand slam"
+        if pitcher:
+            intro += f" off {pitcher}"
+
+        batting = self._format_batting_milestone_detail("Grand Slams", stats)
+        return f"{intro} - {batting}"
+
     def _serialize_milestones(self, milestones_dict, include_excluded=False):
         """Convert all milestone DataFrames to combined JSON list."""
         all_milestones = []
@@ -746,46 +916,82 @@ class DataSerializer:
                         "scoreSwing": str(row.get("Score Swing", "")),
                     })
 
+                elif milestone_type == "Grand Slams":
+                    stats = {
+                        "hr": self._row_int(row, "HR"),
+                        "h": self._row_int(row, "H"),
+                        "rbi": self._row_int(row, "RBI"),
+                        "2b": self._row_int(row, "2B"),
+                        "3b": self._row_int(row, "3B"),
+                        "r": self._row_int(row, "R"),
+                        "bb": self._row_int(row, "BB"),
+                        "sb": self._row_int(row, "SB"),
+                        "so": self._row_int(row, "SO"),
+                        "ab": self._row_int(row, "AB"),
+                    }
+                    milestone.update(stats)
+                    milestone["inning"] = self._clean_row_text(row, "Inning")
+                    milestone["pitcher"] = self._clean_row_text(row, "Pitcher")
+                    milestone["detail"] = self._format_grand_slam_detail(row, stats)
+
                 elif milestone_type in batting_types:
-                    hr = int(row.get("HR", 0)) if pd.notna(row.get("HR")) else 0
-                    h = int(row.get("H", 0)) if pd.notna(row.get("H")) else 0
-                    rbi = int(row.get("RBI", 0)) if pd.notna(row.get("RBI")) else 0
-                    doubles = int(row.get("2B", 0)) if pd.notna(row.get("2B")) else 0
-                    triples = int(row.get("3B", 0)) if pd.notna(row.get("3B")) else 0
-                    runs = int(row.get("R", 0)) if pd.notna(row.get("R")) else 0
-                    bb = int(row.get("BB", 0)) if pd.notna(row.get("BB")) else 0
-                    sb = int(row.get("SB", 0)) if pd.notna(row.get("SB")) else 0
+                    stats = {
+                        "hr": self._row_int(row, "HR"),
+                        "h": self._row_int(row, "H"),
+                        "rbi": self._row_int(row, "RBI"),
+                        "2b": self._row_int(row, "2B"),
+                        "3b": self._row_int(row, "3B"),
+                        "r": self._row_int(row, "R"),
+                        "bb": self._row_int(row, "BB"),
+                        "sb": self._row_int(row, "SB"),
+                        "so": self._row_int(row, "SO"),
+                        "ab": self._row_int(row, "AB"),
+                    }
+                    hr = stats["hr"]
+                    h = stats["h"]
+                    rbi = stats["rbi"]
+                    doubles = stats["2b"]
+                    triples = stats["3b"]
+                    runs = stats["r"]
+                    bb = stats["bb"]
+                    sb = stats["sb"]
+                    singles = max(0, h - doubles - triples - hr)
+                    xbh = doubles + triples + hr
+                    tb = singles + (2 * doubles) + (3 * triples) + (4 * hr)
                     milestone.update({
                         "hr": hr, "h": h, "rbi": rbi, "2b": doubles, "3b": triples,
-                        "r": runs, "bb": bb, "sb": sb
+                        "r": runs, "bb": bb, "sb": sb, "so": stats["so"],
+                        "ab": stats["ab"], "tb": tb, "xbh": xbh
                     })
-                    # Use Detail column if present, otherwise construct detail
-                    if "Detail" in row and pd.notna(row.get("Detail")):
-                        milestone["detail"] = str(row.get("Detail", ""))
-                    else:
-                        milestone["detail"] = f"{h} H ({doubles} 2B, {triples} 3B, {hr} HR), {rbi} RBI"
-                    if milestone_type in ("4+ Run Games", "3+ Run Games") and runs:
-                        run_prefix = f"{runs} R"
-                        detail = milestone.get("detail", "")
-                        if not detail.startswith(run_prefix):
-                            milestone["detail"] = f"{run_prefix} - {detail}" if detail else run_prefix
+                    existing_detail = self._clean_row_text(row, "Detail")
+                    milestone["detail"] = self._format_batting_milestone_detail(
+                        milestone_type,
+                        stats,
+                        existing_detail=existing_detail,
+                    )
 
                 elif milestone_type in pitching_types:
-                    ip = str(row.get("IP", "0.0"))
-                    so = int(row.get("SO", 0)) if pd.notna(row.get("SO")) else 0
-                    h = int(row.get("H", 0)) if pd.notna(row.get("H")) else 0
-                    er = int(row.get("ER", 0)) if pd.notna(row.get("ER")) else 0
-                    bb = int(row.get("BB", 0)) if pd.notna(row.get("BB")) else 0
-                    r = int(row.get("R", 0)) if pd.notna(row.get("R")) else 0
+                    ip = self._clean_row_text(row, "IP") or "0.0"
+                    so = self._row_int(row, "SO")
+                    h = self._row_int(row, "H")
+                    er = self._row_int(row, "ER")
+                    bb = self._row_int(row, "BB")
+                    r = self._row_int(row, "R")
                     pitches = row.get("Pitches", "?")
+                    decision = self._clean_row_text(row, "Decision")
+                    pitching_stats = {
+                        "ip": ip, "so": so, "h": h, "er": er,
+                        "bb": bb, "r": r, "pitches": pitches,
+                    }
                     milestone.update({
-                        "ip": ip, "so": so, "h": h, "er": er, "bb": bb, "r": r, "pitches": pitches
+                        "ip": ip, "so": so, "h": h, "er": er, "bb": bb,
+                        "r": r, "pitches": pitches, "decision": decision
                     })
-                    # Use Detail column if present, otherwise construct detail
-                    if "Detail" in row and pd.notna(row.get("Detail")):
-                        milestone["detail"] = str(row.get("Detail", ""))
-                    else:
-                        milestone["detail"] = f"{ip} IP, {h} H, {er} ER, {bb} BB, {so} SO"
+                    milestone["detail"] = self._format_pitching_milestone_detail(
+                        milestone_type,
+                        pitching_stats,
+                        row,
+                    )
 
                 elif milestone_type in ["3 Strikeout Innings", "Immaculate Innings"]:
                     inning = str(row.get("Inning", ""))

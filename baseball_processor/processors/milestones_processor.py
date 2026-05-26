@@ -647,6 +647,18 @@ class MilestonesProcessor(BaseProcessor):
                 "Detail": detail,
                 "GameID": item.get("game_id", safe_get_str(basic_info, "game_id", ""))
             }
+
+            optional_context_fields = {
+                "Inning": item.get("inning", ""),
+                "Half": item.get("half", ""),
+                "Pitcher": item.get("pitcher", ""),
+                "Play Type": item.get("play_type", ""),
+                "Final Score": item.get("final_score", ""),
+                "Description": item.get("description", ""),
+            }
+            for field_name, field_value in optional_context_fields.items():
+                if field_value not in (None, ""):
+                    milestone_record[field_name] = field_value
             
             # CONSISTENT APPROACH: All hitting milestones preserve complete stat lines
             batting_tabs = [
