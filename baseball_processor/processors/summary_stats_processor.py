@@ -1310,6 +1310,11 @@ class SummaryStatsProcessor(BaseProcessor):
         def join_gameids_in_order(ids):
             return ", ".join(str(gid).strip() for gid in ids if str(gid or "").strip())
 
+        def sort_gameids_in_context_order(ids):
+            id_list = list(ids or [])
+            rows = sorted_context_rows(id_list, [""] * len(id_list), [""] * len(id_list))
+            return join_gameids_in_order(row[0] for row in rows)
+
         def group_games_by_value(value, label, ids, teams=None, stat_key="R"):
             grouped = []
             for idx, gid in enumerate(ids):
@@ -1830,21 +1835,31 @@ class SummaryStatsProcessor(BaseProcessor):
 
         # --- Game Environment summary rows ---
         if self.coldest_temp != float('inf') and self.coldest_temp_gameids:
+            rows = sorted_context_rows(
+                self.coldest_temp_gameids,
+                [""] * len(self.coldest_temp_gameids),
+                self.coldest_temp_scores,
+            )
             summary_rows.append({
                 "Record": "Coldest Game",
                 "Value": f"{self.coldest_temp}°F",
                 "Detail": "",
-                "Score": "; ".join(self.coldest_temp_scores),
-                "GameIDs": join_sorted_gameids(self.coldest_temp_gameids)
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         if self.hottest_temp != float('-inf') and self.hottest_temp_gameids:
+            rows = sorted_context_rows(
+                self.hottest_temp_gameids,
+                [""] * len(self.hottest_temp_gameids),
+                self.hottest_temp_scores,
+            )
             summary_rows.append({
                 "Record": "Hottest Game",
                 "Value": f"{self.hottest_temp}°F",
                 "Detail": "",
-                "Score": "; ".join(self.hottest_temp_scores),
-                "GameIDs": join_sorted_gameids(self.hottest_temp_gameids)
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
         if self.all_temperatures:
             avg_temp = round(sum(self.all_temperatures) / len(self.all_temperatures))
@@ -1857,34 +1872,49 @@ class SummaryStatsProcessor(BaseProcessor):
             })
 
         if self.longest_innings > 0 and self.longest_innings_gameids:
+            rows = sorted_context_rows(
+                self.longest_innings_gameids,
+                [""] * len(self.longest_innings_gameids),
+                self.longest_innings_scores,
+            )
             summary_rows.append({
                 "Record": "Longest Game by Innings",
                 "Value": self.longest_innings,
                 "Detail": "",
-                "Score": "; ".join(self.longest_innings_scores),
-                "GameIDs": join_sorted_gameids(self.longest_innings_gameids)
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         if self.longest_time_min > 0 and self.longest_time_gameids:
             hours = self.longest_time_min // 60
             mins = self.longest_time_min % 60
+            rows = sorted_context_rows(
+                self.longest_time_gameids,
+                [""] * len(self.longest_time_gameids),
+                self.longest_time_scores,
+            )
             summary_rows.append({
                 "Record": "Longest Game by Time",
                 "Value": f"{hours}:{mins:02d}",
                 "Detail": "",
-                "Score": "; ".join(self.longest_time_scores),
-                "GameIDs": join_sorted_gameids(self.longest_time_gameids)
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         if self.shortest_time_min != float('inf') and self.shortest_time_gameids:
             hours = self.shortest_time_min // 60
             mins = self.shortest_time_min % 60
+            rows = sorted_context_rows(
+                self.shortest_time_gameids,
+                [""] * len(self.shortest_time_gameids),
+                self.shortest_time_scores,
+            )
             summary_rows.append({
                 "Record": "Shortest Game by Time",
                 "Value": f"{hours}:{mins:02d}",
                 "Detail": "",
-                "Score": "; ".join(self.shortest_time_scores),
-                "GameIDs": join_sorted_gameids(self.shortest_time_gameids)
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         # Average attendance
@@ -1900,22 +1930,32 @@ class SummaryStatsProcessor(BaseProcessor):
 
         # Highest attendance
         if self.highest_attendance > 0 and self.highest_attendance_gameids:
+            rows = sorted_context_rows(
+                self.highest_attendance_gameids,
+                [""] * len(self.highest_attendance_gameids),
+                self.highest_attendance_scores,
+            )
             summary_rows.append({
                 "Record": "Highest Attendance",
                 "Value": f"{self.highest_attendance:,}",  # Format with commas
                 "Detail": "",
-                "Score": "; ".join(self.highest_attendance_scores),
-                "GameIDs": join_sorted_gameids(self.highest_attendance_gameids)
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
         
         # Lowest attendance  
         if self.lowest_attendance != float('inf') and self.lowest_attendance_gameids:
+            rows = sorted_context_rows(
+                self.lowest_attendance_gameids,
+                [""] * len(self.lowest_attendance_gameids),
+                self.lowest_attendance_scores,
+            )
             summary_rows.append({
                 "Record": "Lowest Attendance",
                 "Value": f"{self.lowest_attendance:,}",  # Format with commas
                 "Detail": "",
-                "Score": "; ".join(self.lowest_attendance_scores),
-                "GameIDs": join_sorted_gameids(self.lowest_attendance_gameids)
+                "Score": "; ".join(row[2] for row in rows),
+                "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
         # Individual Hitting Milestones
@@ -2152,7 +2192,7 @@ class SummaryStatsProcessor(BaseProcessor):
                     "Value": weather_stats["highest_wind_speed"],
                     "Detail": f"{len(self.weather_tracker.highest_wind_games)} games",
                     "Score": "",
-                    "GameIDs": join_sorted_gameids(self.weather_tracker.highest_wind_games)
+                    "GameIDs": sort_gameids_in_context_order(self.weather_tracker.highest_wind_games)
                 },
                 {
                     "Record": "Average Wind Speed",
@@ -2173,21 +2213,21 @@ class SummaryStatsProcessor(BaseProcessor):
                     "Value": weather_stats["earliest_start"],
                     "Detail": "",
                     "Score": "",
-                    "GameIDs": join_sorted_gameids(self.weather_tracker.earliest_start_games) if self.weather_tracker.earliest_start_games else ""
+                    "GameIDs": sort_gameids_in_context_order(self.weather_tracker.earliest_start_games) if self.weather_tracker.earliest_start_games else ""
                 },
                 {
                     "Record": "Latest Start Time",
                     "Value": weather_stats["latest_start"],
                     "Detail": "",
                     "Score": "",
-                    "GameIDs": join_sorted_gameids(self.weather_tracker.latest_start_games) if self.weather_tracker.latest_start_games else ""
+                    "GameIDs": sort_gameids_in_context_order(self.weather_tracker.latest_start_games) if self.weather_tracker.latest_start_games else ""
                 },
                 {
                     "Record": "Games with Precipitation",
                     "Value": weather_stats["precipitation_games"],
                     "Detail": "",
                     "Score": "",
-                    "GameIDs": join_sorted_gameids(self.weather_tracker.precipitation_games)
+                    "GameIDs": sort_gameids_in_context_order(self.weather_tracker.precipitation_games)
                 },
                 {
                     "Record": "Weekend vs Weekday Games",

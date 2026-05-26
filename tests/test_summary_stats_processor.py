@@ -236,6 +236,47 @@ def test_consecutive_hr_summary_preserves_duplicate_game_ids_per_event():
     assert row["GameIDs"] == "BAL200405270, BAL200808220, BAL200808220"
 
 
+def test_environment_summary_keeps_scores_aligned_with_sorted_game_ids():
+    processor = make_processor()
+    processor.coldest_temp = 42
+    processor.coldest_temp_gameids = ["BAL202506240", "SFN202404080"]
+    processor.coldest_temp_scores = ["TEX 6 – 5 BAL", "WAS 5 – 3 SF"]
+
+    row = summary_row(processor, "Coldest Game")
+
+    assert row["Score"] == "WAS 5 – 3 SF; TEX 6 – 5 BAL"
+    assert row["GameIDs"] == "SFN202404080, BAL202506240"
+
+
+def test_weather_summary_sorts_game_ids_with_same_context_helper():
+    class FakeWeatherTracker:
+        highest_wind_games = ["BAL202506240", "SFN202404080"]
+        earliest_start_games = ["BAL202506240", "SFN202404080"]
+        latest_start_games = []
+        precipitation_games = ["BAL202506240", "SFN202404080"]
+        wind_conditions = [12, 18]
+
+        def get_summary_stats(self):
+            return {
+                "highest_wind_speed": "18 mph",
+                "average_wind_speed": "15 mph",
+                "day_games": 1,
+                "night_games": 1,
+                "earliest_start": "12:05 PM",
+                "latest_start": "N/A",
+                "precipitation_games": 2,
+                "weekend_games": 1,
+                "weekday_games": 1,
+            }
+
+    processor = make_processor()
+    processor.weather_tracker = FakeWeatherTracker()
+
+    row = summary_row(processor, "Highest Wind Speed")
+
+    assert row["GameIDs"] == "SFN202404080, BAL202506240"
+
+
 def test_home_run_record_counts_multi_homer_players_from_footer():
     processor = make_processor()
     game = {
