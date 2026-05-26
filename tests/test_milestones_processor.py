@@ -12,6 +12,63 @@ from baseball_processor.utils.constants import CACHE_DIR
 
 
 class MilestonesProcessorTests(unittest.TestCase):
+    def test_inside_the_park_milestone_detail_includes_play_context(self):
+        processor = MilestonesProcessor([])
+
+        detail = processor._format_inside_park_hr_detail(
+            {
+                "inning": 9,
+                "half": "bottom",
+                "outs_before": 1,
+                "rbi": 3,
+                "pitcher": "Jordan Romano",
+                "pitch_count": 1,
+                "description": "Inside-the-park Home Run (Fly Ball to Deep CF-RF); C. Schmitt Scores",
+            }
+        )
+
+        self.assertEqual(
+            "Bottom 9, 1 out: 3-run inside-the-park HR off Jordan Romano (1st pitch) - Fly Ball to Deep CF-RF",
+            detail,
+        )
+
+    def test_walkoff_milestone_detail_includes_pitcher_and_pitch_context(self):
+        processor = MilestonesProcessor([])
+
+        detail = processor._format_walkoff_detail(
+            {
+                "inning": 9,
+                "half": "bottom",
+                "play_type": "Single",
+                "pitcher": "Away Closer",
+                "pitch_number": 4,
+                "pitch_count_at_play": "2-1",
+                "description": "Winning Runner scores.",
+            }
+        )
+
+        self.assertEqual(
+            "Bottom 9: walk-off single off Away Closer (4th pitch, 2-1) - Winning Runner scores.",
+            detail,
+        )
+
+    def test_walkoff_milestone_detail_infers_missing_play_type(self):
+        processor = MilestonesProcessor([])
+
+        detail = processor._format_walkoff_detail(
+            {
+                "inning": 12,
+                "half": "bottom",
+                "pitcher": "Justin Lawrence",
+                "description": "Jesus Rodriguez singles on a line drive to right fielder Ryan O'Hearn. Heliot Ramos scores.",
+            }
+        )
+
+        self.assertEqual(
+            "Bottom 12: walk-off single off Justin Lawrence - Jesus Rodriguez singles on a line drive to right fielder Ryan O'Hearn. Heliot Ramos scores.",
+            detail,
+        )
+
     def test_multi_sb_enhancement_preserves_stolen_bases(self):
         milestone_dfs = {
             "Multi-SB Games": pd.DataFrame(

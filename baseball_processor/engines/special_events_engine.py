@@ -334,11 +334,22 @@ class SpecialEventsEngine:
                     "opponent_code": self.basic.get("away_team_code", ""),
                     "description": last_play.get("description", ""),
                     "inning": last_play.get("inning", 0),
+                    "half": last_play.get("half", "bottom"),
+                    "pitcher": last_play.get("pitcher", ""),
+                    "outs": last_play.get("outs_before", last_play.get("outs", "")),
+                    "rbi": last_play.get("rbi", 0),
                     "play_type": self.determine_play_type(last_play),
                     "game_id": self.game_id,
                     "game_date": self.game_date,
                     "final_score": self.final_score
                 }
+                for field in (
+                    "pitch_count", "pitch_number", "pitch_count_at_play",
+                    "pitch_call", "pitch_type", "pitch_type_code", "pitch_speed",
+                ):
+                    value = last_play.get(field)
+                    if value not in (None, ""):
+                        self.special_events["walkoff"][field] = value
 
     def detect_leadoff_home_runs(self):
         plays = self.game_data.get("play_by_play", [])

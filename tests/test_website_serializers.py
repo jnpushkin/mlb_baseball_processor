@@ -258,7 +258,7 @@ class DataSerializerTests(unittest.TestCase):
 
         serialized = DataSerializer()._serialize_milestones(milestones, include_excluded=True)
 
-        self.assertEqual("4 R - 2 H (1 2B, 0 3B, 0 HR), 2 RBI", serialized[0]["detail"])
+        self.assertEqual("4 R - 2 H, 2 RBI, 1 2B", serialized[0]["detail"])
         self.assertEqual(4, serialized[0]["r"])
 
     def test_serialize_batting_milestones_highlight_defining_stat(self):
@@ -300,9 +300,35 @@ class DataSerializerTests(unittest.TestCase):
         serialized = DataSerializer()._serialize_milestones(milestones, include_excluded=True)
         by_type = {row["type"]: row for row in serialized}
 
-        self.assertEqual("8 TB - 2 H (0 2B, 0 3B, 2 HR), 2 R, 2 RBI", by_type["8+ Total Bases"]["detail"])
+        self.assertEqual("8 TB - 2 H, 2 R, 2 RBI, 2 HR", by_type["8+ Total Bases"]["detail"])
         self.assertEqual(8, by_type["8+ Total Bases"]["tb"])
-        self.assertEqual("3 SB - 1 H (0 2B, 0 3B, 0 HR), 1 R, 0 RBI", by_type["Multi-SB Games"]["detail"])
+        self.assertEqual("3 SB - 1 H, 1 R", by_type["Multi-SB Games"]["detail"])
+
+    def test_serialize_three_pitch_innings_show_pitch_and_play_context(self):
+        milestones = {
+            "3 Pitch Innings": pd.DataFrame(
+                [
+                    {
+                        "Date": "2026-04-04",
+                        "Player": "Quick Worker",
+                        "Team": "HOM",
+                        "Opponent": "AWY",
+                        "GameID": "game-7",
+                        "Inning": "Bottom 6",
+                        "Pitches": 3,
+                        "Outs": 3,
+                        "Plays": "groundout | flyout | lineout",
+                    }
+                ]
+            )
+        }
+
+        serialized = DataSerializer()._serialize_milestones(milestones, include_excluded=True)
+
+        self.assertEqual(
+            "Bottom 6: 3 pitches, 3 outs - groundout | flyout | lineout",
+            serialized[0]["detail"],
+        )
 
     def test_serialize_pitching_milestones_show_runs_pitches_and_decision(self):
         milestones = {

@@ -51,3 +51,33 @@ def test_formats_both_teams_10_plus_detail_with_score_context():
     )
 
     assert detail == "DET 10, BAL 11 in 10 innings (21 runs, 29 hits)"
+
+
+def test_formats_twenty_hit_detail_with_combined_score_context():
+    processor = make_processor()
+
+    detail = processor._format_twenty_hit_detail(
+        {"away_team_code": "OAK", "home_team_code": "BAL"},
+        {
+            "away": {"R": 2, "H": 8, "innings": ["0"] * 9},
+            "home": {"R": 18, "H": 20, "innings": ["0"] * 9},
+        },
+    )
+
+    assert detail == "BAL 20 H (28 combined hits) - OAK 2, BAL 18 (20 runs, 28 hits)"
+
+
+def test_formats_biggest_victory_detail_with_margin_and_score_context():
+    processor = make_processor()
+
+    detail = processor._format_biggest_victory_detail(
+        {"away_team_code": "OAK", "home_team_code": "BAL"},
+        {
+            "away": {"R": 2, "H": 8, "innings": ["0"] * 9},
+            "home": {"R": 18, "H": 20, "innings": ["0"] * 9},
+        },
+        "BAL",
+        16,
+    )
+
+    assert detail == "BAL by 16 - OAK 2, BAL 18 (20 runs, 28 hits)"

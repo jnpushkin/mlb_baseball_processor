@@ -27,8 +27,12 @@ class SummaryStatsProcessor(BaseProcessor):
         # Initialize all counters
         self.count_1_0 = 0
         self.games_1_0 = []
+        self.games_1_0_details = []
+        self.games_1_0_scores = []
         self.extra_innings = 0
         self.games_extra_innings = []
+        self.extra_inning_details = []
+        self.extra_inning_scores = []
         self.most_runs = 0
         self.most_runs_gameids = []
         self.most_runs_teams = []
@@ -47,12 +51,17 @@ class SummaryStatsProcessor(BaseProcessor):
         self.ten_plus_run_inning_gameids = []
         self.twenty_plus_hit_games = 0
         self.games_20_plus_hits = []
+        self.twenty_plus_hit_details = []
+        self.twenty_plus_hit_scores = []
         self.one_run_games = 0            
         self.games_one_run = []           
+        self.one_run_details = []
+        self.one_run_scores = []
         self.biggest_victory_margin = 0
         self.biggest_victory_gameids = []
         self.biggest_victory_scores = []
         self.biggest_victory_winners = []
+        self.biggest_victory_details = []
         self.inside_park_hrs = 0
         self.inside_park_hr_details = []
         self.inside_park_hr_gameids = []
@@ -447,6 +456,8 @@ class SummaryStatsProcessor(BaseProcessor):
         if abs(away_r - home_r) == 1:
             self.one_run_games += 1
             self.games_one_run.append(game_id)
+            self.one_run_details.append(self._format_game_run_hit_detail(basic_info, linescore))
+            self.one_run_scores.append(self._create_score_string(basic_info))
 
         # Track biggest victory (largest run margin)
         margin = abs(away_r - home_r)
@@ -457,10 +468,16 @@ class SummaryStatsProcessor(BaseProcessor):
             self.biggest_victory_gameids = [game_id]
             self.biggest_victory_scores = [self._create_score_string(basic_info)]
             self.biggest_victory_winners = [winner_code]
+            self.biggest_victory_details = [
+                self._format_biggest_victory_detail(basic_info, linescore, winner_code, margin)
+            ]
         elif margin == self.biggest_victory_margin:
             self.biggest_victory_gameids.append(game_id)
             self.biggest_victory_scores.append(self._create_score_string(basic_info))
             self.biggest_victory_winners.append(winner_code)
+            self.biggest_victory_details.append(
+                self._format_biggest_victory_detail(basic_info, linescore, winner_code, margin)
+            )
 
         # Track most runs by one team
         if team_runs > self.most_runs:
@@ -494,11 +511,15 @@ class SummaryStatsProcessor(BaseProcessor):
         if (away_r == 1 and home_r == 0) or (home_r == 1 and away_r == 0):
             self.count_1_0 += 1
             self.games_1_0.append(game_id)
+            self.games_1_0_details.append(self._format_game_run_hit_detail(basic_info, linescore))
+            self.games_1_0_scores.append(self._create_score_string(basic_info))
         
         # Track extra inning games
         if len(home.get("innings", [])) > 9 or len(away.get("innings", [])) > 9:
             self.extra_innings += 1
             self.games_extra_innings.append(game_id)
+            self.extra_inning_details.append(self._format_extra_inning_detail(basic_info, linescore))
+            self.extra_inning_scores.append(self._create_score_string(basic_info))
         
         # Track hits
         self.total_hits += away_h + home_h
@@ -528,6 +549,8 @@ class SummaryStatsProcessor(BaseProcessor):
         if away_h >= 20 or home_h >= 20:
             self.twenty_plus_hit_games += 1
             self.games_20_plus_hits.append(game_id)
+            self.twenty_plus_hit_details.append(self._format_twenty_hit_detail(basic_info, linescore))
+            self.twenty_plus_hit_scores.append(self._create_score_string(basic_info))
         
         # Track most hits by one team
         if team_hits > self.most_hits:
@@ -1128,6 +1151,9 @@ class SummaryStatsProcessor(BaseProcessor):
         return detail
 
     def _format_both_teams_10_detail(self, basic_info, linescore):
+        return self._format_game_run_hit_detail(basic_info, linescore)
+
+    def _format_game_run_hit_detail(self, basic_info, linescore):
         away = linescore.get("away", {})
         home = linescore.get("home", {})
         away_code = unify_team_code(basic_info.get("away_team_code", ""))
@@ -1144,8 +1170,31 @@ class SummaryStatsProcessor(BaseProcessor):
         innings_label = f" in {innings_played} innings" if innings_played > 9 else ""
         total_runs = away_r + home_r
         total_hits = away_h + home_h
-        hit_context = f", {total_hits} hits" if total_hits else ""
-        return f"{away_code} {away_r}, {home_code} {home_r}{innings_label} ({total_runs} runs{hit_context})"
+        run_word = "run" if total_runs == 1 else "runs"
+        hit_word = "hit" if total_hits == 1 else "hits"
+        hit_context = f", {total_hits} {hit_word}" if total_hits else ""
+        return f"{away_code} {away_r}, {home_code} {home_r}{innings_label} ({total_runs} {run_word}{hit_context})"
+
+    def _format_extra_inning_detail(self, basic_info, linescore):
+        return self._format_game_run_hit_detail(basic_info, linescore)
+
+    def _format_twenty_hit_detail(self, basic_info, linescore):
+        away = linescore.get("away", {})
+        home = linescore.get("home", {})
+        away_code = unify_team_code(basic_info.get("away_team_code", ""))
+        home_code = unify_team_code(basic_info.get("home_team_code", ""))
+        away_h = int(away.get("H", 0) or 0)
+        home_h = int(home.get("H", 0) or 0)
+        teams = []
+        if away_h >= 20:
+            teams.append(f"{away_code} {away_h} H")
+        if home_h >= 20:
+            teams.append(f"{home_code} {home_h} H")
+        total_hits = away_h + home_h
+        return f"{', '.join(teams)} ({total_hits} combined hits) - {self._format_game_run_hit_detail(basic_info, linescore)}"
+
+    def _format_biggest_victory_detail(self, basic_info, linescore, winner_code, margin):
+        return f"{winner_code} by {margin} - {self._format_game_run_hit_detail(basic_info, linescore)}"
 
     def _update_most_pitches_single_game(self, game: dict, game_id: str, basic_info: dict):
         """
@@ -1519,24 +1568,38 @@ class SummaryStatsProcessor(BaseProcessor):
             })
 
         # Simple tallies that always appear
-        both_teams_10_rows = sorted(
-            zip(self.games_both_10_plus, self.both_teams_10_details, self.both_teams_10_scores),
-            key=lambda row: row[0],
+        def sorted_context_rows(ids, details, scores):
+            return sorted(zip(ids, details, scores), key=lambda row: row[0])
+
+        games_1_0_rows = sorted_context_rows(self.games_1_0, self.games_1_0_details, self.games_1_0_scores)
+        extra_inning_rows = sorted_context_rows(
+            self.games_extra_innings, self.extra_inning_details, self.extra_inning_scores
         )
+        both_teams_10_rows = sorted_context_rows(
+            self.games_both_10_plus, self.both_teams_10_details, self.both_teams_10_scores
+        )
+        twenty_hit_rows = sorted_context_rows(
+            self.games_20_plus_hits, self.twenty_plus_hit_details, self.twenty_plus_hit_scores
+        )
+        one_run_rows = sorted_context_rows(self.games_one_run, self.one_run_details, self.one_run_scores)
+        biggest_victory_rows = sorted_context_rows(
+            self.biggest_victory_gameids, self.biggest_victory_details, self.biggest_victory_scores
+        )
+
         summary_rows.extend([
             {
                 "Record": "1-0 Games",
                 "Value": self.count_1_0,
-                "Detail": "",
-                "Score": "",
-                "GameIDs": join_sorted_gameids(sorted(self.games_1_0))
+                "Detail": "; ".join(row[1] for row in games_1_0_rows),
+                "Score": "; ".join(row[2] for row in games_1_0_rows),
+                "GameIDs": ", ".join(row[0] for row in games_1_0_rows)
             },
             {
                 "Record": "Extra Inning Games",
                 "Value": self.extra_innings,
-                "Detail": "",
-                "Score": "",
-                "GameIDs": join_sorted_gameids(sorted(self.games_extra_innings))
+                "Detail": "; ".join(row[1] for row in extra_inning_rows),
+                "Score": "; ".join(row[2] for row in extra_inning_rows),
+                "GameIDs": ", ".join(row[0] for row in extra_inning_rows)
             },
             {
                 "Record": "Both Teams 10+ Runs",
@@ -1548,9 +1611,9 @@ class SummaryStatsProcessor(BaseProcessor):
             {
                 "Record": "20+ Hit Games by One Team",
                 "Value": self.twenty_plus_hit_games,
-                "Detail": "",
-                "Score": "",
-                "GameIDs": join_sorted_gameids(sorted(self.games_20_plus_hits))
+                "Detail": "; ".join(row[1] for row in twenty_hit_rows),
+                "Score": "; ".join(row[2] for row in twenty_hit_rows),
+                "GameIDs": ", ".join(row[0] for row in twenty_hit_rows)
             },
             {
                 "Record": "10+ Run Innings",
@@ -1693,18 +1756,18 @@ class SummaryStatsProcessor(BaseProcessor):
         summary_rows.append({
             "Record": "1-Run Games",
             "Value": self.one_run_games,
-            "Detail": "",
-            "Score": "",
-            "GameIDs": join_sorted_gameids(self.games_one_run)
+            "Detail": "; ".join(row[1] for row in one_run_rows),
+            "Score": "; ".join(row[2] for row in one_run_rows),
+            "GameIDs": ", ".join(row[0] for row in one_run_rows)
         })
 
         if self.biggest_victory_margin > 0:
             summary_rows.append({
                 "Record": "Biggest Victory",
                 "Value": self.biggest_victory_margin,
-                "Detail": "; ".join(self.biggest_victory_winners),
-                "Score": "; ".join(self.biggest_victory_scores),
-                "GameIDs": join_sorted_gameids(self.biggest_victory_gameids)
+                "Detail": "; ".join(row[1] for row in biggest_victory_rows),
+                "Score": "; ".join(row[2] for row in biggest_victory_rows),
+                "GameIDs": ", ".join(row[0] for row in biggest_victory_rows)
             })
 
         # Add percent of possible matchups seen (with exact count)

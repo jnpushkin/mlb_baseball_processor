@@ -720,26 +720,34 @@ class DataSerializer:
         xbh = doubles + triples + hr
         tb = singles + (2 * doubles) + (3 * triples) + (4 * hr)
 
-        stat_parts = [f"{h} H ({doubles} 2B, {triples} 3B, {hr} HR)"]
+        if not any([h, doubles, triples, hr, rbi, runs, bb, sb, so, ab]) and existing_detail:
+            return existing_detail
+
+        stat_parts = [f"{h}-for-{ab}" if ab else f"{h} H"]
         skip = set()
+        omitted_power = set()
         prefix_parts = []
 
         if milestone_type in ("3+ HR Games", "Multi-HR Games") and hr:
             prefix_parts.append(f"{hr} HR")
+            omitted_power.add("hr")
             if tb:
                 prefix_parts.append(f"{tb} TB")
         elif milestone_type == "8+ Total Bases" and tb:
             prefix_parts.append(f"{tb} TB")
         elif milestone_type == "2+ XBH Games" and xbh:
             prefix_parts.append(f"{xbh} XBH")
+            omitted_power.update({"2b", "3b", "hr"})
             if tb:
                 prefix_parts.append(f"{tb} TB")
         elif milestone_type == "Multi-2B Games" and doubles:
             prefix_parts.append(f"{doubles} 2B")
+            omitted_power.add("2b")
             if tb:
                 prefix_parts.append(f"{tb} TB")
         elif milestone_type == "Multi-3B Games" and triples:
             prefix_parts.append(f"{triples} 3B")
+            omitted_power.add("3b")
             if tb:
                 prefix_parts.append(f"{tb} TB")
         elif milestone_type in ("6+ RBI Games", "5+ RBI Games", "4+ RBI Games") and rbi:
@@ -754,10 +762,11 @@ class DataSerializer:
         elif milestone_type == "4+ Walk Games" and bb:
             prefix_parts.append(f"{bb} BB")
             skip.add("bb")
-        elif milestone_type in ("5+ Hit Games", "4+ Hit Games", "3+ Hit Games") and h:
+        elif milestone_type in ("5+ Hit Games", "4+ Hit Games", "3+ Hit Games") and h and ab:
             prefix_parts.append(f"{h} H")
         elif milestone_type == "Cycles":
             prefix_parts.append(f"Cycle: {singles} 1B, {doubles} 2B, {triples} 3B, {hr} HR")
+            omitted_power.update({"2b", "3b", "hr"})
             if tb:
                 prefix_parts.append(f"{tb} TB")
         elif milestone_type == "Perfect Batting Games" and ab:
@@ -776,8 +785,14 @@ class DataSerializer:
 
         if runs and "r" not in skip:
             stat_parts.append(f"{runs} R")
-        if "rbi" not in skip:
+        if rbi and "rbi" not in skip:
             stat_parts.append(f"{rbi} RBI")
+        if doubles and "2b" not in omitted_power:
+            stat_parts.append(f"{doubles} 2B")
+        if triples and "3b" not in omitted_power:
+            stat_parts.append(f"{triples} 3B")
+        if hr and "hr" not in omitted_power:
+            stat_parts.append(f"{hr} HR")
         if bb and "bb" not in skip:
             stat_parts.append(f"{bb} BB")
         if so and "so" not in skip:
@@ -1019,6 +1034,29 @@ class DataSerializer:
                         pitching_stats,
                         row,
                     )
+
+                elif milestone_type == "3 Pitch Innings":
+                    inning = self._clean_row_text(row, "Inning")
+                    pitches = self._row_int(row, "Pitches")
+                    outs = self._row_int(row, "Outs")
+                    plays = self._clean_row_text(row, "Plays")
+                    detail_parts = []
+                    if inning:
+                        detail_parts.append(f"{inning}:")
+                    outcome_parts = [f"{pitches} pitches"]
+                    if outs:
+                        outcome_parts.append(f"{outs} outs")
+                    detail_parts.append(", ".join(outcome_parts))
+                    detail = " ".join(detail_parts)
+                    if plays:
+                        detail += f" - {plays}"
+                    milestone.update({
+                        "inning": inning,
+                        "pitches": pitches,
+                        "outs": outs,
+                        "plays": plays,
+                        "detail": detail,
+                    })
 
                 elif milestone_type in ["3 Strikeout Innings", "Immaculate Innings"]:
                     inning = str(row.get("Inning", ""))

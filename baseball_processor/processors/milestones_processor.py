@@ -223,11 +223,7 @@ class MilestonesProcessor(BaseProcessor):
                     pitcher = play.get("pitcher", "Unknown")
                     rbi = play.get("rbi", 1)
 
-                    detail = f"{half} {inning}"
-                    if rbi > 1:
-                        detail += f" ({rbi} RBI)"
-                    if pitcher != "Unknown":
-                        detail += f" off {pitcher}"
+                    detail = self._format_inside_park_hr_detail(play)
 
                     batter_id = play.get("batter_id", "")
                     if not batter_id and resolve_name:
@@ -242,8 +238,17 @@ class MilestonesProcessor(BaseProcessor):
                         "rbi": rbi,
                         "inning": inning,
                         "half": half,
-                        "pitcher": pitcher
+                        "pitcher": pitcher,
+                        "outs": play.get("outs_before", play.get("outs", "")),
+                        "description": play.get("description", "")
                     }
+                    for field in (
+                        "pitch_count", "pitch_number", "pitch_count_at_play",
+                        "pitch_call", "pitch_type", "pitch_type_code", "pitch_speed",
+                    ):
+                        value = play.get(field)
+                        if value not in (None, ""):
+                            inside_park_item[field] = value
                     
                     self._add_milestone(milestone_tabs, "Inside-the-Park HRs", basic_info, 
                                     inside_park_item, detail, max_innings)
@@ -463,12 +468,35 @@ class MilestonesProcessor(BaseProcessor):
         try:
             number = int(value)
         except (TypeError, ValueError):
-            return str(value)
+            return ""
+        if number <= 0:
+            return ""
         if 10 <= number % 100 <= 20:
             suffix = "th"
         else:
             suffix = {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
         return f"{number}{suffix}"
+
+    def _clean_event_text(self, value):
+        return re.sub(r"\s+", " ", str(value or "").replace("\xa0", " ")).strip()
+
+    def _run_value_label(self, rbi):
+        try:
+            runs = int(rbi)
+        except (TypeError, ValueError):
+            runs = 0
+        if runs == 1:
+            return "solo"
+        if runs == 4:
+            return "grand slam"
+        if runs > 1:
+            return f"{runs}-run"
+        return ""
+
+    def _extract_contact_detail(self, description):
+        text = self._clean_event_text(description)
+        match = re.search(r"\(([^)]*)\)", text)
+        return self._clean_event_text(match.group(1)) if match else ""
 
     def _format_pitch_context(self, item):
         parts = []
@@ -493,6 +521,89 @@ class MilestonesProcessor(BaseProcessor):
 
         return ", ".join(parts)
 
+    def _format_inside_park_hr_detail(self, play):
+        half = self._clean_event_text(play.get("half")).title()
+        inning = self._clean_event_text(play.get("inning"))
+        inning_label = f"{half} {inning}".strip()
+
+        outs = play.get("outs_before", play.get("outs"))
+        outs_label = ""
+        try:
+            out_count = int(outs)
+            outs_label = f"{out_count} {'out' if out_count == 1 else 'outs'}"
+        except (TypeError, ValueError):
+            pass
+
+        context = ", ".join(part for part in (inning_label, outs_label) if part)
+        detail = f"{context}: " if context else ""
+
+        run_label = self._run_value_label(play.get("rbi"))
+        event_label = "inside-the-park HR"
+        if run_label == "grand slam":
+            event_label = "inside-the-park grand slam"
+        elif run_label:
+            event_label = f"{run_label} {event_label}"
+        detail += event_label
+
+        pitcher = self._clean_event_text(play.get("pitcher"))
+        if pitcher and pitcher != "Unknown":
+            detail += f" off {pitcher}"
+
+        pitch_context = self._format_pitch_context(play)
+        if pitch_context:
+            detail += f" ({pitch_context})"
+
+        contact = self._extract_contact_detail(play.get("description", ""))
+        if contact:
+            detail += f" - {contact}"
+        return detail
+
+    def _format_walkoff_detail(self, walkoff):
+        half = self._clean_event_text(walkoff.get("half", "bottom")).title()
+        inning = self._clean_event_text(walkoff.get("inning"))
+        inning_label = f"{half} {inning}".strip()
+
+        description = self._clean_event_text(walkoff.get("description"))
+        play_type = self._clean_event_text(walkoff.get("play_type")).lower()
+        if not play_type or play_type == "other":
+            desc_lower = description.lower()
+            if "home run" in desc_lower or "homers" in desc_lower:
+                play_type = "HR"
+            elif "singles" in desc_lower or "single" in desc_lower:
+                play_type = "single"
+            elif "doubles" in desc_lower or "double" in desc_lower:
+                play_type = "double"
+            elif "triples" in desc_lower or "triple" in desc_lower:
+                play_type = "triple"
+            elif "sacrifice fly" in desc_lower or "sac fly" in desc_lower:
+                play_type = "sac fly"
+            elif "walk" in desc_lower:
+                play_type = "walk"
+            elif "hit by pitch" in desc_lower:
+                play_type = "HBP"
+            elif "error" in desc_lower:
+                play_type = "error"
+            else:
+                play_type = "play"
+        if play_type and play_type != "other":
+            event_label = f"walk-off {play_type}"
+        else:
+            event_label = "walk-off"
+
+        detail = f"{inning_label}: {event_label}" if inning_label else event_label.capitalize()
+
+        pitcher = self._clean_event_text(walkoff.get("pitcher"))
+        if pitcher:
+            detail += f" off {pitcher}"
+
+        pitch_context = self._format_pitch_context(walkoff)
+        if pitch_context:
+            detail += f" ({pitch_context})"
+
+        if description:
+            detail += f" - {description}"
+        return detail
+
     def _process_special_events(self, special_events, milestone_tabs, basic_info, max_innings):
         """Process special events from SpecialEventsEngine."""
         try:
@@ -500,7 +611,7 @@ class MilestonesProcessor(BaseProcessor):
             walkoff = special_events.get("walkoff")
             if walkoff:
                 self._add_milestone(milestone_tabs, "Walk-Offs", basic_info, walkoff, 
-                                  walkoff.get("description", "Walk-off"), max_innings)
+                                  self._format_walkoff_detail(walkoff), max_innings)
             
             # Leadoff home runs
             for leadoff_hr in special_events.get("leadoff_hrs", []):
@@ -652,6 +763,11 @@ class MilestonesProcessor(BaseProcessor):
                 "Inning": item.get("inning", ""),
                 "Half": item.get("half", ""),
                 "Pitcher": item.get("pitcher", ""),
+                "Outs": item.get("outs", ""),
+                "Pitch Number": item.get("pitch_number", "") or item.get("pitch_count", ""),
+                "Pitch Count": item.get("pitch_count_at_play", ""),
+                "Pitch Type": item.get("pitch_type", ""),
+                "Pitch Speed": item.get("pitch_speed", ""),
                 "Play Type": item.get("play_type", ""),
                 "Final Score": item.get("final_score", ""),
                 "Description": item.get("description", ""),
