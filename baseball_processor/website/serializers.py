@@ -3,6 +3,7 @@ Data serializers for converting DataFrames to JSON format for website.
 Complete version with all stats fields and game-by-game data.
 """
 import json
+import re
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -2659,6 +2660,9 @@ class DataSerializer:
         """Build player-level ABS challenge statistics from all games."""
         player_stats = {}  # name -> ABS challenge totals by player and role
 
+        def normalize_name(value):
+            return re.sub(r"\s+", " ", str(value or "")).strip().lower()
+
         # Build MLB API ID -> name lookup from player bios
         bios = self._load_player_bios()
         mlb_id_to_name = {}
@@ -2677,13 +2681,27 @@ class DataSerializer:
 
             for review in reviews:
                 # Track the challenger
-                challenger_type = review.get('challengerType', '')
-                if not challenger_type:
-                    challenger_type = 'batter' if review.get('isBatterChallenge', review.get('is_batter', False)) else 'catcher'
-                challenger_name = review.get('challengePlayer', '')
+                challenger_type = str(review.get('challengerType', '') or '').strip().lower()
+                challenger_name = str(review.get('challengePlayer', '') or '').strip()
                 if not challenger_name:
                     cpid = review.get('challengingPlayerId', '')
                     challenger_name = mlb_id_to_name.get(cpid, '')
+                if not challenger_type:
+                    cpid = str(review.get('challengingPlayerId', '') or '')
+                    batter_id = str(review.get('batterId', '') or '')
+                    pitcher_id = str(review.get('pitcherId', '') or '')
+                    if challenger_name and normalize_name(challenger_name) == normalize_name(review.get('batter', '')):
+                        challenger_type = 'batter'
+                    elif challenger_name and normalize_name(challenger_name) == normalize_name(review.get('pitcher', '')):
+                        challenger_type = 'pitcher'
+                    elif cpid and batter_id and cpid == batter_id:
+                        challenger_type = 'batter'
+                    elif cpid and pitcher_id and cpid == pitcher_id:
+                        challenger_type = 'pitcher'
+                    elif review.get('isBatterChallenge', review.get('is_batter', None)) is True:
+                        challenger_type = 'batter'
+                    else:
+                        challenger_type = 'catcher'
                 if not challenger_name:
                     if challenger_type == 'batter':
                         challenger_name = review.get('batter', '')

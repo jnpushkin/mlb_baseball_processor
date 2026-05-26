@@ -66,9 +66,19 @@ def fetch_savant_abs(session, game_pk, delay=0.5):
                     is_home_pitcher = group_key == 'home_pitchers'
                     half = 'top' if is_home_pitcher else 'bottom'
                     # Resolve challenger name and type
-                    challenger_type = abs_info.get('challenging_player_type', '')
+                    challenger_type = str(abs_info.get('challenging_player_type', '') or '').strip().lower()
                     if not challenger_type:
-                        challenger_type = 'batter' if abs_info.get('is_batter', False) else 'catcher'
+                        challenge_player_id = str(abs_info.get('challenging_player_id', '') or '')
+                        batter_id = str(pitch.get('batter', '') or '')
+                        pitcher_id = str(pitch.get('pitcher', '') or '')
+                        if challenge_player_id and challenge_player_id == batter_id:
+                            challenger_type = 'batter'
+                        elif challenge_player_id and challenge_player_id == pitcher_id:
+                            challenger_type = 'pitcher'
+                        elif abs_info.get('is_batter', False):
+                            challenger_type = 'batter'
+                        else:
+                            challenger_type = 'catcher'
                     challenger_name = ''
                     if challenger_type == 'batter':
                         challenger_name = pitch.get('batter_name', '')

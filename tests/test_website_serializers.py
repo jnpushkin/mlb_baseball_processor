@@ -591,6 +591,54 @@ class DataSerializerTests(unittest.TestCase):
         self.assertEqual(0, pitcher["pitcherUpheld"])
         self.assertEqual(100, pitcher["pitcherSuccessRate"])
 
+    def test_serialize_abs_player_stats_infers_missing_type_from_challenge_player(self):
+        raw_games = [
+            {
+                "game_id": "SFN202605240",
+                "abs_challenges": {
+                    "reviews": [
+                        {
+                            "batter": "Casey Schmitt",
+                            "pitcher": "Grant Taylor",
+                            "challengePlayer": "Casey Schmitt",
+                            "challengeTeam": "home",
+                            "overturned": True,
+                        },
+                        {
+                            "batter": "Casey Schmitt",
+                            "pitcher": "Brandon Eisert",
+                            "challengePlayer": "Edgar Quero",
+                            "challengeTeam": "away",
+                            "overturned": False,
+                        },
+                        {
+                            "batter": "Matt Chapman",
+                            "pitcher": "Grant Taylor",
+                            "challengePlayer": "Grant Taylor",
+                            "challengeTeam": "away",
+                            "overturned": True,
+                        },
+                    ]
+                },
+            }
+        ]
+
+        serialized = DataSerializer()._serialize_abs_player_stats(raw_games)
+        by_name = {player["name"]: player for player in serialized}
+
+        schmitt = by_name["Casey Schmitt"]
+        self.assertEqual(1, schmitt["asBatter"])
+        self.assertEqual(0, schmitt["asCatcher"])
+        self.assertEqual(100, schmitt["batterSuccessRate"])
+
+        quero = by_name["Edgar Quero"]
+        self.assertEqual(1, quero["asCatcher"])
+        self.assertEqual(0, quero["catcherSuccessRate"])
+
+        taylor = by_name["Grant Taylor"]
+        self.assertEqual(1, taylor["asPitcher"])
+        self.assertEqual(100, taylor["pitcherSuccessRate"])
+
     def test_serialize_all_data_snapshot_counts(self):
         raw_games = [
             {
