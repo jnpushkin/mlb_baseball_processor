@@ -1315,11 +1315,14 @@ class SummaryStatsProcessor(BaseProcessor):
         # Helper functions
         def group_games_by_value(value, label, ids, teams=None, stat_key="R"):
             grouped = []
-            for gid in ids:
+            for idx, gid in enumerate(ids):
                 game = next(g for g in self.games if g["game_id"] == gid)
                 basic_info = game["basic_info"]
-                detail = (f"{teams[ids.index(gid)]} ({value})" if teams else 
-                        self._make_combined_detail(game, stat_key))
+                team = teams[idx] if teams else None
+                detail = (
+                    self._format_single_team_record_detail(game, team, stat_key, value, label)
+                    if team else self._make_combined_detail(game, stat_key)
+                )
                 grouped.append({
                     "Detail": detail,
                     "Score": self._create_score_string(basic_info),
@@ -1328,15 +1331,15 @@ class SummaryStatsProcessor(BaseProcessor):
             return grouped
         
         # Single team records
-        for value, label, ids, teams in [
-            (self.most_bb, "Most Walks by One Team", self.most_bb_gameids, self.most_bb_teams),
-            (self.most_runs, "Most Runs by One Team", self.most_runs_gameids, self.most_runs_teams),
-            (self.most_hr, "Most HRs by One Team", self.most_hr_gameids, self.most_hr_teams),
-            (self.most_hits, "Most Hits by One Team", self.most_hits_gameids, self.most_hits_teams),
-            (self.most_ks, "Most Pitching Strikeouts by One Team", self.most_ks_gameids, self.most_ks_teams),
-            (self.most_sb_team, "Most SBs by One Team", self.most_sb_team_gameids, self.most_sb_team_labels),
+        for value, label, ids, teams, stat_key in [
+            (self.most_bb, "Most Walks by One Team", self.most_bb_gameids, self.most_bb_teams, "BB"),
+            (self.most_runs, "Most Runs by One Team", self.most_runs_gameids, self.most_runs_teams, "R"),
+            (self.most_hr, "Most HRs by One Team", self.most_hr_gameids, self.most_hr_teams, "HR"),
+            (self.most_hits, "Most Hits by One Team", self.most_hits_gameids, self.most_hits_teams, "H"),
+            (self.most_ks, "Most Pitching Strikeouts by One Team", self.most_ks_gameids, self.most_ks_teams, "SO"),
+            (self.most_sb_team, "Most SBs by One Team", self.most_sb_team_gameids, self.most_sb_team_labels, "SB"),
         ]:
-            rows = group_games_by_value(value, label, ids, teams)
+            rows = group_games_by_value(value, label, ids, teams, stat_key=stat_key)
             summary_rows.append({
                 "Record": label,
                 "Value": value,
@@ -1382,12 +1385,25 @@ class SummaryStatsProcessor(BaseProcessor):
 
         # Add most runs in a single inning
         if self.most_runs_in_inning:
+            inning_rows = []
+            for gid, detail, score in zip(
+                self.most_runs_inning_gameids,
+                self.most_runs_inning_details,
+                self.most_runs_inning_scores,
+            ):
+                game = next((g for g in self.games if g["game_id"] == gid), None)
+                if game:
+                    detail = self._format_single_inning_runs_detail(
+                        game, detail, self.most_runs_in_inning
+                    )
+                inning_rows.append((gid, detail, score))
+
             summary_rows.append({
                 "Record": "Most Runs in a Single Inning",
                 "Value": self.most_runs_in_inning,
-                "Detail": "; ".join(self.most_runs_inning_details),
-                "Score": "; ".join(self.most_runs_inning_scores),
-                "GameIDs": join_sorted_gameids(sorted(self.most_runs_inning_gameids))
+                "Detail": "; ".join(row[1] for row in inning_rows),
+                "Score": "; ".join(row[2] for row in inning_rows),
+                "GameIDs": ", ".join(row[0] for row in inning_rows)
             })
         
         # Combined team records
@@ -1554,15 +1570,10 @@ class SummaryStatsProcessor(BaseProcessor):
 
             score_line = bc.get("score_at_deficit", "")
             inning_label = bc.get("half_inning_label", f"Inning {bc.get('deficit_inning', '')}")
-            detail_parts = [
-                f'{home_code} vs {away_code}',
-                f'Down {bc["deficit"]} after {inning_label} ({score_line})'
-            ]
-
             summary_rows.append({
                 "Record": "Biggest Comeback",
                 "Value": f'{bc["deficit"]} runs',
-                "Detail": "; ".join(detail_parts),
+                "Detail": f'{home_code} came back vs {away_code}: down {bc["deficit"]} after {inning_label} ({score_line})',
                 "Score": bc["final_score"],
                 "GameIDs": bc.get("game_id", "")
             })
@@ -2232,6 +2243,142 @@ class SummaryStatsProcessor(BaseProcessor):
 
         return summary_rows
     
+    def _safe_int(self, value):
+        try:
+            return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    def _team_side_from_code(self, basic_info, team_code):
+        target = unify_team_code(team_code or "")
+        for side in ("away", "home"):
+            if unify_team_code(basic_info.get(f"{side}_team_code", "")) == target:
+                return side
+        return ""
+
+    def _side_opponent(self, side):
+        return "home" if side == "away" else "away"
+
+    def _team_line_stats(self, game, side):
+        line = game.get("linescore", {}).get(side, {})
+        return {
+            "runs": self._safe_int(line.get("R", 0)),
+            "hits": self._safe_int(line.get("H", 0)),
+        }
+
+    def _format_player_counts(self, player_counts):
+        return [
+            f"{name} ({count})" if count > 1 else name
+            for name, count in player_counts
+        ]
+
+    def _team_hr_breakdown(self, game, side):
+        footer_blob = game.get("footer_summary", {}).get(side, {}).get("HR", "")
+        footer_counts = ExcelGeneratorUtils.extract_stat_counts(footer_blob)
+        footer_total = sum(count for _, count in footer_counts)
+
+        box_counts = [
+            (player.get("name", "Unknown"), self._safe_int(player.get("HR", 0)))
+            for player in game.get("batting", {}).get(side, [])
+            if self._safe_int(player.get("HR", 0)) > 0
+        ]
+        box_total = sum(count for _, count in box_counts)
+
+        if footer_counts:
+            return max(footer_total, box_total), self._format_player_counts(footer_counts)
+        return box_total, self._format_player_counts(box_counts)
+
+    def _team_sb_breakdown(self, game, side):
+        footer_blob = game.get("footer_summary", {}).get(side, {}).get("SB", "")
+        footer_counts = ExcelGeneratorUtils.extract_stat_counts(footer_blob)
+        footer_total = sum(count for _, count in footer_counts)
+
+        box_counts = [
+            (player.get("name", "Unknown"), self._safe_int(player.get("SB", 0)))
+            for player in game.get("batting", {}).get(side, [])
+            if self._safe_int(player.get("SB", 0)) > 0
+        ]
+        box_total = sum(count for _, count in box_counts)
+
+        if footer_counts:
+            return max(footer_total, box_total), self._format_player_counts(footer_counts)
+        return box_total, self._format_player_counts(box_counts)
+
+    def _format_team_big_inning(self, game, side):
+        innings = game.get("linescore", {}).get(side, {}).get("innings", []) or []
+        runs_by_inning = [self._safe_int(value) for value in innings]
+        if not runs_by_inning:
+            return ""
+
+        max_runs = max(runs_by_inning)
+        if max_runs <= 0:
+            return ""
+
+        inning = runs_by_inning.index(max_runs) + 1
+        half = "Top" if side == "away" else "Bottom"
+        run_word = "run" if max_runs == 1 else "runs"
+        return f"{max_runs} {run_word} in {half} {inning}"
+
+    def _format_single_team_record_detail(self, game, team_code, stat_key, value, label):
+        basic_info = game["basic_info"]
+        side = self._team_side_from_code(basic_info, team_code)
+        code = unify_team_code(team_code or "")
+        game_context = self._format_game_run_hit_detail(basic_info, game.get("linescore", {}))
+        if not side:
+            return f"{code} {value} {stat_key} - {game_context}"
+
+        team_line = self._team_line_stats(game, side)
+        opp_side = self._side_opponent(side)
+        opp_code = unify_team_code(basic_info.get(f"{opp_side}_team_code", ""))
+
+        if stat_key == "R":
+            detail = f"{code} scored {value} runs"
+            if team_line["hits"]:
+                detail += f" on {team_line['hits']} hits"
+            big_inning = self._format_team_big_inning(game, side)
+            if big_inning:
+                detail += f", including {big_inning}"
+            return f"{detail} - {game_context}"
+
+        if stat_key == "H":
+            return f"{code} had {value} hits and {team_line['runs']} runs - {game_context}"
+
+        if stat_key == "HR":
+            _, players = self._team_hr_breakdown(game, side)
+            players_text = f": {', '.join(players)}" if players else ""
+            return f"{code} hit {value} HR{players_text} - {game_context}"
+
+        if stat_key == "SO":
+            return f"{code} pitchers struck out {value} {opp_code} hitters - {game_context}"
+
+        if stat_key == "BB":
+            return f"{code} pitchers issued {value} walks - {game_context}"
+
+        if stat_key == "SB":
+            _, players = self._team_sb_breakdown(game, side)
+            players_text = f": {', '.join(players)}" if players else ""
+            return f"{code} stole {value} bases{players_text} - {game_context}"
+
+        return f"{code} {value} {label} - {game_context}"
+
+    def _format_single_inning_runs_detail(self, game, detail, value):
+        match = re.match(r"([^ ]+) \((\d+)\) in (\d+)", str(detail or ""))
+        if not match:
+            return detail
+
+        team_code = match.group(1)
+        inning = int(match.group(3))
+        basic_info = game["basic_info"]
+        side = self._team_side_from_code(basic_info, team_code)
+        half = "Top" if side == "away" else "Bottom"
+        team_line = self._team_line_stats(game, side) if side else {"runs": 0, "hits": 0}
+        game_context = self._format_game_run_hit_detail(basic_info, game.get("linescore", {}))
+        hit_context = f" on {team_line['hits']} hits" if team_line["hits"] else ""
+        return (
+            f"{unify_team_code(team_code)} scored {value} runs in {half} {inning}, "
+            f"{team_line['runs']} runs{hit_context} for the game - {game_context}"
+        )
+
     def _make_combined_detail(self, game, stat_key):
         """Create combined detail string for team statistics."""
         basic_info = game['basic_info']
@@ -2239,56 +2386,28 @@ class SummaryStatsProcessor(BaseProcessor):
         h_code = basic_info['home_team_code']
         
         if stat_key == "HR":
-            # From footer summary (has player names)
-            fs = game.get("footer_summary", {})
-            raw_a = fs.get("away", {}).get("HR", "")
-            raw_h = fs.get("home", {}).get("HR", "")
-            
-            def parse_hr_with_players(blob):
-                """Extract both total count and player names from footer HR blob."""
-                if not blob:
-                    return 0, []
-                
-                # Use the existing utility to extract player names and counts
-                player_counts = ExcelGeneratorUtils.extract_stat_counts(blob)
-                total_hrs = sum(count for _, count in player_counts)
-                
-                # Build player list with counts
-                player_details = []
-                for name, count in player_counts:
-                    if count > 1:
-                        player_details.append(f"{name} ({count})")
-                    else:
-                        player_details.append(name)
-                
-                return total_hrs, player_details
-            
-            hr_a, players_a = parse_hr_with_players(raw_a)
-            hr_h, players_h = parse_hr_with_players(raw_h)
-            
-            # Fallback to box score if footer is empty
-            if hr_a == 0:
-                hr_a = sum(p.get("HR", 0) for p in game["batting"].get("away", []))
-            if hr_h == 0:
-                hr_h = sum(p.get("HR", 0) for p in game["batting"].get("home", []))
+            hr_a, players_a = self._team_hr_breakdown(game, "away")
+            hr_h, players_h = self._team_hr_breakdown(game, "home")
             
             # Build detail string with team totals and player names
             detail_parts = []
             if hr_a > 0:
                 if players_a:
                     players_str = ", ".join(players_a)
-                    detail_parts.append(f"{a_code} ({hr_a}): {players_str}")
+                    detail_parts.append(f"{a_code} {hr_a} HR: {players_str}")
                 else:
-                    detail_parts.append(f"{a_code} ({hr_a})")
+                    detail_parts.append(f"{a_code} {hr_a} HR")
             
             if hr_h > 0:
                 if players_h:
                     players_str = ", ".join(players_h)
-                    detail_parts.append(f"{h_code} ({hr_h}): {players_str}")
+                    detail_parts.append(f"{h_code} {hr_h} HR: {players_str}")
                 else:
-                    detail_parts.append(f"{h_code} ({hr_h})")
+                    detail_parts.append(f"{h_code} {hr_h} HR")
             
-            return "; ".join(detail_parts)
+            combined_hr = hr_a + hr_h
+            hr_label = "HR" if combined_hr == 1 else "HRs"
+            return f"{combined_hr} combined {hr_label} - {' / '.join(detail_parts)} - {self._format_game_run_hit_detail(basic_info, game.get('linescore', {}))}"
         
         elif stat_key == "H":
             a_val = game["linescore"]["away"].get("H", 0)
@@ -2299,7 +2418,6 @@ class SummaryStatsProcessor(BaseProcessor):
         elif stat_key == "BB":
             a_val = sum(p.get("BB", 0) for p in game.get("pitching", {}).get("away", []))
             h_val = sum(p.get("BB", 0) for p in game.get("pitching", {}).get("home", []))
-            return f"{a_code} ({a_val}), {h_code} ({h_val})"
         elif stat_key == "SB":
             fs = game.get("footer_summary", {})
             raw_a = fs.get("away", {}).get("SB", "")
@@ -2310,13 +2428,25 @@ class SummaryStatsProcessor(BaseProcessor):
             
             sb_a = parse_sb(raw_a)
             sb_h = parse_sb(raw_h)
-            
-            return f"{a_code} ({sb_a}), {h_code} ({sb_h})"
+            a_val, h_val = sb_a, sb_h
         else:  # "R"
             a_val = game["linescore"]["away"].get("R", 0)
             h_val = game["linescore"]["home"].get("R", 0)
-        
-        return f"{a_code} ({a_val}), {h_code} ({h_val})"
+            return self._format_game_run_hit_detail(basic_info, game.get("linescore", {}))
+
+        labels = {
+            "R": "runs",
+            "H": "hits",
+            "SO": "strikeouts",
+            "BB": "walks",
+            "SB": "stolen bases",
+        }
+        label = labels.get(stat_key, stat_key)
+        total = self._safe_int(a_val) + self._safe_int(h_val)
+        return (
+            f"{total} combined {label} - {a_code} {a_val}, {h_code} {h_val} - "
+            f"{self._format_game_run_hit_detail(basic_info, game.get('linescore', {}))}"
+        )
     
     def _process_matchup_analysis(self):
         """Process matchup analysis and create matchup matrix."""
