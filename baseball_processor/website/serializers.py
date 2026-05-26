@@ -842,12 +842,37 @@ class DataSerializer:
         pitcher = self._clean_row_text(row, "Pitcher")
         intro = "Grand slam"
         if inning:
-            intro = f"{inning} grand slam"
+            intro = f"{inning}: grand slam"
         if pitcher:
             intro += f" off {pitcher}"
+        intro += " (4 RBI)"
 
-        batting = self._format_batting_milestone_detail("Grand Slams", stats)
-        return f"{intro} - {batting}"
+        game_line = self._format_grand_slam_game_line(stats)
+        return f"{intro}; game line: {game_line}" if game_line else intro
+
+    def _format_grand_slam_game_line(self, stats):
+        hit_parts = []
+        if stats["2b"]:
+            hit_parts.append(f"{stats['2b']} 2B")
+        if stats["3b"]:
+            hit_parts.append(f"{stats['3b']} 3B")
+        if stats["hr"]:
+            hit_parts.append(f"{stats['hr']} HR")
+
+        line_parts = [f"{stats['h']} H"]
+        if hit_parts:
+            line_parts[0] += f" ({', '.join(hit_parts)})"
+
+        if stats["r"]:
+            line_parts.append(f"{stats['r']} R")
+        line_parts.append(f"{stats['rbi']} RBI")
+        if stats["bb"]:
+            line_parts.append(f"{stats['bb']} BB")
+        if stats["so"]:
+            line_parts.append(f"{stats['so']} K")
+        if stats["sb"]:
+            line_parts.append(f"{stats['sb']} SB")
+        return ", ".join(line_parts)
 
     def _serialize_milestones(self, milestones_dict, include_excluded=False):
         """Convert all milestone DataFrames to combined JSON list."""
