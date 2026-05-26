@@ -37,3 +37,17 @@ def test_formats_inside_the_park_home_run_detail_with_play_context():
         "Patrick Bailey - Bottom 9, 1 out: 3-run inside-the-park HR "
         "off Jordan Romano (1st pitch) - Fly Ball to Deep CF-RF"
     )
+
+
+def test_formats_both_teams_10_plus_detail_with_score_context():
+    processor = make_processor()
+
+    detail = processor._format_both_teams_10_detail(
+        {"away_team_code": "DET", "home_team_code": "BAL"},
+        {
+            "away": {"R": 10, "H": 12, "innings": ["0"] * 10},
+            "home": {"R": 11, "H": 17, "innings": ["0"] * 10},
+        },
+    )
+
+    assert detail == "DET 10, BAL 11 in 10 innings (21 runs, 29 hits)"

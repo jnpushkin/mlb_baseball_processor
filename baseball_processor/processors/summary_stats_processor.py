@@ -108,6 +108,8 @@ class SummaryStatsProcessor(BaseProcessor):
         self.most_sb_combined_gameids = []
         self.both_teams_10_runs = 0
         self.games_both_10_plus = []
+        self.both_teams_10_details = []
+        self.both_teams_10_scores = []
         self.winning_pitchers_seen = set()
         self.players_with_hit = set()
         self.players_with_hr = set()
@@ -433,6 +435,8 @@ class SummaryStatsProcessor(BaseProcessor):
         if away_r >= 10 and home_r >= 10:
             self.both_teams_10_runs += 1
             self.games_both_10_plus.append(game_id)
+            self.both_teams_10_details.append(self._format_both_teams_10_detail(basic_info, linescore))
+            self.both_teams_10_scores.append(self._create_score_string(basic_info))
         
         self.total_runs += away_r + home_r
         combined_runs = away_r + home_r
@@ -1123,6 +1127,26 @@ class SummaryStatsProcessor(BaseProcessor):
             detail += f" - {contact}"
         return detail
 
+    def _format_both_teams_10_detail(self, basic_info, linescore):
+        away = linescore.get("away", {})
+        home = linescore.get("home", {})
+        away_code = unify_team_code(basic_info.get("away_team_code", ""))
+        home_code = unify_team_code(basic_info.get("home_team_code", ""))
+        away_r = int(away.get("R", 0) or 0)
+        home_r = int(home.get("R", 0) or 0)
+        away_h = int(away.get("H", 0) or 0)
+        home_h = int(home.get("H", 0) or 0)
+
+        innings_played = max(
+            len(away.get("innings", []) or []),
+            len(home.get("innings", []) or []),
+        )
+        innings_label = f" in {innings_played} innings" if innings_played > 9 else ""
+        total_runs = away_r + home_r
+        total_hits = away_h + home_h
+        hit_context = f", {total_hits} hits" if total_hits else ""
+        return f"{away_code} {away_r}, {home_code} {home_r}{innings_label} ({total_runs} runs{hit_context})"
+
     def _update_most_pitches_single_game(self, game: dict, game_id: str, basic_info: dict):
         """
         Find the maximum pitch count thrown by any single pitcher in this game and
@@ -1495,6 +1519,10 @@ class SummaryStatsProcessor(BaseProcessor):
             })
 
         # Simple tallies that always appear
+        both_teams_10_rows = sorted(
+            zip(self.games_both_10_plus, self.both_teams_10_details, self.both_teams_10_scores),
+            key=lambda row: row[0],
+        )
         summary_rows.extend([
             {
                 "Record": "1-0 Games",
@@ -1513,9 +1541,9 @@ class SummaryStatsProcessor(BaseProcessor):
             {
                 "Record": "Both Teams 10+ Runs",
                 "Value": self.both_teams_10_runs,
-                "Detail": "",
-                "Score": "",
-                "GameIDs": join_sorted_gameids(sorted(self.games_both_10_plus))
+                "Detail": "; ".join(row[1] for row in both_teams_10_rows),
+                "Score": "; ".join(row[2] for row in both_teams_10_rows),
+                "GameIDs": ", ".join(row[0] for row in both_teams_10_rows)
             },
             {
                 "Record": "20+ Hit Games by One Team",
