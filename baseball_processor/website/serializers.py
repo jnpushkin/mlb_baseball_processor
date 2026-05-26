@@ -851,21 +851,23 @@ class DataSerializer:
         return f"{intro}; game line: {game_line}" if game_line else intro
 
     def _format_grand_slam_game_line(self, stats):
-        hit_parts = []
-        if stats["2b"]:
-            hit_parts.append(f"{stats['2b']} 2B")
-        if stats["3b"]:
-            hit_parts.append(f"{stats['3b']} 3B")
-        if stats["hr"]:
-            hit_parts.append(f"{stats['hr']} HR")
-
-        line_parts = [f"{stats['h']} H"]
-        if hit_parts:
-            line_parts[0] += f" ({', '.join(hit_parts)})"
-
+        line_parts = []
+        if stats["ab"]:
+            line_parts.append(f"{stats['h']}-for-{stats['ab']}")
+        else:
+            line_parts.append(f"{stats['h']} H")
         if stats["r"]:
             line_parts.append(f"{stats['r']} R")
         line_parts.append(f"{stats['rbi']} RBI")
+
+        power_parts = []
+        if stats["2b"]:
+            power_parts.append(f"{stats['2b']} 2B")
+        if stats["3b"]:
+            power_parts.append(f"{stats['3b']} 3B")
+        if stats["hr"]:
+            power_parts.append(f"{stats['hr']} HR")
+        line_parts.extend(power_parts)
         if stats["bb"]:
             line_parts.append(f"{stats['bb']} BB")
         if stats["so"]:

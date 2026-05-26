@@ -1451,6 +1451,7 @@ const PersonalRecords = ({ data }) => {
                         {sections.rare.filter(r => parseInt(r.value) > 0).map(record => {
                             const { games, detailParts, scoreParts } = parseRecord(record);
                             const isExpanded = expandedRecord === record.record;
+                            const alignGames = games.length === detailParts.length;
                             return (
                                 <div key={record.record}
                                     className={`bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl overflow-hidden transition-all ${isExpanded ? 'md:col-span-2 lg:col-span-3' : ''}`}>
@@ -1467,13 +1468,26 @@ const PersonalRecords = ({ data }) => {
                                     </div>
                                     {isExpanded && (detailParts.length > 0 || games.length > 0) && (
                                         <div className="px-4 pb-4 space-y-2 border-t border-amber-200 pt-3">
-                                            {detailParts.map((d, di) => (
-                                                <div key={di} className="flex items-start justify-between gap-2 bg-white bg-opacity-60 rounded-lg p-2.5 text-xs">
-                                                    <span className="text-amber-900">{d}</span>
-                                                    {scoreParts[di] && <span className="text-amber-600 whitespace-nowrap font-medium">{scoreParts[di]}</span>}
+                                            {detailParts.map((d, di) => {
+                                                const game = alignGames ? games[di] : null;
+                                                return (
+                                                <div key={di} className="bg-white bg-opacity-70 rounded-lg p-2.5 text-xs border border-amber-100">
+                                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                                        {game ? (
+                                                            <button onClick={() => goToGame(game.gameId)}
+                                                                className="font-semibold text-blue-600 hover:underline text-left">
+                                                                {game.date} {game.awayTeam} @ {game.homeTeam}
+                                                            </button>
+                                                        ) : (
+                                                            <span className="font-semibold text-amber-800">{record.record}</span>
+                                                        )}
+                                                        {scoreParts[di] && <span className="text-amber-600 whitespace-nowrap font-medium">{scoreParts[di]}</span>}
+                                                    </div>
+                                                    <div className="text-amber-950 leading-snug">{d}</div>
                                                 </div>
-                                            ))}
-                                            <GameButtons games={games} />
+                                                );
+                                            })}
+                                            {(!alignGames || detailParts.length === 0) && <GameButtons games={games} />}
                                         </div>
                                     )}
                                 </div>

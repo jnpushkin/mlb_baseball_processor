@@ -350,6 +350,7 @@ class DataSerializerTests(unittest.TestCase):
                         "2B": 1,
                         "3B": 0,
                         "HR": 1,
+                        "AB": 4,
                     }
                 ]
             )
@@ -358,7 +359,7 @@ class DataSerializerTests(unittest.TestCase):
         serialized = DataSerializer()._serialize_milestones(milestones)
 
         self.assertEqual(
-            "Bottom 5: grand slam off Away Pitcher (4 RBI); game line: 2 H (1 2B, 1 HR), 1 R, 5 RBI",
+            "Bottom 5: grand slam off Away Pitcher (4 RBI); game line: 2-for-4, 1 R, 5 RBI, 1 2B, 1 HR",
             serialized[0]["detail"],
         )
         self.assertEqual("Bottom 5", serialized[0]["inning"])

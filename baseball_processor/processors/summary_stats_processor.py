@@ -268,16 +268,7 @@ class SummaryStatsProcessor(BaseProcessor):
             for play in game.get("play_by_play", []):
                 if play.get("inside_the_park_hr"):
                     self.inside_park_hrs += 1
-                    batter = play.get("batter", "Unknown")
-                    batter_id = play.get("batter_id")
-                    team = standardize_team_code(play.get("batting_team", ""))
-                    opponent = standardize_team_code(play.get("pitching_team", ""))
-                    inning = f"{play.get('half', '').title()} {play.get('inning', '')}"
-                    
-                    # Get RBI count from the play (already fixed by our earlier code)
-                    rbi = play.get("rbi", 0)
-                    
-                    detail = f"{batter} ({inning}, {rbi} RBI)"
+                    detail = self._format_inside_park_hr_detail(play)
                     self.inside_park_hr_details.append(detail)
                     self.inside_park_hr_gameids.append(game_id)
             
@@ -1058,6 +1049,79 @@ class SummaryStatsProcessor(BaseProcessor):
     def _create_score_string(self, basic_info):
         """Create a standardized score string."""
         return ExcelGeneratorUtils.format_score_string(basic_info, 9)
+
+    def _clean_event_text(self, value):
+        return re.sub(r"\s+", " ", str(value or "").replace("\xa0", " ")).strip()
+
+    def _ordinal(self, value):
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            return ""
+        if number <= 0:
+            return ""
+        if 10 <= number % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
+        return f"{number}{suffix}"
+
+    def _run_value_label(self, rbi):
+        try:
+            runs = int(rbi)
+        except (TypeError, ValueError):
+            runs = 0
+        if runs == 1:
+            return "solo"
+        if runs == 4:
+            return "grand slam"
+        if runs > 1:
+            return f"{runs}-run"
+        return ""
+
+    def _extract_contact_detail(self, description):
+        text = self._clean_event_text(description)
+        match = re.search(r"\(([^)]*)\)", text)
+        return self._clean_event_text(match.group(1)) if match else ""
+
+    def _format_inside_park_hr_detail(self, play):
+        batter = self._clean_event_text(play.get("batter")) or "Unknown"
+        half = self._clean_event_text(play.get("half")).title()
+        inning = self._clean_event_text(play.get("inning"))
+        inning_label = f"{half} {inning}".strip()
+
+        outs = play.get("outs_before", play.get("outs"))
+        outs_label = ""
+        try:
+            out_count = int(outs)
+            outs_label = f"{out_count} {'out' if out_count == 1 else 'outs'}"
+        except (TypeError, ValueError):
+            pass
+
+        context = ", ".join(part for part in (inning_label, outs_label) if part)
+        prefix = f"{batter} - {context}: " if context else f"{batter} - "
+
+        run_label = self._run_value_label(play.get("rbi"))
+        event_label = "inside-the-park HR"
+        if run_label == "grand slam":
+            event_label = "inside-the-park grand slam"
+        elif run_label:
+            event_label = f"{run_label} {event_label}"
+
+        detail = f"{prefix}{event_label}"
+        pitcher = self._clean_event_text(play.get("pitcher"))
+        if pitcher and pitcher != "Unknown":
+            detail += f" off {pitcher}"
+
+        pitch_number = play.get("pitch_number") or play.get("pitch_count")
+        pitch_label = self._ordinal(pitch_number)
+        if pitch_label:
+            detail += f" ({pitch_label} pitch)"
+
+        contact = self._extract_contact_detail(play.get("description", ""))
+        if contact:
+            detail += f" - {contact}"
+        return detail
 
     def _update_most_pitches_single_game(self, game: dict, game_id: str, basic_info: dict):
         """
