@@ -1,6 +1,7 @@
 import unittest
 
 from baseball_processor.parsers.mlb_api_parser import (
+    infer_abs_challenger_type,
     normalize_api_batting_rows,
     parse_batting,
     parse_play_by_play,
@@ -8,6 +9,25 @@ from baseball_processor.parsers.mlb_api_parser import (
 
 
 class MlbApiParserTests(unittest.TestCase):
+    def test_infer_abs_challenger_type_from_review_player(self):
+        matchup = {
+            "batter": {"id": 10, "fullName": "Casey Schmitt"},
+            "pitcher": {"id": 20, "fullName": "Grant Taylor"},
+        }
+
+        self.assertEqual(
+            "batter",
+            infer_abs_challenger_type(matchup, {"player": {"id": 10, "fullName": "Casey Schmitt"}}),
+        )
+        self.assertEqual(
+            "pitcher",
+            infer_abs_challenger_type(matchup, {"player": {"fullName": "Grant Taylor"}}),
+        )
+        self.assertEqual(
+            "catcher",
+            infer_abs_challenger_type(matchup, {"player": {"id": 30, "fullName": "Edgar Quero"}}),
+        )
+
     def test_parse_batting_keeps_no_pa_baserunner_stats(self):
         box_data = {
             "teams": {

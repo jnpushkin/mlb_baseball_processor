@@ -49,6 +49,49 @@ _chadwick_mlb_to_bref = {}
 _chadwick_loaded = False
 
 
+def _normalized_person_name(person):
+    """Return a normalized full name from a Stats API person object."""
+    return re.sub(r"\s+", " ", str((person or {}).get('fullName', '') or '')).strip().lower()
+
+
+def _person_id(person):
+    """Return a Stats API person id as a string, or blank if absent."""
+    person_id = (person or {}).get('id')
+    return str(person_id) if person_id is not None else ''
+
+
+def infer_abs_challenger_type(matchup, review_details):
+    """Infer whether an ABS challenger was the batter, pitcher, or catcher."""
+    review_details = review_details or {}
+    explicit_type = str(
+        review_details.get('challengerType')
+        or review_details.get('challengingPlayerType')
+        or review_details.get('challengePlayerType')
+        or review_details.get('playerType')
+        or ''
+    ).strip().lower()
+    if explicit_type in {'batter', 'pitcher', 'catcher'}:
+        return explicit_type
+
+    matchup = matchup or {}
+    challenger = review_details.get('player', {}) or {}
+    batter = matchup.get('batter', {}) or {}
+    pitcher = matchup.get('pitcher', {}) or {}
+    challenger_id = _person_id(challenger)
+    if challenger_id and challenger_id == _person_id(batter):
+        return 'batter'
+    if challenger_id and challenger_id == _person_id(pitcher):
+        return 'pitcher'
+
+    challenger_name = _normalized_person_name(challenger)
+    if challenger_name and challenger_name == _normalized_person_name(batter):
+        return 'batter'
+    if challenger_name and challenger_name == _normalized_person_name(pitcher):
+        return 'pitcher'
+
+    return 'catcher'
+
+
 def _load_chadwick_register():
     """Load Chadwick Register data for MLB ID -> BREF ID mapping."""
     global _chadwick_mlb_to_bref, _chadwick_loaded
@@ -1387,16 +1430,23 @@ def parse_mlb_game(url_or_id: Union[str, int], verbose: bool = False, map_player
                     call = details.get('call', {})
                     pitch_type = details.get('type', {})
                     count = ev.get('count', {})
+                    challenge_player = r.get('player', {}) or {}
+                    batter = matchup.get('batter', {}) or {}
+                    pitcher = matchup.get('pitcher', {}) or {}
                     # Determine which team challenged
                     challenge_team_id = r.get('challengeTeamId')
                     away_id = feed_data.get('gameData', {}).get('teams', {}).get('away', {}).get('id')
                     is_away_challenge = challenge_team_id == away_id
                     reviews.append({
                         'overturned': r.get('isOverturned', False),
-                        'batter': matchup.get('batter', {}).get('fullName', ''),
-                        'pitcher': matchup.get('pitcher', {}).get('fullName', ''),
-                        'challengePlayer': r.get('player', {}).get('fullName', ''),
+                        'batter': batter.get('fullName', ''),
+                        'batterId': _person_id(batter),
+                        'pitcher': pitcher.get('fullName', ''),
+                        'pitcherId': _person_id(pitcher),
+                        'challengerType': infer_abs_challenger_type(matchup, r),
+                        'challengePlayer': challenge_player.get('fullName', ''),
                         'challengeTeam': 'away' if is_away_challenge else 'home',
+                        'challengingPlayerId': _person_id(challenge_player),
                         'originalCall': call.get('description', ''),
                         'pitchType': pitch_type.get('description', '') if isinstance(pitch_type, dict) else '',
                         'count': f"{count.get('balls', 0)}-{count.get('strikes', 0)}",

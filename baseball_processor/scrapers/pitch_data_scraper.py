@@ -16,7 +16,12 @@ import json
 import time
 from pathlib import Path
 
-from ..parsers.mlb_api_parser import TEAM_ID_TO_CODE, parse_pitch_data, parse_hit_data
+from ..parsers.mlb_api_parser import (
+    TEAM_ID_TO_CODE,
+    infer_abs_challenger_type,
+    parse_hit_data,
+    parse_pitch_data,
+)
 from ..utils.helpers import normalize_name as _normalize_name
 from ..utils.http import create_retry_session, get_with_retry
 
@@ -341,12 +346,19 @@ def main():
                                     call = details.get('call', {})
                                     pitch_type = details.get('type', {})
                                     count = ev.get('count', {})
+                                    challenge_player = r.get('player', {}) or {}
+                                    batter = matchup.get('batter', {}) or {}
+                                    pitcher = matchup.get('pitcher', {}) or {}
                                     abs_challenges['reviews'].append({
                                         'overturned': r.get('isOverturned', False),
-                                        'batter': matchup.get('batter', {}).get('fullName', ''),
-                                        'pitcher': matchup.get('pitcher', {}).get('fullName', ''),
-                                        'challengePlayer': r.get('player', {}).get('fullName', ''),
+                                        'batter': batter.get('fullName', ''),
+                                        'batterId': str(batter.get('id') or ''),
+                                        'pitcher': pitcher.get('fullName', ''),
+                                        'pitcherId': str(pitcher.get('id') or ''),
+                                        'challengerType': infer_abs_challenger_type(matchup, r),
+                                        'challengePlayer': challenge_player.get('fullName', ''),
                                         'challengeTeam': 'away' if r.get('challengeTeamId') == away_id else 'home',
+                                        'challengingPlayerId': str(challenge_player.get('id') or ''),
                                         'originalCall': call.get('description', ''),
                                         'pitchType': pitch_type.get('description', '') if isinstance(pitch_type, dict) else '',
                                         'count': f"{count.get('balls', 0)}-{count.get('strikes', 0)}",
