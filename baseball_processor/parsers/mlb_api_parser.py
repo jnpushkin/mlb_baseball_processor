@@ -17,6 +17,7 @@ Usage:
 import re
 import requests
 import html
+import time
 import unicodedata
 from datetime import datetime
 from typing import Optional, Union
@@ -204,6 +205,10 @@ _validated_mlb_bref_id_cache = {}
 _provisional_mlb_bref_id_cache = {}
 _provisional_mlb_bref_ids = set()
 _bref_player_page_cache = {}
+_bref_player_page_rate_limited = False
+_last_bref_player_page_fetch_at = 0.0
+_BREF_PLAYER_PAGE_MIN_INTERVAL_SECONDS = 3.2
+_BREF_PLAYER_PAGE_LIVE_PROBE_LIMIT = 3
 
 # Cache for register ID -> MLB ID mappings (resolved via register page)
 _register_to_mlb_cache = {}
@@ -275,14 +280,48 @@ def _used_mlb_bref_suffixes_for_stem(stem: str) -> set[int]:
     return suffixes
 
 
+def _first_unused_bref_candidate(candidates: list[str], used_suffixes: set[int]) -> Optional[str]:
+    for candidate in candidates:
+        suffix = int(candidate[-2:])
+        if suffix not in used_suffixes:
+            return candidate
+    return candidates[0] if candidates else None
+
+
+def _bref_candidate_probe_window(
+    candidates: list[str], used_suffixes: set[int], live_probe_limit: int
+) -> list[str]:
+    if not candidates:
+        return []
+    start_candidate = _first_unused_bref_candidate(candidates, used_suffixes)
+    if not start_candidate:
+        return []
+    start_index = candidates.index(start_candidate)
+    return candidates[start_index:start_index + max(1, live_probe_limit)]
+
+
+def _pace_bref_player_page_request():
+    global _last_bref_player_page_fetch_at
+    now = time.monotonic()
+    if _last_bref_player_page_fetch_at:
+        elapsed = now - _last_bref_player_page_fetch_at
+        if elapsed < _BREF_PLAYER_PAGE_MIN_INTERVAL_SECONDS:
+            time.sleep(_BREF_PLAYER_PAGE_MIN_INTERVAL_SECONDS - elapsed)
+    _last_bref_player_page_fetch_at = time.monotonic()
+
+
 def _fetch_bref_player_page(candidate_id: str) -> tuple[Optional[int], str]:
     """Fetch and cache a B-Ref player page candidate."""
+    global _bref_player_page_rate_limited
     if not candidate_id:
         return None, ""
     if candidate_id in _bref_player_page_cache:
         return _bref_player_page_cache[candidate_id]
+    if _bref_player_page_rate_limited:
+        return 429, ""
 
     try:
+        _pace_bref_player_page_request()
         url = f"https://www.baseball-reference.com/players/{candidate_id[0]}/{candidate_id}.shtml"
         if HAS_CLOUDSCRAPER:
             scraper = cloudscraper.create_scraper()
@@ -295,13 +334,18 @@ def _fetch_bref_player_page(candidate_id: str) -> tuple[Optional[int], str]:
             response = get_with_retry(_session, url, headers=headers, timeout=15)
         response.encoding = "utf-8"
         result = (response.status_code, response.text if response.status_code == 200 else "")
-        _bref_player_page_cache[candidate_id] = result
+        if response.status_code == 429:
+            _bref_player_page_rate_limited = True
+        if response.status_code in {200, 404}:
+            _bref_player_page_cache[candidate_id] = result
         return result
     except Exception:
         return None, ""
 
 
-def construct_provisional_bref_mlb_id(name: str, max_suffix: int = 99) -> Optional[str]:
+def construct_provisional_bref_mlb_id(
+    name: str, max_suffix: int = 99, live_probe_limit: int = _BREF_PLAYER_PAGE_LIVE_PROBE_LIMIT
+) -> Optional[str]:
     """Construct the likely MLB B-Ref ID before its page is published."""
     lookup_name = _normalize_bref_lookup_name(name)
     if not lookup_name:
@@ -312,28 +356,28 @@ def construct_provisional_bref_mlb_id(name: str, max_suffix: int = 99) -> Option
     candidates = construct_bref_mlb_id_candidates(name, max_suffix=max_suffix)
     if not candidates:
         return None
+    stem = candidates[0][:-2]
+    used_suffixes = _used_mlb_bref_suffixes_for_stem(stem)
 
-    for candidate in candidates:
+    saw_existing_page = False
+    for candidate in _bref_candidate_probe_window(candidates, used_suffixes, live_probe_limit):
         status_code, _html = _fetch_bref_player_page(candidate)
         if status_code == 404:
             _provisional_mlb_bref_id_cache[lookup_name] = candidate
             _provisional_mlb_bref_ids.add(candidate)
             return candidate
         if status_code == 200:
+            saw_existing_page = True
             continue
         break
 
-    stem = candidates[0][:-2]
-    used_suffixes = _used_mlb_bref_suffixes_for_stem(stem)
-    for candidate in candidates:
-        suffix = int(candidate[-2:])
-        if suffix not in used_suffixes:
-            _provisional_mlb_bref_id_cache[lookup_name] = candidate
-            _provisional_mlb_bref_ids.add(candidate)
-            return candidate
-    candidate = candidates[0]
-    _provisional_mlb_bref_id_cache[lookup_name] = candidate
-    _provisional_mlb_bref_ids.add(candidate)
+    if saw_existing_page:
+        return None
+
+    candidate = _first_unused_bref_candidate(candidates, used_suffixes)
+    if candidate:
+        _provisional_mlb_bref_id_cache[lookup_name] = candidate
+        _provisional_mlb_bref_ids.add(candidate)
     return candidate
 
 
@@ -353,7 +397,9 @@ def _bref_candidate_matches_name(candidate_id: str, expected_name: str) -> bool:
         return False
 
 
-def resolve_bref_mlb_id_by_name(name: str, max_suffix: int = 20) -> Optional[str]:
+def resolve_bref_mlb_id_by_name(
+    name: str, max_suffix: int = 20, live_probe_limit: int = _BREF_PLAYER_PAGE_LIVE_PROBE_LIMIT
+) -> Optional[str]:
     """Resolve a regular MLB B-Ref ID by generating and validating candidates."""
     lookup_name = _normalize_bref_lookup_name(name)
     if not lookup_name:
@@ -361,10 +407,18 @@ def resolve_bref_mlb_id_by_name(name: str, max_suffix: int = 20) -> Optional[str
     if lookup_name in _validated_mlb_bref_id_cache:
         return _validated_mlb_bref_id_cache[lookup_name]
 
-    for candidate_id in construct_bref_mlb_id_candidates(name, max_suffix=max_suffix):
+    candidates = construct_bref_mlb_id_candidates(name, max_suffix=max_suffix)
+    if not candidates:
+        return None
+    used_suffixes = _used_mlb_bref_suffixes_for_stem(candidates[0][:-2])
+
+    for candidate_id in _bref_candidate_probe_window(candidates, used_suffixes, live_probe_limit):
         if _bref_candidate_matches_name(candidate_id, name):
             _validated_mlb_bref_id_cache[lookup_name] = candidate_id
             return candidate_id
+        status_code, _html = _fetch_bref_player_page(candidate_id)
+        if status_code != 200:
+            break
 
     _validated_mlb_bref_id_cache[lookup_name] = None
     return None
