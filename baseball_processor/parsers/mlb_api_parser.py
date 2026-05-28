@@ -424,6 +424,44 @@ def resolve_bref_mlb_id_by_name(
     return None
 
 
+def resolve_bref_mlb_id_exhaustive_by_name(name: str, max_suffix: int = 99) -> tuple[Optional[str], str]:
+    """Resolve a B-Ref MLB ID by validating pages, then walking to the first 404.
+
+    This is intentionally for explicit backfill/repair jobs. Normal parsing uses
+    the bounded resolver above to avoid accidental B-Ref crawls.
+    """
+    lookup_name = _normalize_bref_lookup_name(name)
+    if not lookup_name:
+        return None, "invalid_name"
+
+    validated_id = resolve_bref_mlb_id_by_name(
+        name,
+        max_suffix=max_suffix,
+        live_probe_limit=max_suffix,
+    )
+    if validated_id:
+        return validated_id, "validated"
+
+    candidates = construct_bref_mlb_id_candidates(name, max_suffix=max_suffix)
+    if not candidates:
+        return None, "invalid_name"
+
+    used_suffixes = _used_mlb_bref_suffixes_for_stem(candidates[0][:-2])
+    for candidate in _bref_candidate_probe_window(candidates, used_suffixes, max_suffix):
+        status_code, _html = _fetch_bref_player_page(candidate)
+        if status_code == 404:
+            _provisional_mlb_bref_id_cache[lookup_name] = candidate
+            _provisional_mlb_bref_ids.add(candidate)
+            return candidate, "first_404"
+        if status_code == 200:
+            continue
+        if status_code == 429:
+            return None, "rate_limited"
+        return None, "unavailable"
+
+    return None, "not_found"
+
+
 def resolve_register_id(register_id: str, use_cache_only: bool = False) -> Optional[str]:
     """
     Resolve a register-format ID to MLB-format ID.

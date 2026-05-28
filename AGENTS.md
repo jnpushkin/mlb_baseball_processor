@@ -105,6 +105,14 @@ python3 -m baseball_processor.scrapers.download_bref --dry-run # Preview without
 ```
 Automatically downloads BREF HTML box scores for API-sourced games that are >24 hours old and don't already have an HTML file. Respects BREF rate limits (3.2s between requests).
 
+### BREF ID Backfill
+```bash
+python3 -m baseball_processor.scrapers.bref_id_backfill --dry-run
+python3 -m baseball_processor.scrapers.bref_id_backfill --player "Gage Jump"
+python3 -m baseball_processor.scrapers.bref_id_backfill --max-suffix 99
+```
+Explicit repair job for fresh debut/player IDs. It scans cached game JSON for register/MLB-placeholder IDs, validates published BREF pages by name, then walks the BREF suffixes until the first 404 to infer the next MLB-style BREF ID. This is intentionally not part of the hot parser path. It paces BREF player-page requests at 3.2s and stops on 429.
+
 ### Scoring Change Check
 ```bash
 python3 -m baseball_processor.scrapers.scoring_check              # Check all games
@@ -181,3 +189,4 @@ When encountering repeated errors or discovering project-specific quirks:
 - Scrape Baseball Reference faster than 3.1s between requests
 - Remove milestone types from MILESTONE_KEYS without also adding them to ALL_DETECTION_KEYS (causes KeyError)
 - Assume game IDs have the same format for BREF vs API games (different prefixes)
+- Put unbounded BREF suffix/page walks in normal processing; use `bref_id_backfill` for explicit paced repairs

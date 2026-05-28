@@ -9,6 +9,7 @@ from baseball_processor.parsers.mlb_api_parser import (
     normalize_api_batting_rows,
     parse_batting,
     parse_play_by_play,
+    resolve_bref_mlb_id_exhaustive_by_name,
     resolve_bref_mlb_id_by_name,
 )
 
@@ -244,6 +245,51 @@ class MlbApiParserTests(unittest.TestCase):
             mlb_api_parser._name_to_bref_cache = old_name_cache
             mlb_api_parser._name_team_to_bref_cache = old_team_cache
             mlb_api_parser._mlb_to_bref_cache = old_mlb_cache
+            mlb_api_parser._provisional_mlb_bref_id_cache = old_provisional_cache
+            mlb_api_parser._provisional_mlb_bref_ids = old_provisional
+            mlb_api_parser._fetch_bref_player_page = old_fetcher
+
+    def test_exhaustive_bref_id_walk_continues_until_first_404(self):
+        old_chadwick = mlb_api_parser._chadwick_mlb_to_bref
+        old_chadwick_loaded = mlb_api_parser._chadwick_loaded
+        old_name_cache = mlb_api_parser._name_to_bref_cache
+        old_team_cache = mlb_api_parser._name_team_to_bref_cache
+        old_mlb_cache = mlb_api_parser._mlb_to_bref_cache
+        old_validated_cache = mlb_api_parser._validated_mlb_bref_id_cache
+        old_provisional_cache = mlb_api_parser._provisional_mlb_bref_id_cache
+        old_provisional = mlb_api_parser._provisional_mlb_bref_ids
+        old_fetcher = mlb_api_parser._fetch_bref_player_page
+        calls = []
+        mlb_api_parser._chadwick_mlb_to_bref = {}
+        mlb_api_parser._chadwick_loaded = True
+        mlb_api_parser._name_to_bref_cache = {}
+        mlb_api_parser._name_team_to_bref_cache = {}
+        mlb_api_parser._mlb_to_bref_cache = {}
+        mlb_api_parser._validated_mlb_bref_id_cache = {}
+        mlb_api_parser._provisional_mlb_bref_id_cache = {}
+        mlb_api_parser._provisional_mlb_bref_ids = set()
+
+        def fake_fetch(candidate_id):
+            calls.append(candidate_id)
+            if candidate_id in {"jumpga01", "jumpga02", "jumpga03"}:
+                return 200, "<h1>Other Player</h1>"
+            return 404, ""
+
+        mlb_api_parser._fetch_bref_player_page = fake_fetch
+        try:
+            self.assertEqual(
+                ("jumpga04", "first_404"),
+                resolve_bref_mlb_id_exhaustive_by_name("Gage Jump", max_suffix=5),
+            )
+            self.assertIn("jumpga04", mlb_api_parser._provisional_mlb_bref_ids)
+            self.assertEqual("jumpga04", calls[-1])
+        finally:
+            mlb_api_parser._chadwick_mlb_to_bref = old_chadwick
+            mlb_api_parser._chadwick_loaded = old_chadwick_loaded
+            mlb_api_parser._name_to_bref_cache = old_name_cache
+            mlb_api_parser._name_team_to_bref_cache = old_team_cache
+            mlb_api_parser._mlb_to_bref_cache = old_mlb_cache
+            mlb_api_parser._validated_mlb_bref_id_cache = old_validated_cache
             mlb_api_parser._provisional_mlb_bref_id_cache = old_provisional_cache
             mlb_api_parser._provisional_mlb_bref_ids = old_provisional
             mlb_api_parser._fetch_bref_player_page = old_fetcher
