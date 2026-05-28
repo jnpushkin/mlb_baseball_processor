@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 import pandas as pd
 from collections import defaultdict, Counter
@@ -287,6 +288,8 @@ def process_career_milestones(games, debut_entries, all_players):
         bbref_to_retro, retro_to_bbref = load_id_mapping(register_dir)
         
         # Process debuts
+        api_debut_entries = _api_debut_entries_from_player_bios(games)
+        debut_entries = [*api_debut_entries, *debut_entries]
         mlb_debut_rows = []
         for game in games:
             debut_matches = check_mlb_debuts(game, debut_entries)
@@ -1474,13 +1477,78 @@ def _matches_debut_entry(player, entry, side, home_team, away_team):
         return False
 
     player_team = home_team if side == "home" else away_team
-    return _normalize_debut_team_code(player_team) == _normalize_debut_team_code(entry.get("Team", ""))
+    entry_team = _normalize_debut_team_code(entry.get("Team", ""))
+    if not entry_team:
+        return True
+    return _normalize_debut_team_code(player_team) == entry_team
+
+
+def _load_player_bios_cache():
+    bio_path = Path(__file__).parent.parent.parent / 'cache' / 'player_bios.json'
+    try:
+        with open(bio_path, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+
+
+def _api_debut_entries_from_player_bios(games, bios=None):
+    """Build debut reference entries from MLB API bios for players in watched games."""
+    bios = bios if bios is not None else _load_player_bios_cache()
+    if not bios:
+        return []
+
+    entries = []
+    seen = set()
+    for game in games:
+        date_str = game.get("basic_info", {}).get("date_yyyymmdd", "")
+        if not date_str:
+            continue
+        try:
+            game_date = datetime.strptime(date_str, "%Y%m%d").date()
+        except Exception:
+            continue
+
+        home_team = game.get("basic_info", {}).get("home_team_code") or game.get("basic_info", {}).get("home_team", "")
+        away_team = game.get("basic_info", {}).get("away_team_code") or game.get("basic_info", {}).get("away_team", "")
+
+        for side in ("home", "away"):
+            team = home_team if side == "home" else away_team
+            for section in ("batting", "pitching"):
+                for player in game.get(section, {}).get(side, []):
+                    player_id = player.get("player_id") or player.get("bref_id") or ""
+                    bio = bios.get(player_id, {})
+                    debut_date = bio.get("debutDate") or bio.get("mlbDebutDate") or ""
+                    if not debut_date:
+                        continue
+                    try:
+                        debut_dt = datetime.strptime(debut_date, "%Y-%m-%d").date()
+                    except Exception:
+                        continue
+                    if debut_dt != game_date:
+                        continue
+
+                    player_name = bio.get("name") or player.get("name", "")
+                    key = (normalize_name(player_name), debut_date, _normalize_debut_team_code(team))
+                    if not player_name or key in seen:
+                        continue
+                    seen.add(key)
+                    entries.append({
+                        "Player": player_name,
+                        "PlayerID": player_id,
+                        "Team": team,
+                        "DebutDate": debut_date,
+                        "DebutYear": str(debut_dt.year),
+                        "Source": "MLB API",
+                    })
+    return entries
 
 
 def check_mlb_debuts(game, debut_entries):
     """Fixed debut detection - captures defensive-only players."""
     debut_matches = []
     seen_ids = set()
+    seen_players = set()
 
     date_str = game.get("basic_info", {}).get("date_yyyymmdd")
     game_id = game.get("game_id", "")
@@ -1510,6 +1578,7 @@ def check_mlb_debuts(game, debut_entries):
         player_position = None
         batting_stats = {}
         pitching_stats = {}
+        matched_player_id = ""
 
         # Method 1: Check batting lineup
         for side in ("home", "away"):
@@ -1518,6 +1587,7 @@ def check_mlb_debuts(game, debut_entries):
                     player_team = home_team if side == "home" else away_team
                     opponent_team = away_team if side == "home" else home_team
                     player_position = player.get("position", "").strip()
+                    matched_player_id = player.get("player_id") or player.get("bref_id") or matched_player_id
                     
                     ab = player.get("AB", 0)
                     pa = player.get("PA", 0)
@@ -1545,6 +1615,7 @@ def check_mlb_debuts(game, debut_entries):
                             if not player_team:
                                 player_team = home_team if side == "home" else away_team
                                 opponent_team = away_team if side == "home" else home_team
+                            matched_player_id = player.get("player_id") or player.get("bref_id") or matched_player_id
                             
                             if not player_position:
                                 player_position = "P"
@@ -1563,6 +1634,15 @@ def check_mlb_debuts(game, debut_entries):
 
         # Create debut match if found
         if player_team:
+            player_key = (
+                matched_player_id or normalize_name(entry["Player"]),
+                date_str,
+                standardize_team_code(player_team),
+            )
+            if player_key in seen_players:
+                continue
+            seen_players.add(player_key)
+
             debut_match = {
                 "Date": date_str,
                 "Player": entry["Player"],
