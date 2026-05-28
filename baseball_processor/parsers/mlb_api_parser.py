@@ -16,6 +16,8 @@ Usage:
 
 import re
 import requests
+import html
+import unicodedata
 from datetime import datetime
 from typing import Optional, Union
 
@@ -198,6 +200,7 @@ def _load_name_to_bref_cache():
 
 # Cache for validated constructed IDs: (name, team, year) -> bref_id
 _constructed_id_cache = {}
+_validated_mlb_bref_id_cache = {}
 
 # Cache for register ID -> MLB ID mappings (resolved via register page)
 _register_to_mlb_cache = {}
@@ -215,6 +218,85 @@ def is_register_format_id(player_id: str) -> bool:
         return False
     # Register format has "000" in the middle (positions 6-8)
     return player_id[6:9] == "000"
+
+
+def is_mlb_bref_id(player_id: str) -> bool:
+    """Return True for regular MLB B-Ref player IDs such as troutmi01."""
+    player_id = str(player_id or "").strip()
+    return bool(player_id and not player_id.startswith("mlb_") and not is_register_format_id(player_id))
+
+
+def _normalize_bref_lookup_name(name: str) -> str:
+    normalized = unicodedata.normalize("NFKD", str(name or ""))
+    normalized = normalized.encode("ASCII", "ignore").decode("utf-8")
+    normalized = re.sub(r"\b(jr|sr|ii|iii|iv|v)\.?\b", "", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r"[^a-zA-Z]+", " ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip().lower()
+
+
+def _bref_name_parts(name: str) -> tuple[str, str]:
+    normalized = _normalize_bref_lookup_name(name)
+    parts = normalized.split()
+    if len(parts) < 2:
+        return "", ""
+    first_name = parts[0]
+    last_name = "".join(parts[1:])
+    return first_name, last_name
+
+
+def construct_bref_mlb_id_candidates(name: str, max_suffix: int = 20) -> list[str]:
+    """Generate regular MLB B-Ref ID candidates for a player name."""
+    first_name, last_name = _bref_name_parts(name)
+    if len(first_name) < 2 or len(last_name) < 2:
+        return []
+    stem = f"{last_name[:5]}{first_name[:2]}"
+    return [f"{stem}{suffix:02d}" for suffix in range(1, max_suffix + 1)]
+
+
+def _bref_candidate_matches_name(candidate_id: str, expected_name: str) -> bool:
+    """Fetch a candidate B-Ref page and confirm its H1 matches the player name."""
+    if not candidate_id:
+        return False
+
+    try:
+        url = f"https://www.baseball-reference.com/players/{candidate_id[0]}/{candidate_id}.shtml"
+        if HAS_CLOUDSCRAPER:
+            scraper = cloudscraper.create_scraper()
+            response = scraper.get(url, timeout=15)
+        else:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            }
+            response = get_with_retry(_session, url, headers=headers, timeout=15)
+        if response.status_code != 200:
+            return False
+        response.encoding = "utf-8"
+        match = re.search(r"<h1[^>]*>(.*?)</h1>", response.text, re.IGNORECASE | re.DOTALL)
+        if not match:
+            return False
+        page_name = re.sub(r"<[^>]+>", " ", match.group(1))
+        page_name = html.unescape(page_name)
+        return _normalize_bref_lookup_name(page_name) == _normalize_bref_lookup_name(expected_name)
+    except Exception:
+        return False
+
+
+def resolve_bref_mlb_id_by_name(name: str, max_suffix: int = 20) -> Optional[str]:
+    """Resolve a regular MLB B-Ref ID by generating and validating candidates."""
+    lookup_name = _normalize_bref_lookup_name(name)
+    if not lookup_name:
+        return None
+    if lookup_name in _validated_mlb_bref_id_cache:
+        return _validated_mlb_bref_id_cache[lookup_name]
+
+    for candidate_id in construct_bref_mlb_id_candidates(name, max_suffix=max_suffix):
+        if _bref_candidate_matches_name(candidate_id, name):
+            _validated_mlb_bref_id_cache[lookup_name] = candidate_id
+            return candidate_id
+
+    _validated_mlb_bref_id_cache[lookup_name] = None
+    return None
 
 
 def resolve_register_id(register_id: str, use_cache_only: bool = False) -> Optional[str]:
@@ -387,10 +469,6 @@ def construct_bref_register_id(name: str, team: str = None, year: int = None, ml
     # Cache this construction with team/year context
     _constructed_id_cache[cache_key] = bref_id
 
-    # Also cache with mlb_id if provided for future lookups
-    if mlb_id:
-        _mlb_to_bref_cache[mlb_id] = bref_id
-
     return bref_id
 
 
@@ -410,16 +488,32 @@ def get_bref_id_by_name(name: str, team: str = None, year: int = None, mlb_id: i
     _load_name_to_bref_cache()
     name_lower = name.lower().strip()
 
+    fallback_id = None
+
     # Try name+team first for better accuracy
     if team:
         result = _name_team_to_bref_cache.get((name_lower, team))
         if result:
-            return result
+            if is_mlb_bref_id(result):
+                return result
+            fallback_id = result
 
     # Fall back to name-only from cache
     result = _name_to_bref_cache.get(name_lower)
     if result:
-        return result
+        if is_mlb_bref_id(result):
+            return result
+        fallback_id = fallback_id or result
+
+    # Try the regular MLB B-Ref ID shape before falling back to register IDs.
+    bref_id = resolve_bref_mlb_id_by_name(name)
+    if bref_id:
+        if mlb_id:
+            _mlb_to_bref_cache[mlb_id] = bref_id
+        return bref_id
+
+    if fallback_id:
+        return fallback_id
 
     # Last resort: construct minor league register ID format
     # Only do this for players not found in regular season cache
@@ -445,7 +539,7 @@ def get_bref_id(mlb_id: int, name: str = None) -> Optional[str]:
     # Check MLB ID cache first
     if mlb_id in _mlb_to_bref_cache:
         cached = _mlb_to_bref_cache[mlb_id]
-        if cached:
+        if cached and is_mlb_bref_id(cached):
             return cached
 
     # Try Chadwick Register (most authoritative source)
@@ -740,8 +834,10 @@ def parse_batting(box_data: dict, side: str, bref_id_map: dict = None, game_year
         # Use BREF ID if available, otherwise try name-based lookup, then fall back to mlb_ prefix
         player_name = person.get('fullName', '')
         bref_id = bref_id_map.get(mlb_id)
-        if not bref_id and player_name:
-            bref_id = get_bref_id_by_name(player_name, team=team_code, year=game_year, mlb_id=mlb_id)
+        if player_name and (not bref_id or not is_mlb_bref_id(bref_id)):
+            name_bref_id = get_bref_id_by_name(player_name, team=team_code, year=game_year, mlb_id=mlb_id)
+            if name_bref_id and (not bref_id or is_mlb_bref_id(name_bref_id)):
+                bref_id = name_bref_id
         player_id = bref_id if bref_id else f"mlb_{mlb_id}"
 
         batter_data = {
@@ -897,8 +993,10 @@ def parse_pitching(box_data: dict, side: str, bref_id_map: dict = None, game_yea
 
         # Use BREF ID if available, otherwise try name-based lookup, then fall back to mlb_ prefix
         bref_id = bref_id_map.get(mlb_id)
-        if not bref_id and player_name:
-            bref_id = get_bref_id_by_name(player_name, team=team_code, year=game_year, mlb_id=mlb_id)
+        if player_name and (not bref_id or not is_mlb_bref_id(bref_id)):
+            name_bref_id = get_bref_id_by_name(player_name, team=team_code, year=game_year, mlb_id=mlb_id)
+            if name_bref_id and (not bref_id or is_mlb_bref_id(name_bref_id)):
+                bref_id = name_bref_id
         player_id = bref_id if bref_id else f"mlb_{mlb_id}"
 
         pitcher_data = {

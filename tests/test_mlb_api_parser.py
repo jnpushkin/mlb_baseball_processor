@@ -1,14 +1,63 @@
 import unittest
 
+import baseball_processor.parsers.mlb_api_parser as mlb_api_parser
 from baseball_processor.parsers.mlb_api_parser import (
+    construct_bref_mlb_id_candidates,
+    get_bref_id_by_name,
     infer_abs_challenger_type,
     normalize_api_batting_rows,
     parse_batting,
     parse_play_by_play,
+    resolve_bref_mlb_id_by_name,
 )
 
 
 class MlbApiParserTests(unittest.TestCase):
+    def test_construct_bref_mlb_id_candidates_uses_regular_bref_shape(self):
+        self.assertEqual(
+            ["jumpga01", "jumpga02", "jumpga03"],
+            construct_bref_mlb_id_candidates("Gage Jump", max_suffix=3),
+        )
+        self.assertEqual(
+            ["fernajo01"],
+            construct_bref_mlb_id_candidates("José Fernández", max_suffix=1),
+        )
+
+    def test_resolve_bref_mlb_id_by_name_validates_suffix_candidate(self):
+        old_cache = mlb_api_parser._validated_mlb_bref_id_cache
+        old_matcher = mlb_api_parser._bref_candidate_matches_name
+        mlb_api_parser._validated_mlb_bref_id_cache = {}
+        mlb_api_parser._bref_candidate_matches_name = (
+            lambda candidate_id, _name: candidate_id == "jumpga02"
+        )
+        try:
+            self.assertEqual("jumpga02", resolve_bref_mlb_id_by_name("Gage Jump", max_suffix=3))
+        finally:
+            mlb_api_parser._validated_mlb_bref_id_cache = old_cache
+            mlb_api_parser._bref_candidate_matches_name = old_matcher
+
+    def test_name_lookup_prefers_validated_mlb_bref_id_over_register_cache(self):
+        old_loaded = mlb_api_parser._name_cache_loaded
+        old_name_cache = mlb_api_parser._name_to_bref_cache
+        old_team_cache = mlb_api_parser._name_team_to_bref_cache
+        old_validated_cache = mlb_api_parser._validated_mlb_bref_id_cache
+        old_matcher = mlb_api_parser._bref_candidate_matches_name
+        mlb_api_parser._name_cache_loaded = True
+        mlb_api_parser._name_to_bref_cache = {"gage jump": "jump--000gag"}
+        mlb_api_parser._name_team_to_bref_cache = {}
+        mlb_api_parser._validated_mlb_bref_id_cache = {}
+        mlb_api_parser._bref_candidate_matches_name = (
+            lambda candidate_id, _name: candidate_id == "jumpga01"
+        )
+        try:
+            self.assertEqual("jumpga01", get_bref_id_by_name("Gage Jump", mlb_id=695611))
+        finally:
+            mlb_api_parser._name_cache_loaded = old_loaded
+            mlb_api_parser._name_to_bref_cache = old_name_cache
+            mlb_api_parser._name_team_to_bref_cache = old_team_cache
+            mlb_api_parser._validated_mlb_bref_id_cache = old_validated_cache
+            mlb_api_parser._bref_candidate_matches_name = old_matcher
+
     def test_infer_abs_challenger_type_from_review_player(self):
         matchup = {
             "batter": {"id": 10, "fullName": "Casey Schmitt"},
