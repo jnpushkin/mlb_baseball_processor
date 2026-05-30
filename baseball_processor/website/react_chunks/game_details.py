@@ -511,19 +511,17 @@ const OriolesStadiumMap = ({ orioles }) => {
                 borderColor = '#ea580c';
             }
 
-            const marker = L.circleMarker([stadium.lat, stadium.lng], {
-                radius: hasVisited ? 10 : 7,
-                fillColor: fillColor,
-                color: borderColor,
-                weight: 2,
-                opacity: 1,
-                fillOpacity: hasVisited ? 0.9 : 0.4
+            const marker = createStadiumLogoMarker(stadium, {
+                hasVisited,
+                fillColor,
+                borderColor,
             }).addTo(mapInstanceRef.current);
 
             // Build popup content
             let statusText = '<span style="color: #9ca3af;">Not yet visited with Orioles</span>';
             let detailsHtml = '';
             let teamLabel = stadium.team;
+            if (stadium.international) teamLabel = 'International';
 
             if (hasVisited && isSpringTraining) {
                 statusText = '<span style="color: #22c55e; font-weight: bold;">✓ Spring Training - Saw Orioles here!</span>';
@@ -552,14 +550,13 @@ const OriolesStadiumMap = ({ orioles }) => {
 
             const popupContent = `
                 <div style="min-width: 180px; font-family: system-ui, sans-serif;">
-                    <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${stadium.name}</div>
-                    <div style="color: #666; font-size: 12px; margin-bottom: 8px;">${teamLabel}${isHistorical ? ' (Historical)' : ''}</div>
+                    ${getStadiumPopupHeaderHtml(stadium, teamLabel, isHistorical ? ' (Historical)' : '')}
                     <div style="margin-bottom: 8px;">${statusText}</div>
                     ${detailsHtml}
                 </div>
             `;
 
-            marker.bindPopup(popupContent);
+            marker.bindPopup(popupContent, { className: 'stadium-popup' });
             markersRef.current.push(marker);
         });
     }, [visitedData]);
@@ -1100,18 +1097,16 @@ const CompanionStadiumMap = ({ companion }) => {
                 borderColor = '#16a34a';
             }
 
-            const marker = L.circleMarker([stadium.lat, stadium.lng], {
-                radius: hasVisited ? 10 : 7,
-                fillColor: fillColor,
-                color: borderColor,
-                weight: 2,
-                opacity: 1,
-                fillOpacity: hasVisited ? 0.9 : 0.4
+            const marker = createStadiumLogoMarker(stadium, {
+                hasVisited,
+                fillColor,
+                borderColor,
             }).addTo(mapInstanceRef.current);
 
             // Build popup content
             let statusText = '<span style="color: #9ca3af;">Not yet visited together</span>';
             let teamLabel = stadium.team;
+            if (stadium.international) teamLabel = 'International';
             if (hasVisited && isSpringTraining) {
                 statusText = `<span style="color: #06b6d4; font-weight: bold;">✓ Spring Training${sawOrioles ? ' + Orioles' : ''}</span>`;
                 teamLabel = 'Spring Training';
@@ -1125,14 +1120,13 @@ const CompanionStadiumMap = ({ companion }) => {
 
             const popupContent = `
                 <div style="min-width: 180px; font-family: system-ui, sans-serif;">
-                    <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${stadium.name}</div>
-                    <div style="color: #666; font-size: 12px; margin-bottom: 8px;">${teamLabel}${isHistorical ? ' (Historical)' : ''}</div>
+                    ${getStadiumPopupHeaderHtml(stadium, teamLabel, isHistorical ? ' (Historical)' : '')}
                     ${isHistorical ? `<div style="color: #666; font-size: 11px; margin-bottom: 4px;">${stadium.years}</div>` : ''}
                     <div>${statusText}</div>
                 </div>
             `;
 
-            marker.bindPopup(popupContent);
+            marker.bindPopup(popupContent, { className: 'stadium-popup' });
             markersRef.current.push(marker);
         });
     }, [visitedData]);

@@ -377,6 +377,118 @@ const TeamToken = ({ code, logoSize = 20, className = '' }) => (
     </span>
 );
 
+const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+}[char]));
+
+const getStadiumMarkerCode = (stadium) => {
+    const rawCode = String(stadium?.team || '').trim().toUpperCase();
+    if (!rawCode || stadium?.springTraining) return 'ST';
+    if (stadium?.international) return 'INT';
+    return rawCode;
+};
+
+const getFlagUrl = (countryCode) => {
+    const cleanCode = String(countryCode || '').trim().toLowerCase();
+    return cleanCode ? `https://flagcdn.com/w80/${cleanCode}.png` : null;
+};
+
+const getTeamLogoHtml = (code, className = 'stadium-logo-marker-img', fallbackClassName = 'stadium-logo-cluster-code') => {
+    const cleanCode = String(code || '').trim().toUpperCase();
+    const logoUrl = getTeamLogoUrl(cleanCode);
+
+    if (logoUrl) {
+        return `<img class="${className}" src="${logoUrl}" alt="${escapeHtml(cleanCode)} logo" loading="lazy">`;
+    }
+
+    return `<span class="${fallbackClassName}">${escapeHtml((cleanCode || '?').slice(0, 3))}</span>`;
+};
+
+const getStadiumLogoInnerHtml = (stadium) => {
+    const springTeams = Array.isArray(stadium?.teams)
+        ? stadium.teams.map(t => String(t || '').trim().toUpperCase()).filter(Boolean)
+        : [];
+
+    if (stadium?.springTraining && springTeams.length > 0) {
+        if (springTeams.length === 1) {
+            return getTeamLogoHtml(springTeams[0]);
+        }
+
+        if (springTeams.length === 2) {
+            return `
+                <span class="stadium-logo-split">
+                    ${springTeams.map(code => `
+                        <span class="stadium-logo-split-half">
+                            ${getTeamLogoHtml(code, 'stadium-logo-split-img', 'stadium-logo-split-code')}
+                        </span>
+                    `).join('')}
+                </span>
+            `;
+        }
+
+        const visibleTeams = springTeams.slice(0, 4);
+        return `
+            <span class="stadium-logo-cluster team-count-${visibleTeams.length}">
+                ${visibleTeams.map(code => getTeamLogoHtml(code, 'stadium-logo-cluster-img')).join('')}
+            </span>
+        `;
+    }
+
+    if (stadium?.international) {
+        const flagUrl = getFlagUrl(stadium.countryCode);
+        const label = stadium.flagLabel || stadium.city || 'International';
+
+        if (flagUrl) {
+            return `<img class="stadium-logo-marker-img stadium-flag-marker-img" src="${flagUrl}" alt="${escapeHtml(label)} flag" loading="lazy">`;
+        }
+
+        return `<span class="stadium-logo-marker-code">${escapeHtml(String(label).slice(0, 3).toUpperCase() || 'INT')}</span>`;
+    }
+
+    const code = getStadiumMarkerCode(stadium);
+    return getTeamLogoHtml(code);
+};
+
+const createStadiumLogoMarker = (stadium, { hasVisited, fillColor, borderColor }) => {
+    const hasTeamCluster = stadium?.springTraining && Array.isArray(stadium.teams) && stadium.teams.length > 1;
+    const markerSize = hasVisited ? (hasTeamCluster ? 38 : 34) : (hasTeamCluster ? 32 : 28);
+    const markerHtml = `
+        <div
+            class="stadium-logo-marker ${hasVisited ? 'is-visited' : 'is-unvisited'}"
+            style="--marker-size: ${markerSize}px; --marker-bg: ${fillColor}; --marker-ring: ${borderColor};"
+            title="${escapeHtml(stadium?.name || '')}"
+        >
+            ${getStadiumLogoInnerHtml(stadium)}
+        </div>
+    `;
+
+    return L.marker([stadium.lat, stadium.lng], {
+        icon: L.divIcon({
+            className: 'stadium-logo-marker-shell',
+            html: markerHtml,
+            iconSize: [markerSize, markerSize],
+            iconAnchor: [markerSize / 2, markerSize / 2],
+            popupAnchor: [0, -(markerSize / 2)],
+        }),
+        keyboard: true,
+        title: stadium?.name || '',
+    });
+};
+
+const getStadiumPopupHeaderHtml = (stadium, teamLabel, metaSuffix = '') => `
+    <div class="stadium-popup-header">
+        <span class="stadium-popup-logo">${getStadiumLogoInnerHtml(stadium)}</span>
+        <div>
+            <h3 class="stadium-popup-title">${escapeHtml(stadium?.name || '')}</h3>
+            <div class="stadium-popup-meta">${escapeHtml(teamLabel || '')}${metaSuffix}</div>
+        </div>
+    </div>
+`;
+
 const EmptyState = ({ icon = '📭', title = 'No data', message = 'There is nothing to display.' }) => (
     <div className="flex flex-col items-center justify-center p-12 text-center">
         <span className="text-5xl mb-4">{icon}</span>

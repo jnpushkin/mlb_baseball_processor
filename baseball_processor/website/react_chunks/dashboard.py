@@ -1355,35 +1355,35 @@ const ALL_MLB_STADIUMS = [
     { id: 'qualcomm', name: 'Qualcomm Stadium', team: 'SD', lat: 32.7831, lng: -117.1196, years: '1969-2003', current: false, aliases: ['San Diego Stadium', 'Jack Murphy Stadium'] },
 
     // === INTERNATIONAL VENUES ===
-    { id: 'harp_helu', name: 'Estadio Alfredo Harp Helu', team: 'INT', lat: 19.3827, lng: -99.1503, years: '2019-present', current: true, aliases: ['Alfredo Harp Helu Stadium'], international: true, city: 'Mexico City' },
-    { id: 'tokyo_dome', name: 'Tokyo Dome', team: 'INT', lat: 35.7056, lng: 139.7519, years: 'Various', current: true, aliases: ['Big Egg'], international: true, city: 'Tokyo' },
-    { id: 'london', name: 'London Stadium', team: 'INT', lat: 51.5387, lng: -0.0166, years: '2019-present', current: true, aliases: ['Olympic Stadium London'], international: true, city: 'London' },
-    { id: 'hiram_bithorn', name: 'Hiram Bithorn Stadium', team: 'INT', lat: 18.4271, lng: -66.0612, years: 'Various', current: true, aliases: [], international: true, city: 'San Juan' },
-    { id: 'monterrey', name: 'Estadio de Beisbol Monterrey', team: 'INT', lat: 25.7261, lng: -100.3102, years: 'Various', current: true, aliases: ['Estadio Mobil Super'], international: true, city: 'Monterrey' },
+    { id: 'harp_helu', name: 'Estadio Alfredo Harp Helu', team: 'INT', lat: 19.3827, lng: -99.1503, years: '2019-present', current: true, aliases: ['Alfredo Harp Helu Stadium'], international: true, city: 'Mexico City', countryCode: 'mx', flagLabel: 'Mexico' },
+    { id: 'tokyo_dome', name: 'Tokyo Dome', team: 'INT', lat: 35.7056, lng: 139.7519, years: 'Various', current: true, aliases: ['Big Egg'], international: true, city: 'Tokyo', countryCode: 'jp', flagLabel: 'Japan' },
+    { id: 'london', name: 'London Stadium', team: 'INT', lat: 51.5387, lng: -0.0166, years: '2019-present', current: true, aliases: ['Olympic Stadium London'], international: true, city: 'London', countryCode: 'gb', flagLabel: 'United Kingdom' },
+    { id: 'hiram_bithorn', name: 'Hiram Bithorn Stadium', team: 'INT', lat: 18.4271, lng: -66.0612, years: 'Various', current: true, aliases: [], international: true, city: 'San Juan', countryCode: 'pr', flagLabel: 'Puerto Rico' },
+    { id: 'monterrey', name: 'Estadio de Beisbol Monterrey', team: 'INT', lat: 25.7261, lng: -100.3102, years: 'Various', current: true, aliases: ['Estadio Mobil Super'], international: true, city: 'Monterrey', countryCode: 'mx', flagLabel: 'Mexico' },
 
     // === SPRING TRAINING FACILITIES ===
     // Arizona Cactus League
-    { id: 'camelback', name: 'Camelback Ranch', team: 'ST', lat: 33.5052, lng: -112.3124, years: '2009-present', current: true, aliases: ['Camelback Ranch-Glendale'], springTraining: true, city: 'Glendale' },
-    { id: 'saltriver', name: 'Salt River Fields at Talking Stick', team: 'ST', lat: 33.5463, lng: -111.8847, years: '2011-present', current: true, aliases: ['Salt River Fields'], springTraining: true, city: 'Scottsdale' },
-    { id: 'goodyear', name: 'Goodyear Ballpark', team: 'ST', lat: 33.4253, lng: -112.3577, years: '2009-present', current: true, aliases: [], springTraining: true, city: 'Goodyear' },
-    { id: 'peoria', name: 'Peoria Stadium', team: 'ST', lat: 33.5811, lng: -112.2712, years: '1994-present', current: true, aliases: ['Peoria Sports Complex'], springTraining: true, city: 'Peoria' },
-    { id: 'sloan', name: 'Sloan Park', team: 'ST', lat: 33.4381, lng: -111.8366, years: '2014-present', current: true, aliases: [], springTraining: true, city: 'Mesa' },
-    { id: 'scottsdale', name: 'Scottsdale Stadium', team: 'ST', lat: 33.4905, lng: -111.9210, years: '1992-present', current: true, aliases: [], springTraining: true, city: 'Scottsdale' },
-    { id: 'tempe', name: 'Tempe Diablo Stadium', team: 'ST', lat: 33.4012, lng: -111.9728, years: '1968-present', current: true, aliases: [], springTraining: true, city: 'Tempe' },
-    { id: 'surprise', name: 'Surprise Stadium', team: 'ST', lat: 33.6273, lng: -112.3678, years: '2003-present', current: true, aliases: [], springTraining: true, city: 'Surprise' },
-    { id: 'hohokam', name: 'Hohokam Stadium', team: 'ST', lat: 33.4363, lng: -111.8259, years: '2015-present', current: true, aliases: [], springTraining: true, city: 'Mesa' },
-    { id: 'maryvale', name: 'American Family Fields of Phoenix', team: 'ST', lat: 33.5098, lng: -112.1782, years: '1998-present', current: true, aliases: ['Maryvale Baseball Park'], springTraining: true, city: 'Phoenix' },
+    { id: 'camelback', name: 'Camelback Ranch', team: 'ST', teams: ['LAD', 'CHW'], lat: 33.5052, lng: -112.3124, years: '2009-present', current: true, aliases: ['Camelback Ranch-Glendale'], springTraining: true, city: 'Glendale' },
+    { id: 'saltriver', name: 'Salt River Fields at Talking Stick', team: 'ST', teams: ['ARI', 'COL'], lat: 33.5463, lng: -111.8847, years: '2011-present', current: true, aliases: ['Salt River Fields'], springTraining: true, city: 'Scottsdale' },
+    { id: 'goodyear', name: 'Goodyear Ballpark', team: 'ST', teams: ['CIN', 'CLE'], lat: 33.4253, lng: -112.3577, years: '2009-present', current: true, aliases: [], springTraining: true, city: 'Goodyear' },
+    { id: 'peoria', name: 'Peoria Stadium', team: 'ST', teams: ['SD', 'SEA'], lat: 33.5811, lng: -112.2712, years: '1994-present', current: true, aliases: ['Peoria Sports Complex'], springTraining: true, city: 'Peoria' },
+    { id: 'sloan', name: 'Sloan Park', team: 'ST', teams: ['CHC'], lat: 33.4381, lng: -111.8366, years: '2014-present', current: true, aliases: [], springTraining: true, city: 'Mesa' },
+    { id: 'scottsdale', name: 'Scottsdale Stadium', team: 'ST', teams: ['SF'], lat: 33.4905, lng: -111.9210, years: '1992-present', current: true, aliases: [], springTraining: true, city: 'Scottsdale' },
+    { id: 'tempe', name: 'Tempe Diablo Stadium', team: 'ST', teams: ['LAA'], lat: 33.4012, lng: -111.9728, years: '1968-present', current: true, aliases: [], springTraining: true, city: 'Tempe' },
+    { id: 'surprise', name: 'Surprise Stadium', team: 'ST', teams: ['KC', 'TEX'], lat: 33.6273, lng: -112.3678, years: '2003-present', current: true, aliases: [], springTraining: true, city: 'Surprise' },
+    { id: 'hohokam', name: 'Hohokam Stadium', team: 'ST', teams: ['ATH'], lat: 33.4363, lng: -111.8259, years: '2015-present', current: true, aliases: [], springTraining: true, city: 'Mesa' },
+    { id: 'maryvale', name: 'American Family Fields of Phoenix', team: 'ST', teams: ['MIL'], lat: 33.5098, lng: -112.1782, years: '1998-present', current: true, aliases: ['Maryvale Baseball Park'], springTraining: true, city: 'Phoenix' },
     // Florida Grapefruit League
-    { id: 'edsmith', name: 'Ed Smith Stadium', team: 'ST', lat: 27.3372, lng: -82.5153, years: '1989-present', current: true, aliases: [], springTraining: true, city: 'Sarasota' },
-    { id: 'jetblue', name: 'JetBlue Park', team: 'ST', lat: 26.5391, lng: -81.8413, years: '2012-present', current: true, aliases: ['JetBlue Park at Fenway South'], springTraining: true, city: 'Fort Myers' },
-    { id: 'steinbrenner', name: 'George M. Steinbrenner Field', team: 'ST', lat: 27.9788, lng: -82.5033, years: '1996-present', current: true, aliases: ['Legends Field'], springTraining: true, city: 'Tampa' },
-    { id: 'rogerdean', name: 'Roger Dean Chevrolet Stadium', team: 'ST', lat: 26.8926, lng: -80.1157, years: '1998-present', current: true, aliases: ['Roger Dean Stadium'], springTraining: true, city: 'Jupiter' },
-    { id: 'clover', name: 'Clover Park', team: 'ST', lat: 27.3478, lng: -80.3511, years: '1988-present', current: true, aliases: ['First Data Field', 'Tradition Field', 'St. Lucie Sports Complex'], springTraining: true, city: 'Port St. Lucie' },
-    { id: 'baycare', name: 'BayCare Ballpark', team: 'ST', lat: 27.9500, lng: -82.7342, years: '2004-present', current: true, aliases: ['Bright House Field', 'Spectrum Field'], springTraining: true, city: 'Clearwater' },
-    { id: 'publix', name: 'Publix Field at Joker Marchant Stadium', team: 'ST', lat: 28.0615, lng: -81.9586, years: '1966-present', current: true, aliases: ['Joker Marchant Stadium'], springTraining: true, city: 'Lakeland' },
-    { id: 'lecom', name: 'LECOM Park', team: 'ST', lat: 27.4972, lng: -82.5800, years: '1993-present', current: true, aliases: ['McKechnie Field'], springTraining: true, city: 'Bradenton' },
-    { id: 'cooltoday', name: 'CoolToday Park', team: 'ST', lat: 27.0128, lng: -82.1273, years: '2019-present', current: true, aliases: [], springTraining: true, city: 'North Port' },
-    { id: 'hammondsfd', name: 'Hammond Stadium', team: 'ST', lat: 26.5528, lng: -81.8626, years: '1991-present', current: true, aliases: ['CenturyLink Sports Complex'], springTraining: true, city: 'Fort Myers' },
+    { id: 'edsmith', name: 'Ed Smith Stadium', team: 'ST', teams: ['BAL'], lat: 27.3372, lng: -82.5153, years: '1989-present', current: true, aliases: [], springTraining: true, city: 'Sarasota' },
+    { id: 'jetblue', name: 'JetBlue Park', team: 'ST', teams: ['BOS'], lat: 26.5391, lng: -81.8413, years: '2012-present', current: true, aliases: ['JetBlue Park at Fenway South'], springTraining: true, city: 'Fort Myers' },
+    { id: 'steinbrenner', name: 'George M. Steinbrenner Field', team: 'ST', teams: ['NYY'], lat: 27.9788, lng: -82.5033, years: '1996-present', current: true, aliases: ['Legends Field'], springTraining: true, city: 'Tampa' },
+    { id: 'rogerdean', name: 'Roger Dean Chevrolet Stadium', team: 'ST', teams: ['MIA', 'STL'], lat: 26.8926, lng: -80.1157, years: '1998-present', current: true, aliases: ['Roger Dean Stadium'], springTraining: true, city: 'Jupiter' },
+    { id: 'clover', name: 'Clover Park', team: 'ST', teams: ['NYM'], lat: 27.3478, lng: -80.3511, years: '1988-present', current: true, aliases: ['First Data Field', 'Tradition Field', 'St. Lucie Sports Complex'], springTraining: true, city: 'Port St. Lucie' },
+    { id: 'baycare', name: 'BayCare Ballpark', team: 'ST', teams: ['PHI'], lat: 27.9500, lng: -82.7342, years: '2004-present', current: true, aliases: ['Bright House Field', 'Spectrum Field'], springTraining: true, city: 'Clearwater' },
+    { id: 'publix', name: 'Publix Field at Joker Marchant Stadium', team: 'ST', teams: ['DET'], lat: 28.0615, lng: -81.9586, years: '1966-present', current: true, aliases: ['Joker Marchant Stadium'], springTraining: true, city: 'Lakeland' },
+    { id: 'lecom', name: 'LECOM Park', team: 'ST', teams: ['PIT'], lat: 27.4972, lng: -82.5800, years: '1993-present', current: true, aliases: ['McKechnie Field'], springTraining: true, city: 'Bradenton' },
+    { id: 'cooltoday', name: 'CoolToday Park', team: 'ST', teams: ['ATL'], lat: 27.0128, lng: -82.1273, years: '2019-present', current: true, aliases: [], springTraining: true, city: 'North Port' },
+    { id: 'hammondsfd', name: 'Hammond Stadium', team: 'ST', teams: ['MIN'], lat: 26.5528, lng: -81.8626, years: '1991-present', current: true, aliases: ['CenturyLink Sports Complex'], springTraining: true, city: 'Fort Myers' },
 ];
 
 // Build lookup maps for matching stadium names
@@ -1616,19 +1616,17 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
                 borderColor = '#16a34a';
             }
 
-            const marker = L.circleMarker([stadium.lat, stadium.lng], {
-                radius: hasVisited ? 10 : 7,
-                fillColor: fillColor,
-                color: borderColor,
-                weight: 2,
-                opacity: 1,
-                fillOpacity: hasVisited ? 0.9 : 0.4
+            const marker = createStadiumLogoMarker(stadium, {
+                hasVisited,
+                fillColor,
+                borderColor,
             }).addTo(mapInstanceRef.current);
 
             // Build popup content
             let statusText = '<span style="color: #9ca3af;">Not yet visited</span>';
             let detailsHtml = '';
             let teamLabel = stadium.team;
+            if (stadium.international) teamLabel = 'International';
 
             if (hasVisited) {
                 if (isSpringTraining) {
@@ -1656,11 +1654,12 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
 
             const popupContent =
                 '<div style="min-width: 200px;">' +
-                    '<h3 style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">' + stadium.name + '</h3>' +
-                    '<div style="font-size: 11px; color: #666; margin-bottom: 8px;">' +
-                        teamLabel + (stadium.international ? ' - ' + stadium.city : '') + ' | ' + stadium.years +
-                        (stadium.current ? '' : isSpringTraining ? '' : ' (Defunct)') +
-                    '</div>' +
+                    getStadiumPopupHeaderHtml(
+                        stadium,
+                        teamLabel,
+                        (stadium.international ? ' - ' + escapeHtml(stadium.city) : '') + ' | ' + escapeHtml(stadium.years) +
+                        (stadium.current ? '' : isSpringTraining ? '' : ' (Defunct)')
+                    ) +
                     '<div style="font-size: 12px; margin-bottom: 6px;">' + statusText + '</div>' +
                     (detailsHtml ? '<div style="font-size: 12px; line-height: 1.5; border-top: 1px solid #eee; padding-top: 6px;">' + detailsHtml + '</div>' : '') +
                 '</div>';
@@ -1687,6 +1686,7 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
                             <option value="current">Current (30 MLB)</option>
                             <option value="historical">Historical/Defunct</option>
                             <option value="international">International</option>
+                            <option value="spring">Spring Training</option>
                         </select>
                     </div>
                 </div>
@@ -1705,6 +1705,10 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
                     <span className="flex items-center gap-1">
                         <span className="w-4 h-4 rounded-full bg-orange-500"></span>
                         <span className="text-slate-600">Visited + Saw Orioles</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <span className="w-4 h-4 rounded-full bg-cyan-500"></span>
+                        <span className="text-slate-600">Spring Training</span>
                     </span>
                 </div>
             </div>
@@ -2267,7 +2271,12 @@ const DivisionChecklist = ({ divisionChecklist, games }) => {
                                     }
                                 }}
                             >
-                                <span className="text-2xl">{isSeen ? '✅' : '⬜'}</span>
+                                <div className="relative shrink-0">
+                                    <TeamLogo code={team.teamCode} size={30} className={isSeen ? '' : 'grayscale opacity-50'} />
+                                    <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border border-white ${
+                                        isSeen ? 'bg-green-500' : 'bg-slate-300'
+                                    }`}></span>
+                                </div>
                                 <div className="flex-1 min-w-0">
                                     <div className={`font-medium truncate ${!isSeen ? 'text-slate-400' : 'text-blue-700'}`}>
                                         {displayName || 'Unknown'}
