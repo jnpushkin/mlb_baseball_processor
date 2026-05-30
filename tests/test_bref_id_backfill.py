@@ -25,6 +25,17 @@ class BrefIdBackfillTests(unittest.TestCase):
         self.assertEqual({"mlb_123"}, candidates["Fresh Pitcher"])
         self.assertNotIn("Existing Player", candidates)
 
+    def test_collect_bio_backfill_candidates_finds_bio_keys(self):
+        bios = {
+            "jump--000gag": {"name": "Gage Jump"},
+            "troutmi01": {"name": "Mike Trout"},
+        }
+
+        candidates = bref_id_backfill.collect_bio_backfill_candidates(bios)
+
+        self.assertEqual({"jump--000gag"}, candidates["Gage Jump"])
+        self.assertNotIn("Mike Trout", candidates)
+
     def test_replace_id_references_updates_values_and_keys(self):
         game = {
             "batting": {"away": [{"name": "Gage Jump", "player_id": "jump--000gag"}]},
@@ -50,6 +61,7 @@ class BrefIdBackfillTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmpdir:
                 cache_dir = Path(tmpdir)
                 game_path = cache_dir / "game.json"
+                bio_path = cache_dir / "player_bios.json"
                 game_path.write_text(
                     json.dumps({
                         "batting": {"away": [{"name": "Gage Jump", "player_id": "jump--000gag"}]},
@@ -57,12 +69,19 @@ class BrefIdBackfillTests(unittest.TestCase):
                     }),
                     encoding="utf-8",
                 )
+                bio_path.write_text(
+                    json.dumps({"jump--000gag": {"name": "Gage Jump"}}),
+                    encoding="utf-8",
+                )
 
                 result = bref_id_backfill.run(cache_dir=cache_dir, verbose=False)
 
                 updated = json.loads(game_path.read_text(encoding="utf-8"))
+                updated_bios = json.loads(bio_path.read_text(encoding="utf-8"))
                 self.assertEqual(1, result["resolved"])
                 self.assertEqual("jumpga01", updated["batting"]["away"][0]["player_id"])
+                self.assertIn("jumpga01", updated_bios)
+                self.assertNotIn("jump--000gag", updated_bios)
         finally:
             bref_id_backfill.resolve_bref_mlb_id_exhaustive_by_name = old_resolver
 

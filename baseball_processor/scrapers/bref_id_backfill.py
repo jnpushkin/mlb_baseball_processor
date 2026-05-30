@@ -22,6 +22,7 @@ CACHE_DIR = Path(__file__).parent.parent.parent / "cache"
 ID_FIELDS = ("player_id", "bref_id")
 PLAYER_SECTIONS = ("batting", "pitching")
 SKIP_CACHE_NAMES = ("career_", "draft", "player_bios", "all_time", "known_")
+PLAYER_BIOS_FILE = "player_bios.json"
 
 
 def _normalize_name(name: str) -> str:
@@ -36,6 +37,11 @@ def iter_game_cache_files(cache_dir: Path = CACHE_DIR):
     for path in sorted(cache_dir.glob("*.json")):
         if _is_game_cache_file(path):
             yield path
+
+
+def iter_rewrite_cache_files(cache_dir: Path = CACHE_DIR):
+    for path in sorted(cache_dir.glob("*.json")):
+        yield path
 
 
 def iter_player_rows(game: dict):
@@ -73,6 +79,22 @@ def collect_backfill_candidates(game: dict, player_name: str = "") -> dict[str, 
     return dict(candidates)
 
 
+def collect_bio_backfill_candidates(bios: dict, player_name: str = "") -> dict[str, set[str]]:
+    target_name = _normalize_name(player_name)
+    candidates = defaultdict(set)
+    for player_id, bio in (bios or {}).items():
+        if not isinstance(bio, dict):
+            continue
+        name = str(bio.get("name") or "").strip()
+        if not name:
+            continue
+        if target_name and _normalize_name(name) != target_name:
+            continue
+        if id_needs_backfill(player_id):
+            candidates[name].add(str(player_id))
+    return dict(candidates)
+
+
 def collect_cache_candidates(cache_dir: Path = CACHE_DIR, player_name: str = "") -> dict[str, set[str]]:
     candidates = defaultdict(set)
     for cache_file in iter_game_cache_files(cache_dir):
@@ -81,6 +103,15 @@ def collect_cache_candidates(cache_dir: Path = CACHE_DIR, player_name: str = "")
         except (OSError, json.JSONDecodeError):
             continue
         for name, ids in collect_backfill_candidates(game, player_name=player_name).items():
+            candidates[name].update(ids)
+
+    bio_path = cache_dir / PLAYER_BIOS_FILE
+    if bio_path.exists():
+        try:
+            bios = json.loads(bio_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            bios = {}
+        for name, ids in collect_bio_backfill_candidates(bios, player_name=player_name).items():
             candidates[name].update(ids)
     return dict(candidates)
 
@@ -139,7 +170,7 @@ def apply_replacements(cache_dir: Path, replacements: dict[str, str], dry_run: b
     files_changed = 0
     references_changed = 0
 
-    for cache_file in iter_game_cache_files(cache_dir):
+    for cache_file in iter_rewrite_cache_files(cache_dir):
         try:
             game = json.loads(cache_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
