@@ -331,16 +331,47 @@ const AwardSetStatusBadge = ({ awardSet }) => {
     return <span className="small-text font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-600">Not started</span>;
 };
 
+const cleanAwardToken = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+const normalizeAwardToken = (value) => cleanAwardToken(value).toLowerCase();
+const isRedundantAwardDetail = (detail, award, league) => {
+    const d = normalizeAwardToken(detail);
+    const a = normalizeAwardToken(award);
+    const l = normalizeAwardToken(league);
+    if (!d) return true;
+    if (d === a || d === l) return true;
+    if (a && l && d === `${l} ${a}`) return true;
+    if (a && l && d.startsWith(`${l} `) && d.endsWith(a)) return true;
+    return false;
+};
+const appendAwardToken = (parts, token) => {
+    const clean = cleanAwardToken(token);
+    if (!clean) return;
+    const normalized = normalizeAwardToken(clean);
+    if (parts.some(part => normalizeAwardToken(part) === normalized)) return;
+    parts.push(clean);
+};
+const formatAwardEntryShortLabel = (row) => {
+    const award = cleanAwardToken(row.award || row.awardDetail || 'Award');
+    const detail = cleanAwardToken(row.awardDetail);
+    const parts = [];
+    appendAwardToken(parts, award);
+    if (!isRedundantAwardDetail(detail, award, row.league)) appendAwardToken(parts, detail);
+    if (row.selection && !normalizeAwardToken(detail).includes(normalizeAwardToken(row.selection))) appendAwardToken(parts, row.selection);
+    appendAwardToken(parts, row.position);
+    appendAwardToken(parts, row.month);
+    if (row.weekEnding) appendAwardToken(parts, `Week ending ${row.weekEnding}`);
+    return parts.join(', ');
+};
+const formatAwardEntryFullLabel = (row) => {
+    const context = [row.year, row.league].map(cleanAwardToken).filter(Boolean);
+    const summary = formatAwardEntryShortLabel(row);
+    return [...context, summary].filter(Boolean).join(' ');
+};
 const formatAwardSetMemberSummary = (rows) => {
-    const formatEntry = (row) => {
-        const detail = row.awardDetail || row.award || '';
-        const parts = [row.year, row.league, detail].filter(Boolean);
-        if (row.selection && !detail.includes(row.selection)) parts.push(row.selection);
-        if (row.position) parts.push(row.position);
-        return parts.join(' ');
-    };
     if (!rows.length) return '';
-    const firstLabel = formatEntry(rows[0]);
+    const firstLabel = rows.length === 1
+        ? formatAwardEntryShortLabel(rows[0])
+        : formatAwardEntryFullLabel(rows[0]);
     return rows.length === 1 ? firstLabel : `${rows.length} entries, latest ${firstLabel}`;
 };
 
@@ -878,11 +909,7 @@ const AwardWinnerDetail = ({ item, seen, playerGames, pitcherGames, gamesById })
                     <h3 className="section-title font-semibold text-slate-900">
                         <PlayerLink playerId={item.playerId} name={item.name} />
                     </h3>
-                    <div className="small-text text-slate-500 mt-1">
-                        {item.year} {item.league ? `${item.league} ` : ''}{item.award}
-                        {item.awardDetail && item.awardDetail !== item.award ? ` - ${item.awardDetail}` : ''}
-                        {item.position ? ` / ${item.position}` : ''}
-                    </div>
+                    <div className="small-text text-slate-500 mt-1">{formatAwardEntryFullLabel(item)}</div>
                 </div>
                 <div className="text-right">
                     <div className="text-2xl font-bold text-slate-900">{seen.gamesSeen}</div>

@@ -582,6 +582,39 @@ class DataSerializerTests(unittest.TestCase):
         self.assertEqual({"year": 2026}, year_set["criteria"])
         self.assertNotIn("members", mvp_set)
 
+    def test_award_entry_labels_remove_repeated_context(self):
+        serializer = DataSerializer()
+
+        self.assertEqual(
+            "Gold Glove, 1B",
+            serializer._format_award_entry_label({
+                "year": 2017,
+                "league": "AL",
+                "award": "Gold Glove",
+                "awardDetail": "1B",
+                "position": "1B",
+            }),
+        )
+        self.assertEqual(
+            "Pitcher of the Month, September",
+            serializer._format_award_entry_label({
+                "year": 2017,
+                "league": "AL",
+                "award": "Pitcher of the Month",
+                "awardDetail": "AL Pitcher of the Month",
+                "month": "September",
+            }),
+        )
+        self.assertEqual(
+            "Wilson Defensive Player of the Year",
+            serializer._format_award_entry_label({
+                "year": 2017,
+                "league": "AL",
+                "award": "Wilson Defensive Player of the Year",
+                "awardDetail": "AL",
+            }),
+        )
+
     def test_serialize_all_data_includes_situational_tables(self):
         processed_data = {
             "summary_rows": [],

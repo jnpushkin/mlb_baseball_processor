@@ -1678,23 +1678,60 @@ class DataSerializer:
         if not rows:
             return ""
         first = rows[0]
-        first_label = self._format_award_entry_label(first)
+        first_label = self._format_award_entry_label(first, include_context=True)
         if len(rows) == 1:
             return first_label
         return f"{len(rows)} entries, latest {first_label}"
 
-    def _format_award_entry_label(self, row):
-        parts = [str(row.get("year", "")).strip(), str(row.get("league", "")).strip()]
-        detail = str(row.get("awardDetail") or row.get("award") or "").strip()
+    def _format_award_entry_label(self, row, include_context=False):
+        parts = []
+        if include_context:
+            parts.extend([str(row.get("year", "")).strip(), str(row.get("league", "")).strip()])
+
+        award = str(row.get("award") or row.get("awardDetail") or "Award").strip()
+        detail = str(row.get("awardDetail", "")).strip()
+        league = str(row.get("league", "")).strip()
         selection = str(row.get("selection", "")).strip()
         position = str(row.get("position", "")).strip()
-        if detail:
-            parts.append(detail)
-        if selection and selection not in detail:
-            parts.append(selection)
-        if position:
-            parts.append(position)
-        return " ".join(part for part in parts if part).strip()
+        month = str(row.get("month", "")).strip()
+        week_ending = str(row.get("weekEnding", "")).strip()
+
+        def normalized(value):
+            return " ".join(str(value or "").lower().split())
+
+        def append_unique(value):
+            value = str(value or "").strip()
+            if not value:
+                return
+            if normalized(value) in {normalized(part) for part in parts}:
+                return
+            parts.append(value)
+
+        def redundant_detail():
+            norm_detail = normalized(detail)
+            norm_award = normalized(award)
+            norm_league = normalized(league)
+            if not norm_detail:
+                return True
+            if norm_detail in {norm_award, norm_league}:
+                return True
+            if norm_award and norm_league and norm_detail == f"{norm_league} {norm_award}":
+                return True
+            return bool(norm_award and norm_league and norm_detail.startswith(f"{norm_league} ") and norm_detail.endswith(norm_award))
+
+        append_unique(award)
+        if not redundant_detail():
+            append_unique(detail)
+        if selection and normalized(selection) not in normalized(detail):
+            append_unique(selection)
+        append_unique(position)
+        append_unique(month)
+        if week_ending:
+            append_unique(f"Week ending {week_ending}")
+
+        if include_context:
+            return " ".join(part for part in parts if part).strip()
+        return ", ".join(part for part in parts if part).strip()
 
     def _award_completion_library(self, award_key):
         major = {"mvp", "cya", "roy", "postmvp", "asmvp"}
