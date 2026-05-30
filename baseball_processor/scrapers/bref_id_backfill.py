@@ -40,7 +40,7 @@ def iter_game_cache_files(cache_dir: Path = CACHE_DIR):
 
 
 def iter_rewrite_cache_files(cache_dir: Path = CACHE_DIR):
-    for path in sorted(cache_dir.glob("*.json")):
+    for path in sorted(cache_dir.rglob("*.json")):
         yield path
 
 
