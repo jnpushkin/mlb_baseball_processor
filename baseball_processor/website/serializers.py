@@ -505,6 +505,15 @@ class DataSerializer:
                 pitcher_games,
                 games,
             ),
+            "allStarChecklists": self._serialize_all_star_checklists(
+                raw_games,
+                players,
+                pitchers,
+                players_without_stats,
+                player_games,
+                pitcher_games,
+                games,
+            ),
             "rispPerformance": self._serialize_situational_table(
                 self._call_tracker_dataframe(data.get('situation_tracker'), 'create_risp_dataframe', min_ab=5),
                 {
@@ -655,6 +664,7 @@ class DataSerializer:
             f"Pitchers: {len(json_data['pitchers'])}",
             f"HallOfFamers: {len(json_data['hallOfFamers'])}",
             f"AwardChecklistGroups: {len(json_data['awardChecklists'].get('groups', []))}",
+            f"AllStarChecklistGroups: {len(json_data['allStarChecklists'].get('groups', []))}",
             f"Situational: {sum(len(json_data[key]) for key in ['rispPerformance', 'twoOutPerformance', 'rispTwoOutPerformance', 'basesLoaded', 'lateClose'])}",
             f"WPA: {len(json_data['wpaLeaders'])}",
             f"Defense/Lineup: {sum(len(json_data[key]) for key in ['defensiveLeaders', 'lineupAnalysis', 'lineupMatrix'])}",
@@ -1345,6 +1355,17 @@ class DataSerializer:
             print(f"   Warning: Could not load awards reference data: {e}")
             return {}
 
+    def _load_all_star_reference(self):
+        """Load the normalized Baseball-Reference All-Star participants file."""
+        all_star_file = REFERENCES_DIR / "all_star_participants.json"
+        if not all_star_file.exists():
+            return {}
+        try:
+            return json.loads(all_star_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"   Warning: Could not load All-Star reference data: {e}")
+            return {}
+
     def _serialize_award_checklists(self, raw_games, players, pitchers, players_without_stats, player_games, pitcher_games, games):
         """Build checklist-style award winner data and mark players already seen live."""
         payload = self._load_awards_reference()
@@ -1511,6 +1532,261 @@ class DataSerializer:
             "seenPlayers": seen_players,
         }
 
+    def _serialize_all_star_checklists(self, raw_games, players, pitchers, players_without_stats, player_games, pitcher_games, games):
+        """Build checklist-style All-Star participant data and mark players already seen live."""
+        payload = self._load_all_star_reference()
+        participants = payload.get("participants", []) if isinstance(payload, dict) else []
+        metadata = payload.get("metadata", {}) if isinstance(payload, dict) else {}
+        if not participants:
+            return {
+                "metadata": {
+                    "available": False,
+                    "entryCount": 0,
+                    "seenCount": 0,
+                    "groupCount": 0,
+                    "entryLabel": "All-Star Selections",
+                    "allSetsSubtitle": "Every All-Star checklist",
+                    "emptyTitle": "No All-Star Data",
+                    "emptyMessage": "Run the All-Star scraper to generate participant checklist data.",
+                },
+                "groups": [],
+                "completionSets": [],
+                "seenPlayers": {},
+            }
+
+        players_by_id = {p.get("playerId"): p for p in players or [] if p.get("playerId")}
+        pitchers_by_id = {p.get("playerId"): p for p in pitchers or [] if p.get("playerId")}
+        no_stats_by_id = {p.get("playerId"): p for p in players_without_stats or [] if p.get("playerId")}
+        seen_players = self._build_award_seen_player_context(
+            raw_games,
+            players_by_id,
+            pitchers_by_id,
+            no_stats_by_id,
+            player_games,
+            pitcher_games,
+            games,
+        )
+
+        seen_entry_count = 0
+        seen_unique_players = set()
+        dedupe_keys = set()
+        group = {
+            "awardKey": "all_star",
+            "award": "All-Star Selection",
+            "total": 0,
+            "seen": 0,
+            "uniqueWinners": set(),
+            "uniqueSeen": set(),
+            "items": [],
+        }
+
+        for participant in participants:
+            if participant.get("entity_type") != "player":
+                continue
+            player_id = str(participant.get("player_id") or participant.get("entity_id") or "").strip()
+            if not player_id:
+                continue
+
+            year = participant.get("year")
+            league = str(participant.get("league", "")).strip()
+            position = str(participant.get("position", "")).strip()
+            selection = str(participant.get("selection", "")).strip()
+            game_key = str(participant.get("game_key", "")).strip()
+            item_key = (
+                "all_star",
+                game_key,
+                year,
+                league,
+                player_id,
+                selection,
+                position,
+            )
+            if item_key in dedupe_keys:
+                continue
+            dedupe_keys.add(item_key)
+
+            seen = seen_players.get(player_id)
+            checked = bool(seen and seen.get("gamesSeen", 0) > 0)
+            if checked:
+                seen_entry_count += 1
+                seen_unique_players.add(player_id)
+
+            item = {
+                "id": "|".join(str(part) for part in item_key),
+                "year": year,
+                "name": str(participant.get("name", "")).strip(),
+                "playerId": player_id,
+                "checked": checked,
+                "awardKey": "all_star",
+                "award": "All-Star Selection",
+                "gameKey": game_key,
+                "gameLabel": str(participant.get("game_label", "")).strip(),
+                "gameNumber": int(participant.get("game_number", 1) or 1),
+                "rosterOrder": int(participant.get("roster_order", 0) or 0),
+            }
+            if selection:
+                item["awardDetail"] = selection
+                item["selection"] = selection
+            if league:
+                item["league"] = league
+            if position:
+                item["position"] = position
+            if checked:
+                item["gamesSeen"] = int(seen.get("gamesSeen", 0))
+                item["firstSeen"] = seen.get("firstDate", "")
+                item["lastSeen"] = seen.get("lastDate", "")
+            group["items"].append(item)
+            group["total"] += 1
+            group["uniqueWinners"].add(player_id)
+            if checked:
+                group["seen"] += 1
+                group["uniqueSeen"].add(player_id)
+
+        group["items"].sort(key=self._all_star_item_sort_key)
+        groups = [{
+            "awardKey": group["awardKey"],
+            "award": group["award"],
+            "total": group["total"],
+            "seen": group["seen"],
+            "uniqueWinners": len(group["uniqueWinners"]),
+            "uniqueSeen": len(group["uniqueSeen"]),
+            "items": group["items"],
+        }]
+        completion_sets = self._build_all_star_completion_sets(groups)
+
+        return {
+            "metadata": {
+                "available": True,
+                "entryCount": sum(group["total"] for group in groups),
+                "seenCount": seen_entry_count,
+                "uniqueSeenPlayers": len(seen_unique_players),
+                "groupCount": len(groups),
+                "setCount": len(completion_sets),
+                "completedSetCount": sum(1 for all_star_set in completion_sets if all_star_set.get("isComplete")),
+                "source": metadata.get("source", ""),
+                "generatedAt": metadata.get("generated_at", ""),
+                "entryLabel": "All-Star Selections",
+                "allSetsSubtitle": "Every All-Star checklist",
+                "emptyTitle": "No All-Star Data",
+                "emptyMessage": "Run the All-Star scraper to generate participant checklist data.",
+            },
+            "groups": groups,
+            "completionSets": completion_sets,
+            "seenPlayers": seen_players,
+        }
+
+    def _build_all_star_completion_sets(self, groups):
+        """Build finite completion sets from All-Star participant rows."""
+        if not groups:
+            return []
+
+        all_items = []
+        for group in groups:
+            all_items.extend(group.get("items", []))
+
+        completion_sets = []
+
+        def add_set(set_id, title, subtitle, library, items, priority, criteria):
+            all_star_set = self._make_award_completion_set(
+                set_id=set_id,
+                title=title,
+                subtitle=subtitle,
+                library=library,
+                items=items,
+                priority=priority,
+                criteria=criteria,
+            )
+            if all_star_set:
+                completion_sets.append(all_star_set)
+
+        add_set(
+            "all-star-all",
+            "All-Star Participants",
+            "Every All-Star roster selection.",
+            "All-Star",
+            all_items,
+            0,
+            {"awardKeys": ["all_star"]},
+        )
+        starters = [item for item in all_items if item.get("selection") in {"Starter", "Starting Pitcher"}]
+        add_set(
+            "all-star-starters",
+            "All-Star Starters",
+            "Every All-Star starting lineup and starting pitcher selection.",
+            "All-Star",
+            starters,
+            10,
+            {"awardKeys": ["all_star"], "selections": ["Starter", "Starting Pitcher"]},
+        )
+        reserves = [item for item in all_items if item.get("selection") == "Reserve"]
+        add_set(
+            "all-star-reserves",
+            "All-Star Reserves",
+            "Every All-Star reserve roster selection.",
+            "All-Star",
+            reserves,
+            20,
+            {"awardKeys": ["all_star"], "selections": ["Reserve"]},
+        )
+
+        league_priority = 100
+        for league in ["AL", "NL"]:
+            league_items = [item for item in all_items if item.get("league") == league]
+            add_set(
+                f"all-star-{league.lower()}",
+                f"{league} All-Stars",
+                f"Every {league} All-Star roster selection.",
+                "League Rosters",
+                league_items,
+                league_priority,
+                {"awardKeys": ["all_star"], "league": league},
+            )
+            league_priority += 1
+
+        pitcher_items = [item for item in all_items if item.get("position") == "P"]
+        add_set(
+            "all-star-pitchers",
+            "All-Star Pitchers",
+            "Every All-Star pitcher roster selection.",
+            "Position Groups",
+            pitcher_items,
+            200,
+            {"awardKeys": ["all_star"], "positions": ["P"]},
+        )
+        position_items = [item for item in all_items if item.get("position") != "P"]
+        add_set(
+            "all-star-position-players",
+            "All-Star Position Players",
+            "Every non-pitcher All-Star roster selection.",
+            "Position Groups",
+            position_items,
+            201,
+            {"awardKeys": ["all_star"], "excludePositions": ["P"]},
+        )
+
+        games = sorted(
+            {
+                (str(item.get("gameKey", "")), str(item.get("gameLabel", "")), int(item.get("year") or 0))
+                for item in all_items
+                if item.get("gameKey")
+            },
+            key=lambda row: (-row[2], row[0]),
+        )
+        for idx, (game_key, game_label, _year) in enumerate(games):
+            game_items = [item for item in all_items if item.get("gameKey") == game_key]
+            add_set(
+                f"all-star-game-{game_key}",
+                f"{game_label} Rosters",
+                "Every roster selection from one All-Star Game.",
+                "All-Star Games",
+                game_items,
+                1000 + idx,
+                {"awardKeys": ["all_star"], "gameKey": game_key},
+            )
+
+        completion_sets.sort(key=lambda row: (row.get("priority", 9999), row.get("title", "")))
+        return completion_sets
+
     def _build_award_completion_sets(self, groups):
         """Build Futbology-style finite completion sets from award checklist items."""
         if not groups:
@@ -1602,6 +1878,23 @@ class DataSerializer:
         completion_sets.sort(key=lambda row: (row.get("priority", 9999), row.get("title", "")))
         return completion_sets
 
+    def _all_star_item_sort_key(self, row):
+        """Sort All-Star checklist entries reverse-chronologically, then in roster order."""
+        selection_rank = {
+            "Starter": 0,
+            "Starting Pitcher": 1,
+            "Reserve": 2,
+        }.get(str(row.get("selection") or row.get("awardDetail") or "").strip(), 9)
+        return (
+            -(int(row.get("year") or 0)),
+            -(int(row.get("gameNumber") or 1)),
+            str(row.get("league", "")),
+            selection_rank,
+            int(row.get("rosterOrder") or 0),
+            str(row.get("position", "")),
+            str(row.get("name", "")),
+        )
+
     def _make_award_completion_set(self, set_id, title, subtitle, library, items, priority, criteria):
         """Create one award-entry completion set from award item rows."""
         members = []
@@ -1610,7 +1903,7 @@ class DataSerializer:
             player_id = item.get("playerId")
             if not player_id:
                 continue
-            item_id = item.get("id") or f"{player_id}:{item.get('awardKey')}:{item.get('year')}:{item.get('league')}:{item.get('awardDetail')}"
+            item_id = item.get("id") or f"{player_id}:{item.get('awardKey')}:{item.get('gameKey')}:{item.get('year')}:{item.get('league')}:{item.get('awardDetail')}"
             if item_id in seen_item_ids:
                 continue
             seen_item_ids.add(item_id)
@@ -1629,6 +1922,7 @@ class DataSerializer:
                 "awardSummary": award_summary,
                 "year": item.get("year"),
                 "league": item.get("league", ""),
+                "awardKey": item.get("awardKey", ""),
                 "award": item.get("award", ""),
                 "awardDetail": item.get("awardDetail", ""),
                 "team": item.get("team", ""),
@@ -1636,22 +1930,29 @@ class DataSerializer:
                 "selection": item.get("selection", ""),
                 "month": item.get("month", ""),
                 "weekEnding": item.get("weekEnding", ""),
+                "gameKey": item.get("gameKey", ""),
+                "gameLabel": item.get("gameLabel", ""),
+                "gameNumber": item.get("gameNumber", 1),
+                "rosterOrder": item.get("rosterOrder", 0),
                 "sourceUrl": item.get("sourceUrl", ""),
             })
 
         if not members:
             return None
 
-        members.sort(
-            key=lambda row: (
-                -(int(row.get("year") or 0)),
-                row.get("league", ""),
-                row.get("awardDetail", ""),
-                row.get("selection", ""),
-                row.get("position", ""),
-                row.get("name", ""),
+        if any(member.get("awardKey") == "all_star" for member in members):
+            members.sort(key=self._all_star_item_sort_key)
+        else:
+            members.sort(
+                key=lambda row: (
+                    -(int(row.get("year") or 0)),
+                    row.get("league", ""),
+                    row.get("awardDetail", ""),
+                    row.get("selection", ""),
+                    row.get("position", ""),
+                    row.get("name", ""),
+                )
             )
-        )
         total = len(members)
         seen = sum(1 for member in members if member.get("checked"))
         missing_members = [member for member in members if not member.get("checked")]

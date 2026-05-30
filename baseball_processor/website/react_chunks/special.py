@@ -374,16 +374,33 @@ const formatAwardSetMemberSummary = (rows) => {
         : formatAwardEntryFullLabel(rows[0]);
     return rows.length === 1 ? firstLabel : `${rows.length} entries, latest ${firstLabel}`;
 };
+const awardSelectionRank = (selection) => {
+    const clean = cleanAwardToken(selection);
+    if (clean === 'Starter') return 0;
+    if (clean === 'Starting Pitcher') return 1;
+    if (clean === 'Reserve') return 2;
+    return 9;
+};
 
 const buildAwardSetMembers = (awardSet, groups) => {
     const criteria = awardSet?.criteria || {};
     const awardKeys = new Set(criteria.awardKeys || []);
+    const valueList = (value) => Array.isArray(value) ? value : value ? [value] : [];
+    const leagues = new Set(valueList(criteria.leagues || criteria.league).map(v => String(v)));
+    const selections = new Set(valueList(criteria.selections || criteria.selection).map(v => String(v)));
+    const positions = new Set(valueList(criteria.positions || criteria.position).map(v => String(v)));
+    const excludedPositions = new Set(valueList(criteria.excludePositions).map(v => String(v)));
     const rows = [];
     const seenIds = new Set();
     (groups || []).forEach(group => {
         if (awardKeys.size && !awardKeys.has(group.awardKey)) return;
         (group.items || []).forEach(item => {
             if (criteria.year && Number(item.year || 0) !== Number(criteria.year)) return;
+            if (criteria.gameKey && String(item.gameKey || '') !== String(criteria.gameKey)) return;
+            if (leagues.size && !leagues.has(String(item.league || ''))) return;
+            if (selections.size && !selections.has(String(item.selection || item.awardDetail || ''))) return;
+            if (positions.size && !positions.has(String(item.position || ''))) return;
+            if (excludedPositions.size && excludedPositions.has(String(item.position || ''))) return;
             if (!item.playerId || seenIds.has(item.id)) return;
             seenIds.add(item.id);
             const normalizedItem = {
@@ -412,6 +429,7 @@ const buildAwardSetMembers = (awardSet, groups) => {
             awardSummary: formatAwardSetMemberSummary([item]),
             year: item.year,
             league: item.league || '',
+            awardKey: item.awardKey || '',
             award: item.award || '',
             awardDetail: item.awardDetail || '',
             team: item.team || '',
@@ -419,11 +437,25 @@ const buildAwardSetMembers = (awardSet, groups) => {
             selection: item.selection || '',
             month: item.month || '',
             weekEnding: item.weekEnding || '',
+            gameKey: item.gameKey || '',
+            gameLabel: item.gameLabel || '',
+            gameNumber: Number(item.gameNumber || 1),
+            rosterOrder: Number(item.rosterOrder || 0),
             sourceUrl: item.sourceUrl || '',
         };
     }).sort((a, b) => {
         const yearDiff = Number(b.year || 0) - Number(a.year || 0);
         if (yearDiff) return yearDiff;
+        if (a.awardKey === 'all_star' || b.awardKey === 'all_star') {
+            const gameDiff = String(b.gameKey || '').localeCompare(String(a.gameKey || ''));
+            if (gameDiff) return gameDiff;
+            const leagueDiff = (a.league || '').localeCompare(b.league || '');
+            if (leagueDiff) return leagueDiff;
+            const selectionDiff = awardSelectionRank(a.selection || a.awardDetail) - awardSelectionRank(b.selection || b.awardDetail);
+            if (selectionDiff) return selectionDiff;
+            const rosterDiff = Number(a.rosterOrder || 0) - Number(b.rosterOrder || 0);
+            if (rosterDiff) return rosterDiff;
+        }
         const metaDiff = `${a.league || ''}${a.awardDetail || ''}${a.selection || ''}${a.position || ''}`.localeCompare(`${b.league || ''}${b.awardDetail || ''}${b.selection || ''}${b.position || ''}`);
         if (metaDiff) return metaDiff;
         return (a.name || '').localeCompare(b.name || '');
@@ -552,7 +584,7 @@ const AwardSetDetailPanel = ({ awardSet, selectedMember, onSelectMember, onOpen 
     );
 };
 
-const AwardChecklistDrillIn = ({ awardSet, seenPlayers, playerGames, pitcherGames, gamesById, onBack }) => {
+const AwardChecklistDrillIn = ({ awardSet, seenPlayers, playerGames, pitcherGames, gamesById, entryLabel = 'Award Entries', onBack }) => {
     const [seenOnly, setSeenOnly] = useState(false);
     const [search, setSearch] = useState('');
     const firstSeenMember = (awardSet?.members || []).find(member => member.checked) || (awardSet?.members || [])[0] || null;
@@ -627,7 +659,7 @@ const AwardChecklistDrillIn = ({ awardSet, seenPlayers, playerGames, pitcherGame
                                 type="text"
                                 value={search}
                                 onChange={(event) => setSearch(event.target.value)}
-                                placeholder="Search winners..."
+                                placeholder={`Search ${entryLabel.toLowerCase()}...`}
                                 className="px-3 py-2 body-text border border-slate-200 rounded-lg min-w-[220px] focus:border-blue-500 focus:outline-none"
                             />
                         </div>
@@ -697,7 +729,7 @@ const AwardChecklistDrillIn = ({ awardSet, seenPlayers, playerGames, pitcherGame
                             </div>
                         </div>
                     ) : (
-                        <EmptyState title="No Winners" message="No winners match the current filters." />
+                        <EmptyState title={`No ${entryLabel}`} message="No entries match the current filters." />
                     )}
                 </div>
             </div>
@@ -714,6 +746,10 @@ const AwardChecklistsView = ({ awardChecklists, playerGames, pitcherGames, games
     })), [completionSets, groups]);
     const seenPlayers = awardChecklists?.seenPlayers || {};
     const totals = awardChecklists?.metadata || {};
+    const entryLabel = totals.entryLabel || 'Award Entries';
+    const allSetsSubtitle = totals.allSetsSubtitle || 'Every award collection';
+    const emptyTitle = totals.emptyTitle || 'No Award Data';
+    const emptyMessage = totals.emptyMessage || 'Run the awards scraper to generate award checklist data.';
     const firstSet = awardSets.find(set => set.status === 'started') || awardSets.find(set => set.isComplete) || awardSets[0];
     const [selectedSetId, setSelectedSetId] = useState(firstSet?.id || '');
     const [selectedMember, setSelectedMember] = useState(null);
@@ -787,7 +823,7 @@ const AwardChecklistsView = ({ awardChecklists, playerGames, pitcherGames, games
     };
 
     if (!groups.length || !awardSets.length) {
-        return <EmptyState title="No Award Data" message="Run the awards scraper to generate award checklist data." />;
+        return <EmptyState title={emptyTitle} message={emptyMessage} />;
     }
 
     if (screen === 'checklist') {
@@ -798,6 +834,7 @@ const AwardChecklistsView = ({ awardChecklists, playerGames, pitcherGames, games
                 playerGames={playerGames || []}
                 pitcherGames={pitcherGames || []}
                 gamesById={gamesById}
+                entryLabel={entryLabel}
                 onBack={() => setScreen('sets')}
             />
         );
@@ -807,7 +844,7 @@ const AwardChecklistsView = ({ awardChecklists, playerGames, pitcherGames, games
         <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard title="Checked Off" value={(totals.seenCount || 0).toLocaleString()} subtitle={`${totals.uniqueSeenPlayers || 0} players seen`} color="blue" />
-                <StatCard title="Award Entries" value={(totals.entryCount || 0).toLocaleString()} color="green" />
+                <StatCard title={entryLabel} value={(totals.entryCount || 0).toLocaleString()} color="green" />
                 <StatCard title="Completion Sets" value={(totals.setCount || awardSets.length).toLocaleString()} subtitle={`${totals.completedSetCount || 0} complete`} color="purple" />
                 <StatCard title="Categories" value={(totals.groupCount || groups.length).toLocaleString()} color="orange" />
             </div>
@@ -840,7 +877,7 @@ const AwardChecklistsView = ({ awardChecklists, playerGames, pitcherGames, games
                                 <span className="body-text font-bold text-slate-900">All Sets</span>
                                 <span className="small-text font-bold text-slate-500">{awardSets.length}</span>
                             </div>
-                            <div className="small-text text-slate-500 mt-1">Every award collection</div>
+                            <div className="small-text text-slate-500 mt-1">{allSetsSubtitle}</div>
                         </button>
                         {libraryStats.map(library => (
                             <button
@@ -901,6 +938,8 @@ const AwardWinnerDetail = ({ item, seen, playerGames, pitcherGames, gamesById })
 
     const hitting = seen.hitting;
     const pitching = seen.pitching;
+    const contextLabel = item.team ? 'Award Team' : item.gameLabel ? 'All-Star Game' : 'League';
+    const contextValue = item.team || item.gameLabel || item.league || '';
 
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-5 space-y-5" style={{ boxShadow: 'var(--shadow)' }}>
@@ -931,8 +970,8 @@ const AwardWinnerDetail = ({ item, seen, playerGames, pitcherGames, gamesById })
                     <div className="body-text font-semibold text-slate-800">{[hitting?.team, pitching?.team, seen.noStats?.teams].filter(Boolean).join(', ')}</div>
                 </div>
                 <div>
-                    <div className="small-text text-slate-500">Award Team</div>
-                    <div className="body-text font-semibold text-slate-800">{item.team || ''}</div>
+                    <div className="small-text text-slate-500">{contextLabel}</div>
+                    <div className="body-text font-semibold text-slate-800">{contextValue}</div>
                 </div>
             </div>
 
@@ -1094,6 +1133,7 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
         { id: 'hitters', label: 'Hitters' },
         { id: 'pitchers', label: 'Pitchers' },
         ...((data.awardChecklists?.groups || []).length > 0 ? [{ id: 'awards', label: 'Awards' }] : []),
+        ...((data.allStarChecklists?.groups || []).length > 0 ? [{ id: 'allstars', label: 'All-Stars' }] : []),
         ...((data.hallOfFamers || []).length > 0 ? [{ id: 'hof', label: 'Hall of Fame' }] : []),
         ...(hasSituationalData ? [{ id: 'situational', label: 'Situational' }] : []),
         ...((data.wpaLeaders || []).length > 0 ? [{ id: 'wpa', label: 'WPA' }] : []),
@@ -1110,6 +1150,7 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
             {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} milestones={data.milestones || []} debuts={data.debuts || []} finalGames={data.finalGames || []} />}
             {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} milestones={data.milestones || []} debuts={data.debuts || []} finalGames={data.finalGames || []} />}
             {view === 'awards' && <AwardChecklistsView awardChecklists={data.awardChecklists || {}} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} games={data.games || []} />}
+            {view === 'allstars' && <AwardChecklistsView awardChecklists={data.allStarChecklists || {}} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} games={data.games || []} />}
             {view === 'hof' && <HallOfFamersView hallOfFamers={data.hallOfFamers || []} />}
             {view === 'situational' && <SituationalHittingView data={data} />}
             {view === 'wpa' && <WpaLeadersView wpaLeaders={data.wpaLeaders || []} />}

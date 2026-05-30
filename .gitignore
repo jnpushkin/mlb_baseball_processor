@@ -58,6 +58,7 @@ retrosheet-master/
 mlb_references/*
 !mlb_references/
 !mlb_references/awards.json
+!mlb_references/all_star_participants.json
 al-nl/
 
 # Data files

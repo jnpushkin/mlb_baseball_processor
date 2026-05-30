@@ -615,6 +615,75 @@ class DataSerializerTests(unittest.TestCase):
             }),
         )
 
+    def test_serialize_all_star_checklists_marks_seen_participants(self):
+        serializer = DataSerializer()
+        serializer._load_all_star_reference = lambda: {
+            "metadata": {"source": "test", "games": [{"key": "2025"}]},
+            "participants": [
+                {
+                    "year": 2025,
+                    "game_number": 1,
+                    "game_key": "2025",
+                    "game_label": "2025 All-Star Game",
+                    "league": "AL",
+                    "name": "Missing Reserve",
+                    "player_id": "player-2",
+                    "entity_type": "player",
+                    "entity_id": "player-2",
+                    "position": "P",
+                    "selection": "Reserve",
+                    "roster_order": 2,
+                },
+                {
+                    "year": 2025,
+                    "game_number": 1,
+                    "game_key": "2025",
+                    "game_label": "2025 All-Star Game",
+                    "league": "AL",
+                    "name": "Seen Starter",
+                    "player_id": "player-1",
+                    "entity_type": "player",
+                    "entity_id": "player-1",
+                    "position": "2B",
+                    "selection": "Starter",
+                    "roster_order": 1,
+                },
+            ],
+        }
+
+        result = serializer._serialize_all_star_checklists(
+            raw_games=[
+                {
+                    "game_id": "HOM202604300",
+                    "basic_info": {"date_yyyymmdd": "20260430"},
+                    "batting": {"away": [{"name": "Seen Starter", "player_id": "player-1"}], "home": []},
+                    "pitching": {"away": [], "home": []},
+                }
+            ],
+            players=[{"playerId": "player-1", "name": "Seen Starter", "games": 1}],
+            pitchers=[],
+            players_without_stats=[],
+            player_games=[{"playerId": "player-1", "name": "Seen Starter", "gameId": "HOM202604300"}],
+            pitcher_games=[],
+            games=[{"gameId": "HOM202604300", "date": "04/30/2026"}],
+        )
+
+        self.assertTrue(result["metadata"]["available"])
+        self.assertEqual("All-Star Selections", result["metadata"]["entryLabel"])
+        self.assertEqual(2, result["metadata"]["entryCount"])
+        self.assertEqual(1, result["metadata"]["seenCount"])
+        self.assertEqual(1, result["groups"][0]["seen"])
+        self.assertEqual("All-Star Selection", result["groups"][0]["award"])
+        self.assertEqual("Seen Starter", result["groups"][0]["items"][0]["name"])
+        all_set = next(row for row in result["completionSets"] if row["id"] == "all-star-all")
+        self.assertEqual(2, all_set["total"])
+        self.assertEqual(1, all_set["seen"])
+        starter_set = next(row for row in result["completionSets"] if row["id"] == "all-star-starters")
+        self.assertEqual(1, starter_set["total"])
+        self.assertEqual(1, starter_set["seen"])
+        game_set = next(row for row in result["completionSets"] if row["id"] == "all-star-game-2025")
+        self.assertEqual("2025 All-Star Game Rosters", game_set["title"])
+
     def test_serialize_all_data_includes_situational_tables(self):
         processed_data = {
             "summary_rows": [],
