@@ -36,6 +36,9 @@ Thumbs.db
 MLB Game Passport - BREF.html
 MLB Game Passport - BREF.xlsx
 data.json
+data-*.json
+award-data.json
+award-sidecar-*.json
 data/
 bref_download.log
 tmp*.xlsx
@@ -52,7 +55,9 @@ cache/
 lahman_1871-2023_csv/
 register-master/
 retrosheet-master/
-mlb_references/
+mlb_references/*
+!mlb_references/
+!mlb_references/awards.json
 al-nl/
 
 # Data files

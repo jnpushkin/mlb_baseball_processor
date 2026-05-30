@@ -453,9 +453,15 @@ const getStadiumLogoInnerHtml = (stadium) => {
     return getTeamLogoHtml(code);
 };
 
-const createStadiumLogoMarker = (stadium, { hasVisited, fillColor, borderColor }) => {
+const getStadiumLogoMarkerSize = (stadium, hasVisited, zoom = 4) => {
     const hasTeamCluster = stadium?.springTraining && Array.isArray(stadium.teams) && stadium.teams.length > 1;
-    const markerSize = hasVisited ? (hasTeamCluster ? 38 : 34) : (hasTeamCluster ? 32 : 28);
+    const baseSize = hasVisited ? (hasTeamCluster ? 30 : 26) : (hasTeamCluster ? 24 : 20);
+    const zoomScale = zoom <= 3 ? 0.72 : zoom <= 4 ? 0.84 : zoom === 5 ? 1 : Math.min(1.28, 1 + ((zoom - 5) * 0.08));
+    return Math.round(baseSize * zoomScale);
+};
+
+const createStadiumLogoMarker = (stadium, { hasVisited, fillColor, borderColor, zoom = 4 }) => {
+    const markerSize = getStadiumLogoMarkerSize(stadium, hasVisited, zoom);
     const markerHtml = `
         <div
             class="stadium-logo-marker ${hasVisited ? 'is-visited' : 'is-unvisited'}"
@@ -476,6 +482,7 @@ const createStadiumLogoMarker = (stadium, { hasVisited, fillColor, borderColor }
         }),
         keyboard: true,
         title: stadium?.name || '',
+        zIndexOffset: hasVisited ? 200 : 0,
     });
 };
 

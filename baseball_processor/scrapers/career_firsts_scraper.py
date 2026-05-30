@@ -343,8 +343,8 @@ def get_mlb_id_from_register(register_id: str, scraper=None) -> Optional[str]:
     import re
     for link in soup.find_all('a', href=True):
         href = link['href']
-        # Match MLB-format IDs (letters followed by 2 digits, e.g., workmga01)
-        match = re.search(r'/players/gl\.fcgi\?id=([a-z]+\d{2})(?:&|&amp;)', href)
+        # Match the whole BRef ID, including dotted IDs such as dicker.01.
+        match = re.search(r'/players/gl\.fcgi\?id=([^&"\'>\s]+)(?:&|&amp;)', href)
         if match:
             mlb_id = match.group(1)
             _register_to_mlb_id_cache[register_id] = mlb_id

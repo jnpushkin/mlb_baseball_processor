@@ -503,9 +503,9 @@ def resolve_register_id(register_id: str, use_cache_only: bool = False) -> Optio
         if response.status_code != 200:
             return None
 
-        # Look for game log links which use MLB-format ID
-        # Pattern: /players/gl.fcgi?id=XXXXXX&t=b&year=YYYY
-        match = re.search(r'/players/gl\.fcgi\?id=([a-z]+\d{2})(?:&|&amp;)', response.text)
+        # Look for game log links which use MLB-format ID. Some BRef IDs include
+        # punctuation, e.g. R.A. Dickey is dicker.01.
+        match = re.search(r'/players/gl\.fcgi\?id=([^&"\'>\s]+)(?:&|&amp;)', response.text)
         if match:
             mlb_id = match.group(1)
             _register_to_mlb_cache[register_id] = mlb_id

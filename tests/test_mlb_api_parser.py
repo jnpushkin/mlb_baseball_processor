@@ -25,6 +25,29 @@ class MlbApiParserTests(unittest.TestCase):
             construct_bref_mlb_id_candidates("José Fernández", max_suffix=1),
         )
 
+    def test_resolve_register_id_accepts_dotted_bref_ids(self):
+        old_cache = mlb_api_parser._register_to_mlb_cache
+        old_attempted = mlb_api_parser._register_resolution_attempted
+        old_has_cloudscraper = mlb_api_parser.HAS_CLOUDSCRAPER
+        old_get_with_retry = mlb_api_parser.get_with_retry
+        mlb_api_parser._register_to_mlb_cache = {}
+        mlb_api_parser._register_resolution_attempted = set()
+        mlb_api_parser.HAS_CLOUDSCRAPER = False
+
+        html = '<a href="/players/gl.fcgi?id=dicker.01&amp;t=b&amp;year=2012">Batting Game Log</a>'
+        mlb_api_parser.get_with_retry = lambda *_args, **_kwargs: type(
+            "Response",
+            (),
+            {"status_code": 200, "text": html},
+        )()
+        try:
+            self.assertEqual("dicker.01", mlb_api_parser.resolve_register_id("dickra000ra"))
+        finally:
+            mlb_api_parser._register_to_mlb_cache = old_cache
+            mlb_api_parser._register_resolution_attempted = old_attempted
+            mlb_api_parser.HAS_CLOUDSCRAPER = old_has_cloudscraper
+            mlb_api_parser.get_with_retry = old_get_with_retry
+
     def test_resolve_bref_mlb_id_by_name_validates_suffix_candidate(self):
         old_cache = mlb_api_parser._validated_mlb_bref_id_cache
         old_chadwick = mlb_api_parser._chadwick_mlb_to_bref

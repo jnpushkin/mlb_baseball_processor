@@ -457,6 +457,131 @@ class DataSerializerTests(unittest.TestCase):
         self.assertEqual(0, serialized[0]["wins"])
         self.assertEqual("Multi-HR Games", serialized[0]["milestones"])
 
+    def test_serialize_award_checklists_marks_seen_players_and_stats(self):
+        serializer = DataSerializer()
+        serializer._load_awards_reference = lambda: {
+            "metadata": {
+                "source": "test",
+                "pages": [
+                    {"key": "mvp"},
+                    {"key": "cya"},
+                    {"key": "gold_glove_al"},
+                ],
+            },
+            "awards": [
+                {
+                    "award": "Most Valuable Player",
+                    "award_key": "mvp",
+                    "award_detail": "Most Valuable Player",
+                    "year": 2026,
+                    "league": "AL",
+                    "name": "Power Bat",
+                    "player_id": "player-1",
+                    "entity_type": "player",
+                    "entity_id": "player-1",
+                    "team": "AWY",
+                    "source_url": "https://example.test/player-1",
+                },
+                {
+                    "award": "Cy Young",
+                    "award_key": "cya",
+                    "award_detail": "Cy Young",
+                    "year": 2026,
+                    "league": "NL",
+                    "name": "Not Seen",
+                    "player_id": "player-2",
+                    "entity_type": "player",
+                    "entity_id": "player-2",
+                },
+                {
+                    "award": "Most Valuable Player",
+                    "award_key": "mvp",
+                    "award_detail": "Most Valuable Player",
+                    "year": 2025,
+                    "league": "AL",
+                    "name": "Power Bat",
+                    "player_id": "player-1",
+                    "entity_type": "player",
+                    "entity_id": "player-1",
+                    "team": "AWY",
+                    "source_url": "https://example.test/player-1",
+                },
+                {
+                    "award": "Gold Glove",
+                    "award_key": "gold_glove_al",
+                    "award_detail": "P",
+                    "year": 2026,
+                    "league": "AL",
+                    "name": "Power Bat",
+                    "player_id": "player-1",
+                    "entity_type": "player",
+                    "entity_id": "player-1",
+                    "team": "AWY",
+                    "position": "P",
+                    "source_url": "https://example.test/player-1",
+                },
+            ],
+        }
+
+        result = serializer._serialize_award_checklists(
+            raw_games=[
+                {
+                    "game_id": "HOM202604300",
+                    "basic_info": {"date_yyyymmdd": "20260430"},
+                    "batting": {"away": [{"name": "Power Bat", "player_id": "player-1"}], "home": []},
+                    "pitching": {"away": [], "home": []},
+                }
+            ],
+            players=[{
+                "playerId": "player-1",
+                "name": "Power Bat",
+                "team": "AWY",
+                "games": 1,
+                "pa": 4,
+                "ab": 4,
+                "h": 2,
+                "avg": "0.500",
+                "hr": 1,
+                "rbi": 3,
+            }],
+            pitchers=[],
+            players_without_stats=[],
+            player_games=[{"playerId": "player-1", "name": "Power Bat", "gameId": "HOM202604300"}],
+            pitcher_games=[],
+            games=[{"gameId": "HOM202604300", "date": "04/30/2026"}],
+        )
+
+        self.assertEqual(4, result["metadata"]["entryCount"])
+        self.assertEqual(3, result["metadata"]["seenCount"])
+        mvp_item = result["groups"][0]["items"][0]
+        self.assertTrue(mvp_item["checked"])
+        self.assertEqual(1, mvp_item["gamesSeen"])
+        self.assertEqual("04/30/2026", mvp_item["firstSeen"])
+        self.assertEqual([2026, 2025], [item["year"] for item in result["groups"][0]["items"]])
+        self.assertEqual(2, result["groups"][0]["seen"])
+        self.assertEqual(1, result["groups"][0]["uniqueWinners"])
+        self.assertFalse(result["groups"][1]["items"][0]["checked"])
+        self.assertEqual("0.500", result["seenPlayers"]["player-1"]["hitting"]["avg"])
+        self.assertGreaterEqual(result["metadata"]["setCount"], 3)
+        self.assertEqual(4, result["metadata"]["completedSetCount"])
+        major_set = next(row for row in result["completionSets"] if row["id"] == "major-core")
+        self.assertEqual("Major Award Winners", major_set["title"])
+        self.assertEqual(3, major_set["total"])
+        self.assertEqual(2, major_set["seen"])
+        self.assertEqual(["Not Seen"], major_set["nextMissing"])
+        self.assertEqual(["mvp", "cya", "roy"], major_set["criteria"]["awardKeys"])
+        mvp_set = next(row for row in result["completionSets"] if row["id"] == "award-mvp")
+        self.assertEqual("Major Awards", mvp_set["library"])
+        self.assertEqual(["mvp"], mvp_set["criteria"]["awardKeys"])
+        self.assertEqual(2, mvp_set["total"])
+        self.assertEqual(2, mvp_set["seen"])
+        year_set = next(row for row in result["completionSets"] if row["id"] == "season-awards-2026")
+        self.assertEqual("2026 Award Class", year_set["title"])
+        self.assertEqual(3, year_set["total"])
+        self.assertEqual(2, year_set["seen"])
+        self.assertEqual({"year": 2026}, year_set["criteria"])
+        self.assertNotIn("members", mvp_set)
+
     def test_serialize_all_data_includes_situational_tables(self):
         processed_data = {
             "summary_rows": [],

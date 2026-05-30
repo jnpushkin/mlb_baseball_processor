@@ -82,6 +82,13 @@ def deploy_to_surge(html_path: str, domain: str | None = None) -> bool:
         data_json = os.path.join(os.path.dirname(html_path), 'data.json')
         if os.path.exists(data_json):
             shutil.copy(data_json, os.path.join(temp_dir, 'data.json'))
+        for data_sidecar in Path(os.path.dirname(html_path)).glob('data-*.json'):
+            shutil.copy(data_sidecar, os.path.join(temp_dir, data_sidecar.name))
+        award_data_json = os.path.join(os.path.dirname(html_path), 'award-data.json')
+        if os.path.exists(award_data_json):
+            shutil.copy(award_data_json, os.path.join(temp_dir, 'award-data.json'))
+        for award_sidecar in Path(os.path.dirname(html_path)).glob('award-sidecar-*.json'):
+            shutil.copy(award_sidecar, os.path.join(temp_dir, award_sidecar.name))
 
         try:
             # Run surge deployment

@@ -1482,6 +1482,7 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const markersRef = useRef([]);
+    const [mapZoom, setMapZoom] = useState(4);
     const [filter, setFilter] = useState('all'); // 'all', 'current', 'historical', 'international'
     const [selectedStadium, setSelectedStadium] = useState(null);
 
@@ -1578,10 +1579,14 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
+        const handleZoomEnd = () => setMapZoom(map.getZoom());
+        map.on('zoomend', handleZoomEnd);
+        setMapZoom(map.getZoom());
         mapInstanceRef.current = map;
 
         return () => {
             if (mapInstanceRef.current) {
+                mapInstanceRef.current.off('zoomend', handleZoomEnd);
                 mapInstanceRef.current.remove();
                 mapInstanceRef.current = null;
             }
@@ -1620,6 +1625,7 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
                 hasVisited,
                 fillColor,
                 borderColor,
+                zoom: mapZoom,
             }).addTo(mapInstanceRef.current);
 
             // Build popup content
@@ -1668,7 +1674,7 @@ const StadiumMap = ({ stadiums, games, orioles }) => {
             marker.on('click', () => setSelectedStadium(stadium));
             markersRef.current.push(marker);
         });
-    }, [filteredStadiums, visitedData]);
+    }, [filteredStadiums, visitedData, mapZoom]);
 
     return (
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">

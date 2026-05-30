@@ -29,13 +29,13 @@ When processing a new BREF HTML file, the processor automatically:
 ## Deployment
 Website auto-deploys to: https://mlb-processor.surge.sh as part of `python3 -m baseball_processor` / `--website-only`.
 
-The output is **two files** — `MLB Game Passport - BREF.html` and `data.json` (the React app fetches `data.json` next to itself at runtime). Both must be deployed together; deploying only the HTML produces a "Failed to Load Data: HTTP 404" error on the live site.
+The output is the HTML plus JSON sidecars — `MLB Game Passport - BREF.html`, `data.json`, any `data-*.json` chunks, and `award-data.json` / `award-sidecar-*.json` when awards are enabled. The React app fetches `data.json` next to itself at runtime, then merges the sidecars. They must be deployed together; deploying only the HTML produces a "Failed to Load Data: HTTP 404" error on the live site, and omitting sidecars disables their sections.
 
 ### Manual deploy fallback
-If the auto-deploy step times out or fails, redeploy from the **project root** so the directory listing includes both files:
+If the auto-deploy step times out or fails, redeploy from the **project root** so the directory listing includes the HTML and all JSON sidecars:
 
 ```bash
-# from the project root (which contains the .html and data.json)
+# from the project root (which contains the .html, data.json, data-*.json, award-data.json, and award-sidecar-*.json)
 surge . mlb-processor.surge.sh
 ```
 
@@ -45,10 +45,13 @@ Surge expects the index file to be named `index.html`. Stage it in a temp dir if
 rm -rf /tmp/mlb-deploy && mkdir -p /tmp/mlb-deploy
 cp "MLB Game Passport - BREF.html" /tmp/mlb-deploy/index.html
 cp data.json /tmp/mlb-deploy/data.json
+cp data-*.json /tmp/mlb-deploy/ 2>/dev/null || true
+cp award-data.json /tmp/mlb-deploy/award-data.json
+cp award-sidecar-*.json /tmp/mlb-deploy/ 2>/dev/null || true
 surge /tmp/mlb-deploy mlb-processor.surge.sh
 ```
 
-**Do NOT** deploy a directory that contains only the HTML — `data.json` MUST be alongside it or the site 404s.
+**Do NOT** deploy a directory that contains only the HTML — `data.json` MUST be alongside it or the site 404s. Include `data-*.json`, `award-data.json`, and `award-sidecar-*.json` chunks whenever they exist.
 
 ## Scraping
 
@@ -154,6 +157,7 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 - All-time passing detection distinguishes "tied" vs "passed" events
 - Game deduplication by date+teams (prevents BREF + API duplicates)
 - Sports-Reference sites hide tables in HTML comments - must extract with BeautifulSoup Comment class
+- Baseball-Reference award pages use mixed table shapes: standard `data-stat` rows, matrix grids (Gold Glove/Silver Slugger/monthly awards), and malformed nested `<tr>` title tables. Use `awards_scraper` parsing helpers instead of assuming normal tbody rows.
 - MLB API game IDs start with 'M' prefix (e.g., MSF202603230), BREF IDs don't (e.g., SFN202603230)
 - Spring training games excluded from cumulative stat badges but included in game log
 - Player bios cached in `cache/player_bios.json` (fetched from MLB API)

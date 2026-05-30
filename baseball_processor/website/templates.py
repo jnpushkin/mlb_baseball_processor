@@ -263,154 +263,106 @@ class HTMLTemplate:
             border: 0;
         }}
         .stadium-logo-marker {{
-            align-items: center;
-            background: #fff;
-            border: 3px solid var(--marker-ring);
-            border-radius: 9999px;
-            box-shadow: 0 3px 10px rgba(15, 23, 42, 0.24);
-            box-sizing: border-box;
-            display: flex;
-            height: var(--marker-size);
-            justify-content: center;
-            overflow: hidden;
             width: var(--marker-size);
+            height: var(--marker-size);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: var(--marker-bg);
+            border: 2px solid var(--marker-ring);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.24), 0 0 0 2px rgba(255, 255, 255, 0.94);
+            overflow: hidden;
+            transform-origin: center;
+            transition: transform 120ms ease, opacity 120ms ease;
         }}
         .stadium-logo-marker.is-unvisited {{
-            background: #f8fafc;
-            border-width: 2px;
-            box-shadow: 0 1px 5px rgba(15, 23, 42, 0.18);
+            opacity: 0.58;
+            filter: grayscale(0.25) saturate(0.82);
         }}
-        .stadium-logo-marker-img {{
-            box-sizing: border-box;
-            height: 100%;
-            object-fit: contain;
-            padding: 3px;
-            width: 100%;
+        .stadium-logo-marker:hover {{
+            opacity: 1;
+            transform: scale(1.18);
+            z-index: 1000;
         }}
-        .stadium-logo-marker.is-unvisited .stadium-logo-marker-img {{
-            filter: grayscale(1);
-            opacity: 0.55;
-        }}
+        .stadium-logo-marker-img,
         .stadium-flag-marker-img {{
-            border-radius: 3px;
-            padding: 5px 3px;
-        }}
-        .stadium-logo-split {{
-            box-sizing: border-box;
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            height: 100%;
-            overflow: hidden;
-            width: 100%;
-        }}
-        .stadium-logo-split-half {{
-            align-items: center;
-            background: #fff;
-            box-sizing: border-box;
-            display: flex;
-            height: 100%;
-            justify-content: center;
-            min-width: 0;
-            padding: 2px;
-        }}
-        .stadium-logo-split-half:first-child {{
-            border-right: 1px solid rgba(148, 163, 184, 0.55);
-        }}
-        .stadium-logo-split-img {{
-            height: 100%;
-            max-height: 100%;
-            max-width: 100%;
+            width: calc(var(--marker-size) - 6px);
+            height: calc(var(--marker-size) - 6px);
+            display: block;
             object-fit: contain;
-            width: 100%;
+            padding: 2px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.9);
         }}
-        .stadium-logo-marker.is-unvisited .stadium-logo-split-img {{
-            filter: grayscale(1);
-            opacity: 0.55;
-        }}
+        .stadium-logo-marker-code,
+        .stadium-logo-cluster-code,
         .stadium-logo-split-code {{
-            align-items: center;
-            color: #334155;
-            display: flex;
-            font-size: 7px;
-            font-weight: 800;
-            justify-content: center;
+            font-size: max(7px, calc(var(--marker-size) * 0.28));
             line-height: 1;
+            font-weight: 800;
+            color: #334155;
         }}
+        .stadium-logo-split,
         .stadium-logo-cluster {{
-            align-items: center;
-            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
             display: grid;
             gap: 1px;
-            height: 100%;
-            justify-items: center;
             padding: 3px;
-            width: 100%;
+            align-items: center;
+            justify-items: center;
         }}
-        .stadium-logo-cluster.team-count-2 {{
+        .stadium-logo-split {{
             grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: minmax(0, 1fr);
         }}
-        .stadium-logo-cluster.team-count-3,
-        .stadium-logo-cluster.team-count-4 {{
+        .stadium-logo-cluster {{
             grid-template-columns: repeat(2, minmax(0, 1fr));
             grid-template-rows: repeat(2, minmax(0, 1fr));
         }}
-        .stadium-logo-cluster-img {{
-            height: 100%;
-            max-height: 100%;
-            max-width: 100%;
-            object-fit: contain;
+        .stadium-logo-split-half {{
             width: 100%;
-        }}
-        .stadium-logo-marker.is-unvisited .stadium-logo-cluster-img {{
-            filter: grayscale(1);
-            opacity: 0.55;
-        }}
-        .stadium-logo-cluster-code {{
-            align-items: center;
-            color: #334155;
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
             display: flex;
-            font-size: 8px;
-            font-weight: 800;
+            align-items: center;
             justify-content: center;
-            line-height: 1;
         }}
-        .stadium-logo-marker-code {{
-            color: #334155;
-            font-size: 10px;
-            font-weight: 800;
-            line-height: 1;
-        }}
-        .stadium-logo-marker.is-unvisited .stadium-logo-marker-code {{
-            color: #64748b;
-        }}
-        .stadium-popup-header {{
-            align-items: center;
-            display: flex;
-            gap: 8px;
-            margin-bottom: 6px;
+        .stadium-logo-split-img,
+        .stadium-logo-cluster-img {{
+            width: 100%;
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
+            display: block;
+            object-fit: contain;
         }}
         .stadium-popup-logo {{
-            align-items: center;
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 9999px;
-            display: flex;
-            flex: 0 0 30px;
-            height: 30px;
-            justify-content: center;
-            overflow: hidden;
             width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            --marker-size: 30px;
+        }}
+        .stadium-popup-header {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
         }}
         .stadium-popup-title {{
+            margin: 0;
             font-size: 14px;
             font-weight: 700;
-            line-height: 1.2;
-            margin: 0 0 2px;
+            color: #0f172a;
         }}
         .stadium-popup-meta {{
-            color: #666;
             font-size: 11px;
-            line-height: 1.3;
+            color: #64748b;
         }}
         .journey-path {{
             stroke-dasharray: 10, 5;
@@ -448,11 +400,55 @@ class HTMLTemplate:
             if (window.__onDataError) window.__onDataError(msg);
         }}
 
+        function loadAwardData(data) {{
+            return fetch('award-data.json?v=' + Date.now(), {{ cache: 'no-store' }})
+                .then(function(response) {{
+                    if (!response.ok) return null;
+                    return response.json();
+                }})
+                .then(function(awardData) {{
+                    if (!awardData) return data;
+                    return loadDataSidecars(awardData).then(function(fullAwardData) {{
+                        data.awardChecklists = fullAwardData;
+                        return data;
+                    }});
+                }})
+                .catch(function() {{
+                    return data;
+                }});
+        }}
+
+        function loadDataSidecars(data) {{
+            const sidecars = data.__dataSidecars || [];
+            delete data.__dataSidecars;
+            if (!sidecars.length) return Promise.resolve(data);
+
+            return Promise.all(sidecars.map(function(sidecar) {{
+                return fetch(sidecar.path + '?v=' + Date.now(), {{ cache: 'no-store' }})
+                    .then(function(response) {{
+                        if (!response.ok) throw new Error(sidecar.path + ' HTTP ' + response.status);
+                        return response.json();
+                    }});
+            }})).then(function(payloads) {{
+                payloads.forEach(function(payload) {{
+                    if (payload.mode === 'append') {{
+                        if (!Array.isArray(data[payload.key])) data[payload.key] = [];
+                        data[payload.key] = data[payload.key].concat(payload.items || []);
+                    }} else {{
+                        data[payload.key] = payload.value;
+                    }}
+                }});
+                return data;
+            }});
+        }}
+
         fetch('data.json?v=' + Date.now(), {{ cache: 'no-store' }})
             .then(function(response) {{
                 if (!response.ok) throw new Error('HTTP ' + response.status);
                 return response.json();
             }})
+            .then(loadDataSidecars)
+            .then(loadAwardData)
             .then(function(data) {{
                 BASEBALL_DATA = data;
                 initApp();
