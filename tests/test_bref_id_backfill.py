@@ -52,6 +52,16 @@ class BrefIdBackfillTests(unittest.TestCase):
         self.assertIn("jumpga01", updated["hit_data"])
         self.assertEqual("jumpga01", updated["hit_data"]["jumpga01"]["player_id"])
 
+    def test_dump_json_preserving_style_keeps_compact_files_compact(self):
+        dumped = bref_id_backfill.dump_json_preserving_style({"a": {"b": 1}}, '{"a": {"b": 0}}\n')
+
+        self.assertEqual('{"a": {"b": 1}}\n', dumped)
+
+    def test_dump_json_preserving_style_keeps_pretty_files_pretty(self):
+        dumped = bref_id_backfill.dump_json_preserving_style({"a": {"b": 1}}, '{\n  "a": {}\n}\n')
+
+        self.assertTrue(dumped.startswith('{\n  "a": {\n'))
+
     def test_run_backfills_cache_files_with_resolved_id(self):
         old_resolver = bref_id_backfill.resolve_bref_mlb_id_exhaustive_by_name
         bref_id_backfill.resolve_bref_mlb_id_exhaustive_by_name = lambda name, max_suffix: (

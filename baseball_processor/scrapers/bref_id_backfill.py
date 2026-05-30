@@ -145,6 +145,14 @@ def replace_id_references(value, replacements: dict[str, str]):
     return value, 0
 
 
+def dump_json_preserving_style(value, original_text: str) -> str:
+    stripped = original_text.lstrip()
+    pretty = stripped.startswith("{\n") or stripped.startswith("[\n")
+    if pretty:
+        return json.dumps(value, indent=2, ensure_ascii=False) + "\n"
+    return json.dumps(value, ensure_ascii=False) + "\n"
+
+
 def resolve_replacements(candidates: dict[str, set[str]], max_suffix: int, verbose: bool = True) -> dict[str, str]:
     replacements = {}
     for index, (name, old_ids) in enumerate(sorted(candidates.items()), start=1):
@@ -172,7 +180,8 @@ def apply_replacements(cache_dir: Path, replacements: dict[str, str], dry_run: b
 
     for cache_file in iter_rewrite_cache_files(cache_dir):
         try:
-            game = json.loads(cache_file.read_text(encoding="utf-8"))
+            original_text = cache_file.read_text(encoding="utf-8")
+            game = json.loads(original_text)
         except (OSError, json.JSONDecodeError):
             continue
 
@@ -183,7 +192,7 @@ def apply_replacements(cache_dir: Path, replacements: dict[str, str], dry_run: b
         files_changed += 1
         references_changed += changed
         if not dry_run:
-            cache_file.write_text(json.dumps(updated, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            cache_file.write_text(dump_json_preserving_style(updated, original_text), encoding="utf-8")
 
     return {"files_changed": files_changed, "references_changed": references_changed}
 
