@@ -89,6 +89,35 @@ class BrefBackupParityTests(unittest.TestCase):
         self.assertEqual(1, len(issues))
         self.assertEqual("away_score_value", issues[0]["field"])
 
+    def test_compare_metadata_ignores_known_stadium_aliases(self):
+        api_game = {
+            "game_id": "NYA202606030",
+            "basic_info": {
+                "date_yyyymmdd": "20260603",
+                "away_team_code": "CLE",
+                "home_team_code": "NYY",
+                "away_score_value": 5,
+                "home_score_value": 4,
+                "venue": "Yankee Stadium",
+                "game_type": "regular",
+            },
+        }
+        bref_game = {
+            "basic_info": {
+                "date_yyyymmdd": "20260603",
+                "away_team_code": "CLE",
+                "home_team_code": "NYY",
+                "away_score_value": 5,
+                "home_score_value": 4,
+                "venue": "Yankee Stadium III",
+                "game_type": "regular",
+            },
+        }
+
+        issues = _compare_metadata(api_game, bref_game, Path("api.json"), Path("backup.html"))
+
+        self.assertEqual([], issues)
+
     def test_write_issues_csv_writes_report_rows(self):
         issue = {
             "kind": "metadata_mismatch",

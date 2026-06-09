@@ -1353,11 +1353,15 @@ const VenuesTab = ({ data, initialSubtab, onSubtabChange }) => {
         (data.games || []).forEach(g => {
             const v = g.venue;
             if (!v) return;
-            if (!gamesByVenue[v]) gamesByVenue[v] = [];
-            gamesByVenue[v].push(g);
+            const matched = matchStadiumByName(v);
+            const key = matched ? matched.name : v;
+            if (!gamesByVenue[key]) gamesByVenue[key] = [];
+            gamesByVenue[key].push(g);
         });
         return (data.stadiums || []).map(s => {
-            const venueGames = gamesByVenue[s.stadium] || [];
+            const matched = matchStadiumByName(s.stadium);
+            const key = matched ? matched.name : s.stadium;
+            const venueGames = gamesByVenue[key] || [];
             let totalRuns = 0, totalMargin = 0, parsed = 0;
             venueGames.forEach(g => {
                 const m = (g.score || '').match(/(\d+)\s*-\s*(\d+)/);
