@@ -25,7 +25,7 @@ from ..parsers.html_parser import parse_baseball_reference_boxscore
 from ..parsers.mlb_api_parser import normalize_api_batting_rows
 from ..processors.milestones_processor import MilestonesProcessor
 from ..scrapers.download_bref import HTML_DIR, TEAM_FULL_NAMES, expected_html_filename
-from ..utils.constants import BASE_DIR, CACHE_DIR
+from ..utils.constants import BASE_DIR, CACHE_DIR, STADIUM_ALIASES
 
 
 REPORT_DIR = BASE_DIR / "reports"
@@ -152,10 +152,23 @@ def _normalize_text(value: Any) -> str:
     return re.sub(r"\s+", " ", text.strip()).casefold()
 
 
+def _normalize_stadium(value: Any) -> str:
+    normalized = _normalize_text(value)
+    for canonical, aliases in STADIUM_ALIASES.items():
+        if normalized == _normalize_text(canonical):
+            return _normalize_text(canonical)
+        for alias in aliases:
+            if normalized == _normalize_text(alias):
+                return _normalize_text(canonical)
+    return normalized
+
+
 def _normalize_value(field: str, value: Any) -> Any:
     if field == "IP":
         text = str(value or "").strip()
         return f"{text}.0" if text and "." not in text else text
+    if field == "venue":
+        return _normalize_stadium(value)
     if field.endswith("_score_value") or field in set(BATTING_FIELDS) | {"H", "R", "ER", "BB", "SO", "HR"}:
         try:
             return int(value or 0)

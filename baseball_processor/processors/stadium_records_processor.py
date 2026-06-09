@@ -6,6 +6,7 @@ from collections import defaultdict, Counter
 from datetime import datetime
 from ..excel.generators import ExcelGeneratorUtils
 from ..utils.helpers import standardize_team_code, join_sorted_gameids, unify_team_code, safe_get_int, safe_get_str
+from ..utils.constants import STADIUM_ALIASES
 from .base_processor import BaseProcessor
 
 
@@ -344,14 +345,14 @@ class StadiumRecordsProcessor(BaseProcessor):
    
     def _unify_stadium_name(self, venue_name):
         """Normalize stadium names to canonical form."""
-        stadium_aliases = {
-            "AT&T Park": "Oracle Park",
-            "O.co Coliseum": "Oakland Coliseum", 
-            "RingCentral Coliseum": "Oakland Coliseum",
-            "Network Associates Coliseum": "Oakland Coliseum",
-            "McAfee Coliseum": "Oakland Coliseum"
-        }
-        return stadium_aliases.get(venue_name, venue_name)
+        if not venue_name:
+            return venue_name
+
+        for canonical, aliases in STADIUM_ALIASES.items():
+            if venue_name == canonical or venue_name in aliases:
+                return canonical
+
+        return venue_name
     
     def _track_orioles_records(self, orioles_tracker, venue, game_id, 
                           away_team_code, home_team_code, away_score, home_score):
