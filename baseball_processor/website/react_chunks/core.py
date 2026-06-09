@@ -216,6 +216,67 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
         }
     ].filter(Boolean).slice(0, 6);
 
+    const pitchDataEntries = Object.entries(game.pitchData || {});
+    const normalizePitcherName = (name) => cleanPersonName(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const usedPitchDataIds = new Set();
+
+    const resolvePitchDataForPitcher = (pitcher) => {
+        const playerId = String(pitcher?.playerId || '');
+        if (playerId && game.pitchData?.[playerId] && !usedPitchDataIds.has(playerId)) {
+            return [playerId, game.pitchData[playerId]];
+        }
+
+        const pitcherNameKey = normalizePitcherName(pitcher?.name);
+        if (!pitcherNameKey) return null;
+
+        return pitchDataEntries.find(([candidateId, pitchData]) => {
+            return !usedPitchDataIds.has(candidateId) && normalizePitcherName(pitchData?.name) === pitcherNameKey;
+        }) || null;
+    };
+
+    const buildPitchDataGroup = (team, pitchers) => {
+        const items = (pitchers || []).map((pitcher) => {
+            const match = resolvePitchDataForPitcher(pitcher);
+            if (!match) return null;
+
+            const [pid, pd] = match;
+            const hasPitcherOrder = Number.isFinite(pitcher.order);
+            usedPitchDataIds.add(pid);
+            return {
+                pid,
+                pd,
+                role: hasPitcherOrder ? (pitcher.order === 0 ? 'Starter' : 'Relief') : '',
+                order: hasPitcherOrder ? pitcher.order : Number.MAX_SAFE_INTEGER
+            };
+        }).filter(Boolean).sort((a, b) => a.order - b.order);
+
+        return {
+            team,
+            label: `${team} Pitchers`,
+            totalPitches: items.reduce((sum, item) => sum + (item.pd.totalPitches || 0), 0),
+            items
+        };
+    };
+
+    const pitchDataGroups = [
+        buildPitchDataGroup(game.awayTeam, gameData.awayPitchers),
+        buildPitchDataGroup(game.homeTeam, gameData.homePitchers)
+    ].filter(group => group.items.length > 0);
+
+    const unmatchedPitchData = pitchDataEntries
+        .filter(([pid]) => !usedPitchDataIds.has(pid))
+        .sort((a, b) => (b[1].totalPitches || 0) - (a[1].totalPitches || 0))
+        .map(([pid, pd]) => ({ pid, pd, role: '', order: Number.MAX_SAFE_INTEGER }));
+
+    if (unmatchedPitchData.length > 0) {
+        pitchDataGroups.push({
+            team: 'other',
+            label: 'Other Pitch Data',
+            totalPitches: unmatchedPitchData.reduce((sum, item) => sum + (item.pd.totalPitches || 0), 0),
+            items: unmatchedPitchData
+        });
+    }
+
     const CareerHighBadges = ({ data }) => {
         if (!data.careerHighs?.length) return null;
         return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">Career-high {data.careerHighs.join(', ')}</span>;
@@ -286,6 +347,51 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                 <td className="px-2 py-2 text-center font-semibold">{pitcher.so || 0}</td>
                 <td className="px-2 py-2 text-center">{pitcher.hr || 0}</td>
             </tr>
+        );
+    };
+
+    const PitchDataCard = ({ item }) => {
+        const { pid, pd, role } = item;
+
+        return (
+            <div key={pid} className="bg-slate-50 rounded-lg p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="min-w-0">
+                        <span className="font-semibold body-text">{pd.name}</span>
+                        {role && <span className="ml-2 px-2 py-0.5 rounded bg-white text-slate-500 text-xs font-medium">{role}</span>}
+                    </div>
+                    <span className="small-text text-slate-500 whitespace-nowrap">{pd.totalPitches} pitches</span>
+                </div>
+                <div className="grid grid-cols-3 gap-3 small-text mb-3">
+                    {pd.maxSpeed && (
+                        <div className="bg-white p-2 rounded text-center">
+                            <div className="text-slate-500">Max Velo</div>
+                            <div className="font-bold text-red-600">{pd.maxSpeed} mph</div>
+                        </div>
+                    )}
+                    {pd.avgSpeed && (
+                        <div className="bg-white p-2 rounded text-center">
+                            <div className="text-slate-500">Avg Velo</div>
+                            <div className="font-bold text-slate-900">{pd.avgSpeed} mph</div>
+                        </div>
+                    )}
+                    {pd.avgSpinRate && (
+                        <div className="bg-white p-2 rounded text-center">
+                            <div className="text-slate-500">Avg Spin</div>
+                            <div className="font-bold text-purple-600">{pd.avgSpinRate} rpm</div>
+                        </div>
+                    )}
+                </div>
+                {pd.pitchTypes && Object.keys(pd.pitchTypes).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(pd.pitchTypes).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
+                            <span key={type} className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                {pd.pitchTypeNames?.[type] || type}: {count}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </div>
         );
     };
     
@@ -425,43 +531,17 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
             {game.pitchData && Object.keys(game.pitchData).length > 0 && (
                 <div className="p-6 border-t">
                     <h4 className="subsection-title font-bold mb-3">Pitch Data</h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {Object.entries(game.pitchData).map(([pid, pd]) => (
-                            <div key={pid} className="bg-slate-50 rounded-lg p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="font-semibold body-text">{pd.name}</span>
-                                    <span className="small-text text-slate-500">{pd.totalPitches} pitches</span>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        {pitchDataGroups.map((group) => (
+                            <section key={group.team} className={group.team === 'other' ? 'xl:col-span-2' : ''}>
+                                <div className="flex items-center justify-between gap-3 mb-3 border-b pb-2">
+                                    <span className="font-bold body-text">{group.label}</span>
+                                    <span className="small-text text-slate-500 whitespace-nowrap">{group.totalPitches} pitches</span>
                                 </div>
-                                <div className="grid grid-cols-3 gap-3 small-text mb-3">
-                                    {pd.maxSpeed && (
-                                        <div className="bg-white p-2 rounded text-center">
-                                            <div className="text-slate-500">Max Velo</div>
-                                            <div className="font-bold text-red-600">{pd.maxSpeed} mph</div>
-                                        </div>
-                                    )}
-                                    {pd.avgSpeed && (
-                                        <div className="bg-white p-2 rounded text-center">
-                                            <div className="text-slate-500">Avg Velo</div>
-                                            <div className="font-bold text-slate-900">{pd.avgSpeed} mph</div>
-                                        </div>
-                                    )}
-                                    {pd.avgSpinRate && (
-                                        <div className="bg-white p-2 rounded text-center">
-                                            <div className="text-slate-500">Avg Spin</div>
-                                            <div className="font-bold text-purple-600">{pd.avgSpinRate} rpm</div>
-                                        </div>
-                                    )}
+                                <div className="space-y-3">
+                                    {group.items.map(item => <PitchDataCard key={item.pid} item={item} />)}
                                 </div>
-                                {pd.pitchTypes && Object.keys(pd.pitchTypes).length > 0 && (
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {Object.entries(pd.pitchTypes).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
-                                            <span key={type} className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                                                {pd.pitchTypeNames?.[type] || type}: {count}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                            </section>
                         ))}
                     </div>
                 </div>
