@@ -433,25 +433,27 @@ const buildChaserCandidates = (data) => {
     return Object.values(byId).map(c => {
         const recency = c.latestYear && currentYear ? Math.max(0, 12 - Math.min(12, currentYear - c.latestYear)) : 0;
         const reasons = Array.from(c.reasons).slice(0, 4);
-        const isRecentTarget = c.latestYear && currentYear ? c.latestYear >= currentYear - 2 : false;
+        const isActiveWindowTarget = c.latestYear && currentYear ? c.latestYear >= currentYear - 1 : false;
+        const activeScore = isActiveWindowTarget ? Math.round((c.score * 0.35) + (recency * 10) + (c.majorAwards ? 40 : 0) + (c.allStarSelections ? 15 : 0)) : 0;
         return {
             ...c,
             teams: Array.from(c.teams).sort().join(', '),
             leagues: Array.from(c.leagues).sort().join(', '),
             reasons: reasons.join(', '),
-            isRecentTarget,
+            isActiveWindowTarget,
+            activeScore,
             score: Math.round(c.score + recency),
         };
-    }).sort((a, b) => b.score - a.score || b.latestYear - a.latestYear || a.name.localeCompare(b.name));
+    }).sort((a, b) => b.activeScore - a.activeScore || b.latestYear - a.latestYear || b.score - a.score || a.name.localeCompare(b.name));
 };
 
 const ChasersView = ({ data }) => {
-    const [view, setView] = useState('recent');
+    const [view, setView] = useState('active');
     const [status, setStatus] = useState('unseen');
     const candidates = useMemo(() => buildChaserCandidates(data), [data]);
     const unseen = candidates.filter(c => !c.seen);
     const seen = candidates.filter(c => c.seen);
-    const recent = candidates.filter(c => c.isRecentTarget);
+    const activeWindow = candidates.filter(c => c.isActiveWindowTarget);
     const filtered = (status === 'seen' ? seen : status === 'all' ? candidates : unseen);
 
     const teamRows = useMemo(() => {
@@ -477,7 +479,7 @@ const ChasersView = ({ data }) => {
     const rows = view === 'teams' ? teamRows : filtered;
     const targetColumns = [
         { key: 'name', label: 'Target', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
-        { key: 'score', label: 'Score' },
+        { key: 'displayScore', label: 'Score' },
         { key: 'majorAwards', label: 'Major' },
         { key: 'allStarSelections', label: 'ASG' },
         { key: 'awardEntries', label: 'Awards' },
@@ -500,16 +502,16 @@ const ChasersView = ({ data }) => {
         <div className="space-y-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <ExploreStat label="Reference targets" value={candidates.length} sub="Awards and All-Star players with BREF IDs" />
-                <ExploreStat label="Recent targets" value={recent.length} sub="Award or All-Star records from the latest three seasons" />
+                <ExploreStat label="Active-window targets" value={activeWindow.length} sub="Award or All-Star records from the latest two seasons" />
                 <ExploreStat label="Still unseen" value={unseen.length} sub="All unmatched reference targets" />
                 <ExploreStat label="Already seen" value={seen.length} sub="Recognized players in your archive" />
             </div>
             <div className="bg-white border border-slate-200 rounded-lg p-4 flex flex-wrap items-center gap-2">
-                <ExplorePill active={view === 'recent'} onClick={() => setView('recent')}>Recent Targets</ExplorePill>
+                <ExplorePill active={view === 'active'} onClick={() => setView('active')}>Active Targets</ExplorePill>
                 <ExplorePill active={view === 'awards'} onClick={() => setView('awards')}>Award Targets</ExplorePill>
                 <ExplorePill active={view === 'allstars'} onClick={() => setView('allstars')}>All-Star Targets</ExplorePill>
                 <ExplorePill active={view === 'teams'} onClick={() => setView('teams')}>By Team</ExplorePill>
-                <ExplorePill active={view === 'alltime'} onClick={() => setView('alltime')}>All-Time Targets</ExplorePill>
+                <ExplorePill active={view === 'historical'} onClick={() => setView('historical')}>Historical Targets</ExplorePill>
                 {view !== 'teams' && (
                     <select value={status} onChange={e => setStatus(e.target.value)} className="ml-auto px-3 py-2 rounded border border-slate-200 body-text">
                         <option value="unseen">Unseen only</option>
@@ -520,15 +522,15 @@ const ChasersView = ({ data }) => {
             </div>
             <DataTable
                 key={`chasers-${view}-${status}`}
-                title={view === 'teams' ? 'Target Buckets by Team' : view === 'allstars' ? 'Recent All-Star Chasers' : view === 'awards' ? 'Recent Award Chasers' : view === 'recent' ? 'Recent Chaser Targets' : 'All-Time Chaser Targets'}
+                title={view === 'teams' ? 'Target Buckets by Team' : view === 'allstars' ? 'Active-Window All-Star Chasers' : view === 'awards' ? 'Active-Window Award Chasers' : view === 'active' ? 'Active Chaser Targets' : 'Historical Chaser Targets'}
                 data={view === 'teams' ? rows : rows.filter(row => {
-                    if (view === 'recent') return row.isRecentTarget;
-                    if (view === 'awards') return row.awardEntries > 0 && row.isRecentTarget;
-                    if (view === 'allstars') return row.allStarSelections > 0 && row.isRecentTarget;
+                    if (view === 'active') return row.isActiveWindowTarget;
+                    if (view === 'awards') return row.awardEntries > 0 && row.isActiveWindowTarget;
+                    if (view === 'allstars') return row.allStarSelections > 0 && row.isActiveWindowTarget;
                     return true;
-                })}
+                }).map(row => ({ ...row, displayScore: view === 'historical' ? row.score : row.activeScore }))}
                 columns={view === 'teams' ? teamColumns : targetColumns}
-                defaultSortKey={view === 'teams' ? 'unseen' : 'score'}
+                defaultSortKey={view === 'teams' ? 'unseen' : 'displayScore'}
                 persistKey={`chasers-${view}`}
             />
         </div>
