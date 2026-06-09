@@ -1,6 +1,6 @@
 """React app chunk: player views."""
 
-CODE = r'''const VALID_TABS = new Set(['dashboard','gamelog','players','milestones','venues','progress','special','trivia','companions','orioles']);
+CODE = r'''const VALID_TABS = new Set(['dashboard','gamelog','players','explore','milestones','venues','progress','special','trivia','companions','orioles']);
 // Legacy tab redirects (old tab IDs -> new locations)
 const TAB_REDIRECTS = { 'calendar': 'venues', 'history': 'milestones', 'leaderboards': 'players', 'matchups': 'progress' };
 
@@ -305,6 +305,7 @@ const App = () => {
         { id: 'dashboard', label: 'Dashboard' },
         { id: 'gamelog', label: 'Games' },
         { id: 'players', label: 'Players' },
+        { id: 'explore', label: 'Explore' },
         { id: 'milestones', label: 'Milestones' },
         { id: 'venues', label: 'Venues' },
         { id: 'progress', label: 'Progress' },
@@ -402,6 +403,7 @@ const App = () => {
                 {tab === 'dashboard' && <Dashboard data={data} onTabChange={setTab} />}
                 {tab === 'gamelog' && (data.games?.length ? <GameLogWithDetails games={data.games} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} allTimePassingsByGame={data.allTimePassingsByGame || {}} debuts={data.debuts || []} finalGames={data.finalGames || []} /> : <EmptyState icon="📋" title="No Games" message="Add game HTML files to the Current Season Games folder and run the processor." />)}
                 {tab === 'players' && <PlayersTabV2 data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
+                {tab === 'explore' && <ExploreTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'milestones' && <MilestonesTabV2 data={data} onTabChange={setTab} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'venues' && <VenuesTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'progress' && <ProgressTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
