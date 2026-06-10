@@ -169,6 +169,7 @@ class MilestoneEngine:
                     'rbi': rbi,
                     # Add complete batting line for enhanced milestone display
                     'ab': player.get('AB', 0),
+                    'pa': player.get('PA', 0),
                     'runs': player.get('R', 0),
                     'bb': player.get('BB', 0),
                     'so': player.get('SO', 0),
@@ -197,6 +198,10 @@ class MilestoneEngine:
         bb = stats.get('bb', 0)
         so = stats.get('so', 0)
         ab = stats.get('ab', 0)
+        hbp = stats.get('hbp', 0)
+        sf = stats.get('sf', 0)
+        sh = stats.get('sh', 0)
+        pa = stats.get('pa', 0) or (ab + bb + hbp + sf + sh)
         sb = stats.get('sb', 0)
         singles = stats['singles']
         total_bases = singles + (2 * doubles) + (3 * triples) + (4 * hr)
@@ -246,8 +251,8 @@ class MilestoneEngine:
         if so >= 4:
             ms['golden_sombreros'].append(stats)
 
-        # Perfect batting (3+ H, 0 K)
-        if h >= 3 and so == 0 and ab > 0:
+        # Perfect batting: 3+ hits and reached safely in every plate appearance.
+        if h >= 3 and pa > 0 and (h + bb + hbp) == pa:
             ms['perfect_batting_games'].append(stats)
 
         # Run milestones (tiered)

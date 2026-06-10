@@ -223,17 +223,34 @@ def find_witnessed_career_firsts(raw_games, career_firsts_cache):
                         'career_total_after': milestone_info.get('career_total_after', 0),
                     }, milestone_game_id)
 
-    # Deduplicate: pitchers who bat can have same milestone in both batting and pitching
-    # Keep pitching version for pitchers (more relevant), batting for position players
+    def identity_key(record):
+        """Collapse stale register/placeholder IDs that later gain a real BREF ID."""
+        name_key = re.sub(r'[^a-z0-9]+', '', (record.get('player_name') or '').lower())
+        player_key = name_key or re.sub(r'[^a-z0-9]+', '', (record.get('player_id') or '').lower())
+        return (player_key, record.get('milestone'), record.get('game_id'))
+
+    def record_quality(record):
+        player_id = record.get('player_id') or ''
+        # Major-league BREF IDs look like susacda01; placeholder/register IDs often
+        # include hyphens or embedded numeric register suffixes.
+        is_major_bref = bool(re.fullmatch(r'[a-z]{1,5}[a-z]{2}\d{2}', player_id))
+        has_name = bool(record.get('player_name')) and record.get('player_name') != player_id
+        return (1 if is_major_bref else 0, 1 if has_name else 0)
+
+    # Deduplicate: pitchers who bat can have same milestone in both batting and pitching,
+    # and fresh debuts can be cached under a temporary register/placeholder ID before
+    # their real BREF ID exists. Prefer the real BREF record when aliases collide.
     seen = {}
     for record in witnessed_firsts:
-        key = (record.get('player_id'), record.get('milestone'), record.get('game_id'))
+        key = identity_key(record)
         if key not in seen:
             seen[key] = record
         else:
             # If we already have this milestone, prefer pitching type for game-based milestones
             existing = seen[key]
             if record.get('type') == 'pitching' and 'Game' in record.get('milestone', ''):
+                seen[key] = record
+            elif record_quality(record) > record_quality(existing):
                 seen[key] = record
 
     witnessed_firsts = list(seen.values())
@@ -741,9 +758,13 @@ class DataSerializer:
         rbi = stats["rbi"]
         runs = stats["r"]
         bb = stats["bb"]
+        hbp = stats.get("hbp", 0)
+        sf = stats.get("sf", 0)
+        sh = stats.get("sh", 0)
         sb = stats["sb"]
         so = stats["so"]
         ab = stats["ab"]
+        pa = stats.get("pa", 0) or (ab + bb + hbp + sf + sh)
         singles = max(0, h - doubles - triples - hr)
         xbh = doubles + triples + hr
         tb = singles + (2 * doubles) + (3 * triples) + (4 * hr)
@@ -797,8 +818,8 @@ class DataSerializer:
             omitted_power.update({"2b", "3b", "hr"})
             if tb:
                 prefix_parts.append(f"{tb} TB")
-        elif milestone_type == "Perfect Batting Games" and ab:
-            prefix_parts.append(f"{h}-for-{ab}")
+        elif milestone_type == "Perfect Batting Games" and pa:
+            prefix_parts.append(f"Reached in all {pa} PA")
             skip.add("so")
         elif milestone_type == "Golden Sombreros" and so:
             line = f"{h}-for-{ab}" if ab else f"{h} H"
@@ -823,6 +844,8 @@ class DataSerializer:
             stat_parts.append(f"{hr} HR")
         if bb and "bb" not in skip:
             stat_parts.append(f"{bb} BB")
+        if hbp and "hbp" not in skip:
+            stat_parts.append(f"{hbp} HBP")
         if so and "so" not in skip:
             stat_parts.append(f"{so} K")
         if sb and "sb" not in skip:
@@ -995,6 +1018,10 @@ class DataSerializer:
                         "3b": self._row_int(row, "3B"),
                         "r": self._row_int(row, "R"),
                         "bb": self._row_int(row, "BB"),
+                        "hbp": self._row_int(row, "HBP"),
+                        "sf": self._row_int(row, "SF"),
+                        "sh": self._row_int(row, "SH"),
+                        "pa": self._row_int(row, "PA"),
                         "sb": self._row_int(row, "SB"),
                         "so": self._row_int(row, "SO"),
                         "ab": self._row_int(row, "AB"),
@@ -1013,10 +1040,17 @@ class DataSerializer:
                         "3b": self._row_int(row, "3B"),
                         "r": self._row_int(row, "R"),
                         "bb": self._row_int(row, "BB"),
+                        "hbp": self._row_int(row, "HBP"),
+                        "sf": self._row_int(row, "SF"),
+                        "sh": self._row_int(row, "SH"),
+                        "pa": self._row_int(row, "PA"),
                         "sb": self._row_int(row, "SB"),
                         "so": self._row_int(row, "SO"),
                         "ab": self._row_int(row, "AB"),
                     }
+                    stats["pa"] = stats["pa"] or (
+                        stats["ab"] + stats["bb"] + stats["hbp"] + stats["sf"] + stats["sh"]
+                    )
                     hr = stats["hr"]
                     h = stats["h"]
                     rbi = stats["rbi"]
@@ -1030,7 +1064,8 @@ class DataSerializer:
                     tb = singles + (2 * doubles) + (3 * triples) + (4 * hr)
                     milestone.update({
                         "hr": hr, "h": h, "rbi": rbi, "2b": doubles, "3b": triples,
-                        "r": runs, "bb": bb, "sb": sb, "so": stats["so"],
+                        "r": runs, "bb": bb, "hbp": stats["hbp"], "sf": stats["sf"],
+                        "sh": stats["sh"], "pa": stats["pa"], "sb": sb, "so": stats["so"],
                         "ab": stats["ab"], "tb": tb, "xbh": xbh
                     })
                     existing_detail = self._clean_row_text(row, "Detail")

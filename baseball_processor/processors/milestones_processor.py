@@ -418,7 +418,7 @@ class MilestonesProcessor(BaseProcessor):
             ("multi_triple_games", "Multi-3B Games", lambda x: f"{x.get('triples', 0)} 3B - {batting_line(x)}"),
             ("multi_steal_games", "Multi-SB Games", lambda x: f"{x.get('sb', 0)} SB - {batting_line(x)}"),
             ("four_walk_games", "4+ Walk Games", lambda x: f"{x.get('bb', 0)} BB - {batting_line(x)}"),
-            ("perfect_batting_games", "Perfect Batting Games", lambda x: f"{x.get('hits', 0)} H, 0 K - {batting_line(x)}"),
+            ("perfect_batting_games", "Perfect Batting Games", lambda x: f"Reached in all {x.get('pa', 0) or (x.get('ab', 0) + x.get('bb', 0) + x.get('hbp', 0) + x.get('sf', 0) + x.get('sh', 0))} PA - {batting_line(x)}"),
             ("golden_sombreros", "Golden Sombreros", lambda x: f"{x.get('hits', 0)}-{x.get('ab', 0)}, {x.get('so', 0)} K" + (f", {x.get('bb', 0)} BB" if x.get('bb', 0) else "")),
             ("four_run_games", "4+ Run Games", lambda x: f"{x.get('runs', 0)} R - {batting_line(x)}"),
             ("three_run_games", "3+ Run Games", lambda x: f"{x.get('runs', 0)} R - {batting_line(x)}"),
@@ -796,7 +796,11 @@ class MilestonesProcessor(BaseProcessor):
                     "R": item.get("runs", 0),
                     "RBI": item.get("rbi", 0),
                     "AB": item.get("ab", 0),
+                    "PA": item.get("pa", 0),
                     "BB": item.get("bb", 0),
+                    "HBP": item.get("hbp", 0),
+                    "SF": item.get("sf", 0),
+                    "SH": item.get("sh", 0),
                     "SO": item.get("so", 0),
                     "SB": item.get("sb", 0)
                 }
