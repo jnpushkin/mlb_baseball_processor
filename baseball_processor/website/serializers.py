@@ -2435,8 +2435,12 @@ class DataSerializer:
                             continue
                         
                         ip_str = str(pitcher.get('IP', '0'))
-                        if ip_str == '0' or ip_str == '0.0':
-                            continue
+
+                        def pitcher_stat_int(key):
+                            try:
+                                return int(pitcher.get(key, 0) or 0)
+                            except (ValueError, TypeError):
+                                return 0
                         
                         # Convert IP to outs for accurate aggregation
                         try:
@@ -2448,7 +2452,12 @@ class DataSerializer:
                         except (ValueError, TypeError):
                             outs = 0
                         
-                        if outs == 0:
+                        pitch_info = game.get('pitch_data', {}).get(player_id, {})
+                        has_pitching_activity = (
+                            bool(pitch_info) or
+                            any(pitcher_stat_int(stat) > 0 for stat in ['BF', 'Pit', 'H', 'R', 'ER', 'BB', 'SO', 'HR', 'HBP', 'WP', 'BK'])
+                        )
+                        if outs == 0 and not has_pitching_activity:
                             continue
                         
                         pitcher_games.append({
@@ -2462,19 +2471,18 @@ class DataSerializer:
                             'gameType': basic_info.get('game_type', 'regular'),
                             'order': p_idx,
                             'outs': outs,
-                            'h': int(pitcher.get('H', 0)),
-                            'r': int(pitcher.get('R', 0)),
-                            'er': int(pitcher.get('ER', 0)),
-                            'bb': int(pitcher.get('BB', 0)),
-                            'so': int(pitcher.get('SO', 0)),
-                            'hr': int(pitcher.get('HR', 0)),
+                            'h': pitcher_stat_int('H'),
+                            'r': pitcher_stat_int('R'),
+                            'er': pitcher_stat_int('ER'),
+                            'bb': pitcher_stat_int('BB'),
+                            'so': pitcher_stat_int('SO'),
+                            'hr': pitcher_stat_int('HR'),
                             'wins': 1 if pitcher.get('win') else 0,
                             'losses': 1 if pitcher.get('loss') else 0,
                             'saves': 1 if pitcher.get('save') else 0,
                             'gameStarts': 1 if pitcher.get('player_id') == game.get('pitching', {}).get(side, [{}])[0].get('player_id') else 0,
                         })
                         # Add pitch data if available
-                        pitch_info = game.get('pitch_data', {}).get(player_id, {})
                         if pitch_info:
                             pitcher_games[-1]['maxSpeed'] = pitch_info.get('maxSpeed')
                             pitcher_games[-1]['avgSpeed'] = pitch_info.get('avgSpeed')

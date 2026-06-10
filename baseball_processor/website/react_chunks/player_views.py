@@ -1,6 +1,6 @@
 """React app chunk: player views."""
 
-CODE = r'''const VALID_TABS = new Set(['dashboard','gamelog','players','explore','milestones','venues','progress','special','trivia','companions','orioles']);
+CODE = r'''const VALID_TABS = new Set(['dashboard','gamelog','players','milestones','venues','progress','special','trivia','companions','orioles']);
 // Legacy tab redirects (old tab IDs -> new locations)
 const TAB_REDIRECTS = { 'calendar': 'venues', 'history': 'milestones', 'leaderboards': 'players', 'matchups': 'progress' };
 
@@ -8,8 +8,13 @@ const App = () => {
     const parseHash = (hash) => {
         const parts = (hash || '').split('/');
         let tabId = parts[0];
+        let subtabId = parts[1] || null;
+        if (tabId === 'explore') {
+            tabId = 'players';
+            subtabId = 'explorer';
+        }
         if (TAB_REDIRECTS[tabId]) tabId = TAB_REDIRECTS[tabId];
-        return { tab: VALID_TABS.has(tabId) ? tabId : null, subtab: parts[1] || null };
+        return { tab: VALID_TABS.has(tabId) ? tabId : null, subtab: subtabId };
     };
 
     const [tab, setTabRaw] = useState(() => {
@@ -17,6 +22,7 @@ const App = () => {
         if (t) return t;
         const saved = localStorage.getItem('baseballActiveTab');
         if (saved && VALID_TABS.has(saved)) return saved;
+        if (saved === 'explore') return 'players';
         if (saved && TAB_REDIRECTS[saved]) return TAB_REDIRECTS[saved];
         return 'dashboard';
     });
@@ -85,8 +91,13 @@ const App = () => {
     useEffect(() => {
         window.__navigateTab = (tabId, subId) => {
             let resolved = tabId;
+            let resolvedSubId = subId;
+            if (tabId === 'explore') {
+                resolved = 'players';
+                resolvedSubId = 'explorer';
+            }
             if (TAB_REDIRECTS[tabId]) resolved = TAB_REDIRECTS[tabId];
-            if (VALID_TABS.has(resolved)) { setTabRaw(resolved); setSubtab(subId || null); }
+            if (VALID_TABS.has(resolved)) { setTabRaw(resolved); setSubtab(resolvedSubId || null); }
         };
         return () => { window.__navigateTab = null; };
     }, []);
@@ -305,7 +316,6 @@ const App = () => {
         { id: 'dashboard', label: 'Dashboard' },
         { id: 'gamelog', label: 'Games' },
         { id: 'players', label: 'Players' },
-        { id: 'explore', label: 'Explore' },
         { id: 'milestones', label: 'Milestones' },
         { id: 'venues', label: 'Venues' },
         { id: 'progress', label: 'Progress' },
@@ -403,7 +413,6 @@ const App = () => {
                 {tab === 'dashboard' && <Dashboard data={data} onTabChange={setTab} />}
                 {tab === 'gamelog' && (data.games?.length ? <GameLogWithDetails games={data.games} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} allTimePassingsByGame={data.allTimePassingsByGame || {}} debuts={data.debuts || []} finalGames={data.finalGames || []} /> : <EmptyState icon="📋" title="No Games" message="Add game HTML files to the Current Season Games folder and run the processor." />)}
                 {tab === 'players' && <PlayersTabV2 data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
-                {tab === 'explore' && <ExploreTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'milestones' && <MilestonesTabV2 data={data} onTabChange={setTab} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'venues' && <VenuesTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'progress' && <ProgressTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}

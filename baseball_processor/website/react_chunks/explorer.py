@@ -348,12 +348,4 @@ const CustomStatsExplorer = ({ data }) => {
     );
 };
 
-const ExploreTab = ({ data, initialSubtab, onSubtabChange }) => {
-    useEffect(() => {
-        if (initialSubtab && initialSubtab !== 'stats' && onSubtabChange) onSubtabChange('stats');
-    }, [initialSubtab, onSubtabChange]);
-    return (
-        <CustomStatsExplorer data={data} />
-    );
-};
 '''

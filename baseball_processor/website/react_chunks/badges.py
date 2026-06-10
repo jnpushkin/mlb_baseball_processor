@@ -1151,7 +1151,6 @@ const DebutPerformance = ({ r }) => {
 
 const PersonalRecords = ({ data }) => {
     const [expandedRecord, setExpandedRecord] = useState(null);
-    const [indivTab, setIndivTab] = useState('hitting');
 
     const gameMap = useMemo(() => {
         const map = {};
@@ -1189,6 +1188,7 @@ const PersonalRecords = ({ data }) => {
         'Longest Game by Time': 'environment',
         'Shortest Game by Time': 'environment',
         'Most Combined HRs': 'extremes',
+        'Most Combined Triples': 'extremes',
         'Most HRs by One Team': 'extremes',
         'Both Teams 10+ Runs': 'extremes',
         'Coldest Game': 'environment',
@@ -1203,53 +1203,54 @@ const PersonalRecords = ({ data }) => {
         'Average Wind Speed': 'environment',
         'Games with Precipitation': 'environment',
         'Most Hits by One Team': 'individual-hitting',
-        'Most Combined Hits': 'individual-hitting',
+        'Most Combined Hits': 'extremes',
         'Fewest Hits by One Team': 'individual-hitting',
-        'Fewest Combined Hits': 'individual-hitting',
+        'Fewest Combined Hits': 'extremes',
         'Most RBIs in a Game': 'individual-hitting',
         'Most SBs by One Player': 'individual-hitting',
         'Most SBs by One Team': 'individual-hitting',
-        'Most Combined SBs in a Game': 'individual-hitting',
-        'Most Walks by One Team': 'individual-hitting',
-        'Most Combined Walks': 'individual-hitting',
-        'Fewest Combined Walks': 'individual-hitting',
+        'Most Combined SBs in a Game': 'extremes',
+        'Most Walks by One Team': 'individual-pitching',
+        'Most Walks Issued by One Team': 'individual-pitching',
+        'Most Combined Walks': 'extremes',
+        'Fewest Combined Walks': 'extremes',
         '20+ Hit Games by One Team': 'individual-hitting',
-        '4+ Hit Games': 'hidden',
-        '5+ RBI Games': 'hidden',
-        'Multi-HR Games': 'hidden',
+        '4+ Hit Games': 'milestone-counts',
+        '5+ RBI Games': 'milestone-counts',
+        'Multi-HR Games': 'milestone-counts',
         'Most Clutch Single Game (WPA)': 'individual-hitting',
         'Most Pitching Strikeouts by One Team': 'individual-pitching',
-        'Most Combined Pitching Strikeouts': 'individual-pitching',
-        'Fewest Combined Strikeouts': 'individual-pitching',
+        'Most Combined Pitching Strikeouts': 'extremes',
+        'Fewest Combined Strikeouts': 'extremes',
         'Most Pitches by One Pitcher': 'individual-pitching',
         'Most Pitchers Used': 'individual-pitching',
         'Fewest Pitchers Used': 'individual-pitching',
-        '10+ K Games': 'hidden',
-        'Complete Games': 'hidden',
-        'Shutouts': 'hidden',
-        'Quality Starts': 'hidden',
-        '1-Run Games': 'frequency',
-        '1-0 Games': 'frequency',
-        'Extra Inning Games': 'frequency',
-        '10+ Run Innings': 'frequency',
-        'Unique Players with a Hit': 'frequency',
-        'Unique Players with a Home Run': 'frequency',
-        'Unique Pitchers with a Win': 'frequency',
-        'Unique Pitchers with a Loss': 'frequency',
-        'Unique Pitchers with a Save': 'frequency',
-        'Most Teams Seen for a Player': 'frequency',
-        'Players with RISP Opportunities': 'hidden',
-        'Players with Bases Loaded Opportunities': 'hidden',
+        '10+ K Games': 'milestone-counts',
+        'Complete Games': 'milestone-counts',
+        'Shutouts': 'milestone-counts',
+        'Quality Starts': 'milestone-counts',
+        '1-Run Games': 'game-counts',
+        '1-0 Games': 'game-counts',
+        'Extra Inning Games': 'game-counts',
+        '10+ Run Innings': 'game-counts',
+        'Unique Players with a Hit': 'coverage',
+        'Unique Players with a Home Run': 'coverage',
+        'Unique Pitchers with a Win': 'coverage',
+        'Unique Pitchers with a Loss': 'coverage',
+        'Unique Pitchers with a Save': 'coverage',
+        'Most Teams Seen for a Player': 'coverage',
+        'Players with RISP Opportunities': 'coverage',
+        'Players with Bases Loaded Opportunities': 'coverage',
     };
 
     const sections = useMemo(() => {
         const result = { cumulative: [], rare: [], extremes: [], environment: [],
-            'individual-hitting': [], 'individual-pitching': [], frequency: [] };
+            'individual-hitting': [], 'individual-pitching': [], 'game-counts': [], 'milestone-counts': [], coverage: [] };
         (data.summary || []).forEach(row => {
             if (HIDDEN_RECORDS.has(row.record)) return;
             const section = SECTION_MAP[row.record];
             if (section && result[section]) result[section].push(row);
-            else if (!HIDDEN_RECORDS.has(row.record)) result.frequency.push(row);
+            else if (!HIDDEN_RECORDS.has(row.record)) result.coverage.push(row);
         });
         return result;
     }, [data.summary]);
@@ -1400,6 +1401,45 @@ const PersonalRecords = ({ data }) => {
         'Total Runs Across All Games': { label: 'Runs', icon: 'R' },
         'Total Strikeouts Across All Games': { label: 'Strikeouts', icon: 'K' },
         'Total Stolen Bases Across All Games': { label: 'Stolen Bases', icon: 'SB' },
+    };
+
+    const PillRecordSection = ({ title, records }) => {
+        if (!records.length) return null;
+        return (
+            <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="text-sm font-semibold text-slate-900">{title}</div>
+                    <div className="flex-1 h-px bg-slate-200"></div>
+                </div>
+                {expandedRecord && records.some(r => r.record === expandedRecord) && (
+                    <div className="fixed inset-0 z-[5]" onClick={() => setExpandedRecord(null)} />
+                )}
+                <div className="flex flex-wrap gap-2 relative z-10">
+                    {records.map(record => {
+                        const { games } = parseRecord(record);
+                        const hasContent = games.length > 0 || Boolean((record.detail || '').trim());
+                        const isExpanded = expandedRecord === record.record;
+                        return (
+                            <div key={record.record} className="relative">
+                                <button onClick={() => hasContent && setExpandedRecord(isExpanded ? null : record.record)}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border transition-all ${isExpanded ? 'bg-blue-50 border-blue-300 text-blue-800' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'} ${hasContent ? 'cursor-pointer' : 'cursor-default'}`}>
+                                    <span className="font-medium">{record.record}</span>
+                                    <span className={`font-bold ${isExpanded ? 'text-blue-600' : 'text-slate-900'}`}>{record.value}</span>
+                                </button>
+                                {isExpanded && hasContent && (
+                                    <div className="absolute top-full left-0 mt-1 z-10 bg-white rounded-lg shadow-lg border border-slate-200 p-2 min-w-[200px] max-w-[400px]">
+                                        {record.detail && (
+                                            <div className="text-[11px] text-slate-600 mb-1.5 px-1">{record.detail}</div>
+                                        )}
+                                        {games.length > 0 && <GameButtons games={games} max={6} />}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
     };
 
     // Environment record lookup
@@ -1600,65 +1640,39 @@ const PersonalRecords = ({ data }) => {
                 </div>
             )}
 
-            {/* Section 5: Individual Records (tabbed: Hitting | Pitching) */}
-            {(sections['individual-hitting'].length > 0 || sections['individual-pitching'].length > 0) && (
+            {/* Section 5: Offensive Records */}
+            {sections['individual-hitting'].length > 0 && (
                 <div>
                     <div className="flex items-center gap-2 mb-2">
-                        <div className="text-sm font-semibold text-slate-900">Team & Individual Records</div>
+                        <div className="text-sm font-semibold text-slate-900">Offensive Records</div>
                         <div className="flex-1 h-px bg-slate-200"></div>
-                        <div className="flex gap-1">
-                            {['hitting', 'pitching'].map(tab => (
-                                <button key={tab} onClick={() => setIndivTab(tab)}
-                                    className={`px-3 py-1 rounded-full text-xs font-medium ${indivTab === tab ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                                    {tab === 'hitting' ? 'Hitting' : 'Pitching'} ({sections[`individual-${tab}`].length})
-                                </button>
-                            ))}
-                        </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {sections[`individual-${indivTab}`].map(record => (
+                        {sections['individual-hitting'].map(record => (
                             <RecordCard key={record.record} record={record} compact />
                         ))}
                     </div>
                 </div>
             )}
 
-            {/* Section 6: Frequency Counts */}
-            {sections.frequency.length > 0 && (
+            {/* Section 6: Pitching Records */}
+            {sections['individual-pitching'].length > 0 && (
                 <div>
                     <div className="flex items-center gap-2 mb-2">
-                        <div className="text-sm font-semibold text-slate-900">Counts & Tallies</div>
+                        <div className="text-sm font-semibold text-slate-900">Pitching Records</div>
                         <div className="flex-1 h-px bg-slate-200"></div>
                     </div>
-                    {expandedRecord && sections.frequency.some(r => r.record === expandedRecord) && (
-                        <div className="fixed inset-0 z-[5]" onClick={() => setExpandedRecord(null)} />
-                    )}
-                    <div className="flex flex-wrap gap-2 relative z-10">
-                        {sections.frequency.map(record => {
-                            const { games } = parseRecord(record);
-                            const hasContent = games.length > 0 || (record.detail && record.detail.trim());
-                            const isExpanded = expandedRecord === record.record;
-                            return (
-                                <div key={record.record} className="relative">
-                                    <button onClick={() => hasContent && setExpandedRecord(isExpanded ? null : record.record)}
-                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border transition-all ${isExpanded ? 'bg-blue-50 border-blue-300 text-blue-800' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'} ${hasContent ? 'cursor-pointer' : 'cursor-default'}`}>
-                                        <span className="font-medium">{record.record}</span>
-                                        <span className={`font-bold ${isExpanded ? 'text-blue-600' : 'text-slate-900'}`}>{record.value}</span>
-                                    </button>
-                                    {isExpanded && hasContent && (
-                                        <div className="absolute top-full left-0 mt-1 z-10 bg-white rounded-lg shadow-lg border border-slate-200 p-2 min-w-[200px] max-w-[400px]">
-                                            {record.detail && (
-                                                <div className="text-[11px] text-slate-600 mb-1.5 px-1">{record.detail}</div>
-                                            )}
-                                            {games.length > 0 && <GameButtons games={games} max={6} />}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {sections['individual-pitching'].map(record => (
+                            <RecordCard key={record.record} record={record} compact />
+                        ))}
                     </div>
                 </div>
             )}
+
+            <PillRecordSection title="Game Type Counts" records={sections['game-counts']} />
+            <PillRecordSection title="Milestone Counts" records={sections['milestone-counts']} />
+            <PillRecordSection title="Player Coverage" records={sections.coverage} />
 
             {/* Section 7: ABS Challenge Records */}
             {absRecords.totalGames > 0 && (

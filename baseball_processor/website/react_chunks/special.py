@@ -1099,7 +1099,13 @@ const AwardMiniTable = ({ title, rows, columns }) => {
     );
 };
 
-// Players tab: absorbs Leaderboards
+const normalizePlayerSubtab = (subtab) => {
+    if (subtab === 'stats' || subtab === 'explore') return 'explorer';
+    if (subtab === 'leaderboards') return 'leaders';
+    return subtab;
+};
+
+// Players tab: absorbs Leaderboards and Explorer
 const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
     const hasCollegeData = Object.keys(data.ncaaCrossRef || {}).length > 0;
     const hasSituationalData = [
@@ -1114,7 +1120,13 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
         'lineupAnalysis',
         'lineupMatrix',
     ].some(key => (data[key] || []).length > 0);
-    const [view, setView] = useState(initialSubtab || 'hitters');
+    const [view, setView] = useState(normalizePlayerSubtab(initialSubtab) || 'hitters');
+
+    useEffect(() => {
+        const normalized = normalizePlayerSubtab(initialSubtab);
+        if (normalized && normalized !== initialSubtab && onSubtabChange) onSubtabChange(normalized);
+        if (normalized && normalized !== view) setView(normalized);
+    }, [initialSubtab, view, onSubtabChange]);
 
     useEffect(() => {
         if (window._pendingPlayerSelect) {
@@ -1142,6 +1154,7 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
         ...(hasCollegeData ? [{ id: 'college', label: 'College & MiLB' }] : []),
         { id: 'leaders', label: 'Leaderboards' },
         { id: 'statcast', label: 'Statcast' },
+        { id: 'explorer', label: 'Explorer' },
     ];
 
     return (
@@ -1159,6 +1172,7 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
             {view === 'college' && <CollegePlayersView data={data} onViewPlayer={handleViewPlayer} />}
             {view === 'leaders' && (data.players?.length ? <Leaderboards data={data} /> : <EmptyState icon="🏅" title="No Player Data" message="No player statistics available." />)}
             {view === 'statcast' && <StatcastView playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} games={data.games || []} />}
+            {view === 'explorer' && <CustomStatsExplorer data={data} />}
         </div>
     );
 };

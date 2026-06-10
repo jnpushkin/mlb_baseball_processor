@@ -75,6 +75,8 @@ class SummaryStatsProcessor(BaseProcessor):
         self.most_hits_teams = []
         self.most_combined_hits = 0
         self.most_combined_hits_gameids = []
+        self.most_combined_triples = 0
+        self.most_combined_triples_gameids = []
         self.most_bb = 0
         self.most_bb_gameids = []
         self.most_bb_teams = []
@@ -256,6 +258,9 @@ class SummaryStatsProcessor(BaseProcessor):
             
             # Process home runs
             self._process_home_run_statistics(game, game_id, basic_info)
+
+            # Process triples
+            self._process_triple_statistics(game, game_id)
             
             # Process strikeouts
             self._process_strikeout_statistics(game, game_id, basic_info)
@@ -761,6 +766,18 @@ class SummaryStatsProcessor(BaseProcessor):
             self.most_combined_hr_gameids = [game_id]
         elif combined_hr == self.most_combined_hr:
             self.most_combined_hr_gameids.append(game_id)
+
+    def _process_triple_statistics(self, game, game_id):
+        """Process combined triples in a game."""
+        triples_home, _ = self._team_triple_breakdown(game, "home")
+        triples_away, _ = self._team_triple_breakdown(game, "away")
+        combined_triples = triples_home + triples_away
+
+        if combined_triples > self.most_combined_triples:
+            self.most_combined_triples = combined_triples
+            self.most_combined_triples_gameids = [game_id]
+        elif combined_triples == self.most_combined_triples and combined_triples > 0:
+            self.most_combined_triples_gameids.append(game_id)
     
     def _process_strikeout_statistics(self, game, game_id, basic_info):
         """Process strikeout statistics."""
@@ -1334,7 +1351,7 @@ class SummaryStatsProcessor(BaseProcessor):
         
         # Single team records
         for value, label, ids, teams, stat_key in [
-            (self.most_bb, "Most Walks by One Team", self.most_bb_gameids, self.most_bb_teams, "BB"),
+            (self.most_bb, "Most Walks Issued by One Team", self.most_bb_gameids, self.most_bb_teams, "BB"),
             (self.most_runs, "Most Runs by One Team", self.most_runs_gameids, self.most_runs_teams, "R"),
             (self.most_hr, "Most HRs by One Team", self.most_hr_gameids, self.most_hr_teams, "HR"),
             (self.most_hits, "Most Hits by One Team", self.most_hits_gameids, self.most_hits_teams, "H"),
@@ -1428,6 +1445,7 @@ class SummaryStatsProcessor(BaseProcessor):
             (self.most_combined_runs, "Most Combined Runs", self.most_combined_runs_gameids, "R"),
             (self.most_combined_hr, "Most Combined HRs", self.most_combined_hr_gameids, "HR"),
             (self.most_combined_hits, "Most Combined Hits", self.most_combined_hits_gameids, "H"),
+            (self.most_combined_triples, "Most Combined Triples", self.most_combined_triples_gameids, "3B"),
             (self.most_combined_ks, "Most Combined Pitching Strikeouts", self.most_combined_ks_gameids, "SO"),
             (self.most_sb_combined, "Most Combined SBs in a Game", self.most_sb_combined_gameids, "SB"),
             (self.most_combined_bb, "Most Combined Walks", self.most_combined_bb_gameids, "BB"),
@@ -2334,6 +2352,22 @@ class SummaryStatsProcessor(BaseProcessor):
             return max(footer_total, box_total), self._format_player_counts(footer_counts)
         return box_total, self._format_player_counts(box_counts)
 
+    def _team_triple_breakdown(self, game, side):
+        footer_blob = game.get("footer_summary", {}).get(side, {}).get("3B", "")
+        footer_counts = ExcelGeneratorUtils.extract_stat_counts(footer_blob)
+        footer_total = sum(count for _, count in footer_counts)
+
+        box_counts = [
+            (player.get("name", "Unknown"), self._safe_int(player.get("3B", 0)))
+            for player in game.get("batting", {}).get(side, [])
+            if self._safe_int(player.get("3B", 0)) > 0
+        ]
+        box_total = sum(count for _, count in box_counts)
+
+        if footer_counts:
+            return max(footer_total, box_total), self._format_player_counts(footer_counts)
+        return box_total, self._format_player_counts(box_counts)
+
     def _team_sb_breakdown(self, game, side):
         footer_blob = game.get("footer_summary", {}).get(side, {}).get("SB", "")
         footer_counts = ExcelGeneratorUtils.extract_stat_counts(footer_blob)
@@ -2454,6 +2488,22 @@ class SummaryStatsProcessor(BaseProcessor):
             combined_hr = hr_a + hr_h
             hr_label = "HR" if combined_hr == 1 else "HRs"
             return f"{combined_hr} combined {hr_label} - {' / '.join(detail_parts)} - {self._format_game_run_hit_detail(basic_info, game.get('linescore', {}))}"
+
+        if stat_key == "3B":
+            triples_a, players_a = self._team_triple_breakdown(game, "away")
+            triples_h, players_h = self._team_triple_breakdown(game, "home")
+
+            def team_triple_text(code, total, players):
+                players_text = f": {', '.join(players)}" if players else ""
+                return f"{code} {total} 3B{players_text}"
+
+            combined_triples = triples_a + triples_h
+            triple_label = "triple" if combined_triples == 1 else "triples"
+            detail_parts = [
+                team_triple_text(a_code, triples_a, players_a),
+                team_triple_text(h_code, triples_h, players_h),
+            ]
+            return f"{combined_triples} combined {triple_label} - {' / '.join(detail_parts)} - {self._format_game_run_hit_detail(basic_info, game.get('linescore', {}))}"
         
         elif stat_key == "H":
             a_val = game["linescore"]["away"].get("H", 0)
@@ -2493,6 +2543,7 @@ class SummaryStatsProcessor(BaseProcessor):
             "SO": "strikeouts",
             "BB": "walks",
             "SB": "stolen bases",
+            "3B": "triples",
         }
         label = labels.get(stat_key, stat_key)
         total = self._safe_int(a_val) + self._safe_int(h_val)

@@ -1130,14 +1130,14 @@ def create_summary_with_sections(summary_rows, section_breaks):
         "Most SBs by One Team", "Fewest Hits by One Team",
         
         # 🔴 Single-Team Pitching Records - One team's pitching
-        "Most Pitching Strikeouts by One Team", "Most Walks by One Team", 
+        "Most Pitching Strikeouts by One Team", "Most Walks Issued by One Team",
         "Most Pitchers Used", "Fewest Pitchers Used",
         
         # 🧢 Individual Game Leaders - Single-game individual records
         "Most RBIs in a Game", "Most SBs by One Player", "Most Pitches by One Pitcher",
         
         # ⚫️ Combined Game Totals - Both teams combined in single games
-        "Most Combined Runs", "Most Combined Hits", "Most Combined HRs",
+        "Most Combined Runs", "Most Combined Hits", "Most Combined HRs", "Most Combined Triples",
         "Most Combined Pitching Strikeouts", "Most Combined SBs in a Game", 
         "Most Combined Walks", "Fewest Combined Strikeouts", "Fewest Combined Hits", "Fewest Combined Walks",
         
