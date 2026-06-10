@@ -1,4 +1,4 @@
-"""React app chunk: chasers and custom stats explorer."""
+"""React app chunk: custom stats explorer."""
 
 CODE = r'''const ExplorePill = ({ active, children, onClick }) => (
     <button
@@ -9,14 +9,6 @@ CODE = r'''const ExplorePill = ({ active, children, onClick }) => (
     >
         {children}
     </button>
-);
-
-const ExploreStat = ({ label, value, sub }) => (
-    <div className="bg-white border border-slate-200 rounded-lg p-4">
-        <div className="text-2xl font-bold text-slate-900">{value}</div>
-        <div className="text-xs font-semibold uppercase text-slate-500 mt-1">{label}</div>
-        {sub && <div className="small-text text-slate-500 mt-2">{sub}</div>}
-    </div>
 );
 
 const useGameLookups = (games) => useMemo(() => {
@@ -356,204 +348,12 @@ const CustomStatsExplorer = ({ data }) => {
     );
 };
 
-const buildChaserCandidates = (data) => {
-    const byId = {};
-    const seenIds = new Set([
-        ...(data.players || []).map(p => p.playerId),
-        ...(data.pitchers || []).map(p => p.playerId),
-        ...(data.playersWithoutStats || []).map(p => p.playerId),
-    ].filter(Boolean));
-    const majorAwardKeys = new Set(['mvp', 'cya', 'roy', 'reliever', 'postmvp', 'asmvp', 'hank_aaron', 'edgar_martinez', 'triple_crowns', 'batting-titles', 'pitching-era-titles']);
-    const nonTeamCodes = new Set(['AL', 'NL', 'MLB', '2TM', '3TM', '4TM', 'SV', 'SP', 'RP', 'DH']);
-    const teamCode = (value) => {
-        const text = String(value || '').trim().toUpperCase();
-        return /^[A-Z]{2,4}$/.test(text) && !nonTeamCodes.has(text) ? text : '';
-    };
-    const currentYear = Math.max(0, ...[
-        ...(data.awardChecklists?.groups || []).flatMap(g => g.items || []).map(i => Number(i.year || 0)),
-        ...(data.allStarChecklists?.groups || []).flatMap(g => g.items || []).map(i => Number(i.year || 0)),
-    ]);
-
-    const ensure = (item) => {
-        const id = item.playerId || item.name;
-        if (!id) return null;
-        if (!byId[id]) {
-            byId[id] = {
-                id,
-                playerId: item.playerId || '',
-                name: item.name || 'Unknown',
-                seen: seenIds.has(item.playerId) || Boolean(item.checked),
-                score: 0,
-                awardEntries: 0,
-                majorAwards: 0,
-                allStarSelections: 0,
-                latestYear: 0,
-                teams: new Set(),
-                leagues: new Set(),
-                reasons: new Set(),
-                firstSeen: item.firstSeen || '',
-                gamesSeen: item.gamesSeen || 0,
-            };
-        }
-        const c = byId[id];
-        if (item.checked) c.seen = true;
-        if (item.gamesSeen) c.gamesSeen = Math.max(c.gamesSeen, item.gamesSeen);
-        if (item.firstSeen && (!c.firstSeen || toSortableDate(item.firstSeen) < toSortableDate(c.firstSeen))) c.firstSeen = item.firstSeen;
-        const cleanTeam = teamCode(item.team || item.teamCode);
-        if (cleanTeam) c.teams.add(cleanTeam);
-        if (item.league) c.leagues.add(item.league);
-        if (item.year) c.latestYear = Math.max(c.latestYear, Number(item.year) || 0);
-        return c;
-    };
-
-    (data.awardChecklists?.groups || []).forEach(group => {
-        (group.items || []).forEach(item => {
-            const c = ensure(item);
-            if (!c) return;
-            c.awardEntries += 1;
-            const awardKey = item.awardKey || group.awardKey || '';
-            const awardName = item.award || group.award || item.awardDetail || 'Award';
-            const isMajor = majorAwardKeys.has(awardKey);
-            if (isMajor) c.majorAwards += 1;
-            c.score += isMajor ? 90 : 18;
-            c.reasons.add(awardName);
-        });
-    });
-
-    (data.allStarChecklists?.groups || []).forEach(group => {
-        (group.items || []).forEach(item => {
-            const c = ensure(item);
-            if (!c) return;
-            c.allStarSelections += 1;
-            c.score += 22;
-            c.reasons.add(item.gameLabel || 'All-Star');
-        });
-    });
-
-    return Object.values(byId).map(c => {
-        const recency = c.latestYear && currentYear ? Math.max(0, 12 - Math.min(12, currentYear - c.latestYear)) : 0;
-        const reasons = Array.from(c.reasons).slice(0, 4);
-        const isActiveWindowTarget = c.latestYear && currentYear ? c.latestYear >= currentYear - 1 : false;
-        const activeScore = isActiveWindowTarget ? Math.round((c.score * 0.35) + (recency * 10) + (c.majorAwards ? 40 : 0) + (c.allStarSelections ? 15 : 0)) : 0;
-        return {
-            ...c,
-            teams: Array.from(c.teams).sort().join(', '),
-            leagues: Array.from(c.leagues).sort().join(', '),
-            reasons: reasons.join(', '),
-            isActiveWindowTarget,
-            activeScore,
-            score: Math.round(c.score + recency),
-        };
-    }).sort((a, b) => b.activeScore - a.activeScore || b.latestYear - a.latestYear || b.score - a.score || a.name.localeCompare(b.name));
-};
-
-const ChasersView = ({ data }) => {
-    const [view, setView] = useState('active');
-    const [status, setStatus] = useState('unseen');
-    const candidates = useMemo(() => buildChaserCandidates(data), [data]);
-    const unseen = candidates.filter(c => !c.seen);
-    const seen = candidates.filter(c => c.seen);
-    const activeWindow = candidates.filter(c => c.isActiveWindowTarget);
-    const filtered = (status === 'seen' ? seen : status === 'all' ? candidates : unseen);
-
-    const teamRows = useMemo(() => {
-        const rows = {};
-        candidates.forEach(c => {
-            String(c.teams || '').split(',').map(t => t.trim()).filter(Boolean).forEach(team => {
-                if (!rows[team]) rows[team] = { team, targets: 0, seen: 0, unseen: 0, score: 0, topTarget: '', topScore: 0 };
-                const row = rows[team];
-                row.targets += 1;
-                row.score += c.score;
-                if (c.seen) row.seen += 1;
-                else row.unseen += 1;
-                if (!c.seen && c.score > row.topScore) {
-                    row.topScore = c.score;
-                    row.topTarget = c.name;
-                }
-            });
-        });
-        return Object.values(rows).map(row => ({ ...row, completion: row.targets ? `${Math.round(row.seen / row.targets * 100)}%` : '0%' }))
-            .sort((a, b) => b.unseen - a.unseen || b.score - a.score);
-    }, [candidates]);
-
-    const rows = view === 'teams' ? teamRows : filtered;
-    const targetColumns = [
-        { key: 'name', label: 'Target', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
-        { key: 'displayScore', label: 'Score' },
-        { key: 'majorAwards', label: 'Major' },
-        { key: 'allStarSelections', label: 'ASG' },
-        { key: 'awardEntries', label: 'Awards' },
-        { key: 'latestYear', label: 'Latest' },
-        { key: 'teams', label: 'Teams' },
-        { key: 'reasons', label: 'Why' },
-        { key: 'seen', label: 'Status', render: v => v ? <span className="text-green-700 font-semibold">Seen</span> : <span className="text-orange-700 font-semibold">Need</span> },
-    ];
-    const teamColumns = [
-        { key: 'team', label: 'Team', render: v => <span className="inline-flex items-center gap-2"><TeamLogo code={v} size={18} />{v}</span> },
-        { key: 'targets', label: 'Targets' },
-        { key: 'seen', label: 'Seen' },
-        { key: 'unseen', label: 'Need' },
-        { key: 'completion', label: 'Complete' },
-        { key: 'score', label: 'Target Score' },
-        { key: 'topTarget', label: 'Top Need' },
-    ];
-
-    return (
-        <div className="space-y-5">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <ExploreStat label="Reference targets" value={candidates.length} sub="Awards and All-Star players with BREF IDs" />
-                <ExploreStat label="Active-window targets" value={activeWindow.length} sub="Award or All-Star records from the latest two seasons" />
-                <ExploreStat label="Still unseen" value={unseen.length} sub="All unmatched reference targets" />
-                <ExploreStat label="Already seen" value={seen.length} sub="Recognized players in your archive" />
-            </div>
-            <div className="bg-white border border-slate-200 rounded-lg p-4 flex flex-wrap items-center gap-2">
-                <ExplorePill active={view === 'active'} onClick={() => setView('active')}>Active Targets</ExplorePill>
-                <ExplorePill active={view === 'awards'} onClick={() => setView('awards')}>Award Targets</ExplorePill>
-                <ExplorePill active={view === 'allstars'} onClick={() => setView('allstars')}>All-Star Targets</ExplorePill>
-                <ExplorePill active={view === 'teams'} onClick={() => setView('teams')}>By Team</ExplorePill>
-                <ExplorePill active={view === 'historical'} onClick={() => setView('historical')}>Historical Targets</ExplorePill>
-                {view !== 'teams' && (
-                    <select value={status} onChange={e => setStatus(e.target.value)} className="ml-auto px-3 py-2 rounded border border-slate-200 body-text">
-                        <option value="unseen">Unseen only</option>
-                        <option value="seen">Seen only</option>
-                        <option value="all">All targets</option>
-                    </select>
-                )}
-            </div>
-            <DataTable
-                key={`chasers-${view}-${status}`}
-                title={view === 'teams' ? 'Target Buckets by Team' : view === 'allstars' ? 'Active-Window All-Star Chasers' : view === 'awards' ? 'Active-Window Award Chasers' : view === 'active' ? 'Active Chaser Targets' : 'Historical Chaser Targets'}
-                data={view === 'teams' ? rows : rows.filter(row => {
-                    if (view === 'active') return row.isActiveWindowTarget;
-                    if (view === 'awards') return row.awardEntries > 0 && row.isActiveWindowTarget;
-                    if (view === 'allstars') return row.allStarSelections > 0 && row.isActiveWindowTarget;
-                    return true;
-                }).map(row => ({ ...row, displayScore: view === 'historical' ? row.score : row.activeScore }))}
-                columns={view === 'teams' ? teamColumns : targetColumns}
-                defaultSortKey={view === 'teams' ? 'unseen' : 'displayScore'}
-                persistKey={`chasers-${view}`}
-            />
-        </div>
-    );
-};
-
 const ExploreTab = ({ data, initialSubtab, onSubtabChange }) => {
-    const [view, setView] = useState(initialSubtab || 'chasers');
-    useEffect(() => { if (initialSubtab) setView(initialSubtab); }, [initialSubtab]);
-    const switchView = (next) => {
-        setView(next);
-        if (onSubtabChange) onSubtabChange(next);
-    };
-
+    useEffect(() => {
+        if (initialSubtab && initialSubtab !== 'stats' && onSubtabChange) onSubtabChange('stats');
+    }, [initialSubtab, onSubtabChange]);
     return (
-        <div className="space-y-5">
-            <div className="flex flex-wrap gap-2">
-                <ExplorePill active={view === 'chasers'} onClick={() => switchView('chasers')}>Chasers</ExplorePill>
-                <ExplorePill active={view === 'stats'} onClick={() => switchView('stats')}>Stats Explorer</ExplorePill>
-            </div>
-            {view === 'chasers' && <ChasersView data={data} />}
-            {view === 'stats' && <CustomStatsExplorer data={data} />}
-        </div>
+        <CustomStatsExplorer data={data} />
     );
 };
 '''
