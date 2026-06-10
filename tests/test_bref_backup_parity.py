@@ -6,6 +6,7 @@ from pathlib import Path
 
 from baseball_processor.reports.bref_backup_parity import (
     _compare_metadata,
+    _matching_row,
     clear_issues_csv,
     find_bref_html_for_game,
     load_api_cache_games,
@@ -117,6 +118,44 @@ class BrefBackupParityTests(unittest.TestCase):
         issues = _compare_metadata(api_game, bref_game, Path("api.json"), Path("backup.html"))
 
         self.assertEqual([], issues)
+
+    def test_compare_metadata_ignores_known_team_code_aliases(self):
+        api_game = {
+            "game_id": "SFN202606080",
+            "basic_info": {
+                "date_yyyymmdd": "20260608",
+                "away_team_code": "WSH",
+                "home_team_code": "SF",
+                "away_score_value": 0,
+                "home_score_value": 2,
+                "venue": "Oracle Park",
+                "game_type": "regular",
+            },
+        }
+        bref_game = {
+            "basic_info": {
+                "date_yyyymmdd": "20260608",
+                "away_team_code": "WAS",
+                "home_team_code": "SF",
+                "away_score_value": 0,
+                "home_score_value": 2,
+                "venue": "Oracle Park",
+                "game_type": "regular",
+            },
+        }
+
+        issues = _compare_metadata(api_game, bref_game, Path("api.json"), Path("backup.html"))
+
+        self.assertEqual([], issues)
+
+    def test_matching_row_ignores_name_accents_and_punctuation(self):
+        match = _matching_row(
+            {"name": "José O'Neill-Smith"},
+            [{"name": "Jose Oneill Smith"}],
+            set(),
+        )
+
+        self.assertIsNotNone(match)
 
     def test_write_issues_csv_writes_report_rows(self):
         issue = {

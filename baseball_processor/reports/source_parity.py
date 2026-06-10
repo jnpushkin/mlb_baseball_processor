@@ -6,11 +6,13 @@ import argparse
 import csv
 import json
 import re
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ..utils.constants import CACHE_DIR
+from ..utils.constants import CACHE_DIR, STADIUM_ALIASES
+from ..utils.helpers import standardize_team_code, unify_team_code
 
 
 SKIP_CACHE_PATTERNS = ("career_firsts", "career_gamelogs", "player_bios")
@@ -214,13 +216,36 @@ def _is_missing(value) -> bool:
 def _normalize_text(value):
     if _is_missing(value):
         return None
-    return re.sub(r"\s+", " ", str(value).strip()).lower()
+    text = unicodedata.normalize("NFKD", str(value))
+    text = "".join(char for char in text if not unicodedata.combining(char))
+    return re.sub(r"\s+", " ", text.strip()).lower()
 
 
 def _normalize_team_code(value):
     if _is_missing(value):
         return None
-    return str(value).strip().upper()
+    return unify_team_code(str(value).strip().upper())
+
+
+def _normalize_team_name(value):
+    if _is_missing(value):
+        return None
+    code = standardize_team_code(str(value).strip())
+    normalized_code = _normalize_team_code(code)
+    return normalized_code if normalized_code else _normalize_text(value)
+
+
+def _normalize_stadium(value):
+    normalized = _normalize_text(value)
+    if normalized is None:
+        return None
+    for canonical, aliases in STADIUM_ALIASES.items():
+        if normalized == _normalize_text(canonical):
+            return _normalize_text(canonical)
+        for alias in aliases:
+            if normalized == _normalize_text(alias):
+                return _normalize_text(canonical)
+    return normalized
 
 
 def _normalize_int(value):
@@ -237,6 +262,10 @@ def _normalize_metadata(field: str, value):
         return _normalize_int(value)
     if field.endswith("_team_code"):
         return _normalize_team_code(value)
+    if field in {"away_team", "home_team"}:
+        return _normalize_team_name(value)
+    if field == "venue":
+        return _normalize_stadium(value)
     return _normalize_text(value)
 
 
@@ -244,7 +273,8 @@ def _normalize_name(value):
     text = _normalize_text(value)
     if text is None:
         return None
-    return text.replace(".", "").replace("'", "").replace("-", " ")
+    text = text.replace(".", "").replace("'", "").replace("’", "").replace("-", " ")
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def _row_field(row: dict[str, Any], field: str):

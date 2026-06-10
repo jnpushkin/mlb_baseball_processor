@@ -159,6 +159,8 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 - Sports-Reference sites hide tables in HTML comments - must extract with BeautifulSoup Comment class
 - Baseball-Reference award pages use mixed table shapes: standard `data-stat` rows, matrix grids (Gold Glove/Silver Slugger/monthly awards), and malformed nested `<tr>` title tables. Use `awards_scraper` parsing helpers instead of assuming normal tbody rows.
 - MLB API game IDs start with 'M' prefix (e.g., MSF202603230), BREF IDs don't (e.g., SFN202603230)
+- MLB API can emit `WSH` for Washington while Baseball Reference backups use `WAS`; parity checks should normalize known team aliases with `unify_team_code`.
+- Parity checks should normalize known venue aliases with `STADIUM_ALIASES` (e.g., `Yankee Stadium III` vs `Yankee Stadium`, old Oakland Coliseum names).
 - Spring training games excluded from cumulative stat badges but included in game log
 - Player bios cached in `cache/player_bios.json` (fetched from MLB API)
 

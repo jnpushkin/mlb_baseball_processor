@@ -66,6 +66,32 @@ class SourceParityTests(unittest.TestCase):
 
         self.assertEqual([], issues)
 
+    def test_metadata_parity_ignores_known_team_and_stadium_aliases(self):
+        api_record = make_record(
+            "api.json",
+            "ATH202604190",
+            "mlb",
+            away_team="Chicago White Sox",
+            home_team="Athletics",
+            away_team_code="CWS",
+            home_team_code="ATH",
+            venue="RingCentral Coliseum",
+        )
+        bref_record = make_record(
+            "bref.json",
+            "ATH202604190",
+            "bref",
+            away_team="Chicago White Sox",
+            home_team="Oakland Athletics",
+            away_team_code="CWS",
+            home_team_code="OAK",
+            venue="Oakland Coliseum",
+        )
+
+        issues = collect_metadata_parity_issues([api_record, bref_record])
+
+        self.assertEqual([], issues)
+
     def test_batting_parity_detects_stat_mismatch_and_missing_field(self):
         api_record = make_record(
             "api.json",
@@ -122,6 +148,160 @@ class SourceParityTests(unittest.TestCase):
         issue_keys = {(issue["kind"], issue["field"]) for issue in issues}
         self.assertIn(("batting_mismatch", "H"), issue_keys)
         self.assertIn(("missing_batting_field", "SB"), issue_keys)
+
+    def test_row_team_parity_ignores_known_team_code_aliases(self):
+        api_record = make_record(
+            "api.json",
+            "SFN202606080",
+            "mlb",
+            batting={
+                "away": [
+                    {
+                        "name": "Player A",
+                        "player_id": "player-a",
+                        "team": "WSH",
+                        "AB": 4,
+                        "H": 1,
+                        "R": 0,
+                        "RBI": 0,
+                        "BB": 0,
+                        "SO": 1,
+                        "SB": 0,
+                        "2B": 0,
+                        "3B": 0,
+                        "HR": 0,
+                    }
+                ],
+                "home": [],
+            },
+            pitching={
+                "away": [
+                    {
+                        "name": "Pitcher A",
+                        "player_id": "pitcher-a",
+                        "team": "WSH",
+                        "IP": "5.0",
+                        "H": 4,
+                        "R": 2,
+                        "ER": 2,
+                        "BB": 1,
+                        "SO": 6,
+                        "HR": 1,
+                        "decision": "W",
+                        "pitches": 84,
+                        "strikes": 55,
+                        "batters_faced": 21,
+                    }
+                ],
+                "home": [],
+            },
+        )
+        bref_record = make_record(
+            "bref.json",
+            "SFN202606080",
+            "bref",
+            batting={
+                "away": [
+                    {
+                        "name": "Player A",
+                        "player_id": "player-a",
+                        "team": "WAS",
+                        "AB": 4,
+                        "H": 1,
+                        "R": 0,
+                        "RBI": 0,
+                        "BB": 0,
+                        "SO": 1,
+                        "SB": 0,
+                        "2B": 0,
+                        "3B": 0,
+                        "HR": 0,
+                    }
+                ],
+                "home": [],
+            },
+            pitching={
+                "away": [
+                    {
+                        "name": "Pitcher A",
+                        "player_id": "pitcher-a",
+                        "team": "WAS",
+                        "IP": "5",
+                        "H": 4,
+                        "R": 2,
+                        "ER": 2,
+                        "BB": 1,
+                        "SO": 6,
+                        "HR": 1,
+                        "decision": "W",
+                        "pitches": 84,
+                        "strikes": 55,
+                        "batters_faced": 21,
+                    }
+                ],
+                "home": [],
+            },
+        )
+
+        batting_issues = collect_batting_parity_issues([api_record, bref_record])
+        pitching_issues = collect_pitching_parity_issues([api_record, bref_record])
+
+        self.assertEqual([], batting_issues)
+        self.assertEqual([], pitching_issues)
+
+    def test_batting_row_matching_ignores_name_accents_and_punctuation(self):
+        api_record = make_record(
+            "api.json",
+            "HME202604300",
+            "mlb",
+            batting={
+                "away": [
+                    {
+                        "name": "José O'Neill-Smith",
+                        "team": "AWY",
+                        "AB": 4,
+                        "H": 1,
+                        "R": 0,
+                        "RBI": 0,
+                        "BB": 0,
+                        "SO": 1,
+                        "SB": 0,
+                        "2B": 0,
+                        "3B": 0,
+                        "HR": 0,
+                    }
+                ],
+                "home": [],
+            },
+        )
+        bref_record = make_record(
+            "bref.json",
+            "HME202604300",
+            "bref",
+            batting={
+                "away": [
+                    {
+                        "name": "Jose Oneill Smith",
+                        "team": "AWY",
+                        "AB": 4,
+                        "H": 1,
+                        "R": 0,
+                        "RBI": 0,
+                        "BB": 0,
+                        "SO": 1,
+                        "SB": 0,
+                        "2B": 0,
+                        "3B": 0,
+                        "HR": 0,
+                    }
+                ],
+                "home": [],
+            },
+        )
+
+        issues = collect_batting_parity_issues([api_record, bref_record])
+
+        self.assertEqual([], issues)
 
     def test_pitching_parity_detects_stat_mismatch_and_missing_pitch_count(self):
         api_record = make_record(
