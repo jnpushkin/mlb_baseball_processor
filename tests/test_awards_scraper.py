@@ -157,6 +157,36 @@ def test_parse_multi_winner_cell_ignores_non_person_links():
     assert entries[2]["notes"] == "Emmanuel Clase (reliever) games Tarik Skubal (starter)"
 
 
+def test_monthly_award_stat_total_is_not_inferred_as_team():
+    html = """
+    <table id="reliever_month">
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Month</th>
+          <th>AL Reliever of the Month</th>
+          <th>NL Reliever of the Month</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2026</td>
+          <td>April</td>
+          <td><a href="/players/v/varlalo01.shtml">Louis Varland</a> 15 G, 1-1 (4 SV), 0.56, 26 SO <a href="/players/gl.fcgi?id=varlalo01&t=p&year=2026">games</a></td>
+          <td><a href="/players/m/millema03.shtml">Mason Miller</a> 15 G, 1-0 (10 SV), 1.17, 29 SO <a href="/players/gl.fcgi?id=millema03&t=p&year=2026">games</a></td>
+        </tr>
+      </tbody>
+    </table>
+    """
+
+    entries, _ = parse_awards_html(html, AWARD_PAGES_BY_KEY["mlb-relievers-of-the-month"])
+
+    assert [entry["player_id"] for entry in entries] == ["varlalo01", "millema03"]
+    assert [entry["team"] for entry in entries] == ["", ""]
+    assert entries[0]["month"] == "April"
+    assert entries[0]["league"] == "AL"
+
+
 def test_title_stats_do_not_replace_display_name():
     html = """
     <table id="award_grid">

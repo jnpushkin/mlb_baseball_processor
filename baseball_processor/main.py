@@ -6,7 +6,7 @@ import re
 import copy
 import pandas as pd
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from .excel.workbook_generator import generate_excel_workbook
 from .parsers.html_parser import parse_baseball_reference_boxscore
@@ -235,6 +235,68 @@ def _refresh_all_time_leaders_if_stale(max_age_days=7):
         warn(f"  ⚠️ All-time leaders update error: {e}")
 
 
+def _awards_reference_age_days(awards_path=None, now=None):
+    """Return the age of awards.json from metadata, falling back to mtime."""
+    awards_path = awards_path or (REFERENCES_DIR / "awards.json")
+    if not awards_path.exists():
+        return None
+
+    generated_at = None
+    try:
+        payload = json.loads(awards_path.read_text(encoding="utf-8"))
+        metadata = payload.get("metadata", {}) if isinstance(payload, dict) else {}
+        generated_at_text = metadata.get("generated_at", "")
+        if generated_at_text:
+            generated_at = datetime.fromisoformat(generated_at_text.replace("Z", "+00:00"))
+    except Exception:
+        generated_at = None
+
+    if generated_at is None:
+        generated_at = datetime.fromtimestamp(awards_path.stat().st_mtime, timezone.utc)
+    elif generated_at.tzinfo is None:
+        generated_at = generated_at.replace(tzinfo=timezone.utc)
+
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    return (now - generated_at).total_seconds() / 86400
+
+
+def _refresh_awards_if_stale(max_age_days=7, force=False, initial_delay=0):
+    """Refresh normalized BREF awards data when the reference cache is stale."""
+    awards_path = REFERENCES_DIR / "awards.json"
+    age_days = _awards_reference_age_days(awards_path)
+    if not force and age_days is not None and age_days <= max_age_days:
+        return False
+
+    reason = "missing"
+    if force:
+        reason = "forced"
+    elif age_days is not None:
+        reason = f"last updated {age_days:.0f} days ago"
+
+    info(f"🔄 Updating awards reference from Baseball-Reference ({reason})...")
+    try:
+        if initial_delay and initial_delay > 0:
+            import time
+            time.sleep(initial_delay)
+        from .scrapers.awards_scraper import (
+            DEFAULT_AWARD_PAGES,
+            DEFAULT_DELAY_SECONDS,
+            scrape_awards,
+            write_awards_file,
+        )
+
+        entries, page_summaries = scrape_awards(list(DEFAULT_AWARD_PAGES), delay=DEFAULT_DELAY_SECONDS)
+        write_awards_file(entries, page_summaries, awards_path)
+        info(f"✅ Updated awards: {awards_path} ({len(entries)} entries)")
+        return True
+    except Exception as e:
+        warn(f"⚠️ Failed to update awards: {e}")
+        info("   Continuing with existing awards data...")
+        return False
+
+
 def _refresh_drafts(args):
     """Ensure MLB draft picks (1965..current) are cached.
 
@@ -293,6 +355,16 @@ def _should_update_debuts(args):
         return False
     if getattr(args, 'update_debuts', False):
         return True
+    return not _should_skip_network_reference_updates(args)
+
+
+def _should_update_awards(args):
+    if getattr(args, 'skip_awards_update', False):
+        return False
+    if getattr(args, 'update_awards', False):
+        return True
+    if getattr(args, 'excel_only', False):
+        return False
     return not _should_skip_network_reference_updates(args)
 
 
@@ -821,6 +893,51 @@ def _find_api_cache_for_game_id(game_id, cache_dir=CACHE_DIR, exclude_path=None)
     return None, None
 
 
+def _infer_bref_game_ids_from_backup_filename(filename):
+    """Infer possible BREF game IDs from a downloaded BREF backup filename."""
+    try:
+        from .scrapers.download_bref import BREF_TEAM_CODES, TEAM_FULL_NAMES
+    except Exception:
+        return []
+
+    match = re.match(
+        r"^(.+?) vs (.+?) Box Score_ ([A-Za-z]+) (\d{1,2}), (\d{4}) _ Baseball-Reference\.com(?:\(\d+\))?\.html$",
+        os.path.basename(filename),
+    )
+    if not match:
+        return []
+
+    _away_name, home_name, month_name, day_text, year_text = match.groups()
+    name_to_code = {name: code for code, name in TEAM_FULL_NAMES.items()}
+    home_code = name_to_code.get(home_name)
+    if not home_code:
+        return []
+
+    try:
+        date_text = f"{year_text}{datetime.strptime(month_name, '%B').month:02d}{int(day_text):02d}"
+    except ValueError:
+        return []
+
+    bref_home = BREF_TEAM_CODES.get(home_code)
+    if not bref_home:
+        return []
+
+    return [f"{bref_home}{date_text}{suffix}" for suffix in ("0", "1", "2")]
+
+
+def _ensure_api_cache_milestones(api_cache_path, api_data):
+    ms = api_data.get('milestone_stats')
+    if ms and (not isinstance(ms, dict) or any(ms.values())):
+        return
+    try:
+        from baseball_processor.engines.milestone_engine import MilestoneEngine
+        MilestoneEngine(api_data).process()
+        with open(api_cache_path, 'w', encoding='utf-8') as f:
+            json.dump(api_data, f, indent=2)
+    except Exception as e:
+        debug(f"  ⚠️ Milestone engine on API data skipped: {e}")
+
+
 def _load_games_from_cache(cache_dir=CACHE_DIR):
     """Load cache games, deduping exact game_id aliases while merging useful data."""
     games_by_id = {}
@@ -1258,6 +1375,7 @@ def process_html_file(file_path, index=None, total=None):
         
         # Check cache using filename as key
         cache_path = CACHE_DIR / f"{safe_filename}.json"
+        parse_reason = "filename cache missing"
         
         if cache_path.exists():
             html_mtime = os.path.getmtime(file_path)
@@ -1288,9 +1406,22 @@ def process_html_file(file_path, index=None, total=None):
 
                     return cached_data
             else:
-                info("  🔄 Cache outdated, re-parsing...")
+                parse_reason = "filename cache outdated"
+
+        for inferred_game_id in _infer_bref_game_ids_from_backup_filename(filename):
+            api_cache_path, api_data = _find_api_cache_for_game_id(inferred_game_id, CACHE_DIR, cache_path)
+            if api_cache_path and api_data:
+                info(
+                    f"  🌟 API-sourced cache exists ({api_cache_path.name}) — "
+                    "using it without reparsing BREF backup"
+                )
+                _ensure_api_cache_milestones(api_cache_path, api_data)
+                return api_data
+
+        if parse_reason == "filename cache outdated":
+            info("  🔄 Filename cache outdated, parsing HTML...")
         else:
-            info("  🆕 No cache found, parsing HTML...")
+            info("  🆕 No filename cache found, parsing HTML...")
 
         # Parse the HTML
         with open(file_path, 'r', encoding='utf-8') as file:
@@ -1309,15 +1440,7 @@ def process_html_file(file_path, index=None, total=None):
         if api_cache_path and api_data:
             try:
                 info(f"  🌟 API-sourced cache exists ({api_cache_path.name}) — using it instead of BREF backup JSON")
-                ms = api_data.get('milestone_stats')
-                if not ms or (isinstance(ms, dict) and not any(ms.values())):
-                    try:
-                        from baseball_processor.engines.milestone_engine import MilestoneEngine
-                        MilestoneEngine(api_data).process()
-                        with open(api_cache_path, 'w', encoding='utf-8') as f:
-                            json.dump(api_data, f, indent=2)
-                    except Exception as e:
-                        debug(f"  ⚠️ Milestone engine on API data skipped: {e}")
+                _ensure_api_cache_milestones(api_cache_path, api_data)
                 return api_data
             except Exception as e:
                 debug(f"  ⚠️ API cache check failed, falling back to BREF parse: {e}")
@@ -1542,6 +1665,22 @@ def main():
         help='Update MLB debut data even when running from local game cache'
     )
     parser.add_argument(
+        '--skip-awards-update',
+        action='store_true',
+        help='Skip auto-updating Baseball-Reference awards data'
+    )
+    parser.add_argument(
+        '--update-awards',
+        action='store_true',
+        help='Update Baseball-Reference awards data even when running from local game cache'
+    )
+    parser.add_argument(
+        '--awards-max-age-days',
+        type=int,
+        default=7,
+        help='Refresh awards data when older than this many days (default: 7)'
+    )
+    parser.add_argument(
         '--download-bref-backups',
         action='store_true',
         help='Download missing BREF HTML backups even when running from local game cache'
@@ -1663,8 +1802,10 @@ def main():
         info(f"▶ Excel will be written to: {os.path.abspath(args.output_excel)}")
     info(f"▶ Current working directory: {os.getcwd()}")
 
-    # Step 0: Auto-update debuts (unless skipped)
+    # Step 0: Auto-update BREF-backed references (unless skipped)
+    debut_update_attempted = False
     if _should_update_debuts(args):
+        debut_update_attempted = True
         try:
             from .scrapers.debut_scraper import scrape_debuts, save_debuts_csv
             debut_year = args.debut_year or datetime.now().year
@@ -1679,6 +1820,13 @@ def main():
         except Exception as e:
             warn(f"⚠️ Failed to update debuts: {e}")
             info("   Continuing with existing debut data...")
+
+    if _should_update_awards(args):
+        _refresh_awards_if_stale(
+            max_age_days=args.awards_max_age_days,
+            force=getattr(args, 'update_awards', False),
+            initial_delay=3.2 if debut_update_attempted else 0,
+        )
 
     # Step 1: Load static references
     debut_entries = load_mlb_debuts(REFERENCES_DIR)

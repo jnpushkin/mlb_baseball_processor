@@ -1,18 +1,23 @@
 import unittest
 import json
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from baseball_processor.main import (
+    _awards_reference_age_days,
     _load_games_from_cache,
+    _refresh_awards_if_stale,
     _cache_game_quality_score,
     _find_api_cache_for_game_id,
+    _infer_bref_game_ids_from_backup_filename,
     process_html_file,
     _should_deploy_to_surge,
     _should_download_bref_backups,
     _should_refresh_all_time_leaders,
+    _should_update_awards,
     _should_update_debuts,
 )
 
@@ -23,8 +28,12 @@ def make_args(**overrides):
         "from_db": False,
         "quick_stats": False,
         "website_only": False,
+        "excel_only": False,
         "skip_debut_update": False,
         "update_debuts": False,
+        "skip_awards_update": False,
+        "update_awards": False,
+        "awards_max_age_days": 7,
         "download_bref_backups": False,
         "skip_bref_parity": False,
         "deploy": False,
@@ -41,6 +50,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
 
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
+        self.assertFalse(_should_update_awards(args))
         self.assertFalse(_should_download_bref_backups(args))
 
     def test_quick_stats_skips_network_reference_updates(self):
@@ -48,6 +58,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
 
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
+        self.assertFalse(_should_update_awards(args))
         self.assertFalse(_should_download_bref_backups(args))
 
     def test_db_only_skips_network_reference_updates(self):
@@ -55,6 +66,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
 
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
+        self.assertFalse(_should_update_awards(args))
         self.assertFalse(_should_download_bref_backups(args))
 
     def test_regular_runs_refresh_network_references(self):
@@ -62,6 +74,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
 
         self.assertTrue(_should_refresh_all_time_leaders(args))
         self.assertTrue(_should_update_debuts(args))
+        self.assertTrue(_should_update_awards(args))
         self.assertTrue(_should_download_bref_backups(args))
 
     def test_debut_update_can_be_enabled_for_cache_only_runs(self):
@@ -69,19 +82,112 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
 
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertTrue(_should_update_debuts(args))
+        self.assertFalse(_should_update_awards(args))
         self.assertFalse(_should_download_bref_backups(args))
+
+    def test_awards_update_can_be_enabled_for_cache_only_runs(self):
+        args = make_args(from_cache_only=True, update_awards=True)
+
+        self.assertFalse(_should_refresh_all_time_leaders(args))
+        self.assertFalse(_should_update_debuts(args))
+        self.assertTrue(_should_update_awards(args))
+        self.assertFalse(_should_download_bref_backups(args))
+
+    def test_excel_only_skips_awards_update(self):
+        args = make_args(excel_only=True)
+
+        self.assertFalse(_should_update_awards(args))
 
     def test_bref_backup_download_can_be_enabled_for_cache_only_runs(self):
         args = make_args(from_cache_only=True, download_bref_backups=True)
 
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
+        self.assertFalse(_should_update_awards(args))
         self.assertTrue(_should_download_bref_backups(args))
 
     def test_skip_debut_update_overrides_forced_debut_update(self):
         args = make_args(from_cache_only=True, update_debuts=True, skip_debut_update=True)
 
         self.assertFalse(_should_update_debuts(args))
+
+    def test_skip_awards_update_overrides_forced_awards_update(self):
+        args = make_args(from_cache_only=True, update_awards=True, skip_awards_update=True)
+
+        self.assertFalse(_should_update_awards(args))
+
+    def test_fresh_awards_reference_does_not_refresh(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            references_dir = Path(tmpdir)
+            awards_path = references_dir / "awards.json"
+            awards_path.write_text(
+                json.dumps({
+                    "metadata": {"generated_at": "2026-06-22T12:00:00+00:00"},
+                    "awards": [],
+                }),
+                encoding="utf-8",
+            )
+
+            with patch("baseball_processor.main.REFERENCES_DIR", references_dir), patch(
+                "baseball_processor.scrapers.awards_scraper.scrape_awards",
+                side_effect=AssertionError("Fresh awards should not scrape"),
+            ):
+                refreshed = _refresh_awards_if_stale(
+                    max_age_days=7,
+                    force=False,
+                    initial_delay=0,
+                )
+
+        self.assertFalse(refreshed)
+
+    def test_stale_awards_reference_refreshes_and_writes_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            references_dir = Path(tmpdir)
+            awards_path = references_dir / "awards.json"
+            awards_path.write_text(
+                json.dumps({
+                    "metadata": {"generated_at": "2026-06-01T12:00:00+00:00"},
+                    "awards": [],
+                }),
+                encoding="utf-8",
+            )
+            entries = [{"award": "Reliever of the Month", "name": "Louis Varland"}]
+            page_summaries = [{"key": "mlb-relievers-of-the-month", "entries": 1}]
+
+            with patch("baseball_processor.main.REFERENCES_DIR", references_dir), patch(
+                "baseball_processor.scrapers.awards_scraper.scrape_awards",
+                return_value=(entries, page_summaries),
+            ) as scrape_awards:
+                refreshed = _refresh_awards_if_stale(
+                    max_age_days=7,
+                    force=False,
+                    initial_delay=0,
+                )
+
+            payload = json.loads(awards_path.read_text(encoding="utf-8"))
+
+        self.assertTrue(refreshed)
+        self.assertEqual(1, payload["metadata"]["entry_count"])
+        self.assertEqual(entries, payload["awards"])
+        scrape_awards.assert_called_once()
+
+    def test_awards_reference_age_uses_metadata_timestamp(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            awards_path = Path(tmpdir) / "awards.json"
+            awards_path.write_text(
+                json.dumps({
+                    "metadata": {"generated_at": "2026-06-20T12:00:00+00:00"},
+                    "awards": [],
+                }),
+                encoding="utf-8",
+            )
+
+            age_days = _awards_reference_age_days(
+                awards_path,
+                now=datetime.fromisoformat("2026-06-22T12:00:00+00:00"),
+            )
+
+        self.assertEqual(2, age_days)
 
     def test_cache_loader_dedupes_game_id_aliases_and_keeps_richer_record(self):
         sparse_game = {
@@ -368,6 +474,41 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
 
         self.assertEqual(api_path, found_path)
         self.assertEqual(api_game, found_game)
+
+    def test_infers_bref_game_id_candidates_from_downloaded_backup_filename(self):
+        game_ids = _infer_bref_game_ids_from_backup_filename(
+            "Washington Nationals vs San Francisco Giants Box Score_ June 9, 2026 _ Baseball-Reference.com.html"
+        )
+
+        self.assertEqual(["SFN202606090", "SFN202606091", "SFN202606092"], game_ids)
+
+    def test_process_html_file_uses_api_cache_for_downloaded_backup_without_parsing(self):
+        api_game = {
+            "game_id": "SFN202606090",
+            "source": "mlb",
+            "basic_info": {"source": "mlb", "game_type": "regular"},
+            "milestone_stats": {"already_processed": [{"player": "Existing"}]},
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            cache_dir = tmp_path / "cache"
+            cache_dir.mkdir()
+            html_path = (
+                tmp_path
+                / "Washington Nationals vs San Francisco Giants Box Score_ June 9, 2026 _ Baseball-Reference.com.html"
+            )
+            html_path.write_text("<html></html>", encoding="utf-8")
+            api_path = cache_dir / "SFN202606090.json"
+            api_path.write_text(json.dumps(api_game), encoding="utf-8")
+
+            with patch("baseball_processor.main.CACHE_DIR", cache_dir), patch(
+                "baseball_processor.main.parse_baseball_reference_boxscore",
+                side_effect=AssertionError("HTML parser should not run for API-backed BREF backups"),
+            ):
+                result = process_html_file(str(html_path))
+
+        self.assertEqual(api_game, result)
 
     def test_process_html_file_uses_api_cache_without_writing_html_cache_alias(self):
         api_game = {

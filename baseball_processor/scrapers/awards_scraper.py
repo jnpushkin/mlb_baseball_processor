@@ -62,6 +62,62 @@ POSITION_CODES = {
     "UT",
     "UTILITY",
 }
+VALID_TEAM_IDS = {
+    "ARI",
+    "ATL",
+    "BAL",
+    "BOS",
+    "BSN",
+    "BRO",
+    "CAL",
+    "CHA",
+    "CHC",
+    "CHN",
+    "CHW",
+    "CIN",
+    "CLE",
+    "COL",
+    "DET",
+    "FLA",
+    "HOU",
+    "KCA",
+    "KC",
+    "LAA",
+    "LAD",
+    "LAN",
+    "MIA",
+    "MIL",
+    "MIN",
+    "MLN",
+    "MON",
+    "NYA",
+    "NYG",
+    "NYM",
+    "NYN",
+    "NYY",
+    "OAK",
+    "PHA",
+    "PHI",
+    "PIT",
+    "SD",
+    "SDN",
+    "SEA",
+    "SF",
+    "SFN",
+    "SLN",
+    "STL",
+    "TB",
+    "TBA",
+    "TEX",
+    "TOR",
+    "WAS",
+    "WSH",
+    "WSN",
+    "ATH",
+    "TOT",
+    "2TM",
+    "3TM",
+}
 
 
 @dataclass(frozen=True)
@@ -273,7 +329,7 @@ def first_team_id(cell: Tag) -> str:
 
     for token in text.split():
         normalized = token.strip("(),")
-        if re.fullmatch(r"[A-Z0-9]{2,3}|2tm|TOT", normalized):
+        if normalized.upper() in VALID_TEAM_IDS:
             return normalized
     return ""
 

@@ -70,6 +70,14 @@ python3 -m baseball_processor.scrapers.all_time_leaders_scraper --stat SV    # J
 ```
 Auto-refreshed when >7 days old during processor runs.
 
+### Awards
+```bash
+python3 -m baseball_processor.scrapers.awards_scraper
+python3 -m baseball_processor.scrapers.awards_scraper --page mlb-relievers-of-the-month
+python3 -m baseball_processor --update-awards --website-only
+```
+`mlb_references/awards.json` auto-refreshes when >7 days old during normal website-capable processor runs. Use `--skip-awards-update` to keep runs local, or `--update-awards` to force a refresh even in cache-only mode.
+
 ### Pitch Data / Exit Velo / ABS Challenges
 ```bash
 python3 -m baseball_processor.scrapers.pitch_data_scraper              # Enrich all cached games
@@ -158,9 +166,11 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 - Game deduplication by date+teams (prevents BREF + API duplicates)
 - Sports-Reference sites hide tables in HTML comments - must extract with BeautifulSoup Comment class
 - Baseball-Reference award pages use mixed table shapes: standard `data-stat` rows, matrix grids (Gold Glove/Silver Slugger/monthly awards), and malformed nested `<tr>` title tables. Use `awards_scraper` parsing helpers instead of assuming normal tbody rows.
+- Awards are loaded from `mlb_references/awards.json` during website serialization. Normal website-capable processor runs refresh that file when stale before generating `award-data.json`; cache-only and quick-stats runs stay local unless `--update-awards` is passed.
 - MLB API game IDs start with 'M' prefix (e.g., MSF202603230), BREF IDs don't (e.g., SFN202603230)
 - Spring training games excluded from cumulative stat badges but included in game log
 - Player bios cached in `cache/player_bios.json` (fetched from MLB API)
+- Downloaded BREF HTML backups for API-sourced games should short-circuit to the existing API cache by inferring the BREF-style game ID from the backup filename. Do not reparse those backups just to rediscover the game ID.
 
 ## Local Website Review
 ```bash
