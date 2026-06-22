@@ -2,7 +2,7 @@
   "stat": "G_pitch",
   "stat_name": "Games (Pitching)",
   "type": "pitching",
-  "last_updated": "2026-05-07",
+  "last_updated": "2026-06-22",
   "leaders": [
     {
       "rank": 1,
@@ -120,26 +120,26 @@
     },
     {
       "rank": 20,
+      "player_id": "janseke01",
+      "name": "Kenley Jansen",
+      "value": 954
+    },
+    {
+      "rank": 21,
       "player_id": "rodnefe01",
       "name": "Fernando Rodney",
       "value": 951
     },
     {
-      "rank": 21,
+      "rank": 22,
       "player_id": "rodrifr03",
       "name": "Francisco Rodr\u00edguez",
       "value": 948
     },
     {
-      "rank": 22,
+      "rank": 23,
       "player_id": "fingero01",
       "name": "Rollie Fingers",
-      "value": 944
-    },
-    {
-      "rank": 22,
-      "player_id": "janseke01",
-      "name": "Kenley Jansen",
       "value": 944
     },
     {
@@ -192,39 +192,39 @@
     },
     {
       "rank": 32,
+      "player_id": "chapmar01",
+      "name": "Aroldis Chapman",
+      "value": 885
+    },
+    {
+      "rank": 33,
       "player_id": "assenpa01",
       "name": "Paul Assenmacher",
       "value": 884
     },
     {
-      "rank": 33,
+      "rank": 34,
       "player_id": "myersmi01",
       "name": "Mike Myers",
       "value": 883
     },
     {
-      "rank": 34,
+      "rank": 35,
       "player_id": "embreal01",
       "name": "Alan Embree",
       "value": 882
     },
     {
-      "rank": 35,
+      "rank": 36,
       "player_id": "roberda08",
       "name": "David Robertson",
       "value": 881
     },
     {
-      "rank": 36,
+      "rank": 37,
       "player_id": "reardje01",
       "name": "Jeff Reardon",
       "value": 880
-    },
-    {
-      "rank": 37,
-      "player_id": "chapmar01",
-      "name": "Aroldis Chapman",
-      "value": 875
     },
     {
       "rank": 38,
@@ -234,21 +234,21 @@
     },
     {
       "rank": 39,
+      "player_id": "kimbrcr01",
+      "name": "Craig Kimbrel",
+      "value": 869
+    },
+    {
+      "rank": 40,
       "player_id": "smithjo05",
       "name": "Joe Smith",
       "value": 866
     },
     {
-      "rank": 40,
+      "rank": 41,
       "player_id": "niekrph01",
       "name": "Phil Niekro",
       "value": 864
-    },
-    {
-      "rank": 41,
-      "player_id": "kimbrcr01",
-      "name": "Craig Kimbrel",
-      "value": 860
     },
     {
       "rank": 42,
@@ -324,14 +324,14 @@
     },
     {
       "rank": 54,
-      "player_id": "clippty01",
-      "name": "Tyler Clippard",
+      "player_id": "ryanno01",
+      "name": "Nolan Ryan Jr.",
       "value": 807
     },
     {
       "rank": 54,
-      "player_id": "ryanno01",
-      "name": "Nolan Ryan Jr.",
+      "player_id": "clippty01",
+      "name": "Tyler Clippard",
       "value": 807
     },
     {
@@ -360,14 +360,14 @@
     },
     {
       "rank": 60,
-      "player_id": "shawbr01",
-      "name": "Bryan Shaw",
+      "player_id": "klinest02",
+      "name": "Steve Kline",
       "value": 796
     },
     {
       "rank": 60,
-      "player_id": "klinest02",
-      "name": "Steve Kline",
+      "player_id": "shawbr01",
+      "name": "Bryan Shaw",
       "value": 796
     },
     {
@@ -438,14 +438,14 @@
     },
     {
       "rank": 73,
-      "player_id": "benitar01",
-      "name": "Armando Ben\u00edtez",
+      "player_id": "rogerke01",
+      "name": "Kenny Rogers",
       "value": 762
     },
     {
       "rank": 73,
-      "player_id": "rogerke01",
-      "name": "Kenny Rogers",
+      "player_id": "benitar01",
+      "name": "Armando Ben\u00edtez",
       "value": 762
     },
     {
@@ -678,21 +678,15 @@
     },
     {
       "rank": 113,
-      "player_id": "beckro01",
-      "name": "Rod Beck",
-      "value": 704
-    },
-    {
-      "rank": 113,
       "player_id": "millest01",
       "name": "Stu Miller",
       "value": 704
     },
     {
-      "rank": 115,
-      "player_id": "perezol01",
-      "name": "Oliver P\u00e9rez",
-      "value": 703
+      "rank": 113,
+      "player_id": "beckro01",
+      "name": "Rod Beck",
+      "value": 704
     },
     {
       "rank": 115,
@@ -704,6 +698,12 @@
       "rank": 115,
       "player_id": "harrigr01",
       "name": "Greg Harris",
+      "value": 703
+    },
+    {
+      "rank": 115,
+      "player_id": "perezol01",
+      "name": "Oliver P\u00e9rez",
       "value": 703
     },
     {
@@ -744,6 +744,12 @@
     },
     {
       "rank": 124,
+      "player_id": "alexape01",
+      "name": "Grover Alexander",
+      "value": 696
+    },
+    {
+      "rank": 124,
       "player_id": "moyerja01",
       "name": "Jamie Moyer",
       "value": 696
@@ -755,15 +761,9 @@
       "value": 696
     },
     {
-      "rank": 124,
-      "player_id": "alexape01",
-      "name": "Grover Alexander",
-      "value": 696
-    },
-    {
       "rank": 127,
-      "player_id": "milletr02",
-      "name": "Trever Miller",
+      "player_id": "millebo04",
+      "name": "Bob Miller",
       "value": 694
     },
     {
@@ -774,8 +774,8 @@
     },
     {
       "rank": 127,
-      "player_id": "millebo04",
-      "name": "Bob Miller",
+      "player_id": "milletr02",
+      "name": "Trever Miller",
       "value": 694
     },
     {
@@ -783,12 +783,6 @@
       "player_id": "belisma01",
       "name": "Matt Belisle",
       "value": 693
-    },
-    {
-      "rank": 131,
-      "player_id": "rixeyep01",
-      "name": "Eppa Rixey",
-      "value": 692
     },
     {
       "rank": 131,
@@ -804,20 +798,26 @@
     },
     {
       "rank": 131,
+      "player_id": "rixeyep01",
+      "name": "Eppa Rixey",
+      "value": 692
+    },
+    {
+      "rank": 131,
       "player_id": "blylebe01",
       "name": "Bert Blyleven",
       "value": 692
     },
     {
       "rank": 135,
-      "player_id": "wynnea01",
-      "name": "Early Wynn",
+      "player_id": "jacksgr01",
+      "name": "Grant Jackson",
       "value": 691
     },
     {
       "rank": 135,
-      "player_id": "jacksgr01",
-      "name": "Grant Jackson",
+      "player_id": "wynnea01",
+      "name": "Early Wynn",
       "value": 691
     },
     {
@@ -906,6 +906,12 @@
     },
     {
       "rank": 151,
+      "player_id": "quiseda01",
+      "name": "Dan Quisenberry",
+      "value": 674
+    },
+    {
+      "rank": 151,
       "player_id": "hoytwa01",
       "name": "Waite Hoyt",
       "value": 674
@@ -914,12 +920,6 @@
       "rank": 151,
       "player_id": "johnsji04",
       "name": "Jim Johnson",
-      "value": 674
-    },
-    {
-      "rank": 151,
-      "player_id": "quiseda01",
-      "name": "Dan Quisenberry",
       "value": 674
     },
     {
@@ -1014,14 +1014,14 @@
     },
     {
       "rank": 169,
-      "player_id": "garcija01",
-      "name": "Santiago Casilla",
+      "player_id": "lindbpa01",
+      "name": "Paul Lindblad",
       "value": 655
     },
     {
       "rank": 169,
-      "player_id": "lindbpa01",
-      "name": "Paul Lindblad",
+      "player_id": "garcija01",
+      "name": "Santiago Casilla",
       "value": 655
     },
     {
@@ -1038,14 +1038,14 @@
     },
     {
       "rank": 173,
-      "player_id": "fuentbr01",
-      "name": "Brian Fuentes",
+      "player_id": "mcgeeja01",
+      "name": "Jake McGee",
       "value": 650
     },
     {
       "rank": 173,
-      "player_id": "mcgeeja01",
-      "name": "Jake McGee",
+      "player_id": "fuentbr01",
+      "name": "Brian Fuentes",
       "value": 650
     },
     {
@@ -1056,8 +1056,8 @@
     },
     {
       "rank": 176,
-      "player_id": "carrahe01",
-      "name": "Hector Carrasco",
+      "player_id": "larocda01",
+      "name": "Dave LaRoche",
       "value": 647
     },
     {
@@ -1068,8 +1068,8 @@
     },
     {
       "rank": 176,
-      "player_id": "larocda01",
-      "name": "Dave LaRoche",
+      "player_id": "carrahe01",
+      "name": "Hector Carrasco",
       "value": 647
     },
     {
@@ -1122,12 +1122,6 @@
     },
     {
       "rank": 187,
-      "player_id": "seguidi01",
-      "name": "Diego Segui",
-      "value": 639
-    },
-    {
-      "rank": 187,
       "player_id": "remlimi01",
       "name": "Mike Remlinger",
       "value": 639
@@ -1136,6 +1130,12 @@
       "rank": 187,
       "player_id": "lampde01",
       "name": "Dennis Lamp",
+      "value": 639
+    },
+    {
+      "rank": 187,
+      "player_id": "seguidi01",
+      "name": "Diego Segui",
       "value": 639
     },
     {
@@ -1152,14 +1152,14 @@
     },
     {
       "rank": 192,
-      "player_id": "mathech01",
-      "name": "Christy Mathewson",
+      "player_id": "loganbo02",
+      "name": "Boone Logan",
       "value": 635
     },
     {
       "rank": 192,
-      "player_id": "loganbo02",
-      "name": "Boone Logan",
+      "player_id": "mathech01",
+      "name": "Christy Mathewson",
       "value": 635
     },
     {

@@ -277,6 +277,48 @@ def test_weather_summary_sorts_game_ids_with_same_context_helper():
     assert row["GameIDs"] == "SFN202404080, BAL202506240"
 
 
+def test_pitchers_used_summary_keeps_team_breakdowns_inside_game_detail():
+    processor = make_processor()
+    processor.games = [
+        {
+            **make_summary_game("SFN202309250", "SD", "SF", "20230925", 1, 2),
+            "pitching": {
+                "away": [
+                    {"name": "Blake Snell"},
+                    {"name": "Tom Cosgrove"},
+                    {"name": "Robert Suarez"},
+                ],
+                "home": [{"name": "Logan Webb"}],
+            },
+        },
+        {
+            **make_summary_game("SFN202604230", "LAD", "SF", "20260423", 3, 0),
+            "pitching": {
+                "away": [
+                    {"name": "Tyler Glasnow"},
+                    {"name": "Tanner Scott"},
+                ],
+                "home": [
+                    {"name": "Logan Webb"},
+                    {"name": "Blade Tidwell"},
+                ],
+            },
+        },
+    ]
+    for game in processor.games:
+        processor._process_game_statistics(game)
+
+    row = summary_row(processor, "Fewest Pitchers Used")
+    detail_parts = [part.strip() for part in row["Detail"].split(";") if part.strip()]
+    score_parts = [part.strip() for part in row["Score"].split(";") if part.strip()]
+
+    assert detail_parts == [
+        "SD (3): Blake Snell, Tom Cosgrove, Robert Suarez / SF (1): Logan Webb",
+        "LAD (2): Tyler Glasnow, Tanner Scott / SF (2): Logan Webb, Blade Tidwell",
+    ]
+    assert len(detail_parts) == len(score_parts) == 2
+
+
 def test_home_run_record_counts_multi_homer_players_from_footer():
     processor = make_processor()
     game = {

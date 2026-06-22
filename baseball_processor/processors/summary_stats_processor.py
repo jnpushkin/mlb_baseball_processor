@@ -299,7 +299,7 @@ class SummaryStatsProcessor(BaseProcessor):
             home_code = basic_info.get("home_team_code", "HOME")
             away_code = basic_info.get("away_team_code", "AWAY")
 
-            detail = f"{away_code} ({len(away_pitchers)}): {', '.join(away_names)}; {home_code} ({len(home_pitchers)}): {', '.join(home_names)}"
+            detail = f"{away_code} ({len(away_pitchers)}): {', '.join(away_names)} / {home_code} ({len(home_pitchers)}): {', '.join(home_names)}"
 
             if total_pitchers > self.most_pitchers_used:
                 self.most_pitchers_used = total_pitchers

@@ -118,6 +118,64 @@ class BrefBackupParityTests(unittest.TestCase):
 
         self.assertEqual([], issues)
 
+    def test_compare_metadata_ignores_sponsored_dodger_stadium_alias(self):
+        api_game = {
+            "game_id": "LAN202606200",
+            "basic_info": {
+                "date_yyyymmdd": "20260620",
+                "away_team_code": "WSH",
+                "home_team_code": "LAD",
+                "away_score_value": 3,
+                "home_score_value": 4,
+                "venue": "UNIQLO Field at Dodger Stadium",
+                "game_type": "regular",
+            },
+        }
+        bref_game = {
+            "basic_info": {
+                "date_yyyymmdd": "20260620",
+                "away_team_code": "WAS",
+                "home_team_code": "LAD",
+                "away_score_value": 3,
+                "home_score_value": 4,
+                "venue": "Dodger Stadium",
+                "game_type": "regular",
+            },
+        }
+
+        issues = _compare_metadata(api_game, bref_game, Path("api.json"), Path("backup.html"))
+
+        self.assertEqual([], issues)
+
+    def test_compare_metadata_ignores_team_code_aliases(self):
+        api_game = {
+            "game_id": "SFN202606080",
+            "basic_info": {
+                "date_yyyymmdd": "20260608",
+                "away_team_code": "WSH",
+                "home_team_code": "SF",
+                "away_score_value": 4,
+                "home_score_value": 2,
+                "venue": "Oracle Park",
+                "game_type": "regular",
+            },
+        }
+        bref_game = {
+            "basic_info": {
+                "date_yyyymmdd": "20260608",
+                "away_team_code": "WAS",
+                "home_team_code": "SF",
+                "away_score_value": 4,
+                "home_score_value": 2,
+                "venue": "Oracle Park",
+                "game_type": "regular",
+            },
+        }
+
+        issues = _compare_metadata(api_game, bref_game, Path("api.json"), Path("backup.html"))
+
+        self.assertEqual([], issues)
+
     def test_write_issues_csv_writes_report_rows(self):
         issue = {
             "kind": "metadata_mismatch",

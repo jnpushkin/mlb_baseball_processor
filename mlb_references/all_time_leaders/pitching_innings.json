@@ -2,7 +2,7 @@
   "stat": "IP",
   "stat_name": "Innings Pitched",
   "type": "pitching",
-  "last_updated": "2026-05-07",
+  "last_updated": "2026-06-22",
   "leaders": [
     {
       "rank": 1,
@@ -836,7 +836,7 @@
       "rank": 139,
       "player_id": "scherma01",
       "name": "Max Scherzer",
-      "value": 2981
+      "value": 2985
     },
     {
       "rank": 140,

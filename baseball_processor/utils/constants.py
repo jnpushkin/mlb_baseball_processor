@@ -206,7 +206,7 @@ STADIUM_ALIASES = {
     'Great American Ball Park': [],
     'Oracle Park': ['AT&T Park', 'SBC Park', 'Pacific Bell Park'],
     'Petco Park': [],
-    'Dodger Stadium': [],
+    'Dodger Stadium': ['UNIQLO Field at Dodger Stadium'],
     'Coors Field': [],
     'Chase Field': ['Bank One Ballpark'],
     'Busch Stadium': ['Busch Stadium III', 'New Busch Stadium'],
