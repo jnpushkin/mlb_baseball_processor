@@ -1,7 +1,11 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 import pandas as pd
 
+import baseball_processor.website.serializers as serializers
 from baseball_processor.website.serializers import DataSerializer
 
 
@@ -147,6 +151,36 @@ class FakeWeatherTracker:
 
 
 class DataSerializerTests(unittest.TestCase):
+    def test_load_career_firsts_cache_uses_configured_cache_dir(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_dir = Path(tmpdir)
+            career_firsts_dir = cache_dir / "career_firsts"
+            career_firsts_dir.mkdir()
+            expected = {
+                "muncyma02": {
+                    "player_name": "Max Muncy",
+                    "batting_milestones": {
+                        "G": [
+                            {
+                                "number": 100,
+                                "date": "20260623",
+                                "game_id": "SFN202606230",
+                                "milestone": "Career Game #100",
+                            }
+                        ]
+                    },
+                }
+            }
+            with open(career_firsts_dir / "career_firsts.json", "w") as f:
+                json.dump(expected, f)
+
+            original_cache_dir = serializers.CACHE_DIR
+            serializers.CACHE_DIR = cache_dir
+            try:
+                self.assertEqual(expected, serializers.load_career_firsts_cache())
+            finally:
+                serializers.CACHE_DIR = original_cache_dir
+
     def test_serialize_player_games_keeps_source_batting_order_metadata(self):
         game = {
             "game_id": "HOM202606230",

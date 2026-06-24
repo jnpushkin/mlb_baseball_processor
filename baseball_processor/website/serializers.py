@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..engines.all_time_passing_engine import AllTimePassingEngine, find_passings_reverse_lookup, load_gamelogs_cache
-from ..utils.constants import REFERENCES_DIR
+from ..utils.constants import CACHE_DIR, REFERENCES_DIR
 
 
 def _format_date(date_str):
@@ -23,18 +23,7 @@ def _format_date(date_str):
 
 def load_career_firsts_cache():
     """Load the career firsts cache from disk."""
-    # Find project root
-    current = Path(__file__).resolve()
-    project_root = None
-    for parent in [current] + list(current.parents):
-        if (parent / '.project_root').exists() or (parent / 'baseball_processor').is_dir():
-            project_root = parent
-            break
-
-    if not project_root:
-        project_root = Path.cwd()
-
-    cache_file = project_root / 'cache' / 'career_firsts' / 'career_firsts.json'
+    cache_file = CACHE_DIR / 'career_firsts' / 'career_firsts.json'
     if cache_file.exists():
         try:
             with open(cache_file, 'r') as f:

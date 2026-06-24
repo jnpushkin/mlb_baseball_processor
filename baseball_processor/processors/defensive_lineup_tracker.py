@@ -3,6 +3,8 @@ Defensive Statistics and Lineup Analysis Tracker
 Captures putouts, assists, fielding %, lineup positions, substitutions
 """
 
+import re
+import unicodedata
 import pandas as pd
 from collections import defaultdict
 
@@ -37,12 +39,60 @@ class DefensiveLineupTracker:
         # Best fielding plays
         self.double_plays = []
         self.triple_plays = []
+
+    @staticmethod
+    def _to_int(value):
+        try:
+            return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    @staticmethod
+    def _normalize_text(value):
+        text = str(value or "").replace('\u00a0', ' ')
+        text = unicodedata.normalize('NFKD', text)
+        return re.sub(r'\s+', ' ', text).strip()
+
+    def _side_has_error_footer(self, game, side):
+        return bool((game.get("footer_summary", {}).get(side, {}) or {}).get("E"))
+
+    def _build_name_to_player(self, game, side):
+        name_to_player = {}
+        for section in ("batting", "pitching"):
+            for player in game.get(section, {}).get(side, []) or []:
+                player_id = player.get("player_id")
+                player_name = player.get("name", "")
+                if not player_id or not player_name:
+                    continue
+                normalized_name = self._normalize_text(player_name)
+                if normalized_name:
+                    name_to_player[normalized_name] = (player_id, normalized_name)
+        return name_to_player
+
+    def _iter_known_error_entries(self, error_str, name_to_player):
+        entries = []
+        used_spans = []
+        for name, (player_id, display_name) in sorted(
+            name_to_player.items(),
+            key=lambda item: len(item[0]),
+            reverse=True,
+        ):
+            pattern = re.compile(
+                rf'(?<!\w){re.escape(name)}\s*(?P<count>\d+)?\s*(?:\(\d*\))?',
+                re.IGNORECASE,
+            )
+            for match in pattern.finditer(error_str):
+                span = match.span()
+                if any(span[0] < used[1] and used[0] < span[1] for used in used_spans):
+                    continue
+                count_match = match.group('count')
+                error_count = self._to_int(count_match) if count_match else 1
+                entries.append((span[0], player_id, display_name, error_count))
+                used_spans.append(span)
+        return sorted(entries, key=lambda entry: entry[0])
     
     def process_game_defense_lineup(self, game):
         """Extract defensive and lineup data from a game."""
-        game_id = game.get("game_id", "")
-        basic_info = game.get("basic_info", {})
-        
         # Process batting stats for lineup and defensive positions
         for side in ["home", "away"]:
             for player in game.get("batting", {}).get(side, []):
@@ -59,14 +109,16 @@ class DefensiveLineupTracker:
                     self.player_lineup[player_id]["name"] = player_name
                 
                 # Track defensive stats (PO, A, E)
-                putouts = player.get("PO", 0)
-                assists = player.get("A", 0)
+                putouts = self._to_int(player.get("PO", 0))
+                assists = self._to_int(player.get("A", 0))
                 
                 # FIXED: Always count the game for defense tracking, even if PO/A are 0
                 # This ensures all players appear in defensive stats
                 self.player_defense[player_id]["games"] += 1
                 self.player_defense[player_id]["putouts"] += putouts
                 self.player_defense[player_id]["assists"] += assists
+                if not self._side_has_error_footer(game, side):
+                    self.player_defense[player_id]["errors"] += self._to_int(player.get("E", 0))
                 
                 # Track position
                 position = player.get("position", "")
@@ -94,10 +146,10 @@ class DefensiveLineupTracker:
         
         # Process errors from footer
         self.process_error_data(game)
+        self.process_play_error_data(game)
     
     def process_error_data(self, game):
         """Extract error data from footer summary."""
-        game_id = game.get("game_id", "")
         footer = game.get("footer_summary", {})
         
         for side in ["home", "away"]:
@@ -105,61 +157,74 @@ class DefensiveLineupTracker:
             if not error_str:
                 continue
             
-            # CRITICAL FIX: Replace non-breaking spaces with regular spaces
-            import unicodedata
-            error_str = error_str.replace('\u00a0', ' ')
-            error_str = unicodedata.normalize('NFKD', error_str)
-            
-            # Parse errors with correct format understanding:
-            # "PlayerName" = 1 error
-            # "PlayerName (10)" = 1 error (10 is season total)
-            # "PlayerName 2 (10)" = 2 errors THIS game (10 is season total)
-            import re
-            
-            # Pattern to match "FirstName LastName [error_count] (season_total)"
-            # Examples: 
-            #   "Brandon Crawford ()" → 1 error
-            #   "Jake Cronenworth (7)" → 1 error (7th of season)
-            #   "Anthony Volpe 2 (15)" → 2 errors this game (15th of season)
-            pattern = r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+(?:\s+(?:Jr\.|Sr\.|III|II|IV))?)?)\s*(\d+)?\s*(?:\(\d*\))?'
-            matches = re.findall(pattern, error_str)
-            
-            # Map player names to IDs from batting lineup
-            name_to_id = {}
-            for player in game.get("batting", {}).get(side, []):
-                player_id = player.get("player_id")
-                player_name = player.get("name", "")
-                if player_id and player_name:
-                    # Also normalize the name from batting
-                    normalized_name = player_name.replace('\u00a0', ' ')
-                    normalized_name = unicodedata.normalize('NFKD', normalized_name)
-                    name_to_id[normalized_name] = player_id
-                    name_to_id[player_name] = player_id  # Keep original too
-            
-            # Also check pitching for pitcher errors
-            for player in game.get("pitching", {}).get(side, []):
-                player_id = player.get("player_id")
-                player_name = player.get("name", "")
-                if player_id and player_name:
-                    normalized_name = player_name.replace('\u00a0', ' ')
-                    normalized_name = unicodedata.normalize('NFKD', normalized_name)
-                    name_to_id[normalized_name] = player_id
-                    name_to_id[player_name] = player_id
+            error_str = self._normalize_text(error_str)
+            name_to_player = self._build_name_to_player(game, side)
             
             # Process each error
-            for name_match, count_match in matches:
-                name = name_match.strip()
-                # CRITICAL FIX: count_match is the number BEFORE parentheses (errors THIS game)
-                # Empty = 1 error, "2" = 2 errors in this game
-                error_count = int(count_match) if count_match else 1
-                
-                # Find matching player ID
-                player_id = name_to_id.get(name)
-                
+            for _, player_id, name, error_count in self._iter_known_error_entries(error_str, name_to_player):
                 if player_id:
                     if self.player_defense[player_id]["name"] == "":
                         self.player_defense[player_id]["name"] = name
                     self.player_defense[player_id]["errors"] += error_count
+
+    def process_play_error_data(self, game):
+        """Backfill individual API errors from play text for older cached games."""
+        target_sides = []
+        for side in ["home", "away"]:
+            if self._side_has_error_footer(game, side):
+                continue
+            row_error_total = sum(
+                self._to_int(player.get("E", 0))
+                for player in game.get("batting", {}).get(side, []) or []
+            )
+            if row_error_total:
+                continue
+            line = game.get("linescore", {}).get(side, {}) or {}
+            team_errors = self._to_int(line.get("E", line.get("errors", 0)))
+            if team_errors:
+                target_sides.append(side)
+
+        if not target_sides:
+            return
+
+        basic = game.get("basic_info", {}) or {}
+        side_by_code = {
+            basic.get("home_team_code"): "home",
+            basic.get("away_team_code"): "away",
+        }
+        names_by_side = {side: self._build_name_to_player(game, side) for side in target_sides}
+        credited = set()
+
+        for play in game.get("play_by_play", []) or []:
+            description = self._normalize_text(play.get("description", ""))
+            if "error by" not in description.lower():
+                continue
+
+            side = side_by_code.get(play.get("pitching_team"))
+            if not side:
+                half = str(play.get("half", "")).lower()
+                side = "home" if half == "top" else "away" if half == "bottom" else ""
+            if side not in names_by_side:
+                continue
+
+            for name, (player_id, display_name) in sorted(
+                names_by_side[side].items(),
+                key=lambda item: len(item[0]),
+                reverse=True,
+            ):
+                pattern = re.compile(
+                    rf'\berror by\b[^.;]*?(?<!\w){re.escape(name)}(?!\w)',
+                    re.IGNORECASE,
+                )
+                if not pattern.search(description):
+                    continue
+                key = (id(play), player_id)
+                if key in credited:
+                    continue
+                if self.player_defense[player_id]["name"] == "":
+                    self.player_defense[player_id]["name"] = display_name
+                self.player_defense[player_id]["errors"] += 1
+                credited.add(key)
     
     def create_defensive_leaders_dataframe(self, min_games=1):
         """Create DataFrame of defensive leaders."""

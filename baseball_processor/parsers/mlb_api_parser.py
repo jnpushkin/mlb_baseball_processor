@@ -960,6 +960,21 @@ def _has_game_batting_activity(stats: dict) -> bool:
     return False
 
 
+def _int_stat(stats: dict, key: str) -> int:
+    try:
+        return int(stats.get(key, 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _has_game_fielding_activity(stats: dict) -> bool:
+    """Return True when the MLB boxscore has per-player fielding activity."""
+    for key in ('putOuts', 'assists', 'errors', 'chances', 'passedBall', 'pickoffs'):
+        if _int_stat(stats, key) > 0:
+            return True
+    return False
+
+
 def parse_batting(box_data: dict, side: str, bref_id_map: dict = None, game_year: int = None) -> list:
     """Parse batting stats for a team."""
     team_data = box_data.get('teams', {}).get(side, {})
@@ -986,6 +1001,7 @@ def parse_batting(box_data: dict, side: str, bref_id_map: dict = None, game_year
 
         person = player.get('person', {})
         stats = player.get('stats', {}).get('batting', {})
+        fielding_stats = player.get('stats', {}).get('fielding', {})
         position = player.get('position', {})
 
         mlb_id = person.get('id')
@@ -1032,13 +1048,19 @@ def parse_batting(box_data: dict, side: str, bref_id_map: dict = None, game_year
             'SH': stats.get('sacBunts', 0),
             'GDP': stats.get('groundIntoDoublePlay', 0),
             'TB': stats.get('totalBases', 0),
+            'PO': _int_stat(fielding_stats, 'putOuts'),
+            'A': _int_stat(fielding_stats, 'assists'),
+            'E': _int_stat(fielding_stats, 'errors'),
+            'TC': _int_stat(fielding_stats, 'chances'),
             'lineup_slot': lineup_slot if is_starter else None,
             'is_starter': is_starter,
         }
 
         # Include no-PA baserunners too; pinch runners can score/steal without
         # getting a plate appearance, and those stats drive milestone detection.
-        if is_starter or _has_game_batting_activity(stats):
+        # MLB API games also carry per-player fielding lines here; keep players
+        # with chances/errors so defensive leaders are not limited to BREF games.
+        if is_starter or _has_game_batting_activity(stats) or _has_game_fielding_activity(fielding_stats):
             result.append(batter_data)
 
     return result

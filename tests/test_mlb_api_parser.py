@@ -390,6 +390,47 @@ class MlbApiParserTests(unittest.TestCase):
         self.assertEqual(1, rows[0]["R"])
         self.assertEqual(2, rows[0]["SB"])
 
+    def test_parse_batting_carries_api_fielding_stats(self):
+        box_data = {
+            "teams": {
+                "home": {
+                    "team": {"id": 137},
+                    "batters": [808982],
+                    "players": {
+                        "ID808982": {
+                            "person": {"id": 808982, "fullName": "Jung Hoo Lee"},
+                            "stats": {
+                                "batting": {
+                                    "gamesPlayed": 1,
+                                    "plateAppearances": 4,
+                                    "atBats": 3,
+                                    "runs": 1,
+                                    "hits": 2,
+                                    "rbi": 1,
+                                },
+                                "fielding": {
+                                    "putOuts": 4,
+                                    "assists": 0,
+                                    "errors": 1,
+                                    "chances": 5,
+                                },
+                            },
+                            "position": {"abbreviation": "RF"},
+                        }
+                    },
+                }
+            }
+        }
+
+        rows = parse_batting(box_data, "home", bref_id_map={808982: "leeju01"})
+
+        self.assertEqual(1, len(rows))
+        self.assertEqual("leeju01", rows[0]["player_id"])
+        self.assertEqual(4, rows[0]["PO"])
+        self.assertEqual(0, rows[0]["A"])
+        self.assertEqual(1, rows[0]["E"])
+        self.assertEqual(5, rows[0]["TC"])
+
     def test_parse_play_by_play_marks_scoring_plays_for_walkoffs(self):
         feed_data = {
             "gameData": {

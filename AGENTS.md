@@ -171,6 +171,7 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 - Spring training games excluded from cumulative stat badges but included in game log
 - Player bios cached in `cache/player_bios.json` (fetched from MLB API)
 - Downloaded BREF HTML backups for API-sourced games should short-circuit to the existing API cache by inferring the BREF-style game ID from the backup filename. Do not reparse those backups just to rediscover the game ID.
+- Individual defensive errors are source-specific: BREF games credit them from `footer_summary[*].E`, while MLB API games expose per-player `stats.fielding.errors` in the boxscore. The defensive tracker should use the BREF footer when present, otherwise row-level API `E`, with play-by-play text only as a fallback for older API caches. BREF footer names can have 3+ tokens (e.g., `Jung Hoo Lee`), so avoid fixed first/last-name regexes.
 
 ## Local Website Review
 ```bash
