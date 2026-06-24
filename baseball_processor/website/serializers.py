@@ -2326,7 +2326,7 @@ class DataSerializer:
                     team = self._normalize_team(basic_info.get(f'{side}_team_code', ''))
                     opponent = self._normalize_team(basic_info.get('away_team_code' if side == 'home' else 'home_team_code', ''))
 
-                    for player in game.get('batting', {}).get(side, []):
+                    for batting_order, player in enumerate(game.get('batting', {}).get(side, [])):
                         player_id = player.get('player_id', '')
                         if not player_id:
                             continue
@@ -2396,6 +2396,10 @@ class DataSerializer:
                             'opponent': opponent,
                             'gameId': game_id,
                             'gameType': basic_info.get('game_type', 'regular'),
+                            'battingOrder': batting_order,
+                            'lineupSlot': player.get('lineup_slot'),
+                            'isStarter': bool(player.get('is_starter', False)),
+                            'position': str(player.get('position', '')),
                             'ab': ab,
                             'pa': pa,
                             'h': int(player.get('H', 0)),

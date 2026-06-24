@@ -147,6 +147,55 @@ class FakeWeatherTracker:
 
 
 class DataSerializerTests(unittest.TestCase):
+    def test_serialize_player_games_keeps_source_batting_order_metadata(self):
+        game = {
+            "game_id": "HOM202606230",
+            "basic_info": {
+                "date_yyyymmdd": "20260623",
+                "home_team_code": "HOM",
+                "away_team_code": "AWY",
+                "game_type": "regular",
+            },
+            "batting": {
+                "home": [
+                    {
+                        "player_id": "starter-one",
+                        "name": "Starter One",
+                        "position": "2B",
+                        "lineup_slot": 1,
+                        "is_starter": True,
+                        "AB": 1,
+                        "PA": 1,
+                    },
+                    {
+                        "player_id": "sub-one",
+                        "name": "Sub One",
+                        "position": "PH",
+                        "AB": 3,
+                        "PA": 3,
+                    },
+                    {
+                        "player_id": "starter-two",
+                        "name": "Starter Two",
+                        "position": "1B",
+                        "lineup_slot": 2,
+                        "is_starter": True,
+                        "AB": 4,
+                        "PA": 4,
+                    },
+                ],
+                "away": [],
+            },
+        }
+
+        rows = DataSerializer()._serialize_player_games([game])
+
+        self.assertEqual(["Starter One", "Sub One", "Starter Two"], [row["name"] for row in rows])
+        self.assertEqual([0, 1, 2], [row["battingOrder"] for row in rows])
+        self.assertEqual([1, None, 2], [row["lineupSlot"] for row in rows])
+        self.assertEqual([True, False, True], [row["isStarter"] for row in rows])
+        self.assertEqual(["2B", "PH", "1B"], [row["position"] for row in rows])
+
     def test_serialize_milestones_includes_multiple_categories(self):
         milestones = {
             "Multi-HR Games": pd.DataFrame(

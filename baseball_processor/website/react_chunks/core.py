@@ -43,9 +43,20 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
         const gamePlayers = playerGames.filter(pg => pg.gameId === game.gameId);
         const gamePitchers = pitcherGames.filter(pg => pg.gameId === game.gameId);
 
-        // Separate by team
-        const homeHitters = gamePlayers.filter(p => p.team === game.homeTeam && (p.pa > 0 || p.ab > 0)).sort((a, b) => b.pa - a.pa);
-        const awayHitters = gamePlayers.filter(p => p.team === game.awayTeam && (p.pa > 0 || p.ab > 0)).sort((a, b) => b.pa - a.pa);
+        const sortHittersForBoxScore = (rows) => rows
+            .map((player, index) => ({ player, index }))
+            .sort((a, b) => {
+                const aOrder = Number(a.player.battingOrder);
+                const bOrder = Number(b.player.battingOrder);
+                const aRank = Number.isFinite(aOrder) ? aOrder : a.index;
+                const bRank = Number.isFinite(bOrder) ? bOrder : b.index;
+                return aRank - bRank || a.index - b.index;
+            })
+            .map(({ player }) => player);
+
+        // Separate by team, preserving the source box-score batting order.
+        const homeHitters = sortHittersForBoxScore(gamePlayers.filter(p => p.team === game.homeTeam && (p.pa > 0 || p.ab > 0)));
+        const awayHitters = sortHittersForBoxScore(gamePlayers.filter(p => p.team === game.awayTeam && (p.pa > 0 || p.ab > 0)));
         const homePitchers = gamePitchers.filter(p => p.team === game.homeTeam).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         const awayPitchers = gamePitchers.filter(p => p.team === game.awayTeam).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         
