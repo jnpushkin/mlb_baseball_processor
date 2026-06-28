@@ -321,7 +321,7 @@ const App = () => {
         { id: 'progress', label: 'Progress' },
         { id: 'special', label: 'Special' },
         { id: 'trivia', label: 'Frivolities' },
-        { id: 'companions', label: 'With' },
+        { id: 'companions', label: 'Companions' },
         { id: 'orioles', label: 'Orioles' },
     ];
     

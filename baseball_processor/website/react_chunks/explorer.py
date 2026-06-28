@@ -80,7 +80,7 @@ const enrichHitterGameRow = (row, game) => ({
 
 const enrichPitcherGameRow = (row, game) => {
     const outs = row.outs || 0;
-    const ip = `${Math.floor(outs / 3)}.${outs % 3}`;
+    const ip = formatOutsAsIP(outs);
     const decision = row.wins ? 'W' : row.losses ? 'L' : row.saves ? 'SV' : '';
     return {
         ...row,
@@ -179,7 +179,7 @@ const CustomStatsExplorer = ({ data }) => {
             return aggregateHitterStats(filteredPlayerGames).filter(row => (row.pa || 0) >= minPa);
         }
         if (dataset === 'pitchers') {
-            return aggregatePitcherStats(filteredPitcherGames).filter(row => ((row.outs || 0) / 3) >= minIp);
+            return aggregatePitcherStats(filteredPitcherGames).filter(row => (row.outs || 0) >= minIp * 3);
         }
         if (dataset === 'hitter-games') {
             return filteredPlayerGames.map(pg => enrichHitterGameRow(pg, lookups.byId[pg.gameId]));

@@ -174,12 +174,12 @@ const buildPlayerLeaderboard = (games, playerGames, pitcherGames, stat, kind, up
         }
     } else if (kind === 'pit') {
         const key = PIT_KEY_MAP[stat];
-        // IP is derived from outs/3 (float).
+        // Keep IP as outs for sorting and display it as baseball notation.
         if (stat === 'IP') {
             (pitcherGames || []).forEach(pg => {
                 if (!eligibleIds.has(pg.gameId)) return;
                 const t = ensure(pg.playerId, pg.name);
-                t.value += (pg.outs || 0) / 3;
+                t.value += (pg.outs || 0);
                 t.games += 1;
             });
         } else {
@@ -195,6 +195,13 @@ const buildPlayerLeaderboard = (games, playerGames, pitcherGames, stat, kind, up
     return Object.values(totals)
         .filter(p => p.value > 0)
         .sort((a, b) => b.value - a.value || (a.name || '').localeCompare(b.name || ''));
+};
+
+const formatRankStatValue = (value, stat) => {
+    if (stat === 'IP') return formatOutsAsIP(value);
+    const num = Number(value);
+    if (!Number.isFinite(num)) return value ?? '';
+    return Number.isInteger(num) ? num.toLocaleString() : num.toFixed(1);
 };
 
 const PlayerRankDetail = ({ badge, game, games, playerGames, pitcherGames }) => {
@@ -222,7 +229,7 @@ const PlayerRankDetail = ({ badge, game, games, playerGames, pitcherGames }) => 
                 <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm">
                     <div className="font-semibold text-amber-900 mb-1">Just passed:</div>
                     {passed.map(p => (
-                        <div key={p.playerId} className="text-amber-800">{p.name} ({p.value})</div>
+                        <div key={p.playerId} className="text-amber-800">{p.name} ({formatRankStatValue(p.value, meta.stat)})</div>
                     ))}
                 </div>
             )}
@@ -236,14 +243,14 @@ const PlayerRankDetail = ({ badge, game, games, playerGames, pitcherGames }) => 
                                 <span className="text-sm font-mono text-slate-500 w-6">#{i + 1}</span>
                                 <span className="text-sm">{p.name}</span>
                             </div>
-                            <div className="text-sm font-mono">{p.value.toLocaleString()}</div>
+                            <div className="text-sm font-mono">{formatRankStatValue(p.value, meta.stat)}</div>
                         </div>
                     ))}
                     {board.length === 0 && <div className="px-3 py-2 text-sm text-slate-500">No data.</div>}
                 </div>
                 {playerIdx >= 0 && playerIdx < board.length - 1 && (
                     <div className="text-xs text-slate-500 mt-2">
-                        Gap to #{playerIdx + 2}: {(board[playerIdx].value - board[playerIdx + 1].value).toLocaleString()}
+                        Gap to #{playerIdx + 2}: {formatRankStatValue(board[playerIdx].value - board[playerIdx + 1].value, meta.stat)}
                     </div>
                 )}
             </div>
@@ -368,7 +375,7 @@ const CumulativeStatDetail = ({ badge, game, games, playerGames, pitcherGames })
                                 <span className="text-sm font-mono text-slate-500 w-6">#{i + 1}</span>
                                 <span className="text-sm">{p.name}</span>
                             </div>
-                            <div className="text-sm font-mono">{p.value.toLocaleString()}</div>
+                            <div className="text-sm font-mono">{formatRankStatValue(p.value, baseStat)}</div>
                         </div>
                     ))}
                     {contributors.length === 0 && <div className="px-3 py-2 text-sm text-slate-500">No data.</div>}
@@ -759,7 +766,7 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
                 playerInfo[pid].K  += (pg.so || 0);
                 playerInfo[pid].W  += (pg.wins || 0);
                 playerInfo[pid].SV += (pg.saves || 0);
-                playerInfo[pid].IP += (pg.outs || 0) / 3;
+                playerInfo[pid].IP += (pg.outs || 0);
                 playerInfo[pid].GS += (pg.gameStarts || 0);
             });
             // Single G increment per touched player (covers two-way players)
@@ -800,7 +807,8 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
                 if (t.isPit) {
                     Object.entries(PLAYER_PIT_THRESHOLDS).forEach(([stat, thresholds]) => {
                         thresholds.forEach(m => {
-                            if ((cur[stat] || 0) >= m && (t.prev[stat] || 0) < m) {
+                            const milestoneValue = stat === 'IP' ? m * 3 : m;
+                            if ((cur[stat] || 0) >= milestoneValue && (t.prev[stat] || 0) < milestoneValue) {
                                 badges[gid].push({
                                     type: 'player-stat',
                                     text: `${ln}: ${ordinal(m)} ${PIT_LABELS_S[stat]}`,
@@ -821,6 +829,7 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
                 if (prevRank !== -1 && newRank >= prevRank) return;  // didn't improve
                 const cur = playerInfo[pid];
                 const ln = lastNameOf(cur.name);
+                const formattedValue = formatRankStatValue(cur[stat] || 0, stat);
                 const baseMeta = {
                     playerId: pid, playerName: cur.name, stat, value: cur[stat] || 0,
                     rank: newRank + 1, prevRank: prevRank === -1 ? null : prevRank + 1,
@@ -830,21 +839,21 @@ const computeCumulativeStatBadges = (games, playerGames, pitcherGames) => {
                     badges[gid].push({
                         type: 'player-rank',
                         text: `${ln}: most ${label} you've seen`,
-                        title: `${cur.name} now leads your top-5 in ${label} (${cur[stat]})`,
+                        title: `${cur.name} now leads your top-5 in ${label} (${formattedValue})`,
                         meta: baseMeta,
                     });
                 } else if (prevRank === -1) {
                     badges[gid].push({
                         type: 'player-rank',
                         text: `${ln}: top-5 ${label} (#${newRank + 1})`,
-                        title: `${cur.name} entered your top-5 ${label} list at #${newRank + 1} (${cur[stat]})`,
+                        title: `${cur.name} entered your top-5 ${label} list at #${newRank + 1} (${formattedValue})`,
                         meta: baseMeta,
                     });
                 } else {
                     badges[gid].push({
                         type: 'player-rank',
                         text: `${ln}: #${newRank + 1} ${label}`,
-                        title: `${cur.name} climbed to #${newRank + 1} on your top-5 ${label} list (${cur[stat]})`,
+                        title: `${cur.name} climbed to #${newRank + 1} on your top-5 ${label} list (${formattedValue})`,
                         meta: baseMeta,
                     });
                 }
@@ -932,6 +941,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
 
     const badgeTypeLabels = {
         'game-count': 'Game Count',
+        'game-count-spring': 'Spring Training Game Count',
         'team': 'Team',
         'venue': 'Venue',
         'div-first': 'Division First',

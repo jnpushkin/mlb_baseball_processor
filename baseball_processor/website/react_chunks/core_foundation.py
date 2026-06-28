@@ -43,6 +43,37 @@ const getHrCount = (detail) => { const match = detail?.match(/(\d+)\s*HR/); retu
 // regardless of direction. Covers nulls, blanks, dash placeholders, and the
 // stringified-NaN that some renders produce for missing numbers.
 const isMissingValue = (v) => v === null || v === undefined || v === '' || v === '-' || v === 'NaN' || (typeof v === 'number' && Number.isNaN(v));
+const formatOutsAsIP = (outs) => {
+    const cleanOuts = Math.max(0, Math.round(Number(outs) || 0));
+    return `${Math.floor(cleanOuts / 3).toLocaleString()}.${cleanOuts % 3}`;
+};
+const decimalInningsToOuts = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? Math.round(num * 3) : 0;
+};
+const baseballIPToOuts = (value) => {
+    if (isMissingValue(value)) return 0;
+    const text = String(value).trim().replace(/[^0-9.-]/g, '');
+    if (!text) return 0;
+    const num = Number(text);
+    if (!Number.isFinite(num)) return 0;
+    const [wholeText, fracText = ''] = text.split('.');
+    const whole = Number.parseInt(wholeText, 10) || 0;
+    if (!fracText) return whole * 3;
+    const rem = Number.parseInt(fracText[0], 10);
+    if ((fracText.length === 1 || /^0+$/.test(fracText.slice(1))) && rem >= 0 && rem <= 2) {
+        return whole * 3 + rem;
+    }
+    return decimalInningsToOuts(num);
+};
+const formatBaseballIP = (value) => formatOutsAsIP(baseballIPToOuts(value));
+const formatDecimalInningsAsIP = (value) => formatOutsAsIP(decimalInningsToOuts(value));
+const formatHistoricalStatValue = (value, stat) => {
+    if (stat === 'IP') return formatDecimalInningsAsIP(value);
+    const num = Number(value);
+    if (!Number.isFinite(num)) return value ?? '';
+    return Number.isInteger(num) ? num.toLocaleString() : num.toFixed(1);
+};
 
 // Aggregation utilities
 const aggregateHitterStats = (playerGames) => {
@@ -161,7 +192,7 @@ const aggregatePitcherStats = (pitcherGames) => {
 
     return Object.values(grouped).map(p => {
         const innings = p.outs / 3;
-        const ip = `${Math.floor(innings)}.${p.outs % 3}`;
+        const ip = formatOutsAsIP(p.outs);
         const era = innings > 0 ? ((p.er * 9) / innings).toFixed(2) : 'N/A';
         const whip = innings > 0 ? ((p.h + p.bb) / innings).toFixed(3) : 'N/A';
         const maxSpeed = p._maxSpeed > 0 ? p._maxSpeed : null;

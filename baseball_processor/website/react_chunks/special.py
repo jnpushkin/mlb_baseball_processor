@@ -1037,7 +1037,7 @@ const AwardWinnerDetail = ({ item, seen, playerGames, pitcherGames, gamesById })
                         { key: 'gameId', label: 'Game', render: value => <GameLink gameId={value} /> },
                         { key: 'team', label: 'Tm' },
                         { key: 'opponent', label: 'Opp' },
-                        { key: 'outs', label: 'IP', render: value => `${Math.floor((value || 0) / 3)}.${(value || 0) % 3}` },
+                        { key: 'outs', label: 'IP', render: value => formatOutsAsIP(value || 0) },
                         { key: 'h', label: 'H' },
                         { key: 'er', label: 'ER' },
                         { key: 'bb', label: 'BB' },

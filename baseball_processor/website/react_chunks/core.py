@@ -322,7 +322,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
     };
 
     const PitcherRow = ({ pitcher }) => {
-        const ip = `${Math.floor(pitcher.outs / 3)}.${pitcher.outs % 3}`;
+        const ip = formatOutsAsIP(pitcher.outs || 0);
         const decision = pitcher.wins ? 'W' : pitcher.losses ? 'L' : pitcher.saves ? 'SV' : '';
         const annotations = gameData.playerAnnotations[pitcher.playerId] || [];
         const isFastest = gameData.fastestPitch?.playerId === pitcher.playerId;
@@ -1263,7 +1263,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                                         <PlayerLink playerId={passing.player_id} name={passing.player_name} /> — #{passing.new_rank} all-time in {passing.stat_name}
                                                     </div>
                                                     <div className="small-text text-slate-600">
-                                                        {passing.new_value} career {passing.stat_name.toLowerCase()}
+                                                        {formatHistoricalStatValue(passing.new_value, passing.stat)} career {passing.stat_name.toLowerCase()}
                                                         {passing.passed_names && ` • Passed ${passing.passed_names}`}
                                                     </div>
                                                 </div>
@@ -1400,6 +1400,10 @@ const PlayerTimeline = ({ playerId, playerName, playerGames, onGameClick, career
             if (aMissing && bMissing) return 0;
             if (aMissing) return 1;
             if (bMissing) return -1;
+            if (sortKey === 'ip') {
+                const result = baseballIPToOuts(aVal) - baseballIPToOuts(bVal);
+                return sortDir === 'asc' ? result : -result;
+            }
             const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
             const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
             let result = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(aVal || '').localeCompare(String(bVal || ''));
@@ -1604,7 +1608,7 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, care
     const gamesForPitcher = useMemo(() => {
         return pitcherGames.filter(g => g.playerId === playerId).map(g => ({
             ...g,
-            ip: `${Math.floor(g.outs / 3)}.${g.outs % 3}`,
+            ip: formatOutsAsIP(g.outs || 0),
             decision: g.wins ? 'W' : g.losses ? 'L' : g.saves ? 'S' : '',
         })).sort((a, b) => b.dateSort.localeCompare(a.dateSort));
     }, [playerId, pitcherGames]);
@@ -1636,7 +1640,7 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, care
         const totalBB = regGames.reduce((s, g) => s + (g.bb || 0), 0);
         const era = innings > 0 ? ((totalER * 9) / innings).toFixed(2) : '-';
         const whip = innings > 0 ? ((totalH + totalBB) / innings).toFixed(3) : '-';
-        const ip = `${Math.floor(innings)}.${totalOuts % 3}`;
+        const ip = formatOutsAsIP(totalOuts);
         return { ...agg, era, whip, ip };
     }, [gamesForPitcher]);
 
@@ -1644,17 +1648,17 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, care
     const notableGames = useMemo(() => {
         return gamesForPitcher.filter(g => {
             const isSpring = g.gameType === 'spring' || g.gameType === 'exhibition';
-            const ipNum = parseFloat(g.ip);
-            return !isSpring && (g.so >= 6 || (ipNum >= 6 && g.er <= 3) || g.decision === 'W' || g.decision === 'S' || (ipNum >= 5 && g.h <= 2));
+            const outs = baseballIPToOuts(g.ip);
+            return !isSpring && (g.so >= 6 || (outs >= 18 && g.er <= 3) || g.decision === 'W' || g.decision === 'S' || (outs >= 15 && g.h <= 2));
         }).map(g => {
             const tags = [];
-            const ipNum = parseFloat(g.ip);
+            const outs = baseballIPToOuts(g.ip);
             if (g.so >= 10) tags.push({ label: `${g.so} K`, color: 'bg-red-100 text-red-700' });
             else if (g.so >= 6) tags.push({ label: `${g.so} K`, color: 'bg-orange-100 text-orange-700' });
-            if (ipNum >= 6 && g.er <= 3) tags.push({ label: 'QS', color: 'bg-blue-100 text-blue-700' });
+            if (outs >= 18 && g.er <= 3) tags.push({ label: 'QS', color: 'bg-blue-100 text-blue-700' });
             if (g.decision === 'W') tags.push({ label: 'W', color: 'bg-green-100 text-green-700' });
             if (g.decision === 'S') tags.push({ label: 'SV', color: 'bg-sky-100 text-sky-700' });
-            if (ipNum >= 5 && g.h <= 2) tags.push({ label: `${g.h}H`, color: 'bg-violet-100 text-violet-700' });
+            if (outs >= 15 && g.h <= 2) tags.push({ label: `${g.h}H`, color: 'bg-violet-100 text-violet-700' });
             return { ...g, tags };
         });
     }, [gamesForPitcher]);
@@ -1688,6 +1692,10 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, care
             if (aMissing && bMissing) return 0;
             if (aMissing) return 1;
             if (bMissing) return -1;
+            if (sortKey === 'ip') {
+                const result = baseballIPToOuts(aVal) - baseballIPToOuts(bVal);
+                return sortDir === 'asc' ? result : -result;
+            }
             const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
             const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
             let result = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(aVal || '').localeCompare(String(bVal || ''));
@@ -1853,7 +1861,7 @@ const PitcherTimeline = ({ playerId, playerName, pitcherGames, onGameClick, care
                                 <tbody className="divide-y">
                                     {sortedGameLog.map((game) => {
                                         const isWin = game.decision === 'W';
-                                        const isQS = parseFloat(game.ip) >= 6 && game.er <= 3;
+                                        const isQS = baseballIPToOuts(game.ip) >= 18 && game.er <= 3;
                                         return (
                                             <tr key={`${game.date}-${game.opponent}-${game.team}`} className={`hover:bg-blue-50 cursor-pointer ${isWin ? 'bg-green-50' : isQS ? 'bg-blue-50' : ''}`} onClick={() => onGameClick && onGameClick(game.gameId)}>
                                                 <td className="px-3 py-1.5 whitespace-nowrap font-medium text-xs">

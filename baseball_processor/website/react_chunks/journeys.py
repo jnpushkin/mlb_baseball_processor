@@ -63,12 +63,17 @@ CODE = r'''const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, 
     const sorted = useMemo(() => {
         if (!sortKey) return filtered;
         return [...filtered].sort((a, b) => {
-            const aVal = a[sortKey], bVal = b[sortKey];
+            const aVal = sortColumn?.sortValue ? sortColumn.sortValue(a[sortKey], a) : a[sortKey];
+            const bVal = sortColumn?.sortValue ? sortColumn.sortValue(b[sortKey], b) : b[sortKey];
             const aMissing = isMissingValue(aVal);
             const bMissing = isMissingValue(bVal);
             if (aMissing && bMissing) return 0;
             if (aMissing) return 1;
             if (bMissing) return -1;
+            if (sortKey === 'ip') {
+                const result = baseballIPToOuts(aVal) - baseballIPToOuts(bVal);
+                return sortDir === 'asc' ? result : -result;
+            }
             const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
             const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
             let result = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(aVal).localeCompare(String(bVal));
@@ -261,6 +266,10 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
             if (aMissing && bMissing) return 0;
             if (aMissing) return 1;
             if (bMissing) return -1;
+            if (sortKey === 'ip') {
+                const result = baseballIPToOuts(aVal) - baseballIPToOuts(bVal);
+                return sortDir === 'asc' ? result : -result;
+            }
             const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
             const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
             let result = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(aVal).localeCompare(String(bVal));
@@ -435,6 +444,8 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
     const sorted = useMemo(() => {
         if (!sortKey) return filtered;
         const dateToSort = (v) => { if (!v) return ''; const p = String(v).split('/'); return p.length === 3 ? `${p[2]}${p[0].padStart(2,'0')}${p[1].padStart(2,'0')}` : v; };
+        const sortColumn = columns.find(col => col.key === sortKey);
+        const isIPColumn = sortColumn?.sortType === 'ip' || sortKey === 'ip' || sortColumn?.label === 'IP';
         return [...filtered].sort((a, b) => {
             const aVal = a[sortKey], bVal = b[sortKey];
             const aMissing = isMissingValue(aVal);
@@ -442,6 +453,10 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
             if (aMissing && bMissing) return 0;
             if (aMissing) return 1;
             if (bMissing) return -1;
+            if (isIPColumn) {
+                const result = baseballIPToOuts(aVal) - baseballIPToOuts(bVal);
+                return sortDir === 'asc' ? result : -result;
+            }
             // Detect date columns (MM/DD/YYYY format)
             if (String(aVal).match(/^\d{1,2}\/\d{1,2}\/\d{4}$/) || String(bVal).match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
                 const result = dateToSort(aVal).localeCompare(dateToSort(bVal));
@@ -452,7 +467,7 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
             let result = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(aVal).localeCompare(String(bVal));
             return sortDir === 'asc' ? result : -result;
         });
-    }, [filtered, sortKey, sortDir]);
+    }, [filtered, sortKey, sortDir, columns]);
 
     const { page, setPage, totalPages, paginatedData, totalItems } = usePagination(sorted, 50);
     const displayData = paginate ? paginatedData : sorted;
@@ -593,14 +608,14 @@ const Leaderboards = ({ data }) => {
 
     const pitchingLeaders = useMemo(() => {
         const all = pitchersData;
-        const qualified = all.filter(p => parseFloat(p.ip) >= minIP);
+        const qualified = all.filter(p => baseballIPToOuts(p.ip) >= minIP * 3);
         return {
             era: [...qualified].filter(p => p.era !== 'N/A').sort((a, b) => parseFloat(a.era) - parseFloat(b.era)).slice(0, 25),
             whip: [...qualified].filter(p => p.whip !== 'N/A').sort((a, b) => parseFloat(a.whip) - parseFloat(b.whip)).slice(0, 25),
             wins: [...all].sort((a, b) => b.wins - a.wins).slice(0, 25),
             so: [...all].sort((a, b) => b.so - a.so).slice(0, 25),
             saves: [...all].sort((a, b) => b.saves - a.saves).slice(0, 25),
-            ip: [...all].sort((a, b) => parseFloat(b.ip) - parseFloat(a.ip)).slice(0, 25),
+            ip: [...all].sort((a, b) => baseballIPToOuts(b.ip) - baseballIPToOuts(a.ip)).slice(0, 25),
         };
     }, [pitchersData, minIP]);
     
@@ -619,7 +634,7 @@ const Leaderboards = ({ data }) => {
                                 <PlayerLink playerId={player.playerId} name={player.name} />
                                 <span className="small-text text-slate-500">({player.team})</span>
                             </div>
-                            <span className="font-bold text-blue-600 body-text">{player[stat]}</span>
+                            <span className="font-bold text-blue-600 body-text">{stat === 'ip' ? formatBaseballIP(player[stat]) : player[stat]}</span>
                         </div>
                     ))}
                 </div>
@@ -1796,6 +1811,20 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
 const NoStatsPlayers = ({ data }) => {
     const [selectedPlayer, setSelectedPlayer] = useState(null);
 
+    const formatShortDate = (date) => {
+        const key = toSortableDate(date);
+        if (!/^\d{8}$/.test(key)) return date || '';
+        const year = Number(key.slice(0, 4));
+        const month = Number(key.slice(4, 6)) - 1;
+        const day = Number(key.slice(6, 8));
+        return new Date(Date.UTC(year, month, day)).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            timeZone: 'UTC',
+        });
+    };
+
     // Players who appeared in regular season games but had no batting/pitching stats
     const allNoStats = useMemo(() => {
         const gameMap = {};
@@ -1805,8 +1834,19 @@ const NoStatsPlayers = ({ data }) => {
         return (data.playersWithoutStats || []).map(p => {
             const gameIds = (p.gameIds || '').split(',').map(id => id.trim()).filter(Boolean);
             const gameList = gameIds.map(id => gameMap[id]).filter(Boolean);
-            const regGames = gameList.filter(g => (g.gameType || 'regular') === 'regular');
-            return { ...p, gameList: regGames, regGameCount: regGames.length };
+            const regGames = gameList
+                .filter(g => (g.gameType || 'regular') === 'regular')
+                .sort((a, b) => toSortableDate(a.date).localeCompare(toSortableDate(b.date)));
+            const dateLabels = [...new Set(regGames.map(g => formatShortDate(g.date)).filter(Boolean))];
+            const longDateLabels = [...new Set(regGames.map(g => formatLongDate(g.date)).filter(Boolean))];
+            return {
+                ...p,
+                gameList: regGames,
+                regGameCount: regGames.length,
+                dateDisplay: dateLabels.join('; '),
+                dateLongDisplay: longDateLabels.join('; '),
+                dateSort: toSortableDate(regGames[0]?.date),
+            };
         }).filter(p => p.regGameCount > 0);
     }, [data]);
 
@@ -1821,6 +1861,7 @@ const NoStatsPlayers = ({ data }) => {
                     { key: 'name', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
                     { key: 'teams', label: 'Team(s)' },
                     { key: 'regGameCount', label: 'Games' },
+                    { key: 'dateDisplay', label: 'Date(s)', sortValue: (v, r) => r.dateSort || v, render: (v, r) => <span title={r.dateLongDisplay}>{v}</span> },
                     { key: 'positions', label: 'Position(s)' },
                 ]}
             />
@@ -1901,20 +1942,8 @@ const HistoryWitnessedView = ({ allTimePassings, careerFirsts, games }) => {
         return { total: (allTimePassings || []).length, players: players.size, stats: stats.size, bestRank: lowestRank };
     }, [allTimePassings]);
 
-    // Format helpers
-    const formatIP = (val) => {
-        let whole = Math.floor(val);
-        const frac = val - whole;
-        let thirds;
-        if (frac < 0.17) thirds = 0;
-        else if (frac < 0.5) thirds = 1;
-        else if (frac < 0.84) thirds = 2;
-        else { thirds = 0; whole++; }
-        return `${whole.toLocaleString()}.${thirds}`;
-    };
     const formatStatValue = (val, stat) => {
-        if (stat === 'IP') return formatIP(val);
-        return Number.isInteger(val) ? val.toLocaleString() : val.toFixed(1);
+        return formatHistoricalStatValue(val, stat);
     };
 
     // Group by stat for by-stat view
