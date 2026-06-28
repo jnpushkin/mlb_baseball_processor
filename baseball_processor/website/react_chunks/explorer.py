@@ -227,7 +227,7 @@ const CustomStatsExplorer = ({ data }) => {
             sort: 'so',
             columns: [
                 { key: 'name', label: 'Pitcher', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
-                { key: 'team', label: 'Team' }, { key: 'games', label: 'G' }, { key: 'gameStarts', label: 'GS' }, { key: 'ip', label: 'IP' },
+                { key: 'team', label: 'Team' }, { key: 'games', label: 'G' }, { key: 'gameStarts', label: 'GS' }, { key: 'ip', label: 'IP', sortValue: (v, r) => r.outs || 0 },
                 { key: 'era', label: 'ERA' }, { key: 'whip', label: 'WHIP' }, { key: 'wins', label: 'W' }, { key: 'losses', label: 'L' },
                 { key: 'saves', label: 'SV' }, { key: 'so', label: 'K' }, { key: 'bb', label: 'BB' }, { key: 'hr', label: 'HR' },
             ]
@@ -250,7 +250,7 @@ const CustomStatsExplorer = ({ data }) => {
             columns: [
                 { key: 'date', label: 'Date' }, { key: 'name', label: 'Pitcher', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
                 { key: 'team', label: 'Team' }, { key: 'opponent', label: 'Opp' }, { key: 'venue', label: 'Venue' },
-                { key: 'ip', label: 'IP' }, { key: 'h', label: 'H' }, { key: 'r', label: 'R' }, { key: 'er', label: 'ER' },
+                { key: 'ip', label: 'IP', sortValue: (v, r) => r.outs || 0 }, { key: 'h', label: 'H' }, { key: 'r', label: 'R' }, { key: 'er', label: 'ER' },
                 { key: 'bb', label: 'BB' }, { key: 'so', label: 'K' }, { key: 'hr', label: 'HR' }, { key: 'decision', label: 'Dec' },
                 { key: 'gameId', label: 'Game', render: v => <button className="text-blue-600 hover:underline font-mono small-text" onClick={() => requestGameDetails(v)}>{v}</button> },
             ]

@@ -63,8 +63,7 @@ CODE = r'''const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, 
     const sorted = useMemo(() => {
         if (!sortKey) return filtered;
         return [...filtered].sort((a, b) => {
-            const aVal = sortColumn?.sortValue ? sortColumn.sortValue(a[sortKey], a) : a[sortKey];
-            const bVal = sortColumn?.sortValue ? sortColumn.sortValue(b[sortKey], b) : b[sortKey];
+            const aVal = a[sortKey], bVal = b[sortKey];
             const aMissing = isMissingValue(aVal);
             const bMissing = isMissingValue(bVal);
             if (aMissing && bMissing) return 0;
@@ -545,7 +544,7 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                     </thead>
                     <tbody className="divide-y">
                         {displayData.map((row, idx) => (
-                            <tr key={row.gameId || row.id || `item-${idx}`} className={`hover:bg-blue-50 ${idx % 2 === 1 ? 'bg-slate-50/50' : ''} ${onRowClick ? 'cursor-pointer' : ''}`} onClick={() => onRowClick && onRowClick(row)}>
+                            <tr key={row.id || row.gameId || `item-${idx}`} className={`hover:bg-blue-50 ${idx % 2 === 1 ? 'bg-slate-50/50' : ''} ${onRowClick ? 'cursor-pointer' : ''}`} onClick={() => onRowClick && onRowClick(row)}>
                                 {columns.map(col => <td key={col.key} className={`px-4 py-3 body-text align-top ${col.className || ''}`} style={col.style}>{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
                             </tr>
                         ))}
@@ -731,6 +730,7 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
     const [viewMode, setViewMode] = useState('date'); // 'date' or 'category'
     const [timelineQuickFilter, setTimelineQuickFilter] = useState('all');
     const [milestoneScope, setMilestoneScope] = useState('curated');
+    const [selectedMilestoneType, setSelectedMilestoneType] = useState('all');
     const visibleMilestones = milestoneScope === 'all' ? (allMilestones || milestones || []) : (milestones || []);
 
     useEffect(() => {
@@ -815,6 +815,43 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
         '15+ K Games': '15+ K Games',
     }[type] || type);
 
+    const isGameMilestoneCategory = activeCategory === 'all' || activeCategory === 'batting' || activeCategory === 'pitching';
+    const milestoneMatchesTopCategory = (m, category = activeCategory) => {
+        if (category === 'batting') return categoryConfig[m.type]?.category === 'batting';
+        if (category === 'pitching') return categoryConfig[m.type]?.category === 'pitching';
+        return category === 'all';
+    };
+    const milestoneMatchesSearch = (m) => {
+        const q = searchTerm.trim().toLowerCase();
+        if (!q) return true;
+        const game = gameMap[m.gameId];
+        return [
+            m.player,
+            m.team,
+            m.opponent,
+            m.detail,
+            m.type,
+            displayMilestoneType(m.type || ''),
+            m.date,
+            game?.awayTeam,
+            game?.homeTeam,
+            game?.venue,
+        ].some(value => String(value || '').toLowerCase().includes(q));
+    };
+    const milestoneMatchesType = (m) => selectedMilestoneType === 'all' || (m.type || 'Other') === selectedMilestoneType;
+
+    useEffect(() => {
+        if (selectedMilestoneType === 'all') return;
+        if (!isGameMilestoneCategory) {
+            setSelectedMilestoneType('all');
+            return;
+        }
+        const typeStillVisible = (visibleMilestones || []).some(m => (m.type || 'Other') === selectedMilestoneType);
+        if (!typeStillVisible || !milestoneMatchesTopCategory({ type: selectedMilestoneType })) {
+            setSelectedMilestoneType('all');
+        }
+    }, [selectedMilestoneType, activeCategory, milestoneScope, visibleMilestones]);
+
     // Group milestones by type
     const groupedMilestones = useMemo(() => {
         const groups = {};
@@ -837,9 +874,37 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
             .map(([type]) => type);
     }, [groupedMilestones]);
 
+    const milestoneTypeOptions = useMemo(() => {
+        const counts = {};
+        (visibleMilestones || []).forEach(m => {
+            if (!milestoneMatchesTopCategory(m)) return;
+            if (!milestoneMatchesSearch(m)) return;
+            const type = m.type || 'Other';
+            counts[type] = (counts[type] || 0) + 1;
+        });
+        const categoryOrder = { batting: 1, pitching: 2, team: 3 };
+        return Object.entries(counts)
+            .map(([type, count]) => ({
+                type,
+                count,
+                label: displayMilestoneType(type),
+                icon: categoryConfig[type]?.icon || '🏆',
+                category: categoryConfig[type]?.category || 'team',
+            }))
+            .sort((a, b) => {
+                if (activeCategory === 'all') {
+                    const orderDiff = (categoryOrder[a.category] || 99) - (categoryOrder[b.category] || 99);
+                    if (orderDiff !== 0) return orderDiff;
+                }
+                if (b.count !== a.count) return b.count - a.count;
+                return a.label.localeCompare(b.label);
+            });
+    }, [visibleMilestones, activeCategory, searchTerm, gameMap]);
+
     // Filter milestones based on category and search
     const filteredTypes = useMemo(() => {
         return sortedTypes.filter(type => {
+            if (selectedMilestoneType !== 'all' && type !== selectedMilestoneType) return false;
             if (activeCategory !== 'all') {
                 const config = categoryConfig[type];
                 if (activeCategory === 'batting' && config?.category !== 'batting') return false;
@@ -847,16 +912,11 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
             }
             if (searchTerm) {
                 const milestones = groupedMilestones[type] || [];
-                return milestones.some(m =>
-                    m.player?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    m.team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    displayMilestoneType(m.type || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    m.detail?.toLowerCase().includes(searchTerm.toLowerCase())
-                );
+                return milestones.some(m => milestoneMatchesSearch(m));
             }
             return true;
         });
-    }, [sortedTypes, activeCategory, searchTerm, groupedMilestones]);
+    }, [sortedTypes, activeCategory, searchTerm, groupedMilestones, selectedMilestoneType]);
 
     const totalCount = visibleMilestones?.length || 0;
     const curatedCount = milestones?.length || 0;
@@ -864,6 +924,16 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
     const routineCount = Math.max(0, trackedCount - curatedCount);
     const battingCount = (visibleMilestones || []).filter(m => categoryConfig[m.type]?.category === 'batting').length;
     const pitchingCount = (visibleMilestones || []).filter(m => categoryConfig[m.type]?.category === 'pitching').length;
+    const selectedTypeOption = milestoneTypeOptions.find(option => option.type === selectedMilestoneType);
+    const milestoneTypeTotal = milestoneTypeOptions.reduce((sum, option) => sum + option.count, 0);
+    const selectedTypeCount = selectedTypeOption?.count || 0;
+    const activeMilestoneMatchCount = selectedMilestoneType === 'all' ? milestoneTypeTotal : selectedTypeCount;
+    const matchWord = activeMilestoneMatchCount === 1 ? 'match' : 'matches';
+    const activeGameMilestoneLabel = activeCategory === 'batting'
+        ? 'batting'
+        : activeCategory === 'pitching'
+            ? 'pitching'
+            : 'game milestones';
     const careerFirstsCount = careerFirsts?.length || 0;
     const careerLastsCount = careerLasts?.length || 0;
     const careerEventsCount = careerFirstsCount + careerLastsCount;
@@ -939,7 +1009,7 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                         )}
                         <input
                             type="text"
-                            placeholder="Search player, team..."
+                            placeholder="Search player, team, milestone..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -965,7 +1035,16 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                     ].map(cat => (
                         <button
                             key={cat.id}
-                            onClick={() => { setActiveCategory(cat.id); if (cat.id === 'all-time') setViewMode('date'); }}
+                            onClick={() => {
+                                setActiveCategory(cat.id);
+                                setTimelineQuickFilter('all');
+                                if (cat.id === 'all-time') setViewMode('date');
+                                if (cat.id !== 'all' && cat.id !== 'batting' && cat.id !== 'pitching') {
+                                    setSelectedMilestoneType('all');
+                                } else if (selectedMilestoneType !== 'all' && !milestoneMatchesTopCategory({ type: selectedMilestoneType }, cat.id)) {
+                                    setSelectedMilestoneType('all');
+                                }
+                            }}
                             className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
                                 activeCategory === cat.id
                                     ? 'bg-blue-600 text-white'
@@ -976,6 +1055,59 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                         </button>
                     ))}
                 </div>
+
+                {isGameMilestoneCategory && milestoneTypeOptions.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-slate-100">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                            <div>
+                                <div className="text-xs font-bold uppercase text-slate-500">Milestone type</div>
+                                <div className="text-xs text-slate-500">
+                                    {selectedMilestoneType === 'all'
+                                        ? `${milestoneTypeTotal} ${activeGameMilestoneLabel} ${matchWord}`
+                                        : `${selectedTypeCount} ${selectedTypeOption?.label || selectedMilestoneType} ${matchWord}`}
+                                    {searchTerm ? ` for "${searchTerm}"` : ''}
+                                </div>
+                            </div>
+                            {(selectedMilestoneType !== 'all' || searchTerm) && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setSelectedMilestoneType('all'); setSearchTerm(''); setTimelineQuickFilter('all'); }}
+                                    className="self-start sm:self-auto rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                >
+                                    Clear filters
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto pr-1">
+                            <button
+                                type="button"
+                                onClick={() => { setSelectedMilestoneType('all'); setTimelineQuickFilter('all'); }}
+                                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                    selectedMilestoneType === 'all'
+                                        ? 'bg-slate-900 text-white'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                            >
+                                All {activeGameMilestoneLabel} ({milestoneTypeTotal})
+                            </button>
+                            {milestoneTypeOptions.map(option => (
+                                <button
+                                    key={option.type}
+                                    type="button"
+                                    onClick={() => { setSelectedMilestoneType(option.type); setTimelineQuickFilter('all'); }}
+                                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                        selectedMilestoneType === option.type
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    }`}
+                                    title={`${option.count} ${option.label}`}
+                                >
+                                    <span className="mr-1">{option.icon}</span>{option.label} <span className="opacity-75">({option.count})</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {viewMode === 'date' && !isCareerCategory && (
                     <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
@@ -1267,21 +1399,13 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                     if (activeCategory === 'batting' && categoryConfig[m.type]?.category !== 'batting') return false;
                     if (activeCategory === 'pitching' && categoryConfig[m.type]?.category !== 'pitching') return false;
                     if (activeCategory !== 'all' && activeCategory !== 'batting' && activeCategory !== 'pitching') return false;
-                    if (searchTerm) {
-                        const q = searchTerm.toLowerCase();
-                        return (
-                            (m.player || '').toLowerCase().includes(q) ||
-                            (m.type || '').toLowerCase().includes(q) ||
-                            displayMilestoneType(m.type || '').toLowerCase().includes(q) ||
-                            (m.detail || '').toLowerCase().includes(q)
-                        );
-                    }
-                    return true;
+                    if (!milestoneMatchesType(m)) return false;
+                    return milestoneMatchesSearch(m);
                 });
 
                 // On the All tab, fold career events into the same chronological
                 // stream so they aren't quarantined in a separate banner.
-                const careerItems = (activeCategory === 'all')
+                const careerItems = (activeCategory === 'all' && selectedMilestoneType === 'all')
                     ? filteredCareerEvents.map(f => ({
                             _isCareer: true,
                             _careerKind: f.kind,
@@ -1296,7 +1420,7 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                             _careerSortDate: f.date,
                         }))
                     : [];
-                const allTimeItems = (activeCategory === 'all' || activeCategory === 'all-time')
+                const allTimeItems = ((activeCategory === 'all' && selectedMilestoneType === 'all') || activeCategory === 'all-time')
                     ? (allTimePassings || []).filter(p => {
                         if (!searchTerm) return true;
                         const q = searchTerm.toLowerCase();
@@ -1380,7 +1504,9 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                         <div className="p-4 border-b bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                             <span className="font-bold body-text">{allFiltered.length} events</span>
-                            <span className="text-xs font-medium text-slate-500">Grouped by date and game</span>
+                            <span className="text-xs font-medium text-slate-500">
+                                {selectedMilestoneType === 'all' ? 'Grouped by date and game' : `${displayMilestoneType(selectedMilestoneType)} only`}
+                            </span>
                         </div>
                         <div className="bg-slate-50/70" style={{ maxHeight: '720px', overflowY: 'auto' }}>
                             {dateGroups.map(dateGroup => (
@@ -1468,13 +1594,7 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                     const config = categoryConfig[type] || { icon: '⭐', color: 'gray' };
 
                     // Filter items by search if active
-                    let filteredItems = searchTerm
-                        ? items.filter(m =>
-                            m.player?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            m.team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            m.detail?.toLowerCase().includes(searchTerm.toLowerCase())
-                        )
-                        : [...items];
+                    let filteredItems = items.filter(m => milestoneMatchesType(m) && milestoneMatchesSearch(m));
 
                     // Special sorting for Multi-HR Games: by HR count (descending) then date (descending)
                     if (type === 'Multi-HR Games') {
