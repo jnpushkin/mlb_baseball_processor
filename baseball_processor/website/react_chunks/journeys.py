@@ -447,7 +447,8 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
         const sortColumn = columns.find(col => col.key === sortKey);
         const isIPColumn = sortColumn?.sortType === 'ip' || sortKey === 'ip' || sortColumn?.label === 'IP';
         return [...filtered].sort((a, b) => {
-            const aVal = a[sortKey], bVal = b[sortKey];
+            const aVal = sortColumn?.sortValue ? sortColumn.sortValue(a[sortKey], a) : a[sortKey];
+            const bVal = sortColumn?.sortValue ? sortColumn.sortValue(b[sortKey], b) : b[sortKey];
             const aMissing = isMissingValue(aVal);
             const bMissing = isMissingValue(bVal);
             if (aMissing && bMissing) return 0;
