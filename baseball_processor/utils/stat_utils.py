@@ -1,3 +1,34 @@
+def parse_batting_detail_counts(details, stats=("SB", "CS")):
+    """Parse BREF batting Details tokens like ``SB`` or ``3*SB``.
+
+    Baseball Reference stores runner-owned events such as stolen bases and
+    caught stealing on the player's batting row. Play-by-play rows describe
+    those events while another batter is at the plate, so callers should use
+    Details/direct row stats for SB/CS attribution.
+    """
+    if not isinstance(details, str) or not details:
+        return {}
+
+    counts = {stat: 0 for stat in stats}
+    normalized = details.replace("\u00a0", " ").replace("\u00b7", "*")
+    for raw_item in normalized.split(","):
+        item = raw_item.strip()
+        if not item:
+            continue
+        for stat in stats:
+            if item == stat:
+                counts[stat] += 1
+                break
+            if item.endswith(stat):
+                prefix = item[: -len(stat)].strip()
+                if prefix.endswith("*"):
+                    prefix = prefix[:-1].strip()
+                if prefix.isdigit():
+                    counts[stat] += int(prefix)
+                    break
+    return counts
+
+
 def extract_extra_batting_stats(game):
     """Per-player 2B/3B/HR/SB/CS/HBP/GIDP tallies from play-by-play.
 

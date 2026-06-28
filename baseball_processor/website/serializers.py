@@ -11,6 +11,7 @@ import pandas as pd
 
 from ..engines.all_time_passing_engine import AllTimePassingEngine, find_passings_reverse_lookup, load_gamelogs_cache
 from ..utils.constants import CACHE_DIR, REFERENCES_DIR
+from ..utils.stat_utils import parse_batting_detail_counts
 
 
 def _format_date(date_str):
@@ -2351,30 +2352,9 @@ class DataSerializer:
                                 'GIDP': int(player.get('GDP', 0)),
                             }
 
-                        # Parse SB/CS from Details column (e.g., "2·SB", "SB,CS", "2B,SB")
-                        details_sb = 0
-                        details_cs = 0
-                        details = player.get('Details', '')
-                        if isinstance(details, str) and details:
-                            for item in details.split(','):
-                                item = item.strip()
-                                if item == 'SB':
-                                    details_sb += 1
-                                elif '·' in item and item.endswith('SB'):
-                                    try:
-                                        details_sb += int(item.split('·')[0])
-                                    except ValueError:
-                                        details_sb += 1
-                                elif item == 'CS':
-                                    details_cs += 1
-                                elif '·' in item and item.endswith('CS'):
-                                    try:
-                                        details_cs += int(item.split('·')[0])
-                                    except ValueError:
-                                        details_cs += 1
-
-                        sb = max(int(player.get('SB', 0)), player_extra.get('SB', 0), details_sb)
-                        cs = max(int(player.get('CS', 0)), player_extra.get('CS', 0), details_cs)
+                        detail_counts = parse_batting_detail_counts(player.get('Details', ''), stats=("SB", "CS"))
+                        sb = max(int(player.get('SB', 0)), detail_counts.get('SB', 0))
+                        cs = max(int(player.get('CS', 0)), detail_counts.get('CS', 0))
 
                         player_games.append({
                             'date': formatted_date,

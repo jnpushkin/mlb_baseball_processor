@@ -230,6 +230,52 @@ class DataSerializerTests(unittest.TestCase):
         self.assertEqual([True, False, True], [row["isStarter"] for row in rows])
         self.assertEqual(["2B", "PH", "1B"], [row["position"] for row in rows])
 
+    def test_serialize_player_games_credits_bref_details_steals_to_runner(self):
+        game = {
+            "game_id": "HOM202606280",
+            "basic_info": {
+                "date_yyyymmdd": "20260628",
+                "home_team_code": "HOM",
+                "away_team_code": "AWY",
+                "game_type": "regular",
+            },
+            "batting": {
+                "home": [
+                    {
+                        "player_id": "runner01",
+                        "name": "Speed Runner",
+                        "position": "CF",
+                        "AB": 4,
+                        "PA": 4,
+                        "H": 2,
+                        "R": 2,
+                        "Details": "2B,3\u00b7SB",
+                    },
+                    {
+                        "player_id": "hitter01",
+                        "name": "Plate Hitter",
+                        "position": "SS",
+                        "AB": 4,
+                        "PA": 4,
+                        "H": 1,
+                    },
+                ],
+                "away": [],
+            },
+            "play_by_play": [
+                {
+                    "batter": "Plate Hitter",
+                    "description": "Speed Runner steals 2B.",
+                }
+            ],
+        }
+
+        rows = DataSerializer()._serialize_player_games([game])
+        by_player = {row["playerId"]: row for row in rows}
+
+        self.assertEqual(3, by_player["runner01"]["sb"])
+        self.assertEqual(0, by_player["hitter01"]["sb"])
+
     def test_serialize_milestones_includes_multiple_categories(self):
         milestones = {
             "Multi-HR Games": pd.DataFrame(

@@ -2,7 +2,7 @@ import pandas as pd
 from collections import defaultdict
 from ..excel.generators import ExcelGeneratorUtils
 from ..utils.helpers import standardize_team_code, normalize_name, join_sorted_gameids, unify_team_code, safe_get_int, safe_get_str
-from ..utils.stat_utils import StatUtils, extract_extra_batting_stats
+from ..utils.stat_utils import StatUtils, extract_extra_batting_stats, parse_batting_detail_counts
 from .base_processor import BaseProcessor
 
 
@@ -178,8 +178,14 @@ class PlayerStatsProcessor(BaseProcessor):
             # batting row (MLB API populates these directly there).
             extras = pbp_extras.get(player_id, {}) or {}
             pbp_has_xbh = bool(extras.get('HR') or extras.get('2B') or extras.get('3B'))
+            detail_counts = parse_batting_detail_counts(player.get('Details', ''), stats=("SB", "CS"))
             for stat in ("HR", "2B", "3B", "SB", "CS", "HBP", "GIDP", "GDP"):
-                if pbp_has_xbh and stat in extras:
+                if stat in ("SB", "CS"):
+                    value = max(
+                        safe_get_int(player, stat, 0),
+                        int(detail_counts.get(stat, 0)),
+                    )
+                elif pbp_has_xbh and stat in extras:
                     value = int(extras.get(stat, 0))
                 elif stat == 'GDP':
                     value = safe_get_int(player, stat, 0)

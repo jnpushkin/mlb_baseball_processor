@@ -173,6 +173,7 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 - Downloaded BREF HTML backups for API-sourced games should short-circuit to the existing API cache by inferring the BREF-style game ID from the backup filename. Do not reparse those backups just to rediscover the game ID.
 - Individual defensive errors are source-specific: BREF games credit them from `footer_summary[*].E`, while MLB API games expose per-player `stats.fielding.errors` in the boxscore. The defensive tracker should use the BREF footer when present, otherwise row-level API `E`, with play-by-play text only as a fallback for older API caches. BREF footer names can have 3+ tokens (e.g., `Jung Hoo Lee`), so avoid fixed first/last-name regexes.
 - Website IP display should keep outs as the canonical value for UI calculations and use the shared React helpers (`formatOutsAsIP`, `baseballIPToOuts`, `formatHistoricalStatValue`) for display/sort/filter boundaries. Avoid accumulating IP as normal decimal innings in React; it leaks values like `#.6667` instead of baseball notation (`#.2`).
+- Stolen bases and caught stealing are runner-owned events. For BREF games, credit SB/CS from the batting row `Details`/direct row stats via `parse_batting_detail_counts`; play-by-play descriptions happen during another batter's plate appearance and can miscredit the current `batter`.
 
 ## Local Website Review
 ```bash
@@ -207,3 +208,4 @@ When encountering repeated errors or discovering project-specific quirks:
 - Assume game IDs have the same format for BREF vs API games (different prefixes)
 - Put unbounded BREF suffix/page walks in normal processing; use `bref_id_backfill` for explicit paced repairs
 - Accumulate or sort innings pitched in React as ordinary decimal innings; use outs/baseball-IP helpers instead
+- Credit SB/CS from play-by-play `batter` text; use BREF batting `Details` or direct MLB API row stats instead
