@@ -557,13 +557,9 @@ class DataSerializer:
                 },
                 rate_fields={"avg": 3},
             ),
-            "basesLoaded": self._serialize_situational_table(
+            "basesLoaded": self._serialize_bases_loaded_grand_slams(
+                all_milestones,
                 self._call_tracker_dataframe(data.get('situation_tracker'), 'create_bases_loaded_dataframe'),
-                {
-                    "Player ID": "playerId",
-                    "Name": "name",
-                    "Grand Slams": "grandSlams",
-                },
             ),
             "lateClose": self._serialize_situational_table(
                 self._call_tracker_dataframe(data.get('situation_tracker'), 'create_late_close_dataframe', min_ab=5),
@@ -1217,6 +1213,67 @@ class DataSerializer:
         except Exception as e:
             print(f"   Warning: Could not serialize tracker data from {method_name}: {e}")
             return pd.DataFrame()
+
+    def _serialize_bases_loaded_grand_slams(self, all_milestones, fallback_df=None):
+        """Aggregate Bases Loaded rows from canonical Grand Slams milestones."""
+        grand_slams = [m for m in (all_milestones or []) if m.get("type") == "Grand Slams"]
+        if not grand_slams:
+            return self._serialize_situational_table(
+                fallback_df,
+                {
+                    "Player ID": "playerId",
+                    "Name": "name",
+                    "Grand Slams": "grandSlams",
+                },
+            )
+
+        by_player = {}
+        for milestone in grand_slams:
+            player_id = milestone.get("playerId") or ""
+            player_name = milestone.get("player") or ""
+            key = player_id or player_name
+            if not key:
+                continue
+
+            row = by_player.setdefault(
+                key,
+                {
+                    "playerId": player_id,
+                    "name": player_name,
+                    "grandSlams": 0,
+                    "games": [],
+                    "_latestDateSort": "",
+                },
+            )
+            if not row["playerId"] and player_id:
+                row["playerId"] = player_id
+            if not row["name"] and player_name:
+                row["name"] = player_name
+
+            row["grandSlams"] += 1
+            date_sort = milestone.get("_dateSort", "")
+            if date_sort > row["_latestDateSort"]:
+                row["_latestDateSort"] = date_sort
+            row["games"].append(
+                {
+                    "date": milestone.get("date", ""),
+                    "gameId": milestone.get("gameId", ""),
+                    "team": milestone.get("team", ""),
+                    "opponent": milestone.get("opponent", ""),
+                    "detail": milestone.get("detail", ""),
+                    "_dateSort": date_sort,
+                }
+            )
+
+        rows = []
+        for row in by_player.values():
+            row["games"].sort(key=lambda game: game.get("_dateSort", ""), reverse=True)
+            for game in row["games"]:
+                game.pop("_dateSort", None)
+            row.pop("_latestDateSort", None)
+            rows.append(row)
+
+        return sorted(rows, key=lambda row: (-row["grandSlams"], row["name"]))
 
     def _serialize_situational_table(self, df, field_map, rate_fields=None):
         """Convert situational hitting DataFrames to compact website rows."""

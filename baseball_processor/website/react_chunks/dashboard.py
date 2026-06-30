@@ -1112,8 +1112,8 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
     return (
         <>
             {/* Total Stats Witnessed */}
-            <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-lg shadow-lg p-5 text-white mb-4">
-                <h2 className="text-xl font-bold mb-3">📊 Total Stats Witnessed <span className="text-sm font-normal opacity-80">({totalStats.gameCount} regular season & postseason games)</span></h2>
+            <div className="bg-gradient-to-r from-teal-700 to-slate-800 rounded-lg shadow-lg p-5 text-white mb-4">
+                <h2 className="text-xl font-bold mb-3">Total Stats Witnessed <span className="text-sm font-normal opacity-80">({totalStats.gameCount} regular season & postseason games)</span></h2>
                 <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3">
                     {[
                         { label: 'Hits', val: totalStats.H },
@@ -1135,12 +1135,12 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
             </div>
             {/* Badge filter bar */}
             <div className="bg-white rounded-lg border border-slate-200 mb-2 p-3">
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="small-text font-semibold text-slate-600">🏅 Badge Filter:</span>
+                <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap sm:items-center">
+                    <span className="small-text font-semibold text-slate-600">Badge Filter</span>
                     <select
                         value={badgeTypeFilter}
                         onChange={(e) => setBadgeTypeFilter(e.target.value)}
-                        className="px-3 py-1.5 body-text border rounded-lg"
+                        className="min-h-11 px-3 py-2 body-text border rounded-lg"
                     >
                         <option value="all">All Games</option>
                         <option value="any-badge">Any Badge</option>
@@ -1153,12 +1153,12 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                         placeholder="Search badge text..."
                         value={badgeTextFilter}
                         onChange={(e) => setBadgeTextFilter(e.target.value)}
-                        className="px-3 py-1.5 body-text border rounded-lg min-w-[200px]"
+                        className="min-h-11 px-3 py-2 body-text border rounded-lg min-w-[200px]"
                     />
                     {hasBadgeFilter && (
                         <button
                             onClick={() => { setBadgeTypeFilter('all'); setBadgeTextFilter(''); }}
-                            className="px-3 py-1.5 body-text text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded"
+                            className="min-h-11 px-3 py-2 body-text text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md"
                         >
                             Clear
                         </button>
@@ -1169,7 +1169,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                 </div>
             </div>
             <DataTable
-                title="📋 Game Log"
+                title="Game Log"
                 data={searchableGames}
                 defaultSortKey="date"
                 enableDateFilter={true}
@@ -1179,6 +1179,57 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                     { key: 'homeTeam', label: 'Home Team' },
                     { key: 'venue', label: 'Venue' }
                 ]}
+                mobileCard={(row) => {
+                    const rowBadges = allBadgesByGame[row.gameId] || [];
+                    return (
+                        <article className="p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <div className="small-text font-semibold uppercase tracking-wide text-slate-500">{row.date}</div>
+                                    <div className="mt-1 flex flex-wrap items-center gap-2 text-base font-bold text-slate-900">
+                                        <TeamToken code={row.awayTeam} logoSize={20} />
+                                        <span className="text-slate-400">@</span>
+                                        <TeamToken code={row.homeTeam} logoSize={20} />
+                                    </div>
+                                    <div className="mt-2 inline-flex rounded-md bg-slate-100 px-2.5 py-1 font-mono text-sm font-bold text-slate-900">{row.score}</div>
+                                    <button
+                                        className="mt-1 flex min-h-11 max-w-full items-center truncate body-text text-blue-700 hover:underline"
+                                        onClick={(e) => { e.stopPropagation(); window.__navigateTab('venues'); }}
+                                    >
+                                        {row.venue}
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedGame(row)}
+                                    className="min-h-10 shrink-0 rounded-md bg-blue-600 px-3 body-text font-semibold text-white hover:bg-blue-700"
+                                >
+                                    Open
+                                </button>
+                            </div>
+                            {rowBadges.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {rowBadges.slice(0, 4).map((badge, i) => (
+                                        <span
+                                            key={`${badge.type}-${badge.text}-${i}`}
+                                            className={`max-w-[12rem] overflow-hidden text-ellipsis whitespace-nowrap rounded px-2 py-1 text-[11px] font-semibold ${badgeColors[badge.type] || 'bg-slate-100 text-slate-700'} ${setSelectedBadge ? 'cursor-pointer' : ''}`}
+                                            title={badge.title}
+                                            onClick={(e) => { e.stopPropagation(); setSelectedBadge({ badge, gameId: row.gameId }); }}
+                                        >
+                                            {badge.text}
+                                        </span>
+                                    ))}
+                                    {rowBadges.length > 4 && (
+                                        <span className="rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">+{rowBadges.length - 4}</span>
+                                    )}
+                                </div>
+                            )}
+                            <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+                                <GameLink gameId={row.gameId} className="inline-flex min-h-11 items-center rounded pr-2" />
+                                <span className="small-text text-slate-400">{row.gameType === 'spring' ? 'Spring Training' : row.gameType === 'postseason' ? 'Postseason' : 'Regular Season'}</span>
+                            </div>
+                        </article>
+                    );
+                }}
                 columns={[
                     { key: 'date', label: 'Date', render: (v, row) => (
                         <div className="flex items-center gap-1.5">

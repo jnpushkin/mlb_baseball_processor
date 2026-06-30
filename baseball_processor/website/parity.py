@@ -71,6 +71,38 @@ def _call_count(obj, method_name, *args, **kwargs) -> int:
     return _tabular_count(method(*args, **kwargs))
 
 
+def _grand_slam_player_count(milestones) -> int | None:
+    """Count unique players in the canonical Grand Slams milestone table."""
+    if not isinstance(milestones, dict) or "Grand Slams" not in milestones:
+        return None
+
+    frame = milestones.get("Grand Slams")
+    if _tabular_count(frame) == 0:
+        return 0
+
+    player_keys = set()
+    if hasattr(frame, "iterrows"):
+        for _, row in frame.iterrows():
+            key = row.get("Player ID") or row.get("Player")
+            if key:
+                player_keys.add(str(key))
+    elif isinstance(frame, (list, tuple)):
+        for row in frame:
+            if isinstance(row, dict):
+                key = row.get("Player ID") or row.get("Player")
+                if key:
+                    player_keys.add(str(key))
+
+    return len(player_keys)
+
+
+def _bases_loaded_source_count(processed_data, situation_tracker) -> int:
+    grand_slam_players = _grand_slam_player_count(processed_data.get("milestones"))
+    if grand_slam_players is not None:
+        return grand_slam_players
+    return _call_count(situation_tracker, "create_bases_loaded_dataframe")
+
+
 def _core_sources(processed_data, excluded_milestone_types):
     return [
         ("Summary", "summary", _tabular_count(processed_data.get("summary_rows"))),
@@ -131,7 +163,7 @@ def _feature_gap_sources(processed_data):
         (
             "Bases Loaded",
             "basesLoaded",
-            _call_count(situation_tracker, "create_bases_loaded_dataframe"),
+            _bases_loaded_source_count(processed_data, situation_tracker),
         ),
         (
             "Late & Close",

@@ -1,6 +1,13 @@
 """React app chunk: journeys."""
 
-CODE = r'''const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings, milestones, debuts, finalGames }) => {
+CODE = r'''const CompactStat = ({ label, value, emphasis = false }) => (
+    <div className={`rounded-md border px-2.5 py-2 text-center ${emphasis ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-slate-50'}`}>
+        <div className={`text-sm font-bold tabular-nums ${emphasis ? 'text-blue-700' : 'text-slate-900'}`}>{value || value === 0 ? value : '-'}</div>
+        <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+    </div>
+);
+
+const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings, milestones, debuts, finalGames }) => {
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState('pa');
     const [sortDir, setSortDir] = useState('desc');
@@ -100,10 +107,10 @@ CODE = r'''const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, 
                     <PlayerLink playerId={r.playerId} name={v} external />
                     <button
                         onClick={() => setSelectedPlayer({ id: r.playerId, name: v })}
-                        className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-semibold whitespace-nowrap"
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-semibold whitespace-nowrap"
                         title="View career timeline"
                     >
-                        📊
+                        Timeline
                     </button>
                 </div>
             )
@@ -121,32 +128,62 @@ CODE = r'''const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, 
     return (
         <div className="bg-white rounded-lg border border-slate-200">
             <div className="p-4 border-b space-y-4">
-                <div className="flex justify-between items-center">
-                    <h2 className="section-title font-bold">👤 Hitter Statistics {gameTypeFilter !== 'all' && <span className="small-text text-green-600">({gameTypeLabels[gameTypeFilter]})</span>} {useFiltered && <span className="small-text text-blue-600">(Date Filtered)</span>}</h2>
-                    <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 className="section-title font-bold">Hitter Statistics {gameTypeFilter !== 'all' && <span className="small-text text-green-600">({gameTypeLabels[gameTypeFilter]})</span>} {useFiltered && <span className="small-text text-blue-600">(Date Filtered)</span>}</h2>
+                    <div className="flex items-center justify-between gap-2 sm:justify-end">
                         <span className="body-text text-slate-500">{sorted.length} players</span>
-                        <button onClick={() => exportToCSV(sorted, columns, 'Hitter_Statistics.csv')} className="px-3 py-1 bg-green-600 text-white body-text rounded hover:bg-green-700">📥 Export</button>
+                        <button onClick={() => exportToCSV(sorted, columns, 'Hitter_Statistics.csv')} className="min-h-10 px-3 py-2 bg-slate-900 text-white body-text rounded-md hover:bg-slate-700">Export</button>
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-4">
-                    <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 min-w-[200px] px-4 py-2 body-text border rounded-lg" />
-                    <select value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="px-4 py-2 body-text border rounded-lg bg-green-50">
+                <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
+                    <input type="text" placeholder="Search players..." value={search} onChange={(e) => setSearch(e.target.value)} className="min-h-11 flex-1 min-w-[200px] px-4 py-2 body-text border rounded-lg" />
+                    <select value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg bg-green-50">
                         <option value="all">All Games</option>
                         <option value="regular">Regular Season</option>
                         <option value="spring">Spring Training</option>
                         <option value="postseason">Postseason</option>
                     </select>
-                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
-                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
-                    {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-slate-600 hover:text-slate-900">Clear Dates</button>}
-                    <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="px-4 py-2 body-text border rounded-lg">
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
+                    {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="min-h-11 px-3 py-2 body-text text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md">Clear Dates</button>}
+                    <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg">
                         <option value="all">All Teams</option>
                         {filterValues.map(val => <option key={val} value={val}>{val}</option>)}
                     </select>
                 </div>
-                {useFiltered && <div className="bg-yellow-50 border border-yellow-200 rounded p-3"><p className="body-text text-yellow-900">⚡ Stats recalculated for selected date range</p></div>}
+                {useFiltered && <div className="bg-yellow-50 border border-yellow-200 rounded p-3"><p className="body-text text-yellow-900">Stats recalculated for selected date range</p></div>}
             </div>
-            <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+            <div className="sm:hidden divide-y divide-slate-100 max-h-[72vh] overflow-y-auto">
+                {sorted.map((row) => (
+                    <article key={row.playerId} className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="font-semibold text-slate-900 truncate">
+                                    <PlayerLink playerId={row.playerId} name={row.name} external className="inline-flex min-h-11 max-w-full items-center" />
+                                </div>
+                                <div className="small-text text-slate-500 mt-1 truncate">{row.team}</div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedPlayer({ id: row.playerId, name: row.name })}
+                                className="min-h-10 shrink-0 rounded-md border border-slate-200 px-3 body-text font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                                Timeline
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                            <CompactStat label="G" value={row.games} />
+                            <CompactStat label="PA" value={row.pa} />
+                            <CompactStat label="H" value={row.h} />
+                            <CompactStat label="AVG" value={row.avg} emphasis />
+                            <CompactStat label="HR" value={row.hr} />
+                            <CompactStat label="RBI" value={row.rbi} />
+                            <CompactStat label="OPS" value={row.ops} />
+                            <CompactStat label="Max EV" value={row.maxExitVelo || '-'} />
+                        </div>
+                    </article>
+                ))}
+            </div>
+            <div className="hidden sm:block overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                 <table className="w-full">
                     <thead className="bg-slate-50 sticky top-0">
                         <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} className="px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
@@ -296,10 +333,10 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
                     <PlayerLink playerId={r.playerId} name={v} external />
                     <button
                         onClick={() => setSelectedPitcher({ id: r.playerId, name: v })}
-                        className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-semibold whitespace-nowrap"
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-semibold whitespace-nowrap"
                         title="View career timeline"
                     >
-                        📊
+                        Timeline
                     </button>
                 </div>
             )
@@ -319,32 +356,62 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
     return (
         <div className="bg-white rounded-lg border border-slate-200">
             <div className="p-4 border-b space-y-4">
-                <div className="flex justify-between items-center">
-                    <h2 className="section-title font-bold">⚾ Pitcher Statistics {gameTypeFilter !== 'all' && <span className="small-text text-green-600">({gameTypeLabels[gameTypeFilter]})</span>} {useFiltered && <span className="small-text text-blue-600">(Date Filtered)</span>}</h2>
-                    <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 className="section-title font-bold">Pitcher Statistics {gameTypeFilter !== 'all' && <span className="small-text text-green-600">({gameTypeLabels[gameTypeFilter]})</span>} {useFiltered && <span className="small-text text-blue-600">(Date Filtered)</span>}</h2>
+                    <div className="flex items-center justify-between gap-2 sm:justify-end">
                         <span className="body-text text-slate-500">{sorted.length} pitchers</span>
-                        <button onClick={() => exportToCSV(sorted, columns, 'Pitcher_Statistics.csv')} className="px-3 py-1 bg-green-600 text-white body-text rounded hover:bg-green-700">📥 Export</button>
+                        <button onClick={() => exportToCSV(sorted, columns, 'Pitcher_Statistics.csv')} className="min-h-10 px-3 py-2 bg-slate-900 text-white body-text rounded-md hover:bg-slate-700">Export</button>
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-4">
-                    <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 min-w-[200px] px-4 py-2 body-text border rounded-lg" />
-                    <select value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="px-4 py-2 body-text border rounded-lg bg-green-50">
+                <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
+                    <input type="text" placeholder="Search pitchers..." value={search} onChange={(e) => setSearch(e.target.value)} className="min-h-11 flex-1 min-w-[200px] px-4 py-2 body-text border rounded-lg" />
+                    <select value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg bg-green-50">
                         <option value="all">All Games</option>
                         <option value="regular">Regular Season</option>
                         <option value="spring">Spring Training</option>
                         <option value="postseason">Postseason</option>
                     </select>
-                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
-                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
-                    {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-slate-600 hover:text-slate-900">Clear Dates</button>}
-                    <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="px-4 py-2 body-text border rounded-lg">
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
+                    {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="min-h-11 px-3 py-2 body-text text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md">Clear Dates</button>}
+                    <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg">
                         <option value="all">All Teams</option>
                         {filterValues.map(val => <option key={val} value={val}>{val}</option>)}
                     </select>
                 </div>
-                {useFiltered && <div className="bg-yellow-50 border border-yellow-200 rounded p-3"><p className="body-text text-yellow-900">⚡ Stats recalculated for selected date range</p></div>}
+                {useFiltered && <div className="bg-yellow-50 border border-yellow-200 rounded p-3"><p className="body-text text-yellow-900">Stats recalculated for selected date range</p></div>}
             </div>
-            <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+            <div className="sm:hidden divide-y divide-slate-100 max-h-[72vh] overflow-y-auto">
+                {sorted.map((row) => (
+                    <article key={row.playerId} className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="font-semibold text-slate-900 truncate">
+                                    <PlayerLink playerId={row.playerId} name={row.name} external className="inline-flex min-h-11 max-w-full items-center" />
+                                </div>
+                                <div className="small-text text-slate-500 mt-1 truncate">{row.team}</div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedPitcher({ id: row.playerId, name: row.name })}
+                                className="min-h-10 shrink-0 rounded-md border border-slate-200 px-3 body-text font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                                Timeline
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                            <CompactStat label="G" value={row.games} />
+                            <CompactStat label="IP" value={row.ip} />
+                            <CompactStat label="ERA" value={row.era} emphasis />
+                            <CompactStat label="WHIP" value={row.whip} />
+                            <CompactStat label="K" value={row.so} />
+                            <CompactStat label="W" value={row.wins} />
+                            <CompactStat label="SV" value={row.saves} />
+                            <CompactStat label="Max" value={row.maxSpeed || '-'} />
+                        </div>
+                    </article>
+                ))}
+            </div>
+            <div className="hidden sm:block overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                 <table className="w-full">
                     <thead className="bg-slate-50 sticky top-0">
                         <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} className="px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
@@ -394,7 +461,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
     );
 };
 
-const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions = null, enableDateFilter = false, enableExport = true, paginate = true, onRowClick = null, persistKey = null }) => {
+const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions = null, enableDateFilter = false, enableExport = true, paginate = true, onRowClick = null, persistKey = null, mobileCard = null }) => {
     const loadPersisted = (key, fallback) => {
         if (!persistKey) return fallback;
         try { const v = JSON.parse(localStorage.getItem(`dt_${persistKey}_${key}`)); return v !== null ? v : fallback; } catch { return fallback; }
@@ -495,22 +562,22 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
     return (
         <div className="bg-white rounded-lg border border-slate-200" style={{ boxShadow: 'var(--shadow)' }}>
             <div className="p-4 border-b border-slate-100 space-y-3">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="section-title font-semibold text-slate-800">{title}</h2>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-2 sm:justify-end">
                         <span className="small-text text-slate-400">{sorted.length} of {data.length}</span>
                         {enableExport && <>
-                            <button onClick={() => exportToCSV(sorted, columns, `${title.replace(/[^a-z0-9]/gi, '_')}.csv`)} className="px-2.5 py-1 bg-slate-100 text-slate-600 small-text rounded hover:bg-slate-200 font-medium">CSV</button>
-                            <button onClick={() => exportToJSON(sorted, `${title.replace(/[^a-z0-9]/gi, '_')}.json`)} className="px-2.5 py-1 bg-slate-100 text-slate-600 small-text rounded hover:bg-slate-200 font-medium">JSON</button>
+                            <button onClick={() => exportToCSV(sorted, columns, `${title.replace(/[^a-z0-9]/gi, '_')}.csv`)} className="min-h-11 px-3 py-2 bg-slate-100 text-slate-600 small-text rounded hover:bg-slate-200 font-medium">CSV</button>
+                            <button onClick={() => exportToJSON(sorted, `${title.replace(/[^a-z0-9]/gi, '_')}.json`)} className="min-h-11 px-3 py-2 bg-slate-100 text-slate-600 small-text rounded hover:bg-slate-200 font-medium">JSON</button>
                         </>}
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                    <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 min-w-[200px] px-3 py-1.5 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" />
+                <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
+                    <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="min-h-11 flex-1 min-w-[200px] px-3 py-2 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" />
                     {enableDateFilter && (
                         <>
-                            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
-                            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-4 py-2 body-text border rounded-lg" />
+                            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
+                            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
                         </>
                     )}
                     {filters.map(filter => (
@@ -518,7 +585,7 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                             key={filter.key}
                             value={activeFilters[filter.key] || 'all'}
                             onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                            className="px-4 py-2 body-text border rounded-lg"
+                            className="min-h-11 px-4 py-2 body-text border rounded-lg"
                         >
                             <option value="all">All {filter.label}</option>
                             {(filterValuesMap[filter.key] || []).map(val => (
@@ -529,7 +596,7 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                     {hasActiveFilters && (
                         <button
                             onClick={() => { setActiveFilters({}); setStartDate(''); setEndDate(''); }}
-                            className="px-3 py-2 body-text text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded"
+                            className="min-h-11 px-3 py-2 body-text text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md"
                         >
                             Clear filters
                         </button>
@@ -537,7 +604,16 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                 </div>
             </div>
             {paginate && <PaginationControls page={page} setPage={setPage} totalPages={totalPages} totalItems={totalItems} />}
-            <div className="overflow-x-auto relative" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+            {mobileCard && (
+                <div className="sm:hidden divide-y divide-slate-100">
+                    {displayData.map((row, idx) => (
+                        <div key={row.id || row.gameId || `mobile-item-${idx}`}>
+                            {mobileCard(row, idx)}
+                        </div>
+                    ))}
+                </div>
+            )}
+            <div className={`${mobileCard ? 'hidden sm:block ' : ''}overflow-x-auto relative`} style={{ maxHeight: '600px', overflowY: 'auto' }}>
                 <table className="w-full min-w-full">
                     <thead className="bg-slate-50 sticky top-0 z-10 shadow-[0_1px_0_0_rgba(148,163,184,0.25)]">
                         <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className={`px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100 ${col.headerClassName || ''}`} style={col.headerStyle}>{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>

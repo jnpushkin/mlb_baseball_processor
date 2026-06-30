@@ -140,6 +140,31 @@ class WebsiteParityTests(unittest.TestCase):
         self.assertNotIn("Bases Loaded", datasets)
         self.assertNotIn("Late & Close", datasets)
 
+    def test_bases_loaded_parity_uses_unique_grand_slam_players(self):
+        processed_data = {
+            "milestones": {
+                "Grand Slams": pd.DataFrame(
+                    [
+                        {"Player ID": "deverra01", "Player": "Rafael Devers"},
+                        {"Player ID": "deverra01", "Player": "Rafael Devers"},
+                        {"Player ID": "baderha01", "Player": "Harrison Bader"},
+                    ]
+                )
+            },
+            "situation_tracker": EmptySituationTracker(),
+        }
+        json_data = {
+            "basesLoaded": [
+                {"playerId": "deverra01", "name": "Rafael Devers", "grandSlams": 2},
+                {"playerId": "baderha01", "name": "Harrison Bader", "grandSlams": 1},
+            ]
+        }
+
+        issues = collect_website_data_parity_issues(processed_data, json_data)
+
+        datasets = {issue["dataset"] for issue in issues}
+        self.assertNotIn("Bases Loaded", datasets)
+
     def test_wpa_leaders_are_not_reported_when_serialized(self):
         processed_data = {
             "saber_tracker": FakeSaberTracker(),

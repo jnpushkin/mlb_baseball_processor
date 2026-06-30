@@ -831,6 +831,71 @@ class DataSerializerTests(unittest.TestCase):
         self.assertEqual(1, len(serialized["basesLoaded"]))
         self.assertEqual(1, len(serialized["lateClose"]))
 
+    def test_bases_loaded_uses_canonical_grand_slam_milestones(self):
+        grand_slams = pd.DataFrame(
+            [
+                {
+                    "Date": "05/24/2026",
+                    "Player": "Rafael Devers",
+                    "Player ID": "deverra01",
+                    "Team": "SF",
+                    "Opponent": "ATL",
+                    "GameID": "SFN202605240",
+                    "HR": 1,
+                    "H": 2,
+                    "RBI": 5,
+                    "R": 1,
+                    "AB": 4,
+                    "Inning": "Bottom 5",
+                    "Pitcher": "Grant Taylor",
+                },
+                {
+                    "Date": "05/23/2025",
+                    "Player": "Rafael Devers",
+                    "Player ID": "deverra01",
+                    "Team": "BOS",
+                    "Opponent": "BAL",
+                    "GameID": "BOS202505231",
+                    "HR": 1,
+                    "H": 4,
+                    "RBI": 8,
+                    "R": 3,
+                    "AB": 6,
+                    "Inning": "Bottom 8",
+                    "Pitcher": "Emmanuel Rivera",
+                },
+                {
+                    "Date": "05/23/2026",
+                    "Player": "Harrison Bader",
+                    "Player ID": "baderha01",
+                    "Team": "SF",
+                    "Opponent": "ATL",
+                    "GameID": "SFN202605230",
+                    "HR": 1,
+                    "H": 2,
+                    "RBI": 4,
+                    "R": 1,
+                    "AB": 4,
+                    "Inning": "Bottom 5",
+                    "Pitcher": "Jordan Leasure",
+                },
+            ]
+        )
+        processed_data = {
+            "summary_rows": [],
+            "milestones": {"Grand Slams": grand_slams},
+            "situation_tracker": FakeSituationTracker(),
+            "_raw_games": [],
+        }
+
+        serialized = DataSerializer().serialize_all_data(processed_data)
+
+        self.assertEqual(2, len(serialized["basesLoaded"]))
+        self.assertEqual("Rafael Devers", serialized["basesLoaded"][0]["name"])
+        self.assertEqual(2, serialized["basesLoaded"][0]["grandSlams"])
+        self.assertEqual("Harrison Bader", serialized["basesLoaded"][1]["name"])
+        self.assertEqual(1, serialized["basesLoaded"][1]["grandSlams"])
+
     def test_extract_game_details_marks_api_grand_slam_key_play(self):
         raw_game = {
             "basic_info": {"game_type": "regular", "source": "mlb"},

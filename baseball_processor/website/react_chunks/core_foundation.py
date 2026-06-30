@@ -234,19 +234,19 @@ const PaginationControls = ({ page, setPage, totalPages, totalItems, rowsPerPage
     const start = (page - 1) * rowsPerPage + 1;
     const end = Math.min(page * rowsPerPage, totalItems);
     return (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', fontSize: '0.8rem', color: '#6b7280' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '8px 0', fontSize: '0.8rem', color: '#6b7280' }}>
             <span>Showing {start}-{end} of {totalItems}</span>
-            <div style={{ display: 'flex', gap: '4px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
-                    style={{ padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
+                    style={{ minHeight: '44px', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
                 >← Prev</button>
-                <span style={{ padding: '4px 8px' }}>{page} / {totalPages}</span>
+                <span style={{ padding: '10px 4px' }}>{page} / {totalPages}</span>
                 <button
                     onClick={() => setPage(Math.min(totalPages, page + 1))}
                     disabled={page === totalPages}
-                    style={{ padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', cursor: page === totalPages ? 'default' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
+                    style={{ minHeight: '44px', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', cursor: page === totalPages ? 'default' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
                 >Next →</button>
             </div>
         </div>
@@ -274,15 +274,15 @@ const exportToCSV = (data, columns, filename) => {
     window.URL.revokeObjectURL(url);
 };
 
-const PlayerLink = ({ playerId, name, external }) => {
-    if (!playerId || playerId === 'UNKNOWN') return <span>{name}</span>;
+const PlayerLink = ({ playerId, name, external, className = '' }) => {
+    if (!playerId || playerId === 'UNKNOWN') return <span className={className}>{name}</span>;
     const isRegisterFormat = playerId.length >= 10 && /\d{3}/.test(playerId.substring(5, 9));
     const brefUrl = isRegisterFormat
         ? `https://www.baseball-reference.com/register/player.fcgi?id=${playerId}`
         : `https://www.baseball-reference.com/players/${playerId.charAt(0).toLowerCase()}/${playerId}.shtml`;
 
     if (external) {
-        return <a href={brefUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{name}</a>;
+        return <a href={brefUrl} target="_blank" rel="noopener noreferrer" className={`text-blue-600 hover:underline ${className}`}>{name}</a>;
     }
 
     // Default: navigate to Players tab and open timeline
@@ -295,7 +295,7 @@ const PlayerLink = ({ playerId, name, external }) => {
 
     return (
         <span className="inline-flex items-center gap-1">
-            <a href="#players" onClick={handleClick} className="text-blue-600 hover:underline">{name}</a>
+            <a href="#players" onClick={handleClick} className={`text-blue-600 hover:underline ${className}`}>{name}</a>
             <a href={brefUrl} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-slate-600 text-[10px]" title="View on Baseball Reference">↗</a>
         </span>
     );
@@ -319,19 +319,19 @@ const consumePendingGameDetailsRequest = () => {
     return request;
 };
 
-const GameLink = ({ gameId, mlbGamePk, source }) => {
-    if (!gameId || gameId === 'UNKNOWN') return <span className="small-text">{gameId}</span>;
+const GameLink = ({ gameId, mlbGamePk, source, className = '' }) => {
+    if (!gameId || gameId === 'UNKNOWN') return <span className={`small-text ${className}`}>{gameId}</span>;
 
     // Use MLB.com for spring training games (source='mlb') that have a game_pk
     if (mlbGamePk && source === 'mlb') {
         const url = `https://www.mlb.com/gameday/${mlbGamePk}/final/box`;
-        return <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-mono small-text">{gameId}</a>;
+        return <a href={url} target="_blank" rel="noopener noreferrer" className={`text-blue-600 hover:underline font-mono small-text ${className}`}>{gameId}</a>;
     }
 
     // Default to Baseball Reference
     const teamCode = gameId.substring(0, 3);
     const url = `https://www.baseball-reference.com/boxes/${teamCode}/${gameId}.shtml`;
-    return <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-mono small-text">{gameId}</a>;
+    return <a href={url} target="_blank" rel="noopener noreferrer" className={`text-blue-600 hover:underline font-mono small-text ${className}`}>{gameId}</a>;
 };
 
 const TEAM_LOGO_IDS = {

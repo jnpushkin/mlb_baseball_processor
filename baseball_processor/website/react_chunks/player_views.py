@@ -2,7 +2,7 @@
 
 CODE = r'''const VALID_TABS = new Set(['dashboard','gamelog','players','milestones','venues','progress','special','trivia','companions','orioles']);
 // Legacy tab redirects (old tab IDs -> new locations)
-const TAB_REDIRECTS = { 'calendar': 'venues', 'history': 'milestones', 'leaderboards': 'players', 'matchups': 'progress' };
+const TAB_REDIRECTS = { 'games': 'gamelog', 'calendar': 'venues', 'history': 'milestones', 'leaderboards': 'players', 'matchups': 'progress' };
 
 const App = () => {
     const parseHash = (hash) => {
@@ -330,19 +330,19 @@ const App = () => {
             <header className={`${darkMode ? 'bg-slate-900' : 'bg-white'} border-b ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
                 <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <div>
-                        <h1 className={`text-base sm:text-lg font-bold tracking-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>Baseball Statistics Portal</h1>
+                        <h1 className={`page-title ${darkMode ? 'text-white' : 'text-slate-900'}`}>MLB Game Passport</h1>
                         <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{data.games?.length || 0} games attended • {new Set([...(data.players || []).map(p => p.playerId), ...(data.pitchers || []).map(p => p.playerId), ...(data.playersWithoutStats || []).map(p => p.playerId)]).size} players seen</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <div ref={searchRef} role="search" className="relative flex-1 sm:flex-none">
                             <input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder="Search players, games, milestones"
                                 aria-label="Search players, games, and milestones"
                                 value={searchQuery}
                                 onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
                                 onFocus={() => setSearchOpen(true)}
-                                className={`w-full sm:w-48 md:w-64 px-3 py-2 rounded-lg text-sm transition-colors border ${darkMode ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:border-blue-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-500'} outline-none`}
+	                            className={`min-h-11 w-full sm:w-56 md:w-72 px-3 py-2 rounded-lg text-sm transition-colors border ${darkMode ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:border-blue-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-500'} outline-none`}
                             />
                             {searchOpen && searchQuery.length >= 2 && (
                                 <div className={`absolute top-full right-0 mt-1 w-80 sm:w-96 rounded-lg shadow-md border z-[60] max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -375,27 +375,42 @@ const App = () => {
                                 </div>
                             )}
                         </div>
-                        <button
-                            onClick={() => setDarkMode(!darkMode)}
-                            className={`px-3 py-2 rounded-lg transition-colors border ${darkMode ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-white' : 'bg-slate-50 border-slate-300 hover:bg-slate-100 text-slate-700'}`}
-                            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-                        >
-                            {darkMode ? '☀️' : '🌙'}
-                        </button>
+	                        <button
+	                            onClick={() => setDarkMode(!darkMode)}
+	                            className={`min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg transition-colors border ${darkMode ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-white' : 'bg-slate-50 border-slate-300 hover:bg-slate-100 text-slate-700'}`}
+	                            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+	                            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+	                        >
+	                            {darkMode ? (
+	                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2"/><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M2 12h3M19 12h3M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+	                            ) : (
+	                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 14.2A8.2 8.2 0 0 1 9.8 3a7.7 7.7 0 1 0 11.2 11.2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+	                            )}
+	                        </button>
                     </div>
                 </div>
             </header>
             <nav className={`sticky top-0 z-50 ${darkMode ? 'bg-slate-900 border-b border-slate-800' : 'bg-white border-b border-slate-200'}`} style={{ boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.04)' }}>
                 <div className="max-w-7xl mx-auto px-2 sm:px-4">
-                    <div className="relative">
-                        <div ref={navScrollRef} className="flex overflow-x-auto" role="tablist" aria-label="Main navigation" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+	                    <div className="sm:hidden py-2">
+	                        <select
+	                            value={tab}
+	                            aria-label="Main navigation"
+	                            onChange={(e) => setTab(e.target.value)}
+	                            className={`w-full min-h-11 rounded-lg border px-3 py-2 body-text font-semibold ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-white border-slate-300 text-slate-900'}`}
+	                        >
+	                            {tabs.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+	                        </select>
+	                    </div>
+	                    <div className="relative hidden sm:block">
+	                        <div ref={navScrollRef} className="flex overflow-x-auto" role="tablist" aria-label="Main navigation" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
                             onScroll={(e) => {
                                 const el = e.target;
                                 setNavCanScrollLeft(el.scrollLeft > 4);
                                 setNavCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
                             }}>
                             {tabs.map(t => (
-                                <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={`px-3 sm:px-4 py-2.5 text-xs sm:text-[13px] whitespace-nowrap flex-shrink-0 border-b-2 transition-colors ${
+	                                <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={`px-4 py-3 text-[13px] whitespace-nowrap flex-shrink-0 border-b-2 transition-colors ${
                                     tab === t.id
                                         ? (darkMode ? 'text-blue-400 border-blue-400 font-semibold' : 'text-blue-700 border-blue-700 font-semibold')
                                         : (darkMode ? 'text-slate-400 hover:text-slate-200 border-transparent' : 'text-slate-500 hover:text-slate-800 border-transparent')
@@ -424,7 +439,7 @@ const App = () => {
             <footer className={`border-t mt-8 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between">
                     <p className={`small-text ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        Baseball Statistics Portal
+	                        MLB Game Passport
                     </p>
                     {data.generatedAt && <p className={`small-text ${darkMode ? 'text-slate-600' : 'text-slate-300'}`}>{data.generatedAt}</p>}
                 </div>

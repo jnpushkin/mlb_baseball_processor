@@ -826,10 +826,10 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
     };
     
     return (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-lg w-full max-h-[90vh] flex flex-col overflow-hidden" style={{ maxWidth: 'min(72rem, 95vw)' }} onClick={(e) => e.stopPropagation()}>
+        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-stretch sm:items-center justify-center z-[80] sm:p-4" onClick={onClose}>
+            <div className="bg-white rounded-none sm:rounded-lg shadow-lg w-full h-full sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden" style={{ maxWidth: 'min(72rem, 95vw)' }} onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
-                <div className={`p-6 border-b ${game.gameType === 'spring' ? 'bg-gradient-to-r from-green-600 to-green-700' : 'bg-gradient-to-r from-blue-600 to-blue-700'} text-white flex-shrink-0`}>
+                <div className={`p-4 sm:p-6 border-b ${game.gameType === 'spring' ? 'bg-gradient-to-r from-green-600 to-green-700' : 'bg-gradient-to-r from-blue-600 to-blue-700'} text-white flex-shrink-0`}>
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
                             <h3 className="section-title font-bold flex flex-wrap items-center gap-2">
@@ -840,17 +840,19 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                             {game.gameType === 'spring' && <span className="px-2 py-0.5 bg-white/20 text-white text-xs font-semibold rounded">Spring Training</span>}
                             {game.gameType === 'postseason' && <span className="px-2 py-0.5 bg-yellow-400/30 text-white text-xs font-semibold rounded">Postseason</span>}
                         </div>
-                        <button onClick={onClose} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
+                        <button onClick={onClose} className="min-h-10 min-w-10 inline-flex items-center justify-center rounded-md text-white hover:bg-white/10 hover:text-slate-100 text-2xl leading-none" aria-label="Close game details">&times;</button>
                     </div>
-                    <div className="flex items-center gap-4 body-text text-blue-100">
-                        <span>{game.date}</span>
-                        <span>•</span>
-                        <span>{game.startTime}</span>
-                        <span>•</span>
-                        <span className="font-mono text-2xl text-white font-bold">{game.score}</span>
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-wrap items-center gap-2 body-text text-blue-100">
+                            <span>{game.date}</span>
+                            {game.startTime && <><span>•</span><span>{game.startTime}</span></>}
+                        </div>
+                        <div className="inline-flex w-fit rounded-lg bg-white/15 px-3 py-2 font-mono text-2xl text-white font-bold tracking-tight">
+                            {game.score}
+                        </div>
                     </div>
                     <div className="body-text text-blue-100 mt-2">
-                        📍 <button className="hover:underline hover:text-white" onClick={() => { if (window.__navigateTab) window.__navigateTab('venues'); if (onClose) onClose(); }}>{game.venue}</button>
+                        📍 <button className="inline-flex min-h-10 items-center align-middle hover:underline hover:text-white" onClick={() => { if (window.__navigateTab) window.__navigateTab('venues'); if (onClose) onClose(); }}>{game.venue}</button>
                         {game.attendance > 0 && <> • 👥 {game.attendance.toLocaleString()} fans</>}
                         {game.gameLength && <> • ⏱️ {game.gameLength}</>}
                     </div>
@@ -965,7 +967,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                 {['hp', '1b', '2b', '3b', 'lf', 'rf'].map(pos => game.umpires[pos] ? (
                                     <div key={pos} className="small-text">
                                         <span className="text-slate-500">{pos.toUpperCase()}:</span>{' '}
-                                        <button className="font-medium text-blue-600 hover:underline" onClick={() => {
+                                        <button className="inline-flex min-h-10 items-center font-medium text-blue-600 hover:underline" onClick={() => {
                                             window._pendingUmpireSearch = game.umpires[pos];
                                             if (window.__navigateTab) window.__navigateTab('trivia', 'umpires');
                                             if (onClose) onClose();
@@ -1071,12 +1073,12 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                 
                 {/* Tab Navigation */}
                 <div className="border-b bg-slate-50 sticky top-0 z-10">
-                    <div className="flex gap-1 px-6">
+                    <div className="flex gap-1 overflow-x-auto px-4 sm:px-6" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
                         {['boxscore', 'lineups', 'substitutions', 'playbyplay', 'context'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`px-4 sm:px-6 py-3 body-text font-semibold transition-all whitespace-nowrap ${
+                                className={`min-h-11 px-4 sm:px-6 py-3 body-text font-semibold transition-all whitespace-nowrap ${
                                     activeTab === tab
                                         ? 'bg-white text-blue-600 border-b-4 border-blue-600'
                                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -1278,16 +1280,18 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                 </div>{/* End scrollable body */}
 
                 {/* Footer */}
-                <div className="p-3 border-t bg-slate-50 flex justify-between items-center flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                        {onPrev && <button onClick={onPrev} className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 rounded text-sm font-medium" title="Previous game">← Prev</button>}
+                <div className="p-3 border-t bg-slate-50 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center flex-shrink-0">
+                    <div className="flex items-center justify-between gap-2 sm:justify-start">
+                        {onPrev && <button onClick={onPrev} className="min-h-11 px-3 py-2 bg-slate-200 hover:bg-slate-300 rounded text-sm font-medium" title="Previous game">← Prev</button>}
                         {gameIndex != null && totalGames && <span className="text-xs text-slate-500">Game {gameIndex} of {totalGames}</span>}
-                        {onNext && <button onClick={onNext} className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 rounded text-sm font-medium" title="Next game">Next →</button>}
+                        {onNext && <button onClick={onNext} className="min-h-11 px-3 py-2 bg-slate-200 hover:bg-slate-300 rounded text-sm font-medium" title="Next game">Next →</button>}
                     </div>
-                    <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} />
-                    <button onClick={onClose} className="px-5 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium">
-                        Close
-                    </button>
+                    <div className="flex items-center justify-between gap-3">
+                        <GameLink gameId={game.gameId} mlbGamePk={game.mlbGamePk} source={game.source} className="inline-flex min-h-11 items-center rounded pr-2" />
+                        <button onClick={onClose} className="min-h-11 px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium">
+                            Close
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

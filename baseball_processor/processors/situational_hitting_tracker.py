@@ -188,8 +188,9 @@ class SituationalHittingTracker:
                     self.player_situations[batter_id]["bases_loaded_hits"] += 1
                 if is_hr or 'grand slam' in description:
                     self.player_situations[batter_id]["bases_loaded_hr"] += 1
-                    if 'grand slam' in description:
-                        self.player_situations[batter_id]["bases_loaded_grand_slams"] += 1
+                    # A home run with all three bases occupied is a grand slam, even
+                    # when the play text only says "homered" and not "grand slam".
+                    self.player_situations[batter_id]["bases_loaded_grand_slams"] += 1
             
             # Track late & close (7th+ inning, within 3 runs)
             if inning >= 7 and abs(score_diff) <= 3:
@@ -277,15 +278,16 @@ class SituationalHittingTracker:
         return df
     
     def create_bases_loaded_dataframe(self):
-        """Create DataFrame of bases loaded HOME RUNS only (Grand Slams)."""
+        """Create DataFrame of bases loaded home runs (grand slams)."""
         rows = []
         for player_id, stats in self.player_situations.items():
             # Only include players who hit a home run with bases loaded
             if stats["bases_loaded_hr"] > 0:
+                grand_slams = max(stats["bases_loaded_grand_slams"], stats["bases_loaded_hr"])
                 row = {
                     "Player ID": player_id,
                     "Name": stats["name"],
-                    "Grand Slams": stats["bases_loaded_grand_slams"]
+                    "Grand Slams": grand_slams
                 }
                 rows.append(row)
         

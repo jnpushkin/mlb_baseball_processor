@@ -174,6 +174,7 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 - Individual defensive errors are source-specific: BREF games credit them from `footer_summary[*].E`, while MLB API games expose per-player `stats.fielding.errors` in the boxscore. The defensive tracker should use the BREF footer when present, otherwise row-level API `E`, with play-by-play text only as a fallback for older API caches. BREF footer names can have 3+ tokens (e.g., `Jung Hoo Lee`), so avoid fixed first/last-name regexes.
 - Website IP display should keep outs as the canonical value for UI calculations and use the shared React helpers (`formatOutsAsIP`, `baseballIPToOuts`, `formatHistoricalStatValue`) for display/sort/filter boundaries. Avoid accumulating IP as normal decimal innings in React; it leaks values like `#.6667` instead of baseball notation (`#.2`).
 - Stolen bases and caught stealing are runner-owned events. For BREF games, credit SB/CS from the batting row `Details`/direct row stats via `parse_batting_detail_counts`; play-by-play descriptions happen during another batter's plate appearance and can miscredit the current `batter`.
+- In the situational hitting tracker, any home run with bases loaded is a grand slam even when play-by-play text says only "homered" instead of "grand slam"; the website Bases Loaded grand-slam table should aggregate from the canonical Grand Slams milestone data so it stays consistent with the Milestones tab.
 
 ## Local Website Review
 ```bash
