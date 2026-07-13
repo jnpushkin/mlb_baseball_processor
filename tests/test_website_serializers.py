@@ -918,6 +918,56 @@ class DataSerializerTests(unittest.TestCase):
         self.assertEqual("Power Bat", details["keyPlays"][0]["batter"])
         self.assertEqual(4, details["keyPlays"][0]["rbi"])
 
+    def test_extract_game_details_marks_api_inside_the_park_key_play(self):
+        play = {
+            "inning": 1,
+            "half": "top",
+            "event_type": "home_run",
+            "description": "Jake McCarthy hits an inside-the-park home run (10) on a fly ball to right field.",
+            "home_run": True,
+            "rbi": 1,
+            "batter": "Jake McCarthy",
+            "pitcher": "Trevor McDonald",
+        }
+        raw_game = {
+            "basic_info": {"game_type": "regular", "source": "mlb"},
+            "play_by_play": [play],
+            "raw_plays": [play],
+        }
+
+        details = DataSerializer()._extract_game_details(raw_game)
+
+        self.assertEqual("inside_the_park_hr", details["keyPlays"][0]["type"])
+        self.assertEqual("Jake McCarthy", details["keyPlays"][0]["batter"])
+        self.assertTrue(details["playByPlay"][0]["isInsideTheParkHR"])
+        self.assertEqual("home_run", details["playByPlay"][0]["eventType"])
+        self.assertEqual(1, details["playByPlay"][0]["rbi"])
+
+    def test_extract_game_details_exposes_hbp_play_context(self):
+        raw_game = {
+            "basic_info": {"game_type": "regular", "source": "mlb"},
+            "raw_plays": [
+                {
+                    "inning": 4,
+                    "half": "top",
+                    "event": "Hit By Pitch",
+                    "event_type": "hit_by_pitch",
+                    "description": (
+                        "Giants challenged (hit by pitch), call on the field was upheld: "
+                        "Munetaka Murakami hit by pitch. Sam Antonacci to 2nd."
+                    ),
+                    "rbi": 0,
+                    "batter": "Munetaka Murakami",
+                    "pitcher": "Robbie Ray",
+                }
+            ],
+        }
+
+        details = DataSerializer()._extract_game_details(raw_game)
+
+        self.assertEqual("hit_by_pitch", details["playByPlay"][0]["eventType"])
+        self.assertTrue(details["playByPlay"][0]["isHitByPitch"])
+
     def test_serialize_all_data_includes_wpa_leaders(self):
         processed_data = {
             "summary_rows": [],
@@ -934,6 +984,19 @@ class DataSerializerTests(unittest.TestCase):
         self.assertEqual("0.777", leader["totalWpa"])
         self.assertEqual("0.389", leader["avgWpa"])
         self.assertEqual("HOM202604300", leader["bestGameId"])
+
+    def test_serialize_all_data_includes_stadium_aliases(self):
+        processed_data = {
+            "summary_rows": [],
+            "milestones": {},
+            "_raw_games": [],
+        }
+
+        serialized = DataSerializer().serialize_all_data(processed_data)
+
+        self.assertEqual("Oracle Park", serialized["stadiumAliases"]["AT&T Park"])
+        self.assertEqual("American Family Field", serialized["stadiumAliases"]["Miller Park"])
+        self.assertEqual("Globe Life Park in Arlington", serialized["stadiumAliases"]["Ameriquest Field"])
 
     def test_serialize_all_data_includes_defensive_and_lineup_tables(self):
         processed_data = {

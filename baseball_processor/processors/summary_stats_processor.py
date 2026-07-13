@@ -4,7 +4,15 @@ from collections import defaultdict, Counter
 from datetime import datetime
 import pandas as pd
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import standardize_team_code, join_sorted_gameids, _normalize_team_code_for_counts, _parse_duration_to_minutes, unify_team_code
+from ..utils.helpers import (
+    standardize_team_code,
+    join_sorted_gameids,
+    _normalize_team_code_for_counts,
+    _parse_duration_to_minutes,
+    unify_team_code,
+    is_inside_the_park_home_run_play,
+    extract_play_contact_detail,
+)
 from ..utils.log import debug
 from .base_processor import BaseProcessor
 
@@ -282,7 +290,7 @@ class SummaryStatsProcessor(BaseProcessor):
 
             # Process inside-the-park HRs
             for play in game.get("play_by_play", []):
-                if play.get("inside_the_park_hr"):
+                if is_inside_the_park_home_run_play(play):
                     self.inside_park_hrs += 1
                     detail = self._format_inside_park_hr_detail(play)
                     self.inside_park_hr_details.append(detail)
@@ -1105,9 +1113,7 @@ class SummaryStatsProcessor(BaseProcessor):
         return ""
 
     def _extract_contact_detail(self, description):
-        text = self._clean_event_text(description)
-        match = re.search(r"\(([^)]*)\)", text)
-        return self._clean_event_text(match.group(1)) if match else ""
+        return self._clean_event_text(extract_play_contact_detail(description))
 
     def _format_inside_park_hr_detail(self, play):
         batter = self._clean_event_text(play.get("batter")) or "Unknown"

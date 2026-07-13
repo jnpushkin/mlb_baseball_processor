@@ -61,6 +61,41 @@ def test_formats_inside_the_park_home_run_detail_with_play_context():
     )
 
 
+def test_summary_counts_api_description_inside_the_park_home_run():
+    processor = make_processor()
+    game = make_summary_game("SFN202607120", "COL", "SF", "20260712", 1, 3)
+    game.update(
+        {
+            "batting": {"away": [], "home": []},
+            "pitching": {"away": [], "home": []},
+            "play_by_play": [
+                {
+                    "inning": 1,
+                    "half": "top",
+                    "batting_team": "COL",
+                    "pitching_team": "SF",
+                    "event_type": "home_run",
+                    "description": "Jake McCarthy hits an inside-the-park home run (10) on a fly ball to right field.",
+                    "home_run": True,
+                    "rbi": 1,
+                    "batter": "Jake McCarthy",
+                    "pitcher": "Trevor McDonald",
+                    "outs_before": 0,
+                }
+            ],
+        }
+    )
+
+    processor.games = [game]
+    processor._process_game_statistics(game)
+
+    row = summary_row(processor, "Inside-the-Park Home Runs")
+    assert row["Value"] == 1
+    assert row["GameIDs"] == "SFN202607120"
+    assert "Jake McCarthy - Top 1, 0 outs: solo inside-the-park HR off Trevor McDonald" in row["Detail"]
+    assert "fly ball to right field" in row["Detail"]
+
+
 def test_formats_both_teams_10_plus_detail_with_score_context():
     processor = make_processor()
 

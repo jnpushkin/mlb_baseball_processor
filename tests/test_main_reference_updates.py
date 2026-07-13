@@ -1,5 +1,6 @@
 import unittest
 import json
+import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -8,6 +9,7 @@ from unittest.mock import patch
 
 from baseball_processor.main import (
     _awards_reference_age_days,
+    _splash_hits_reference_age_days,
     _load_games_from_cache,
     _refresh_awards_if_stale,
     _cache_game_quality_score,
@@ -19,6 +21,7 @@ from baseball_processor.main import (
     _should_refresh_all_time_leaders,
     _should_update_awards,
     _should_update_debuts,
+    _should_update_splash_hits,
 )
 
 
@@ -34,6 +37,9 @@ def make_args(**overrides):
         "skip_awards_update": False,
         "update_awards": False,
         "awards_max_age_days": 7,
+        "skip_splash_hits_update": False,
+        "update_splash_hits": False,
+        "splash_hits_max_age_days": 1,
         "download_bref_backups": False,
         "skip_bref_parity": False,
         "deploy": False,
@@ -51,6 +57,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
         self.assertFalse(_should_update_awards(args))
+        self.assertFalse(_should_update_splash_hits(args))
         self.assertFalse(_should_download_bref_backups(args))
 
     def test_quick_stats_skips_network_reference_updates(self):
@@ -59,6 +66,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
         self.assertFalse(_should_update_awards(args))
+        self.assertFalse(_should_update_splash_hits(args))
         self.assertFalse(_should_download_bref_backups(args))
 
     def test_db_only_skips_network_reference_updates(self):
@@ -67,6 +75,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
         self.assertFalse(_should_update_awards(args))
+        self.assertFalse(_should_update_splash_hits(args))
         self.assertFalse(_should_download_bref_backups(args))
 
     def test_regular_runs_refresh_network_references(self):
@@ -75,6 +84,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertTrue(_should_refresh_all_time_leaders(args))
         self.assertTrue(_should_update_debuts(args))
         self.assertTrue(_should_update_awards(args))
+        self.assertTrue(_should_update_splash_hits(args))
         self.assertTrue(_should_download_bref_backups(args))
 
     def test_debut_update_can_be_enabled_for_cache_only_runs(self):
@@ -83,6 +93,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertTrue(_should_update_debuts(args))
         self.assertFalse(_should_update_awards(args))
+        self.assertFalse(_should_update_splash_hits(args))
         self.assertFalse(_should_download_bref_backups(args))
 
     def test_awards_update_can_be_enabled_for_cache_only_runs(self):
@@ -91,6 +102,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
         self.assertTrue(_should_update_awards(args))
+        self.assertFalse(_should_update_splash_hits(args))
         self.assertFalse(_should_download_bref_backups(args))
 
     def test_excel_only_skips_awards_update(self):
@@ -98,12 +110,22 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
 
         self.assertFalse(_should_update_awards(args))
 
+    def test_splash_hits_update_can_be_enabled_for_cache_only_runs(self):
+        args = make_args(from_cache_only=True, update_splash_hits=True)
+
+        self.assertFalse(_should_refresh_all_time_leaders(args))
+        self.assertFalse(_should_update_debuts(args))
+        self.assertFalse(_should_update_awards(args))
+        self.assertTrue(_should_update_splash_hits(args))
+        self.assertFalse(_should_download_bref_backups(args))
+
     def test_bref_backup_download_can_be_enabled_for_cache_only_runs(self):
         args = make_args(from_cache_only=True, download_bref_backups=True)
 
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
         self.assertFalse(_should_update_awards(args))
+        self.assertFalse(_should_update_splash_hits(args))
         self.assertTrue(_should_download_bref_backups(args))
 
     def test_skip_debut_update_overrides_forced_debut_update(self):
@@ -115,6 +137,34 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         args = make_args(from_cache_only=True, update_awards=True, skip_awards_update=True)
 
         self.assertFalse(_should_update_awards(args))
+
+    def test_skip_splash_hits_update_overrides_forced_splash_hits_update(self):
+        args = make_args(
+            from_cache_only=True,
+            update_splash_hits=True,
+            skip_splash_hits_update=True,
+        )
+
+        self.assertFalse(_should_update_splash_hits(args))
+
+    def test_splash_hits_reference_age_uses_oldest_csv_mtime(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            reference_dir = Path(tmpdir)
+            fresh_path = reference_dir / "splash_hits_all_lines.csv"
+            stale_path = reference_dir / "other_mccovey_cove_hr.csv"
+            fresh_path.write_text("header\n", encoding="utf-8")
+            stale_path.write_text("header\n", encoding="utf-8")
+            fresh_time = datetime.fromisoformat("2026-06-22T12:00:00+00:00").timestamp()
+            stale_time = datetime.fromisoformat("2026-06-20T12:00:00+00:00").timestamp()
+            os.utime(fresh_path, (fresh_time, fresh_time))
+            os.utime(stale_path, (stale_time, stale_time))
+
+            age_days = _splash_hits_reference_age_days(
+                (fresh_path, stale_path),
+                now=datetime.fromisoformat("2026-06-22T12:00:00+00:00"),
+            )
+
+        self.assertEqual(2, age_days)
 
     def test_fresh_awards_reference_does_not_refresh(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -133,7 +183,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
                 side_effect=AssertionError("Fresh awards should not scrape"),
             ):
                 refreshed = _refresh_awards_if_stale(
-                    max_age_days=7,
+                    max_age_days=60,
                     force=False,
                     initial_delay=0,
                 )

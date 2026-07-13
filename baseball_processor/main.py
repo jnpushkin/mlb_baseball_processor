@@ -4,13 +4,22 @@ import argparse
 import logging
 import re
 import copy
+import subprocess
 import pandas as pd
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
 from .excel.workbook_generator import generate_excel_workbook
 from .parsers.html_parser import parse_baseball_reference_boxscore
-from .utils.constants import BASE_DIR, DEFAULT_INPUT_DIR, REFERENCES_DIR, HOF_FILE, CACHE_DIR
+from .utils.constants import (
+    BASE_DIR,
+    DEFAULT_INPUT_DIR,
+    REFERENCES_DIR,
+    HOF_FILE,
+    CACHE_DIR,
+    SPLASH_HITS_FILE,
+    MCCOVEY_COVE_FILE,
+)
 from .utils.helpers import load_mlb_debuts
 from .utils.globals import UmpireTracker
 from .utils.log import info, warn, error, debug, set_verbosity, set_use_emoji, configure_file_logging
@@ -152,6 +161,111 @@ def _maybe_deploy_to_surge(html_path: str, args) -> bool:
     if not args.deploy and configured_domain:
         info(f"🚀 Auto-deploying to configured Surge domain: {configured_domain}")
     return deploy_to_surge(html_path, configured_domain)
+
+
+def _shared_player_website_url(args) -> str:
+    surge_domain = args.surge_domain or load_surge_domain()
+    return f"https://{surge_domain}" if surge_domain else "https://mlb-processor.surge.sh"
+
+
+def _export_mlb_shared_players(processed_data, games_data, args, automatic: bool = False) -> Path | None:
+    if automatic:
+        info("\n🔗 Updating MLB shared player export...")
+    else:
+        info("\n🔗 Exporting shared player data...")
+
+    try:
+        from .exporters.shared_players import generate_shared_export
+        export_path = generate_shared_export(
+            processed_data,
+            website_url=_shared_player_website_url(args),
+            source_game_counts={'mlb_games': len(games_data)},
+        )
+        info(f"✅ Shared player export: {export_path}")
+        return export_path
+    except Exception as e:
+        warn(f"⚠️ Shared player export failed: {e}")
+        return None
+
+
+def _should_refresh_ncaa_shared_players(args) -> bool:
+    if args.excel_only or args.quick_stats:
+        return False
+    if args.skip_ncaa_player_refresh:
+        return False
+    return os.environ.get("MLB_PROCESSOR_SKIP_NCAA_REFRESH", "").lower() not in {"1", "true", "yes"}
+
+
+def _ncaa_processor_dir() -> Path:
+    configured = (
+        os.environ.get("NCAA_BASEBALL_PROCESSOR_DIR")
+        or os.environ.get("NCAAB_PROCESSOR_DIR")
+    )
+    return Path(configured).expanduser() if configured else Path.home() / "ncaa_baseball_processor"
+
+
+def _refresh_ncaa_shared_players(args) -> bool:
+    ncaa_dir = _ncaa_processor_dir()
+    if not ncaa_dir.exists():
+        warn(f"⚠️ NCAA processor not found at {ncaa_dir}; using existing shared player export")
+        return False
+
+    info("🔁 Refreshing NCAA/MiLB shared player export from local caches...")
+    env = os.environ.copy()
+    env["NCAA_BASEBALL_OFFLINE"] = "1"
+    cmd = [
+        "python3",
+        "-m",
+        "baseball_processor",
+        "--refresh-shared-players",
+        "--deploy-domain",
+        "ncaa-baseball.surge.sh",
+    ]
+
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=ncaa_dir,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+    except subprocess.TimeoutExpired:
+        warn("⚠️ NCAA shared player refresh timed out; using existing export")
+        return False
+    except Exception as e:
+        warn(f"⚠️ NCAA shared player refresh failed: {e}")
+        return False
+
+    if result.returncode != 0:
+        output = (result.stderr or result.stdout or "").strip()
+        if output:
+            output = "\n".join(output.splitlines()[-8:])
+            warn(f"⚠️ NCAA shared player refresh failed:\n{output}")
+        else:
+            warn("⚠️ NCAA shared player refresh failed with no output")
+        return False
+
+    for line in reversed(result.stdout.splitlines()):
+        if "Shared player export:" in line or line.startswith("Done!"):
+            info(f"✅ {line.strip()}")
+            break
+    else:
+        info("✅ NCAA shared player export refreshed")
+    return True
+
+
+def _sync_shared_player_exports_for_website(processed_data, games_data, args) -> None:
+    processed_data['_raw_games'] = games_data
+    export_path = _export_mlb_shared_players(processed_data, games_data, args, automatic=True)
+    if not export_path:
+        warn("⚠️ Skipping NCAA shared player refresh because the MLB export failed")
+        return
+    if _should_refresh_ncaa_shared_players(args):
+        _refresh_ncaa_shared_players(args)
+    else:
+        info("⏭️ Skipping NCAA shared player refresh")
 
 
 def _print_game_summary(game_data):
@@ -297,6 +411,55 @@ def _refresh_awards_if_stale(max_age_days=7, force=False, initial_delay=0):
         return False
 
 
+def _splash_hits_reference_age_days(paths=None, now=None):
+    """Return the age of the oldest Splash Hits reference CSV, or None if missing."""
+    paths = paths or (SPLASH_HITS_FILE, MCCOVEY_COVE_FILE)
+    path_list = [Path(path) for path in paths]
+    if any(not path.exists() for path in path_list):
+        return None
+
+    oldest_mtime = min(path.stat().st_mtime for path in path_list)
+    generated_at = datetime.fromtimestamp(oldest_mtime, timezone.utc)
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    return (now - generated_at).total_seconds() / 86400
+
+
+def _refresh_splash_hits_if_stale(max_age_days=1, force=False):
+    """Refresh official MLB.com Splash Hits/McCovey Cove CSV references when stale."""
+    age_days = _splash_hits_reference_age_days()
+    if not force and age_days is not None and age_days <= max_age_days:
+        return False
+
+    reason = "missing"
+    if force:
+        reason = "forced"
+    elif age_days is not None:
+        reason = f"last updated {age_days:.0f} days ago"
+
+    info(f"🔄 Updating Splash Hits/McCovey Cove references from MLB.com ({reason})...")
+    try:
+        from .scrapers.splash_hits_scraper import update_splash_hits
+        result = update_splash_hits()
+        info(
+            "✅ Updated Splash Hits: "
+            f"{result.giants_count} Giants rows (latest #{result.giants_newest_number}), "
+            f"{result.visitors_count} other Cove rows (latest #{result.visitors_newest_number})"
+        )
+        if result.unresolved_player_ids:
+            warn(
+                "⚠️ Splash Hits rows missing PlayerID: "
+                + ", ".join(result.unresolved_player_ids[:8])
+                + ("..." if len(result.unresolved_player_ids) > 8 else "")
+            )
+        return True
+    except Exception as e:
+        warn(f"⚠️ Failed to update Splash Hits references: {e}")
+        info("   Continuing with existing Splash Hits data...")
+        return False
+
+
 def _refresh_drafts(args):
     """Ensure MLB draft picks (1965..current) are cached.
 
@@ -365,6 +528,14 @@ def _should_update_awards(args):
         return True
     if getattr(args, 'excel_only', False):
         return False
+    return not _should_skip_network_reference_updates(args)
+
+
+def _should_update_splash_hits(args):
+    if getattr(args, 'skip_splash_hits_update', False):
+        return False
+    if getattr(args, 'update_splash_hits', False):
+        return True
     return not _should_skip_network_reference_updates(args)
 
 
@@ -1681,6 +1852,22 @@ def main():
         help='Refresh awards data when older than this many days (default: 7)'
     )
     parser.add_argument(
+        '--skip-splash-hits-update',
+        action='store_true',
+        help='Skip auto-updating MLB.com Splash Hits/McCovey Cove reference CSVs'
+    )
+    parser.add_argument(
+        '--update-splash-hits',
+        action='store_true',
+        help='Update MLB.com Splash Hits/McCovey Cove reference CSVs even when running from local game cache'
+    )
+    parser.add_argument(
+        '--splash-hits-max-age-days',
+        type=int,
+        default=1,
+        help='Refresh Splash Hits/McCovey Cove data when older than this many days (default: 1)'
+    )
+    parser.add_argument(
         '--download-bref-backups',
         action='store_true',
         help='Download missing BREF HTML backups even when running from local game cache'
@@ -1727,6 +1914,11 @@ def main():
         '--export-players',
         action='store_true',
         help='Export shared player data for cross-project linking with NCAA processor'
+    )
+    parser.add_argument(
+        '--skip-ncaa-player-refresh',
+        action='store_true',
+        help='Skip refreshing the NCAA/MiLB shared player export before website generation'
     )
     parser.add_argument(
         '--migrate-cache',
@@ -1802,7 +1994,13 @@ def main():
         info(f"▶ Excel will be written to: {os.path.abspath(args.output_excel)}")
     info(f"▶ Current working directory: {os.getcwd()}")
 
-    # Step 0: Auto-update BREF-backed references (unless skipped)
+    # Step 0: Auto-update network-backed references (unless skipped)
+    if _should_update_splash_hits(args):
+        _refresh_splash_hits_if_stale(
+            max_age_days=args.splash_hits_max_age_days,
+            force=getattr(args, 'update_splash_hits', False),
+        )
+
     debut_update_attempted = False
     if _should_update_debuts(args):
         debut_update_attempted = True
@@ -1979,9 +2177,8 @@ def main():
                 write_file=False  # Skip Excel writing
             )
             
-            # Generate website
             html_path = args.output_excel.replace('.xlsx', '.html')
-            processed_data['_raw_games'] = games_data 
+            _sync_shared_player_exports_for_website(processed_data, games_data, args)
             generate_website_from_data(processed_data, html_path)
             
             info("\n🎉 Processing complete!")
@@ -2002,6 +2199,7 @@ def main():
                 umpire_tracker,  # Pass the tracker
                 write_file=True 
             )
+            processed_data['_raw_games'] = games_data
             
             info("\n🎉 Processing complete!")
             info(f"📊 Excel: {os.path.abspath(args.output_excel)}")
@@ -2024,7 +2222,7 @@ def main():
             info("\n📊 Excel complete, generating website...")
             
             html_path = args.output_excel.replace('.xlsx', '.html')
-            processed_data['_raw_games'] = games_data 
+            _sync_shared_player_exports_for_website(processed_data, games_data, args)
             generate_website_from_data(processed_data, html_path)
             
             info("\n🎉 Processing complete!")
@@ -2044,14 +2242,9 @@ def main():
             export_raw_games_to_csv(games_data, csv_dir / "mlb_tracker_raw_games.csv")
             info(f"✅ CSV files exported to: {csv_dir}")
 
-        # Export shared players if requested
-        if args.export_players:
-            info(f"\n🔗 Exporting shared player data...")
-            from .exporters.shared_players import generate_shared_export
-            surge_domain = args.surge_domain or load_surge_domain()
-            website_url = f"https://{surge_domain}" if surge_domain else "https://mlb-passport.surge.sh"
-            export_path = generate_shared_export(processed_data, website_url=website_url)
-            info(f"✅ Shared player export: {export_path}")
+        # Website-capable runs export before serialization so NCAA can consume it.
+        if args.export_players and args.excel_only:
+            _export_mlb_shared_players(processed_data, games_data, args)
 
         # Scrape career firsts if requested
         if args.scrape_career_firsts:

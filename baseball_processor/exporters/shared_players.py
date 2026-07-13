@@ -15,6 +15,7 @@ def generate_shared_export(
     processed_data: Dict[str, Any],
     website_url: str = "https://mlb-passport.surge.sh",
     output_dir: Optional[Path] = None,
+    source_game_counts: Optional[Dict[str, Any]] = None,
 ) -> Path:
     """
     Generate shared_players.json for cross-project linking.
@@ -23,6 +24,7 @@ def generate_shared_export(
         processed_data: The processed data dict from generate_excel_workbook
         website_url: URL of the generated website
         output_dir: Output directory (default: project data/ dir)
+        source_game_counts: Optional source counts for freshness diagnostics
 
     Returns:
         Path to generated JSON file
@@ -106,6 +108,7 @@ def generate_shared_export(
         'website_url': website_url,
         'player_count': len(players),
         'players': players,
+        'source_game_counts': source_game_counts or {'mlb_games': len(raw_games)},
     }
 
     output_path = output_dir / 'shared_players.json'
@@ -230,3 +233,17 @@ def build_ncaa_cross_reference(ncaa_export: Optional[Dict] = None) -> Dict[str, 
             cross_ref[mlb_bref_id] = entry
 
     return cross_ref
+
+
+def build_ncaa_cross_reference_meta(ncaa_export: Optional[Dict] = None) -> Dict[str, Any]:
+    """Return freshness metadata for the NCAA shared player export."""
+    if not ncaa_export:
+        return {}
+    return {
+        'generatedAt': ncaa_export.get('generated_at', ''),
+        'websiteUrl': ncaa_export.get('website_url', ''),
+        'playerCount': ncaa_export.get('player_count', 0),
+        'sourceGameCounts': ncaa_export.get('source_game_counts', {}),
+        'mlbExportGeneratedAt': ncaa_export.get('mlb_export_generated_at', ''),
+        'mlbExportPlayerCount': ncaa_export.get('mlb_export_player_count', 0),
+    }

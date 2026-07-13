@@ -10,7 +10,8 @@ from pathlib import Path
 import pandas as pd
 
 from ..engines.all_time_passing_engine import AllTimePassingEngine, find_passings_reverse_lookup, load_gamelogs_cache
-from ..utils.constants import CACHE_DIR, REFERENCES_DIR
+from ..utils.constants import CACHE_DIR, REFERENCES_DIR, STADIUM_ALIASES
+from ..utils.helpers import is_inside_the_park_home_run_play
 from ..utils.stat_utils import parse_batting_detail_counts
 
 
@@ -478,11 +479,17 @@ class DataSerializer:
 
         # Load NCAA cross-reference data if available
         ncaa_cross_ref = {}
+        ncaa_cross_ref_meta = {}
         try:
-            from ..exporters.shared_players import load_ncaa_processor_export, build_ncaa_cross_reference
+            from ..exporters.shared_players import (
+                load_ncaa_processor_export,
+                build_ncaa_cross_reference,
+                build_ncaa_cross_reference_meta,
+            )
             ncaa_export = load_ncaa_processor_export()
             if ncaa_export:
                 ncaa_cross_ref = build_ncaa_cross_reference(ncaa_export)
+                ncaa_cross_ref_meta = build_ncaa_cross_reference_meta(ncaa_export)
         except Exception as e:
             print(f"      Note: NCAA cross-reference not available: {e}")
 
@@ -631,6 +638,7 @@ class DataSerializer:
             "teams": self._serialize_teams(data.get('team_records')),
             "games": games,
             "stadiums": self._serialize_stadiums(data.get('stadiums')),
+            "stadiumAliases": self._serialize_stadium_aliases(),
             "orioles": self._serialize_orioles(data.get('ori_stads')),
             "debuts": self._serialize_debuts(data.get('mlb_debut_rows', [])),
             "finalGames": self._serialize_final_games(data.get('final_game_rows', [])),
@@ -648,6 +656,7 @@ class DataSerializer:
             "allTimePassingsByGame": passings_by_game,
             "gameTypeCounts": game_type_counts,
             "ncaaCrossRef": ncaa_cross_ref,
+            "ncaaCrossRefMeta": ncaa_cross_ref_meta,
             "absPlayerStats": self._serialize_abs_player_stats(raw_games),
             "umpireLog": self._serialize_umpire_log(raw_games),
             "jerseyLog": self._serialize_jersey_log(raw_games),
@@ -697,6 +706,15 @@ class DataSerializer:
             }
             for row in summary_rows
         ]
+
+    def _serialize_stadium_aliases(self):
+        """Serialize canonical venue aliases for frontend filters."""
+        aliases = {}
+        for canonical, raw_aliases in STADIUM_ALIASES.items():
+            aliases[canonical] = canonical
+            for alias in raw_aliases:
+                aliases[alias] = canonical
+        return aliases
     
     # Milestone types to exclude from website (trivial/removed)
     EXCLUDED_MILESTONE_TYPES = {
@@ -2808,8 +2826,9 @@ class DataSerializer:
             description = str(play.get('description', ''))
             is_grand_slam = play.get('grand_slam') or 'grand slam' in description.lower()
             is_home_run = play.get('home_run') or play.get('event_type') == 'home_run' or is_grand_slam
+            is_inside_the_park_hr = is_inside_the_park_home_run_play(play)
 
-            # Grand slams must be checked before generic home runs.
+            # Grand slams and inside-the-park HRs must be checked before generic home runs.
             if is_grand_slam:
                 key_plays.append({
                     'type': 'grand_slam',
@@ -2818,6 +2837,15 @@ class DataSerializer:
                     'pitcher': play.get('pitcher', ''),
                     'description': description,
                     'rbi': play.get('rbi', 4)
+                })
+            elif is_inside_the_park_hr:
+                key_plays.append({
+                    'type': 'inside_the_park_hr',
+                    'inning': f"{play.get('half', '').title()} {play.get('inning', '')}",
+                    'batter': play.get('batter', ''),
+                    'pitcher': play.get('pitcher', ''),
+                    'description': description,
+                    'rbi': play.get('rbi', 1)
                 })
             elif is_home_run:
                 key_plays.append({
@@ -2901,14 +2929,19 @@ class DataSerializer:
                     'batterId': play.get('batter_id', ''),
                     'pitcher': play.get('pitcher', ''),
                     'pitcherId': play.get('pitcher_id', ''),
+                    'event': play.get('event', ''),
+                    'eventType': event_type,
                     'description': play.get('description', ''),
+                    'rbi': play.get('rbi', 0),
                     'outs': play.get('outs') if play.get('outs') is not None else play.get('outs_before'),
                     'score': score,
                     'pitchCount': play.get('pitch_count', 0),
                     'battingTeam': play.get('batting_team', ''),
                     'isHomeRun': play.get('home_run', False) or event_type == 'home_run',
+                    'isInsideTheParkHR': is_inside_the_park_home_run_play(play),
                     'isStrikeout': play.get('strikeout', False) or event_type == 'strikeout',
                     'isWalk': play.get('walk', False) or event_type == 'walk',
+                    'isHitByPitch': play.get('hit_by_pitch', False) or event_type == 'hit_by_pitch' or 'hit by pitch' in desc_lower,
                     'isStolenBase': 'steals' in desc_lower or 'stolen base' in desc_lower,
                     'isCaughtStealing': 'caught stealing' in desc_lower
                 })

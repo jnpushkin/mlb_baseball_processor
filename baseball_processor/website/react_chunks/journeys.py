@@ -1852,11 +1852,28 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
 
 const CollegePlayersView = ({ data, onViewPlayer }) => {
     const ncaaRef = data.ncaaCrossRef || {};
+    const ncaaMeta = data.ncaaCrossRefMeta || {};
+    const ncaaGeneratedAt = ncaaMeta.generatedAt
+        ? new Date(ncaaMeta.generatedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+        : '';
+    const mlbSeenContextByPlayer = useMemo(() => {
+        const counts = {};
+        [...(data.players || []), ...(data.pitchers || [])].forEach(p => {
+            const pid = p.playerId;
+            if (!pid) return;
+            const current = counts[pid] || { spring: 0, regular: 0, postseason: 0 };
+            current.spring = Math.max(current.spring, Number(p.springGames || 0));
+            current.regular = Math.max(current.regular, Number(p.regularGames || 0));
+            current.postseason = Math.max(current.postseason, Number(p.postseasonGames || 0));
+            counts[pid] = current;
+        });
+        return counts;
+    }, [data.players, data.pitchers]);
     const allPlayers = useMemo(() => {
         const seen = new Set();
         return [...(data.players || []), ...(data.pitchers || [])].filter(p => { if (seen.has(p.playerId)) return false; seen.add(p.playerId); return true; });
     }, [data.players, data.pitchers]);
-    const { seenPlayers, notSeenPlayers } = useMemo(() => {
+    const seenPlayers = useMemo(() => {
         const matched = [];
         const seen = new Set();
         const buildPlayerRow = (ncaa, overrides = {}) => {
@@ -1904,50 +1921,41 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
                 seen.add(pid);
                 usedEntries.add(ncaa);
                 if (ncaa.mlb_bref_id) seen.add(ncaa.mlb_bref_id);
+                const mlbSeenContext = mlbSeenContextByPlayer[pid] || {};
+                const springOnly = (mlbSeenContext.spring || 0) > 0
+                    && (mlbSeenContext.regular || 0) === 0
+                    && (mlbSeenContext.postseason || 0) === 0;
                 matched.push(buildPlayerRow(ncaa, {
                     name: p.name,
                     playerId: pid,
                     mlbTeam: p.team,
+                    mlbSeenContext: springOnly ? 'Spring Training only' : 'Regular/Postseason MLB',
+                    springOnly,
                     seenInMlb: true,
                 }));
             }
         });
-        // College/MiLB players who reached MLB but weren't at user's MLB games
-        const notSeen = [];
-        Object.entries(ncaaRef).forEach(([key, ncaa]) => {
-            if (seen.has(key) || usedEntries.has(ncaa)) return;
-            const levels = ncaa.levels || [];
-            if (!levels.includes('MLB') || (!levels.includes('NCAA') && !levels.includes('MiLB'))) return;
-            if (ncaa.seen_in_mlb) return;
-            const mlbBrefId = ncaa.mlb_bref_id || '';
-            if (seen.has(mlbBrefId)) return;
-            seen.add(key);
-            usedEntries.add(ncaa);
-            if (mlbBrefId) seen.add(mlbBrefId);
-            notSeen.push(buildPlayerRow(ncaa, {
-                name: ncaa.name || key,
-                playerId: mlbBrefId,
-                seenInMlb: false,
-            }));
+        return matched.sort((a, b) => {
+            if (a.source !== b.source) return a.source === 'NCAA' ? -1 : 1;
+            return b.G - a.G;
         });
-        return {
-            seenPlayers: matched.sort((a, b) => {
-                if (a.source !== b.source) return a.source === 'NCAA' ? -1 : 1;
-                return b.G - a.G;
-            }),
-            notSeenPlayers: notSeen.sort((a, b) => (a.name || '').localeCompare(b.name || '')),
-        };
-    }, [allPlayers, ncaaRef]);
+    }, [allPlayers, ncaaRef, mlbSeenContextByPlayer]);
 
     if (Object.keys(ncaaRef).length === 0) {
-        return <EmptyState icon="🎓" title="No College/MiLB Data" message="Run the NCAA processor with --export-players to generate cross-reference data." />;
+        return <EmptyState icon="🎓" title="No College/MiLB Data" message="No shared player export was found." />;
     }
-    if (seenPlayers.length === 0 && notSeenPlayers.length === 0) {
+    if (seenPlayers.length === 0) {
         return <EmptyState icon="🎓" title="No Matches" message="No players in your games were found in the college/minor league data." />;
     }
 
     return (
         <div className="space-y-6">
+            {ncaaGeneratedAt && (
+                <div className="text-xs text-slate-500">
+                    College/MiLB data refreshed {ncaaGeneratedAt}
+                    {ncaaMeta.playerCount ? ` - ${ncaaMeta.playerCount.toLocaleString()} players tracked` : ''}
+                </div>
+            )}
             {seenPlayers.length > 0 && (
                 <DataTable
                     title={`🎓 Seen Pre-MLB & in MLB (${seenPlayers.length} players)`}
@@ -1964,29 +1972,19 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
                                 <a href={`https://www.baseball-reference.com/players/${(r.playerId || '').charAt(0).toLowerCase()}/${r.playerId}.shtml`} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-slate-600 text-xs" title="View on Baseball Reference">↗</a>
                             </div>
                         )},
-                        { key: 'mlbTeam', label: 'MLB Team' },
-                        { key: 'college', label: 'College' },
-                        { key: 'proTeam', label: 'MiLB Team' },
-                        { key: 'levels', label: 'Levels' },
-                        { key: 'source', label: 'Stats From', render: (v) => (
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'NCAA' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>{v}</span>
+                        { key: 'mlbTeam', label: 'MLB Team', render: (v, r) => (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <span>{v || '—'}</span>
+                                {r.springOnly && (
+                                    <span
+                                        className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700"
+                                        title="Only seen in your MLB games during Spring Training"
+                                    >
+                                        Spring only
+                                    </span>
+                                )}
+                            </div>
                         )},
-                        { key: 'G', label: 'G' },
-                        { key: 'statLine', label: 'Pre-MLB Stats', render: (v, r) => (
-                            <span className="font-mono text-sm">{v}</span>
-                        )},
-                        { key: 'websiteUrl', label: '', render: (v) => v ? <a href={v} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800 small-text font-medium">View on NCAA site →</a> : null },
-                    ]}
-                />
-            )}
-            {notSeenPlayers.length > 0 && (
-                <DataTable
-                    title={`🎓 Saw Pre-MLB, Now in MLB (${notSeenPlayers.length} players)`}
-                    data={notSeenPlayers}
-                    defaultSortKey="name"
-                    defaultSortDirection="asc"
-                    columns={[
-                        { key: 'name', label: 'Player', render: (v, r) => r.playerId ? <PlayerLink playerId={r.playerId} name={v} /> : v },
                         { key: 'college', label: 'College' },
                         { key: 'proTeam', label: 'MiLB Team' },
                         { key: 'levels', label: 'Levels' },

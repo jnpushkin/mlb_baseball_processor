@@ -2015,7 +2015,7 @@ const ScorigamiChart = ({ games }) => {
     );
 };
 
-const TriviaTab = ({ umpireLog, jerseyLog, firstRoundDraftPicks, playerBios, players, pitchers, games, playerGames, pitcherGames, initialSubtab, onSubtabChange }) => {
+const TriviaTab = ({ umpireLog, jerseyLog, firstRoundDraftPicks, playerBios, players, pitchers, games, playerGames, pitcherGames, stadiumAliases, initialSubtab, onSubtabChange }) => {
     const [view, setView] = useState(initialSubtab || 'jerseys');
     const allPlayers = useMemo(() => {
         const seen = new Set();
@@ -2036,7 +2036,7 @@ const TriviaTab = ({ umpireLog, jerseyLog, firstRoundDraftPicks, playerBios, pla
             {view === 'drafts' && <FirstRoundDraftPicks firstRoundDraftPicks={firstRoundDraftPicks} />}
             {view === 'origins' && <PlayerOrigins playerBios={playerBios} allPlayers={allPlayers} />}
             {view === 'birthdays' && <PlayerBirthdays playerBios={playerBios} allPlayers={allPlayers} />}
-            {view === 'home-away' && <HomeAwayFrivolities games={games} playerGames={playerGames} pitcherGames={pitcherGames} />}
+            {view === 'home-away' && <HomeAwayFrivolities games={games} playerGames={playerGames} pitcherGames={pitcherGames} stadiumAliases={stadiumAliases || {}} />}
             {view === 'scorigami' && <ScorigamiChart games={games} />}
             {view === 'umpires' && <UmpireTracker umpireLog={umpireLog} games={games} />}
         </div>

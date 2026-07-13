@@ -218,6 +218,7 @@ STADIUM_ALIASES = {
     'Rogers Centre': ['SkyDome'],
     'Comerica Park': [],
     'Kauffman Stadium': [],
+    'Globe Life Park in Arlington': ['The Ballpark in Arlington', 'Rangers Ballpark in Arlington', 'Ameriquest Field'],
 }
 
 # Milestone thresholds for badges

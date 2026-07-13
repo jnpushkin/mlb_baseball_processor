@@ -25,6 +25,7 @@ from typing import Optional, Union
 from ..engines.milestone_engine import MilestoneEngine
 from ..engines.special_events_engine import SpecialEventsEngine
 from ..utils.http import create_retry_session, get_with_retry
+from ..utils.helpers import is_inside_the_park_home_run_play
 
 _session = create_retry_session()
 
@@ -1486,6 +1487,12 @@ def parse_play_by_play(feed_data: dict, bref_id_map: dict = None) -> list:
         description = result.get('description', '')
         is_grand_slam = 'grand slam' in description.lower()
         is_home_run = event_type == 'home_run' or is_grand_slam
+        is_inside_the_park_hr = is_inside_the_park_home_run_play({
+            'description': description,
+            'event': result.get('event', ''),
+            'event_type': event_type,
+            'home_run': is_home_run,
+        })
 
         half = about.get('halfInning', '')
         # Top of inning: away bats, home pitches. Bottom: reverse.
@@ -1525,6 +1532,7 @@ def parse_play_by_play(feed_data: dict, bref_id_map: dict = None) -> list:
             'description': description,
             'home_run': is_home_run,
             'grand_slam': is_grand_slam,
+            'inside_the_park_hr': is_inside_the_park_hr,
             'rbi': result.get('rbi', 0),
             'is_scoring_play': about.get('isScoringPlay', False),
             'run_scored': about.get('isScoringPlay', False),

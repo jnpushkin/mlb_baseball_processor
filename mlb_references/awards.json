@@ -1,9 +1,9 @@
 {
   "metadata": {
-    "generated_at": "2026-06-22T16:08:07.310712+00:00",
+    "generated_at": "2026-07-13T02:26:04.524085+00:00",
     "source": "Baseball-Reference awards pages",
     "source_index_url": "https://www.baseball-reference.com/awards/",
-    "entry_count": 9487,
+    "entry_count": 9501,
     "pages": [
       {
         "key": "mvp",
@@ -87,12 +87,12 @@
         "key": "mlb-players-of-the-month",
         "label": "Players of the Month",
         "url": "https://www.baseball-reference.com/awards/mlb-players-of-the-month.shtml",
-        "entries": 695,
+        "entries": 697,
         "tables": [
           {
             "table_id": "mlb_potm",
             "caption": "MLB Players of the Month Awards Table",
-            "entries": 695
+            "entries": 697
           }
         ]
       },
@@ -100,12 +100,12 @@
         "key": "mlb-players-of-the-week",
         "label": "Players of the Week",
         "url": "https://www.baseball-reference.com/awards/mlb-players-of-the-week.shtml",
-        "entries": 2926,
+        "entries": 2932,
         "tables": [
           {
             "table_id": "mlb_potw",
             "caption": "MLB Players of the Week Awards Table",
-            "entries": 2926
+            "entries": 2932
           }
         ]
       },
@@ -113,12 +113,12 @@
         "key": "mlb-pitchers-of-the-month",
         "label": "Pitchers of the Month",
         "url": "https://www.baseball-reference.com/awards/mlb-pitchers-of-the-month.shtml",
-        "entries": 580,
+        "entries": 582,
         "tables": [
           {
             "table_id": "mlb_pitcher_otm",
             "caption": "MLB Pitchers of the Month Awards Table",
-            "entries": 580
+            "entries": 582
           }
         ]
       },
@@ -126,12 +126,12 @@
         "key": "mlb-rookies-of-the-month",
         "label": "Rookies of the Month",
         "url": "https://www.baseball-reference.com/awards/mlb-rookies-of-the-month.shtml",
-        "entries": 298,
+        "entries": 300,
         "tables": [
           {
             "table_id": "mlb_rookie_otm",
             "caption": "MLB Rookie of the Month Awards Table",
-            "entries": 298
+            "entries": 300
           }
         ]
       },
@@ -139,12 +139,12 @@
         "key": "mlb-relievers-of-the-month",
         "label": "Relievers of the Month",
         "url": "https://www.baseball-reference.com/awards/mlb-relievers-of-the-month.shtml",
-        "entries": 104,
+        "entries": 106,
         "tables": [
           {
             "table_id": "mlb_reliever_otm",
             "caption": "MLB Reliever of the Month Awards Table",
-            "entries": 104
+            "entries": 106
           }
         ]
       },
@@ -453,6 +453,27 @@
       "award_detail": "AL Pitcher of the Month",
       "year": 2026,
       "league": "AL",
+      "name": "Drew Rasmussen",
+      "entity_type": "player",
+      "entity_id": "rasmudr01",
+      "team": "",
+      "position": "",
+      "month": "June",
+      "week_ending": "",
+      "selection": "",
+      "notes": "Drew Rasmussen 5 G, 3-2, 0.82, 39 SO ( games )",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-pitchers-of-the-month.shtml",
+      "source_table": "mlb_pitcher_otm",
+      "source_url": "https://www.baseball-reference.com/players/r/rasmudr01.shtml",
+      "player_id": "rasmudr01"
+    },
+    {
+      "award": "Pitcher of the Month",
+      "award_key": "mlb-pitchers-of-the-month",
+      "award_detail": "AL Pitcher of the Month",
+      "year": 2026,
+      "league": "AL",
       "name": "José Soriano",
       "entity_type": "player",
       "entity_id": "soriajo02",
@@ -516,6 +537,27 @@
       "award_detail": "NL Pitcher of the Month",
       "year": 2026,
       "league": "NL",
+      "name": "Logan Webb",
+      "entity_type": "player",
+      "entity_id": "webblo01",
+      "team": "",
+      "position": "",
+      "month": "June",
+      "week_ending": "",
+      "selection": "",
+      "notes": "Logan Webb 5 G, 3-1, 0.71, 29 SO ( games )",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-pitchers-of-the-month.shtml",
+      "source_table": "mlb_pitcher_otm",
+      "source_url": "https://www.baseball-reference.com/players/w/webblo01.shtml",
+      "player_id": "webblo01"
+    },
+    {
+      "award": "Pitcher of the Month",
+      "award_key": "mlb-pitchers-of-the-month",
+      "award_detail": "NL Pitcher of the Month",
+      "year": 2026,
+      "league": "NL",
       "name": "Shohei Ohtani",
       "entity_type": "player",
       "entity_id": "ohtansh01",
@@ -551,6 +593,27 @@
       "source_table": "mlb_potm",
       "source_url": "https://www.baseball-reference.com/players/k/kurtzni01.shtml",
       "player_id": "kurtzni01"
+    },
+    {
+      "award": "Player of the Month",
+      "award_key": "mlb-players-of-the-month",
+      "award_detail": "AL Player of the Month",
+      "year": 2026,
+      "league": "AL",
+      "name": "Pete Crow-Armstrong",
+      "entity_type": "player",
+      "entity_id": "crowape01",
+      "team": "",
+      "position": "",
+      "month": "June",
+      "week_ending": "",
+      "selection": "",
+      "notes": "Pete Crow-Armstrong 26 G .381/.468/.781, 11 HR, 20 RBI ( games )",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-players-of-the-month.shtml",
+      "source_table": "mlb_potm",
+      "source_url": "https://www.baseball-reference.com/players/c/crowape01.shtml",
+      "player_id": "crowape01"
     },
     {
       "award": "Player of the Month",
@@ -614,6 +677,27 @@
       "source_table": "mlb_potm",
       "source_url": "https://www.baseball-reference.com/players/b/bledajj01.shtml",
       "player_id": "bledajj01"
+    },
+    {
+      "award": "Player of the Month",
+      "award_key": "mlb-players-of-the-month",
+      "award_detail": "NL Player of the Month",
+      "year": 2026,
+      "league": "NL",
+      "name": "Junior Caminero",
+      "entity_type": "player",
+      "entity_id": "caminju01",
+      "team": "",
+      "position": "",
+      "month": "June",
+      "week_ending": "",
+      "selection": "",
+      "notes": "Junior Caminero 26 G .327/.402/.673, 10 HR, 24 RBI ( games )",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-players-of-the-month.shtml",
+      "source_table": "mlb_potm",
+      "source_url": "https://www.baseball-reference.com/players/c/caminju01.shtml",
+      "player_id": "caminju01"
     },
     {
       "award": "Player of the Week",
@@ -810,6 +894,48 @@
       "award_detail": "AL Player of the Week",
       "year": 2026,
       "league": "AL",
+      "name": "Junior Caminero",
+      "entity_type": "player",
+      "entity_id": "caminju01",
+      "team": "",
+      "position": "",
+      "month": "",
+      "week_ending": "June 28th",
+      "selection": "",
+      "notes": "Junior Caminero",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-players-of-the-week.shtml",
+      "source_table": "mlb_potw",
+      "source_url": "https://www.baseball-reference.com/players/c/caminju01.shtml",
+      "player_id": "caminju01"
+    },
+    {
+      "award": "Player of the Week",
+      "award_key": "mlb-players-of-the-week",
+      "award_detail": "AL Player of the Week",
+      "year": 2026,
+      "league": "AL",
+      "name": "Logan Gilbert",
+      "entity_type": "player",
+      "entity_id": "gilbelo01",
+      "team": "",
+      "position": "",
+      "month": "",
+      "week_ending": "June 21st",
+      "selection": "",
+      "notes": "Logan Gilbert",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-players-of-the-week.shtml",
+      "source_table": "mlb_potw",
+      "source_url": "https://www.baseball-reference.com/players/g/gilbelo01.shtml",
+      "player_id": "gilbelo01"
+    },
+    {
+      "award": "Player of the Week",
+      "award_key": "mlb-players-of-the-week",
+      "award_detail": "AL Player of the Week",
+      "year": 2026,
+      "league": "AL",
       "name": "Willson Contreras",
       "entity_type": "player",
       "entity_id": "contrwi01",
@@ -824,6 +950,27 @@
       "source_table": "mlb_potw",
       "source_url": "https://www.baseball-reference.com/players/c/contrwi01.shtml",
       "player_id": "contrwi01"
+    },
+    {
+      "award": "Player of the Week",
+      "award_key": "mlb-players-of-the-week",
+      "award_detail": "AL Player of the Week",
+      "year": 2026,
+      "league": "AL",
+      "name": "Yordan Alvarez",
+      "entity_type": "player",
+      "entity_id": "alvaryo01",
+      "team": "",
+      "position": "",
+      "month": "",
+      "week_ending": "July 5th",
+      "selection": "",
+      "notes": "Yordan Alvarez",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-players-of-the-week.shtml",
+      "source_table": "mlb_potw",
+      "source_url": "https://www.baseball-reference.com/players/a/alvaryo01.shtml",
+      "player_id": "alvaryo01"
     },
     {
       "award": "Player of the Week",
@@ -1062,6 +1209,27 @@
       "award_detail": "NL Player of the Week",
       "year": 2026,
       "league": "NL",
+      "name": "Luis García Jr.",
+      "entity_type": "player",
+      "entity_id": "garcilu04",
+      "team": "",
+      "position": "",
+      "month": "",
+      "week_ending": "June 28th",
+      "selection": "",
+      "notes": "Luis García Jr.",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-players-of-the-week.shtml",
+      "source_table": "mlb_potw",
+      "source_url": "https://www.baseball-reference.com/players/g/garcilu04.shtml",
+      "player_id": "garcilu04"
+    },
+    {
+      "award": "Player of the Week",
+      "award_key": "mlb-players-of-the-week",
+      "award_detail": "NL Player of the Week",
+      "year": 2026,
+      "league": "NL",
       "name": "Nico Hoerner",
       "entity_type": "player",
       "entity_id": "hoernni01",
@@ -1076,6 +1244,48 @@
       "source_table": "mlb_potw",
       "source_url": "https://www.baseball-reference.com/players/h/hoernni01.shtml",
       "player_id": "hoernni01"
+    },
+    {
+      "award": "Player of the Week",
+      "award_key": "mlb-players-of-the-week",
+      "award_detail": "NL Player of the Week",
+      "year": 2026,
+      "league": "NL",
+      "name": "Otto Lopez",
+      "entity_type": "player",
+      "entity_id": "lopezot01",
+      "team": "",
+      "position": "",
+      "month": "",
+      "week_ending": "July 5th",
+      "selection": "",
+      "notes": "Otto Lopez",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-players-of-the-week.shtml",
+      "source_table": "mlb_potw",
+      "source_url": "https://www.baseball-reference.com/players/l/lopezot01.shtml",
+      "player_id": "lopezot01"
+    },
+    {
+      "award": "Player of the Week",
+      "award_key": "mlb-players-of-the-week",
+      "award_detail": "NL Player of the Week",
+      "year": 2026,
+      "league": "NL",
+      "name": "Pete Crow-Armstrong",
+      "entity_type": "player",
+      "entity_id": "crowape01",
+      "team": "",
+      "position": "",
+      "month": "",
+      "week_ending": "June 21st",
+      "selection": "",
+      "notes": "Pete Crow-Armstrong",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-players-of-the-week.shtml",
+      "source_table": "mlb_potw",
+      "source_url": "https://www.baseball-reference.com/players/c/crowape01.shtml",
+      "player_id": "crowape01"
     },
     {
       "award": "Player of the Week",
@@ -1146,6 +1356,27 @@
       "award_detail": "AL Reliever of the Month",
       "year": 2026,
       "league": "AL",
+      "name": "Jacob Latz",
+      "entity_type": "player",
+      "entity_id": "latzja01",
+      "team": "",
+      "position": "",
+      "month": "June",
+      "week_ending": "",
+      "selection": "",
+      "notes": "Jacob Latz 12 G, 0-0 (11 SV), 1.13, 19 SO ( games )",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-relievers-of-the-month.shtml",
+      "source_table": "mlb_reliever_otm",
+      "source_url": "https://www.baseball-reference.com/players/l/latzja01.shtml",
+      "player_id": "latzja01"
+    },
+    {
+      "award": "Reliever of the Month",
+      "award_key": "mlb-relievers-of-the-month",
+      "award_detail": "AL Reliever of the Month",
+      "year": 2026,
+      "league": "AL",
       "name": "Louis Varland",
       "entity_type": "player",
       "entity_id": "varlalo01",
@@ -1160,6 +1391,27 @@
       "source_table": "mlb_reliever_otm",
       "source_url": "https://www.baseball-reference.com/players/v/varlalo01.shtml",
       "player_id": "varlalo01"
+    },
+    {
+      "award": "Reliever of the Month",
+      "award_key": "mlb-relievers-of-the-month",
+      "award_detail": "NL Reliever of the Month",
+      "year": 2026,
+      "league": "NL",
+      "name": "Jhoan Duran",
+      "entity_type": "player",
+      "entity_id": "duranjh01",
+      "team": "",
+      "position": "",
+      "month": "June",
+      "week_ending": "",
+      "selection": "",
+      "notes": "Jhoan Duran 12 G, 0-1 (9 SV), 1.64, 18 SO ( games )",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-relievers-of-the-month.shtml",
+      "source_table": "mlb_reliever_otm",
+      "source_url": "https://www.baseball-reference.com/players/d/duranjh01.shtml",
+      "player_id": "duranjh01"
     },
     {
       "award": "Reliever of the Month",
@@ -1202,6 +1454,27 @@
       "source_table": "mlb_reliever_otm",
       "source_url": "https://www.baseball-reference.com/players/m/millema03.shtml",
       "player_id": "millema03"
+    },
+    {
+      "award": "Rookie of the Month",
+      "award_key": "mlb-rookies-of-the-month",
+      "award_detail": "AL Rookie of the Month",
+      "year": 2026,
+      "league": "AL",
+      "name": "Kazuma Okamoto",
+      "entity_type": "player",
+      "entity_id": "okamoka01",
+      "team": "",
+      "position": "",
+      "month": "June",
+      "week_ending": "",
+      "selection": "",
+      "notes": "Kazuma Okamoto 25 G .286/.353/.560, 7 HR, 20 RBI ( games )",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-rookies-of-the-month.shtml",
+      "source_table": "mlb_rookie_otm",
+      "source_url": "https://www.baseball-reference.com/players/o/okamoka01.shtml",
+      "player_id": "okamoka01"
     },
     {
       "award": "Rookie of the Month",
@@ -1265,6 +1538,27 @@
       "source_table": "mlb_rookie_otm",
       "source_url": "https://www.baseball-reference.com/players/s/stewasa02.shtml",
       "player_id": "stewasa02"
+    },
+    {
+      "award": "Rookie of the Month",
+      "award_key": "mlb-rookies-of-the-month",
+      "award_detail": "NL Rookie of the Month",
+      "year": 2026,
+      "league": "NL",
+      "name": "TJ Rumfield",
+      "entity_type": "player",
+      "entity_id": "rumfitj01",
+      "team": "",
+      "position": "",
+      "month": "June",
+      "week_ending": "",
+      "selection": "",
+      "notes": "TJ Rumfield 26 G .316/.400/.589, 5 HR, 17 RBI ( games )",
+      "stats": {},
+      "source_page": "https://www.baseball-reference.com/awards/mlb-rookies-of-the-month.shtml",
+      "source_table": "mlb_rookie_otm",
+      "source_url": "https://www.baseball-reference.com/players/r/rumfitj01.shtml",
+      "player_id": "rumfitj01"
     },
     {
       "award": "Rookie of the Month",

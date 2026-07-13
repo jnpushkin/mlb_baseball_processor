@@ -150,6 +150,8 @@ Then visit `http://127.0.0.1:8765/MLB%20Game%20Passport%20-%20BREF.html`.
 | `--parallel` | Use parallel processing for faster parsing |
 | `--export-csv DIR` | Export all data to CSV files |
 | `--deploy` | Deploy website to Surge after generation |
+| `--update-splash-hits` | Force-refresh MLB.com Splash Hits/McCovey Cove CSV references |
+| `--skip-splash-hits-update` | Skip automatic Splash Hits/McCovey Cove CSV refresh |
 | `--scrape-career-firsts` | Scrape career firsts for players in processed games |
 
 ### Companions Tracking

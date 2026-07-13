@@ -454,6 +454,7 @@ const Dashboard = ({ data, onTabChange }) => {
         const debuts = (data.debuts || []).filter(d => d.gameId === latestGameId);
         const finals = (data.finalGames || []).filter(f => f.gameId === latestGameId);
         const keyPlays = latestGame?.keyPlays || [];
+        const keyPlayShortLabel = (play) => play?.type === 'grand_slam' ? 'grand slam' : play?.type === 'inside_the_park_hr' ? 'inside-the-park HR' : 'HR';
         const items = [];
         if (debuts.length || finals.length) {
             const eventDetails = [
@@ -484,7 +485,7 @@ const Dashboard = ({ data, onTabChange }) => {
             items.push({
                 label: 'Key plays',
                 value: keyPlays.length,
-                detail: keyPlays.slice(0, 2).map(p => `${p.batter} ${p.type === 'grand_slam' ? 'grand slam' : 'HR'}`).join(', ')
+                detail: keyPlays.slice(0, 2).map(p => `${p.batter} ${keyPlayShortLabel(p)}`).join(', ')
             });
         }
         if (latestGame?.weather) {

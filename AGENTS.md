@@ -14,6 +14,7 @@ Always use `python3` instead of `python` for all commands.
 python3 -m baseball_processor                    # Process games and generate website
 python3 -m baseball_processor --website-only     # Skip Excel generation
 python3 -m baseball_processor --quick-stats      # Just print summary stats
+python3 -m baseball_processor --website-only --skip-ncaa-player-refresh  # Skip cross-project refresh
 ```
 
 ### Auto-enrichment Pipeline
@@ -24,7 +25,9 @@ When processing a new BREF HTML file, the processor automatically:
 4. Updates gamelogs for all-time leaders who appeared in the game
 5. Refreshes all-time leaders if data is >7 days old
 6. Runs milestone engine for game milestones
-7. Generates website and deploys to Surge
+7. Exports MLB shared player data for NCAA/MiLB cross-project linking
+8. Refreshes the NCAA processor's shared player export from local caches
+9. Generates website and deploys to Surge
 
 ## Deployment
 Website auto-deploys to: https://mlb-processor.surge.sh as part of `python3 -m baseball_processor` / `--website-only`.
@@ -77,6 +80,13 @@ python3 -m baseball_processor.scrapers.awards_scraper --page mlb-relievers-of-th
 python3 -m baseball_processor --update-awards --website-only
 ```
 `mlb_references/awards.json` auto-refreshes when >7 days old during normal website-capable processor runs. Use `--skip-awards-update` to keep runs local, or `--update-awards` to force a refresh even in cache-only mode.
+
+### Splash Hits / McCovey Cove
+```bash
+python3 -m baseball_processor.scrapers.splash_hits_scraper
+python3 -m baseball_processor --update-splash-hits --website-only
+```
+`mlb_references/splash_hits_all_lines.csv` and `mlb_references/other_mccovey_cove_hr.csv` auto-refresh from the Giants MLB.com Splash Hits page when >1 day old during normal network-capable processor runs. Use `--skip-splash-hits-update` for local/debug runs, or `--update-splash-hits` to force the refresh even in cache-only mode. The MLB.com page stores the lists inside `__NEXT_DATA__` WYSIWYG slots; the scraper normalizes page quirks such as visitor rows with an extra `SF` token before the pitcher and the historical `7/820/18` date typo.
 
 ### Pitch Data / Exit Velo / ABS Challenges
 ```bash
@@ -162,6 +172,7 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 - Milestone detection uses tiered pattern (only highest tier reported per category)
 - Career milestones track every 100 (e.g., Hit #100, #200, #300... up to #4000)
 - Website output is a static React app (10 tabs, 21 subtabs) assembled from `website/react_chunks/` and embedded into the generated HTML
+- Website-capable MLB runs write `data/shared_players.json`, then call the sibling NCAA processor's `python3 -m baseball_processor --refresh-shared-players` cache-only command before serialization. This keeps the Players > College tab current. Use `--skip-ncaa-player-refresh` or `MLB_PROCESSOR_SKIP_NCAA_REFRESH=1` only for local/debug runs.
 - All-time passing detection distinguishes "tied" vs "passed" events
 - Game deduplication by date+teams (prevents BREF + API duplicates)
 - Sports-Reference sites hide tables in HTML comments - must extract with BeautifulSoup Comment class

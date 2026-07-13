@@ -32,6 +32,81 @@ class MilestonesProcessorTests(unittest.TestCase):
             detail,
         )
 
+    def test_api_description_inside_the_park_home_run_becomes_milestone(self):
+        game = {
+            "game_id": "SFN202607120",
+            "source": "mlb",
+            "basic_info": {
+                "date_yyyymmdd": "20260712",
+                "away_team": "Colorado Rockies",
+                "home_team": "San Francisco Giants",
+                "away_team_code": "COL",
+                "home_team_code": "SF",
+                "away_score_value": 1,
+                "home_score_value": 3,
+            },
+            "linescore": {
+                "away": {"innings": ["1", "0", "0", "0", "0", "0", "0", "0", "0"], "R": 1},
+                "home": {"innings": ["0", "0", "0", "1", "0", "0", "0", "2"], "R": 3},
+            },
+            "batting": {
+                "away": [
+                    {
+                        "name": "Jake McCarthy",
+                        "player_id": "mccarja02",
+                        "AB": 3,
+                        "H": 1,
+                        "R": 1,
+                        "RBI": 1,
+                        "HR": 1,
+                    }
+                ],
+                "home": [],
+            },
+            "pitching": {
+                "away": [],
+                "home": [{"name": "Trevor McDonald", "player_id": "mcdontr01"}],
+            },
+            "play_by_play": [
+                {
+                    "inning": 1,
+                    "half": "top",
+                    "batting_team": "COL",
+                    "pitching_team": "SF",
+                    "event_type": "home_run",
+                    "description": "Jake McCarthy hits an inside-the-park home run (10) on a fly ball to right field.",
+                    "home_run": True,
+                    "rbi": 1,
+                    "batter": "Jake McCarthy",
+                    "batter_id": "mccarja02",
+                    "pitcher": "Trevor McDonald",
+                    "pitcher_id": "mcdontr01",
+                    "outs_before": 0,
+                    "pitch_number": 2,
+                    "pitch_count_at_play": "0-1",
+                    "pitch_type": "Four-Seam Fastball",
+                    "pitch_speed": 93.3,
+                }
+            ],
+            "special_events": {},
+            "milestone_stats": {},
+        }
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            milestones, *_ = MilestonesProcessor([game]).process_all_milestones()
+
+        inside_park_hrs = milestones["Inside-the-Park HRs"]
+        self.assertEqual(1, len(inside_park_hrs))
+        row = inside_park_hrs.iloc[0]
+        self.assertEqual("Jake McCarthy", row["Player"])
+        self.assertEqual("COL", row["Team"])
+        self.assertEqual("SF", row["Opponent"])
+        self.assertEqual(
+            "Top 1, 0 outs: solo inside-the-park HR off Trevor McDonald "
+            "(2nd pitch, 0-1, Four-Seam Fastball, 93.3 mph) - fly ball to right field",
+            row["Detail"],
+        )
+
     def test_walkoff_milestone_detail_includes_pitcher_and_pitch_context(self):
         processor = MilestonesProcessor([])
 

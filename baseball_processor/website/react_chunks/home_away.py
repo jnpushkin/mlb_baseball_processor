@@ -1,6 +1,6 @@
 """React app chunk: home/away frivolities."""
 
-CODE = r'''const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) => {
+CODE = r'''const HomeAwayFrivolities = ({ games, playerGames, pitcherGames, stadiumAliases = {} }) => {
     const [lineMetric, setLineMetric] = useState('runs');
     const [gameTypeFilter, setGameTypeFilter] = useState('all');
     const [teamFilter, setTeamFilter] = useState('all');
@@ -16,6 +16,20 @@ CODE = r'''const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) =>
         const match = String(game?.date || '').match(/(\d{4})/);
         return match ? Number.parseInt(match[1], 10) : null;
     };
+    const cleanVenueName = (venue) => String(venue || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+    const venueAliasLookup = useMemo(() => {
+        const lookup = {};
+        Object.entries(stadiumAliases || {}).forEach(([raw, canonical]) => {
+            const rawName = cleanVenueName(raw);
+            const canonicalName = cleanVenueName(canonical);
+            if (rawName && canonicalName) lookup[rawName.toLowerCase()] = canonicalName;
+        });
+        return lookup;
+    }, [stadiumAliases]);
+    const normalizeVenueName = (venue) => {
+        const clean = cleanVenueName(venue);
+        return venueAliasLookup[clean.toLowerCase()] || clean;
+    };
     const filterMeta = useMemo(() => {
         const teams = new Set();
         const venues = new Set();
@@ -23,7 +37,8 @@ CODE = r'''const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) =>
         (games || []).forEach(game => {
             if (game.awayTeam) teams.add(game.awayTeam);
             if (game.homeTeam) teams.add(game.homeTeam);
-            if (game.venue) venues.add(game.venue);
+            const venue = normalizeVenueName(game.venue);
+            if (venue) venues.add(venue);
             const year = yearForGame(game);
             if (year) years.add(year);
         });
@@ -34,7 +49,7 @@ CODE = r'''const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) =>
             minYear: sortedYears[0] || '',
             maxYear: sortedYears[sortedYears.length - 1] || '',
         };
-    }, [games]);
+    }, [games, venueAliasLookup]);
     const filteredGames = useMemo(() => {
         const start = startYear ? Number.parseInt(startYear, 10) : null;
         const end = endYear ? Number.parseInt(endYear, 10) : null;
@@ -43,13 +58,13 @@ CODE = r'''const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) =>
             const gameType = game.gameType || 'regular';
             if (gameTypeFilter !== 'all' && gameType !== gameTypeFilter) return false;
             if (teamFilter !== 'all' && game.awayTeam !== teamFilter && game.homeTeam !== teamFilter) return false;
-            if (venueFilter !== 'all' && game.venue !== venueFilter) return false;
+            if (venueFilter !== 'all' && normalizeVenueName(game.venue) !== venueFilter) return false;
             const year = yearForGame(game);
             if (start && (!year || year < start)) return false;
             if (end && (!year || year > end)) return false;
             return true;
         });
-    }, [games, gameTypeFilter, teamFilter, venueFilter, startYear, endYear]);
+    }, [games, gameTypeFilter, teamFilter, venueFilter, startYear, endYear, venueAliasLookup]);
     const data = useMemo(() => {
         const sideTemplate = (label) => ({
             label,
@@ -213,7 +228,16 @@ CODE = r'''const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) =>
                 }
                 const batter = group.batters[batterKey];
                 batter.appearances += 1;
-                batter.results.push(play.description || '');
+                batter.results.push({
+                    description: play.description || '',
+                    event: play.event || '',
+                    eventType: play.eventType || '',
+                    rbi: num(play.rbi) || 0,
+                    isHomeRun: !!play.isHomeRun,
+                    isWalk: !!play.isWalk,
+                    isStrikeout: !!play.isStrikeout,
+                    isHitByPitch: !!play.isHitByPitch,
+                });
                 batter.playIndexes.push(playIndex);
             });
         });
@@ -314,16 +338,43 @@ CODE = r'''const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) =>
     };
     const activeLineMetric = lineMetricOptions[lineMetric] || lineMetricOptions.runs;
     const halfLabel = (group) => `${group.half === 'top' ? 'Top' : 'Bot'} ${group.inning}`;
-    const summarizeResult = (description, playerName) => {
+    const resultDescription = (result) => typeof result === 'string' ? result : (result?.description || '');
+    const cleanEventType = (result) => String((typeof result === 'string' ? '' : (result?.eventType || result?.event || '')) || '').toLowerCase().replace(/\s+/g, '_');
+    const scoreCount = (description) => (String(description || '').match(/\bscores?\b/gi) || []).length;
+    const runLabel = (base, runs) => {
+        if (base === 'HR') {
+            if (runs === 4) return 'GS';
+            if (runs > 1) return `${runs}-run HR`;
+            return 'HR';
+        }
+        if (['1B', '2B', '3B'].includes(base)) {
+            if (runs > 1) return `${runs}-run ${base}`;
+            if (runs === 1) return `RBI ${base}`;
+        }
+        return base;
+    };
+    const summarizeResult = (result, playerName) => {
+        const description = resultDescription(result);
         const playerPattern = playerName ? new RegExp(String(playerName).replace(/\u00a0/g, ' ').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
         let text = String(description || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+        const eventType = cleanEventType(result);
+        const explicitRbi = Number.parseInt(typeof result === 'string' ? 0 : (result?.rbi || 0), 10) || 0;
+        const rawLowered = text.toLowerCase();
+        if (eventType === 'hit_by_pitch' || (typeof result !== 'string' && result?.isHitByPitch) || /\bhit by pitch\b|\bhbp\b/.test(rawLowered)) return 'HBP';
+        if (eventType === 'walk' || (typeof result !== 'string' && result?.isWalk)) return 'BB';
+        if (eventType === 'strikeout' || (typeof result !== 'string' && result?.isStrikeout)) return 'K';
+        if (['home_run', 'single', 'double', 'triple'].includes(eventType)) {
+            const base = eventType === 'home_run' ? 'HR' : eventType === 'single' ? '1B' : eventType === 'double' ? '2B' : '3B';
+            const runs = explicitRbi || (base === 'HR' ? Math.max(1, scoreCount(text) + 1) : scoreCount(text));
+            return runLabel(base, runs);
+        }
         if (playerPattern) text = text.replace(playerPattern, '').trim();
         if (!text) return 'PA';
         const lowered = text.toLowerCase().replace(/^[.:;,\-\s]+/, '');
-        if (/^(home run|hr\b|homers?\b)/.test(lowered)) return 'HR';
-        if (/^(triple|triples?\b|3b\b)/.test(lowered)) return '3B';
-        if (/^(double|doubles?\b|2b\b)/.test(lowered)) return '2B';
-        if (/^(single|singles?\b|1b\b)/.test(lowered)) return '1B';
+        if (/^(home run|hr\b|homers?\b)/.test(lowered)) return runLabel('HR', explicitRbi || Math.max(1, scoreCount(text) + 1));
+        if (/^(triple|triples?\b|3b\b)/.test(lowered)) return runLabel('3B', explicitRbi || scoreCount(text));
+        if (/^(double|doubles?\b|2b\b)/.test(lowered)) return runLabel('2B', explicitRbi || scoreCount(text));
+        if (/^(single|singles?\b|1b\b)/.test(lowered)) return runLabel('1B', explicitRbi || scoreCount(text));
         if (/^(intentional walk|walks?\b|bb\b|ibb\b)/.test(lowered)) return 'BB';
         if (/^(hit by pitch|hbp\b)/.test(lowered)) return 'HBP';
         if (/^(strikeout|strikes out|called out on strikes|strikeout swinging|strikeout looking|k\b)/.test(lowered)) return 'K';
@@ -392,6 +443,7 @@ CODE = r'''const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) =>
             event.group?.date,
             event.group?.score,
             ...(event.results || []).map(result => summarizeResult(result, event.name)),
+            ...(event.results || []).map(result => resultDescription(result)),
         ].join(' ').toLowerCase();
         return haystack.includes(repeatQuery);
     });
@@ -727,7 +779,10 @@ CODE = r'''const HomeAwayFrivolities = ({ games, playerGames, pitcherGames }) =>
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
                                             <div className="font-semibold truncate">{event.name}</div>
-                                            <div className="text-xs text-slate-500">{halfLabel(event.group)} - {event.group.battingTeam} - {event.group.date}</div>
+                                            <div className="text-xs text-slate-500">
+                                                {halfLabel(event.group)} - {event.group.battingTeam} - {event.group.date}
+                                                {event.group.runs !== null && event.group.runs !== undefined ? ` - ${event.group.runs} R` : ''}
+                                            </div>
                                         </div>
                                         <span className="font-mono font-bold text-blue-700 whitespace-nowrap">{event.appearances} PA</span>
                                     </div>

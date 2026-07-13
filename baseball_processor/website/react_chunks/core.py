@@ -27,6 +27,8 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
     }, [activeTab, focusInning, game?.gameId]);
 
     const cleanPersonName = (name) => String(name || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+    const keyPlayShortLabel = (play) => play?.type === 'grand_slam' ? 'grand slam' : play?.type === 'inside_the_park_hr' ? 'inside-the-park HR' : 'HR';
+    const keyPlayTitleLabel = (play) => play?.type === 'grand_slam' ? 'Grand Slam' : play?.type === 'inside_the_park_hr' ? 'Inside-the-Park HR' : 'Home Run';
     const compactPlayDescription = (description, playerName) => {
         let text = String(description || '').replace(/\u00a0/g, ' ').trim();
         const cleanName = cleanPersonName(playerName);
@@ -222,7 +224,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
         game.keyPlays?.length > 0 && {
             label: 'Key plays',
             value: game.keyPlays.length,
-            detail: game.keyPlays.slice(0, 2).map(p => `${p.batter} ${p.type === 'grand_slam' ? 'grand slam' : 'HR'}`).join(', '),
+            detail: game.keyPlays.slice(0, 2).map(p => `${p.batter} ${keyPlayShortLabel(p)}`).join(', '),
             color: 'green'
         }
     ].filter(Boolean).slice(0, 6);
@@ -986,11 +988,11 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                 {game.keyPlays.map((play, idx) => (
                                     <div key={`keyplay-${play.inning}-${play.batter}-${idx}`} className="flex items-start gap-2 p-2 bg-orange-50 rounded border-l-4 border-orange-400">
                                         <span className="text-lg">
-                                            {play.type === 'grand_slam' ? '💣' : '🏠'}
+                                            {play.type === 'grand_slam' ? '💣' : play.type === 'inside_the_park_hr' ? '🏃' : '🏠'}
                                         </span>
                                         <div className="flex-1">
                                             <div className="body-text font-semibold">
-                                                {play.batter} {play.type === 'grand_slam' ? 'Grand Slam' : 'Home Run'}
+                                                {play.batter} {keyPlayTitleLabel(play)}
                                             </div>
                                             <div className="small-text text-slate-600">
                                                 {play.inning} • off {play.pitcher}

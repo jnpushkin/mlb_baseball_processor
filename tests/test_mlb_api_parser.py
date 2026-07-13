@@ -473,6 +473,53 @@ class MlbApiParserTests(unittest.TestCase):
         self.assertTrue(plays[0]["run_scored"])
         self.assertEqual("bottom", plays[0]["half"])
 
+    def test_parse_play_by_play_marks_inside_the_park_home_run(self):
+        feed_data = {
+            "gameData": {
+                "teams": {
+                    "away": {"id": 115, "abbreviation": "COL"},
+                    "home": {"id": 137, "abbreviation": "SF"},
+                }
+            },
+            "liveData": {
+                "plays": {
+                    "allPlays": [
+                        {
+                            "result": {
+                                "eventType": "home_run",
+                                "event": "Home Run",
+                                "description": (
+                                    "Jake McCarthy hits an inside-the-park home run (10) "
+                                    "on a fly ball to right field."
+                                ),
+                                "rbi": 1,
+                                "awayScore": 1,
+                                "homeScore": 0,
+                            },
+                            "about": {
+                                "inning": 1,
+                                "halfInning": "top",
+                                "isScoringPlay": True,
+                            },
+                            "count": {"outs": 0},
+                            "matchup": {
+                                "batter": {"id": 10, "fullName": "Jake McCarthy"},
+                                "pitcher": {"id": 20, "fullName": "Trevor McDonald"},
+                            },
+                        }
+                    ]
+                }
+            },
+        }
+
+        plays = parse_play_by_play(feed_data, bref_id_map={10: "mccarja02", 20: "mcdontr01"})
+
+        self.assertEqual(1, len(plays))
+        self.assertTrue(plays[0]["home_run"])
+        self.assertTrue(plays[0]["inside_the_park_hr"])
+        self.assertEqual("COL", plays[0]["batting_team"])
+        self.assertEqual("SF", plays[0]["pitching_team"])
+
     def test_parse_play_by_play_keeps_terminal_pitch_context(self):
         feed_data = {
             "gameData": {

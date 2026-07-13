@@ -2,7 +2,15 @@ import re
 import pandas as pd
 from datetime import datetime
 from ..excel.generators import ExcelGeneratorUtils
-from ..utils.helpers import standardize_team_code, join_sorted_gameids, unify_team_code, safe_get_int, safe_get_str
+from ..utils.helpers import (
+    standardize_team_code,
+    join_sorted_gameids,
+    unify_team_code,
+    safe_get_int,
+    safe_get_str,
+    is_inside_the_park_home_run_play,
+    extract_play_contact_detail,
+)
 from ..utils.stat_utils import StatUtils
 from .base_processor import BaseProcessor
 
@@ -214,7 +222,7 @@ class MilestonesProcessor(BaseProcessor):
         """Process inside-the-park home runs from play-by-play data."""
         try:
             for play in game.get("play_by_play", []):
-                if play.get("inside_the_park_hr"):
+                if is_inside_the_park_home_run_play(play):
                     batter = play.get("batter", "Unknown")
                     team = standardize_team_code(play.get("batting_team", ""))
                     opponent = standardize_team_code(play.get("pitching_team", ""))
@@ -494,9 +502,7 @@ class MilestonesProcessor(BaseProcessor):
         return ""
 
     def _extract_contact_detail(self, description):
-        text = self._clean_event_text(description)
-        match = re.search(r"\(([^)]*)\)", text)
-        return self._clean_event_text(match.group(1)) if match else ""
+        return self._clean_event_text(extract_play_contact_detail(description))
 
     def _format_pitch_context(self, item):
         parts = []

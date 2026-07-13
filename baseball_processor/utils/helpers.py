@@ -83,6 +83,56 @@ def join_sorted_gameids(ids_iterable):
     """Join GameIDs into a comma-separated string in chronological order."""
     return sort_join_gameids_by_date(list(ids_iterable))
 
+def _normalize_play_description(text) -> str:
+    return (
+        str(text or "")
+        .lower()
+        .replace("\u00a0", " ")
+        .replace("\u2010", "-")
+        .replace("\u2011", "-")
+        .replace("\u2012", "-")
+        .replace("\u2013", "-")
+        .replace("\u2014", "-")
+    )
+
+def is_inside_the_park_home_run_play(play: dict) -> bool:
+    """Return True for BREF/API inside-the-park homer play shapes."""
+    if not isinstance(play, dict):
+        return False
+    if play.get("inside_the_park_hr"):
+        return True
+
+    description = _normalize_play_description(play.get("description", ""))
+    if not re.search(r"\binside[- ]the[- ]park\b", description):
+        return False
+
+    event_type = str(play.get("event_type") or "").strip().lower().replace(" ", "_")
+    event = str(play.get("event") or "").strip().lower()
+    return (
+        bool(play.get("home_run"))
+        or event_type == "home_run"
+        or event == "home run"
+        or re.search(r"\b(home run|homers?|homered|hr)\b", description) is not None
+    )
+
+def extract_play_contact_detail(description) -> str:
+    """Extract contact/location text from BREF or MLB play descriptions."""
+    text = re.sub(r"\s+", " ", str(description or "").replace("\u00a0", " ")).strip()
+    if not text:
+        return ""
+
+    parenthetical = re.search(r"\(([^)]*)\)", text)
+    if parenthetical:
+        candidate = parenthetical.group(1).strip()
+        if candidate and not candidate.isdigit():
+            return candidate
+
+    match = re.search(r"\bon\s+(?:an?\s+)?([^.;]+)", text, flags=re.IGNORECASE)
+    if match:
+        return match.group(1).strip().rstrip(".")
+
+    return ""
+
 def normalize_name(name):
     """Normalize name to ASCII for reliable matching (e.g., Urías → Urias)."""
     return unicodedata.normalize("NFKD", name).encode("ASCII", "ignore").decode("utf-8").strip().lower()
