@@ -411,6 +411,109 @@ def _refresh_awards_if_stale(max_age_days=7, force=False, initial_delay=0):
         return False
 
 
+def _all_stars_reference_age_days(all_stars_path=None, now=None):
+    """Return the age of all_star_participants.json from metadata, falling back to mtime."""
+    all_stars_path = all_stars_path or (REFERENCES_DIR / "all_star_participants.json")
+    if not all_stars_path.exists():
+        return None
+
+    generated_at = None
+    try:
+        payload = json.loads(all_stars_path.read_text(encoding="utf-8"))
+        metadata = payload.get("metadata", {}) if isinstance(payload, dict) else {}
+        generated_at_text = metadata.get("generated_at", "")
+        if generated_at_text:
+            generated_at = datetime.fromisoformat(generated_at_text.replace("Z", "+00:00"))
+    except Exception:
+        generated_at = None
+
+    if generated_at is None:
+        generated_at = datetime.fromtimestamp(all_stars_path.stat().st_mtime, timezone.utc)
+    elif generated_at.tzinfo is None:
+        generated_at = generated_at.replace(tzinfo=timezone.utc)
+
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    return (now - generated_at).total_seconds() / 86400
+
+
+def _all_star_year_entry_count(all_stars_path=None, year=None):
+    """Return participant count for one All-Star year, or None if absent."""
+    all_stars_path = all_stars_path or (REFERENCES_DIR / "all_star_participants.json")
+    year = year or datetime.now().year
+    if not all_stars_path.exists():
+        return None
+
+    try:
+        payload = json.loads(all_stars_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+
+    participants = payload.get("participants", [])
+    if isinstance(participants, list):
+        count = sum(1 for row in participants if row.get("year") == year)
+        if count:
+            return count
+
+    games = (payload.get("metadata", {}) or {}).get("games", [])
+    if isinstance(games, list):
+        for game in games:
+            if game.get("year") == year:
+                return game.get("entries", 0)
+    return None
+
+
+def _refresh_all_stars_if_stale(max_age_days=7, force=False, year=None, initial_delay=0):
+    """Refresh the current All-Star roster reference when stale or still empty."""
+    all_stars_path = REFERENCES_DIR / "all_star_participants.json"
+    year = year or datetime.now().year
+    age_days = _all_stars_reference_age_days(all_stars_path)
+    year_entries = _all_star_year_entry_count(all_stars_path, year)
+    needs_year_refresh = year_entries is None or year_entries == 0
+    if not force and not needs_year_refresh and age_days is not None and age_days <= max_age_days:
+        return False
+
+    reason = "missing"
+    if force:
+        reason = "forced"
+    elif needs_year_refresh:
+        reason = f"{year} missing" if year_entries is None else f"{year} has 0 entries"
+    elif age_days is not None:
+        reason = f"last updated {age_days:.0f} days ago"
+
+    info(f"🔄 Updating {year} All-Star roster reference from Baseball-Reference ({reason})...")
+    try:
+        if initial_delay and initial_delay > 0:
+            import time
+            time.sleep(initial_delay)
+        from .scrapers.all_star_scraper import (
+            DEFAULT_DELAY_SECONDS,
+            update_all_star_participants,
+        )
+
+        participants, game_summaries = update_all_star_participants(
+            years=[year],
+            delay=DEFAULT_DELAY_SECONDS,
+            output_path=all_stars_path,
+        )
+        if not game_summaries:
+            warn(f"⚠️ Could not find a Baseball-Reference All-Star page for {year}")
+            return False
+        entries = sum(summary.get("entries", 0) for summary in game_summaries)
+        if entries == 0:
+            warn(f"⚠️ Baseball-Reference All-Star roster for {year} has 0 entries")
+        else:
+            info(f"✅ Updated All-Stars: {all_stars_path} ({len(participants)} entries for {year})")
+        return True
+    except Exception as e:
+        warn(f"⚠️ Failed to update All-Star rosters: {e}")
+        info("   Continuing with existing All-Star data...")
+        return False
+
+
 def _splash_hits_reference_age_days(paths=None, now=None):
     """Return the age of the oldest Splash Hits reference CSV, or None if missing."""
     paths = paths or (SPLASH_HITS_FILE, MCCOVEY_COVE_FILE)
@@ -525,6 +628,16 @@ def _should_update_awards(args):
     if getattr(args, 'skip_awards_update', False):
         return False
     if getattr(args, 'update_awards', False):
+        return True
+    if getattr(args, 'excel_only', False):
+        return False
+    return not _should_skip_network_reference_updates(args)
+
+
+def _should_update_all_stars(args):
+    if getattr(args, 'skip_all_stars_update', False):
+        return False
+    if getattr(args, 'update_all_stars', False):
         return True
     if getattr(args, 'excel_only', False):
         return False
@@ -1852,6 +1965,28 @@ def main():
         help='Refresh awards data when older than this many days (default: 7)'
     )
     parser.add_argument(
+        '--skip-all-stars-update',
+        action='store_true',
+        help='Skip auto-updating Baseball-Reference All-Star roster data'
+    )
+    parser.add_argument(
+        '--update-all-stars',
+        action='store_true',
+        help='Update Baseball-Reference All-Star roster data even when running from local game cache'
+    )
+    parser.add_argument(
+        '--all-stars-max-age-days',
+        type=int,
+        default=7,
+        help='Refresh All-Star roster data when older than this many days (default: 7)'
+    )
+    parser.add_argument(
+        '--all-star-year',
+        type=int,
+        default=None,
+        help='All-Star year to refresh (default: current year)'
+    )
+    parser.add_argument(
         '--skip-splash-hits-update',
         action='store_true',
         help='Skip auto-updating MLB.com Splash Hits/McCovey Cove reference CSVs'
@@ -2019,11 +2154,20 @@ def main():
             warn(f"⚠️ Failed to update debuts: {e}")
             info("   Continuing with existing debut data...")
 
+    awards_refreshed = False
     if _should_update_awards(args):
-        _refresh_awards_if_stale(
+        awards_refreshed = _refresh_awards_if_stale(
             max_age_days=args.awards_max_age_days,
             force=getattr(args, 'update_awards', False),
             initial_delay=3.2 if debut_update_attempted else 0,
+        )
+
+    if _should_update_all_stars(args):
+        _refresh_all_stars_if_stale(
+            max_age_days=args.all_stars_max_age_days,
+            force=getattr(args, 'update_all_stars', False),
+            year=args.all_star_year or datetime.now().year,
+            initial_delay=3.2 if (debut_update_attempted or awards_refreshed) else 0,
         )
 
     # Step 1: Load static references

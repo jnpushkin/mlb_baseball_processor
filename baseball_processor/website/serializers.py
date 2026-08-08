@@ -3884,39 +3884,59 @@ class DataSerializer:
                         }
 
         # Intersect with the draft index.
-        by_pick = {}        # roundPick (round 1 only) -> [player records]
+        by_pick = {}        # first-round-band overall pick -> [player records]
         by_round = {}       # round number -> [player records]
         years_covered = set()
 
         for mlb_id_str, meta in seen.items():
-            pick = draft_index.get(mlb_id_str)
-            if not pick:
+            draft_entry = draft_index.get(mlb_id_str)
+            if not draft_entry:
                 continue
-            round_num = pick.get('round')
-            round_pick = pick.get('roundPick')
-            if not isinstance(round_num, int) or not isinstance(round_pick, int):
-                continue
+            drafts = self._draft_entry_picks(draft_entry)
+            draft_count = len(drafts)
+            for pick in drafts:
+                round_num = pick.get('round')
+                round_pick = pick.get('roundPick')
+                if not isinstance(round_num, int) or not isinstance(round_pick, int):
+                    continue
 
-            record = {
-                'mlbId': pick.get('mlb_id'),
-                'name': pick.get('fullName') or meta['name'],
-                'year': pick.get('year'),
-                'round': round_num,
-                'roundPick': round_pick,
-                'overallPick': pick.get('overallPick'),
-                'draftTeam': pick.get('teamAbbrev') or pick.get('team') or '',
-                'school': pick.get('school') or '',
-                'schoolClass': pick.get('schoolClass') or '',
-                'signingBonus': pick.get('signingBonus') or '',
-                'attendedAs': sorted(meta['teams']),
-                'firstGameId': meta['firstGameId'],
-                'firstGameDate': meta['firstGameDate'],
-            }
+                first_round_pick = pick.get('firstRoundPick')
+                if not isinstance(first_round_pick, int):
+                    if pick.get('isFirstRoundBand') and isinstance(pick.get('overallPick'), int):
+                        first_round_pick = pick.get('overallPick')
+                    elif round_num == 1:
+                        # Backward compatibility for pre-draft-history indexes.
+                        first_round_pick = round_pick
 
-            if round_num == 1:
-                by_pick.setdefault(round_pick, []).append(record)
-            by_round.setdefault(round_num, []).append(record)
-            years_covered.add(pick.get('year'))
+                raw_round = pick.get('rawRound') or pick.get('roundLabel') or str(round_num)
+                overall_pick = pick.get('overallPick')
+                record = {
+                    'mlbId': pick.get('mlb_id'),
+                    'name': pick.get('fullName') or meta['name'],
+                    'year': pick.get('year'),
+                    'round': round_num,
+                    'rawRound': raw_round,
+                    'roundLabel': pick.get('roundLabel') or raw_round,
+                    'roundPick': round_pick,
+                    'blockPick': pick.get('blockPick'),
+                    'apiRoundPick': pick.get('apiRoundPick'),
+                    'firstRoundPick': first_round_pick,
+                    'overallPick': overall_pick,
+                    'draftTeam': pick.get('teamAbbrev') or pick.get('team') or '',
+                    'school': pick.get('school') or '',
+                    'schoolClass': pick.get('schoolClass') or '',
+                    'signingBonus': pick.get('signingBonus') or '',
+                    'draftCount': draft_count,
+                    'draftKey': f"{pick.get('mlb_id')}-{pick.get('year')}-{raw_round}-{overall_pick or round_pick}",
+                    'attendedAs': sorted(meta['teams']),
+                    'firstGameId': meta['firstGameId'],
+                    'firstGameDate': meta['firstGameDate'],
+                }
+
+                if isinstance(first_round_pick, int):
+                    by_pick.setdefault(first_round_pick, []).append(record)
+                by_round.setdefault(round_num, []).append(record)
+                years_covered.add(pick.get('year'))
 
         # Sort entries within each bucket: round 1 grid by draft year desc;
         # by-round buckets by (round pick asc, year desc) so the lowest pick
@@ -3929,10 +3949,15 @@ class DataSerializer:
         # First-round grid sizing: most years cap at 30; comp-era years stretch
         # to 35-ish. Snap to the actual max present in the index.
         max_first_round_pick = 0
-        for pick in draft_index.values():
-            if pick.get('round') == 1:
-                rp = pick.get('roundPick') or 0
-                if rp > max_first_round_pick:
+        for draft_entry in draft_index.values():
+            for pick in self._draft_entry_picks(draft_entry):
+                rp = pick.get('firstRoundPick')
+                if not isinstance(rp, int):
+                    if pick.get('isFirstRoundBand') and isinstance(pick.get('overallPick'), int):
+                        rp = pick.get('overallPick')
+                    elif pick.get('round') == 1:
+                        rp = pick.get('roundPick') or 0
+                if isinstance(rp, int) and rp > max_first_round_pick:
                     max_first_round_pick = rp
         if max_first_round_pick < 30:
             max_first_round_pick = 30
@@ -3969,6 +3994,18 @@ class DataSerializer:
             "playersSeen": 0, "firstRoundPlayersSeen": 0,
             "yearsCovered": [],
         }
+
+    @staticmethod
+    def _draft_entry_picks(draft_entry):
+        if not isinstance(draft_entry, dict):
+            return []
+        drafts = draft_entry.get('drafts')
+        if isinstance(drafts, list) and drafts:
+            return [p for p in drafts if isinstance(p, dict)]
+        primary = draft_entry.get('primaryDraft')
+        if isinstance(primary, dict):
+            return [primary]
+        return [draft_entry]
 
     def _load_bref_to_mlb_map(self):
         """Build {bref_id: mlb_id} from the Chadwick Register CSVs.

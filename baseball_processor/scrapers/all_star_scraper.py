@@ -223,6 +223,17 @@ def sort_participants(participants: list[dict[str, Any]]) -> list[dict[str, Any]
     )
 
 
+def sort_game_summaries(game_summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(
+        game_summaries,
+        key=lambda game: (
+            -(game.get("year") or 0),
+            -(game.get("gameNumber") or 0),
+            game.get("key", ""),
+        ),
+    )
+
+
 def selected_games(games: list[dict[str, Any]], years: list[int] | None, game_keys: list[str] | None) -> list[dict[str, Any]]:
     selected = games
     if years:
@@ -267,19 +278,79 @@ def scrape_all_star_participants(
     return sort_participants(enrich_entry_names(all_participants)), game_summaries
 
 
-def write_all_star_file(participants: list[dict[str, Any]], game_summaries: list[dict[str, Any]], output_path: Path) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
+def build_all_star_payload(participants: list[dict[str, Any]], game_summaries: list[dict[str, Any]]) -> dict[str, Any]:
+    sorted_participants = sort_participants(participants)
+    sorted_games = sort_game_summaries(game_summaries)
+    return {
         "metadata": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "source": "Baseball-Reference All-Star Game roster tables",
             "source_index_url": ALL_STAR_INDEX_URL,
-            "entry_count": len(participants),
-            "games": game_summaries,
+            "entry_count": len(sorted_participants),
+            "games": sorted_games,
         },
-        "participants": participants,
+        "participants": sorted_participants,
     }
+
+
+def write_all_star_file(participants: list[dict[str, Any]], game_summaries: list[dict[str, Any]], output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = build_all_star_payload(participants, game_summaries)
     output_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def load_all_star_file(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"metadata": {"games": []}, "participants": []}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {"metadata": {"games": []}, "participants": []}
+    if not isinstance(payload, dict):
+        return {"metadata": {"games": []}, "participants": []}
+    if not isinstance(payload.get("metadata"), dict):
+        payload["metadata"] = {}
+    if not isinstance(payload.get("participants"), list):
+        payload["participants"] = []
+    if not isinstance(payload["metadata"].get("games"), list):
+        payload["metadata"]["games"] = []
+    return payload
+
+
+def merge_all_star_payload(
+    existing_payload: dict[str, Any],
+    participants: list[dict[str, Any]],
+    game_summaries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    replacement_keys = {summary.get("key") for summary in game_summaries if summary.get("key")}
+    existing_participants = [
+        row for row in existing_payload.get("participants", [])
+        if row.get("game_key") not in replacement_keys
+    ]
+    existing_games = [
+        row for row in (existing_payload.get("metadata", {}) or {}).get("games", [])
+        if row.get("key") not in replacement_keys
+    ]
+    return build_all_star_payload(
+        existing_participants + participants,
+        existing_games + game_summaries,
+    )
+
+
+def update_all_star_participants(
+    years: list[int] | None = None,
+    game_keys: list[str] | None = None,
+    delay: float = DEFAULT_DELAY_SECONDS,
+    output_path: Path = REFERENCES_DIR / "all_star_participants.json",
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Refresh selected All-Star games and merge them into the reference file."""
+    participants, game_summaries = scrape_all_star_participants(years, game_keys, delay)
+    if not game_summaries:
+        return participants, game_summaries
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = merge_all_star_payload(load_all_star_file(output_path), participants, game_summaries)
+    output_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return participants, game_summaries
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -289,6 +360,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--delay", type=float, default=DEFAULT_DELAY_SECONDS, help="Delay between Baseball-Reference requests")
     parser.add_argument("--output", type=Path, default=REFERENCES_DIR / "all_star_participants.json", help="Output JSON path")
     parser.add_argument("--list-games", action="store_true", help="List All-Star game keys from the BRef index and exit")
+    parser.add_argument("--merge", action="store_true", help="Merge selected --year/--game-key results into the existing output file")
     args = parser.parse_args(argv)
 
     if args.list_games:
@@ -298,8 +370,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{game['gameKey']}: {game['label']} ({game['path']})")
         return 0
 
-    participants, game_summaries = scrape_all_star_participants(args.years, args.game_keys, args.delay)
-    write_all_star_file(participants, game_summaries, args.output)
+    if args.merge:
+        participants, game_summaries = update_all_star_participants(args.years, args.game_keys, args.delay, args.output)
+    else:
+        participants, game_summaries = scrape_all_star_participants(args.years, args.game_keys, args.delay)
+        write_all_star_file(participants, game_summaries, args.output)
     print(f"\nSaved {len(participants)} All-Star participant entries to {args.output}")
     return 0
 

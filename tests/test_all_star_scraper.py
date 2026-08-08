@@ -1,4 +1,5 @@
 from baseball_processor.scrapers.all_star_scraper import (
+    merge_all_star_payload,
     parse_all_star_game_html,
     parse_all_star_index,
 )
@@ -51,3 +52,30 @@ def test_parse_all_star_roster_tables_skip_managers_and_dedupe_starter_pitchers(
     assert participants[1]["position"] == "P"
     assert participants[1]["league"] == "AL"
     assert tables == [{"caption": "AL All-Stars", "entries": 3}]
+
+
+def test_merge_all_star_payload_replaces_selected_game_only():
+    existing = {
+        "metadata": {
+            "games": [
+                {"key": "2025", "year": 2025, "gameNumber": 1, "entries": 1},
+                {"key": "2026", "year": 2026, "gameNumber": 1, "entries": 0},
+            ]
+        },
+        "participants": [
+            {"year": 2025, "game_number": 1, "game_key": "2025", "name": "Seen Star"},
+            {"year": 2026, "game_number": 1, "game_key": "2026", "name": "Stale Stub"},
+        ],
+    }
+    new_participants = [
+        {"year": 2026, "game_number": 1, "game_key": "2026", "name": "Fresh Star"},
+    ]
+    new_games = [
+        {"key": "2026", "year": 2026, "gameNumber": 1, "entries": 1},
+    ]
+
+    payload = merge_all_star_payload(existing, new_participants, new_games)
+
+    assert [row["name"] for row in payload["participants"]] == ["Fresh Star", "Seen Star"]
+    assert [game["key"] for game in payload["metadata"]["games"]] == ["2026", "2025"]
+    assert payload["metadata"]["entry_count"] == 2

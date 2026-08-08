@@ -81,6 +81,13 @@ python3 -m baseball_processor --update-awards --website-only
 ```
 `mlb_references/awards.json` auto-refreshes when >7 days old during normal website-capable processor runs. Use `--skip-awards-update` to keep runs local, or `--update-awards` to force a refresh even in cache-only mode.
 
+### All-Star Rosters
+```bash
+python3 -m baseball_processor.scrapers.all_star_scraper --year 2026 --merge
+python3 -m baseball_processor --update-all-stars --all-star-year 2026 --website-only
+```
+`mlb_references/all_star_participants.json` auto-refreshes the current All-Star year when stale (>7 days), missing, or still a zero-entry pre-roster stub during normal website-capable runs. Use `--skip-all-stars-update` to keep runs local, or `--update-all-stars` to force a selected-year refresh even in cache-only mode.
+
 ### Splash Hits / McCovey Cove
 ```bash
 python3 -m baseball_processor.scrapers.splash_hits_scraper
@@ -181,6 +188,7 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 - MLB API game IDs start with 'M' prefix (e.g., MSF202603230), BREF IDs don't (e.g., SFN202603230)
 - Spring training games excluded from cumulative stat badges but included in game log
 - Player bios cached in `cache/player_bios.json` (fetched from MLB API)
+- MLB draft API `roundPickNumber` is unreliable in some historical payloads (notably 2002 phase/regular round merges). Use `draft_scraper` normalization for within-round slots, preserve `rawRound` for supplemental labels, and keep all draft records for players drafted multiple times.
 - Downloaded BREF HTML backups for API-sourced games should short-circuit to the existing API cache by inferring the BREF-style game ID from the backup filename. Do not reparse those backups just to rediscover the game ID.
 - Individual defensive errors are source-specific: BREF games credit them from `footer_summary[*].E`, while MLB API games expose per-player `stats.fielding.errors` in the boxscore. The defensive tracker should use the BREF footer when present, otherwise row-level API `E`, with play-by-play text only as a fallback for older API caches. BREF footer names can have 3+ tokens (e.g., `Jung Hoo Lee`), so avoid fixed first/last-name regexes.
 - Website IP display should keep outs as the canonical value for UI calculations and use the shared React helpers (`formatOutsAsIP`, `baseballIPToOuts`, `formatHistoricalStatValue`) for display/sort/filter boundaries. Avoid accumulating IP as normal decimal innings in React; it leaks values like `#.6667` instead of baseball notation (`#.2`).

@@ -8,9 +8,11 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from baseball_processor.main import (
+    _all_stars_reference_age_days,
     _awards_reference_age_days,
     _splash_hits_reference_age_days,
     _load_games_from_cache,
+    _refresh_all_stars_if_stale,
     _refresh_awards_if_stale,
     _cache_game_quality_score,
     _find_api_cache_for_game_id,
@@ -20,6 +22,7 @@ from baseball_processor.main import (
     _should_download_bref_backups,
     _should_refresh_all_time_leaders,
     _should_update_awards,
+    _should_update_all_stars,
     _should_update_debuts,
     _should_update_splash_hits,
 )
@@ -37,6 +40,10 @@ def make_args(**overrides):
         "skip_awards_update": False,
         "update_awards": False,
         "awards_max_age_days": 7,
+        "skip_all_stars_update": False,
+        "update_all_stars": False,
+        "all_stars_max_age_days": 7,
+        "all_star_year": None,
         "skip_splash_hits_update": False,
         "update_splash_hits": False,
         "splash_hits_max_age_days": 1,
@@ -57,6 +64,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
         self.assertFalse(_should_update_awards(args))
+        self.assertFalse(_should_update_all_stars(args))
         self.assertFalse(_should_update_splash_hits(args))
         self.assertFalse(_should_download_bref_backups(args))
 
@@ -66,6 +74,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
         self.assertFalse(_should_update_awards(args))
+        self.assertFalse(_should_update_all_stars(args))
         self.assertFalse(_should_update_splash_hits(args))
         self.assertFalse(_should_download_bref_backups(args))
 
@@ -75,6 +84,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
         self.assertFalse(_should_update_awards(args))
+        self.assertFalse(_should_update_all_stars(args))
         self.assertFalse(_should_update_splash_hits(args))
         self.assertFalse(_should_download_bref_backups(args))
 
@@ -84,6 +94,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertTrue(_should_refresh_all_time_leaders(args))
         self.assertTrue(_should_update_debuts(args))
         self.assertTrue(_should_update_awards(args))
+        self.assertTrue(_should_update_all_stars(args))
         self.assertTrue(_should_update_splash_hits(args))
         self.assertTrue(_should_download_bref_backups(args))
 
@@ -93,6 +104,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertTrue(_should_update_debuts(args))
         self.assertFalse(_should_update_awards(args))
+        self.assertFalse(_should_update_all_stars(args))
         self.assertFalse(_should_update_splash_hits(args))
         self.assertFalse(_should_download_bref_backups(args))
 
@@ -102,6 +114,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
         self.assertTrue(_should_update_awards(args))
+        self.assertFalse(_should_update_all_stars(args))
         self.assertFalse(_should_update_splash_hits(args))
         self.assertFalse(_should_download_bref_backups(args))
 
@@ -109,6 +122,17 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         args = make_args(excel_only=True)
 
         self.assertFalse(_should_update_awards(args))
+        self.assertFalse(_should_update_all_stars(args))
+
+    def test_all_stars_update_can_be_enabled_for_cache_only_runs(self):
+        args = make_args(from_cache_only=True, update_all_stars=True)
+
+        self.assertFalse(_should_refresh_all_time_leaders(args))
+        self.assertFalse(_should_update_debuts(args))
+        self.assertFalse(_should_update_awards(args))
+        self.assertTrue(_should_update_all_stars(args))
+        self.assertFalse(_should_update_splash_hits(args))
+        self.assertFalse(_should_download_bref_backups(args))
 
     def test_splash_hits_update_can_be_enabled_for_cache_only_runs(self):
         args = make_args(from_cache_only=True, update_splash_hits=True)
@@ -116,6 +140,7 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         self.assertFalse(_should_refresh_all_time_leaders(args))
         self.assertFalse(_should_update_debuts(args))
         self.assertFalse(_should_update_awards(args))
+        self.assertFalse(_should_update_all_stars(args))
         self.assertTrue(_should_update_splash_hits(args))
         self.assertFalse(_should_download_bref_backups(args))
 
@@ -137,6 +162,11 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
         args = make_args(from_cache_only=True, update_awards=True, skip_awards_update=True)
 
         self.assertFalse(_should_update_awards(args))
+
+    def test_skip_all_stars_update_overrides_forced_all_stars_update(self):
+        args = make_args(from_cache_only=True, update_all_stars=True, skip_all_stars_update=True)
+
+        self.assertFalse(_should_update_all_stars(args))
 
     def test_skip_splash_hits_update_overrides_forced_splash_hits_update(self):
         args = make_args(
@@ -238,6 +268,57 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
             )
 
         self.assertEqual(2, age_days)
+
+    def test_all_stars_reference_age_uses_metadata_timestamp(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            all_stars_path = Path(tmpdir) / "all_star_participants.json"
+            all_stars_path.write_text(
+                json.dumps({
+                    "metadata": {"generated_at": "2026-06-20T12:00:00+00:00"},
+                    "participants": [],
+                }),
+                encoding="utf-8",
+            )
+
+            age_days = _all_stars_reference_age_days(
+                all_stars_path,
+                now=datetime.fromisoformat("2026-06-22T12:00:00+00:00"),
+            )
+
+        self.assertEqual(2, age_days)
+
+    def test_stale_all_stars_reference_refreshes_current_year(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            references_dir = Path(tmpdir)
+            all_stars_path = references_dir / "all_star_participants.json"
+            all_stars_path.write_text(
+                json.dumps({
+                    "metadata": {
+                        "generated_at": "2026-06-01T12:00:00+00:00",
+                        "games": [{"key": "2026", "year": 2026, "gameNumber": 1, "entries": 0}],
+                    },
+                    "participants": [],
+                }),
+                encoding="utf-8",
+            )
+
+            with patch("baseball_processor.main.REFERENCES_DIR", references_dir), patch(
+                "baseball_processor.scrapers.all_star_scraper.update_all_star_participants",
+                return_value=(
+                    [{"year": 2026, "game_key": "2026", "name": "Fresh Star"}],
+                    [{"key": "2026", "year": 2026, "entries": 1}],
+                ),
+            ) as update_all_stars:
+                refreshed = _refresh_all_stars_if_stale(
+                    max_age_days=7,
+                    force=False,
+                    year=2026,
+                    initial_delay=0,
+                )
+
+        self.assertTrue(refreshed)
+        update_all_stars.assert_called_once()
+        self.assertEqual([2026], update_all_stars.call_args.kwargs["years"])
 
     def test_cache_loader_dedupes_game_id_aliases_and_keeps_richer_record(self):
         sparse_game = {

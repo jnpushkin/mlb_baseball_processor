@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -151,6 +152,84 @@ class FakeWeatherTracker:
 
 
 class DataSerializerTests(unittest.TestCase):
+    def test_serialize_first_round_draft_picks_preserves_multiple_drafts(self):
+        draft_index = {
+            "459941": {
+                "mlb_id": 459941,
+                "fullName": "Travis Buck",
+                "year": 2005,
+                "round": 1,
+                "rawRound": "C-1",
+                "roundPick": 36,
+                "firstRoundPick": 36,
+                "overallPick": 36,
+                "team": "Athletics",
+                "school": "Arizona State",
+                "drafts": [
+                    {
+                        "mlb_id": 459941,
+                        "fullName": "Travis Buck",
+                        "year": 2002,
+                        "round": 23,
+                        "rawRound": "23",
+                        "roundLabel": "23",
+                        "roundPick": 28,
+                        "apiRoundPick": 144,
+                        "firstRoundPick": None,
+                        "overallPick": 700,
+                        "team": "Seattle Mariners",
+                        "teamAbbrev": "SEA",
+                        "school": "Richland HS",
+                    },
+                    {
+                        "mlb_id": 459941,
+                        "fullName": "Travis Buck",
+                        "year": 2005,
+                        "round": 1,
+                        "rawRound": "C-1",
+                        "roundLabel": "C-1",
+                        "roundPick": 36,
+                        "blockPick": 6,
+                        "firstRoundPick": 36,
+                        "isFirstRoundBand": True,
+                        "overallPick": 36,
+                        "team": "Athletics",
+                        "teamAbbrev": "ATH",
+                        "school": "Arizona State",
+                    },
+                ],
+            }
+        }
+        raw_games = [
+            {
+                "game_id": "ATH200705270",
+                "basic_info": {
+                    "date_yyyymmdd": "20070527",
+                    "home_team_code": "ATH",
+                    "away_team_code": "BAL",
+                },
+                "batting": {
+                    "home": [{"mlb_id": 459941, "name": "Travis Buck", "player_id": "bucktr01"}],
+                    "away": [],
+                },
+                "pitching": {"home": [], "away": []},
+            }
+        ]
+
+        with patch("baseball_processor.scrapers.draft_scraper.load_index", return_value=draft_index):
+            payload = DataSerializer()._serialize_first_round_draft_picks(raw_games)
+
+        round_23_record = payload["byRound"]["23"][0]
+        first_round_record = payload["byPick"]["36"][0]
+
+        self.assertEqual(28, round_23_record["roundPick"])
+        self.assertEqual(144, round_23_record["apiRoundPick"])
+        self.assertEqual(2, round_23_record["draftCount"])
+        self.assertEqual("C-1", first_round_record["rawRound"])
+        self.assertEqual(36, first_round_record["firstRoundPick"])
+        self.assertEqual(2, first_round_record["draftCount"])
+        self.assertEqual("05/27/2007", first_round_record["firstGameDate"])
+
     def test_load_career_firsts_cache_uses_configured_cache_dir(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_dir = Path(tmpdir)

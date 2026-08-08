@@ -316,20 +316,27 @@ const JerseyCollection = ({ jerseyLog }) => {
     );
 };
 
+const formatDraftSelection = (p) => {
+    const rawRound = String(p.rawRound || p.roundLabel || '').trim();
+    const isNumericRawRound = rawRound && /^\d+$/.test(rawRound);
+    const roundLabel = rawRound && !isNumericRawRound ? rawRound : (p.round != null ? `R${p.round}` : rawRound);
+    const showRoundPick = p.roundPick != null && (isNumericRawRound || !rawRound);
+    const roundText = roundLabel ? `${roundLabel}${showRoundPick ? `.${p.roundPick}` : ''}` : '';
+    const overallText = p.overallPick ? `#${p.overallPick} overall` : '';
+    return [roundText, overallText].filter(Boolean).join(' · ');
+};
+
 const DraftPlayerList = ({ players }) => (
     <div className="space-y-2 max-h-96 overflow-y-auto">
         {players.map((p, i) => (
-            <div key={`${p.mlbId}-${i}`} className="flex items-center justify-between bg-white rounded p-2 gap-3">
+            <div key={p.draftKey || `${p.mlbId}-${p.year || 'draft'}-${i}`} className="flex items-center justify-between bg-white rounded p-2 gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-blue-700">{p.year}</span>
                     <span className="font-semibold">{p.name}</span>
                     <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">{p.draftTeam || '—'}</span>
+                    {p.draftCount > 1 && <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{p.draftCount}x drafted</span>}
                     {p.school && <span className="text-xs text-slate-500">{p.school}</span>}
-                    {p.round != null && p.roundPick != null && (
-                        <span className="text-xs text-slate-400">
-                            R{p.round}{p.roundPick > 1 || p.round === 1 ? `.${p.roundPick}` : ''}{p.overallPick ? ` · #${p.overallPick} overall` : ''}
-                        </span>
-                    )}
+                    {formatDraftSelection(p) && <span className="text-xs text-slate-400">{formatDraftSelection(p)}</span>}
                 </div>
                 <div className="text-right">
                     {p.firstGameDate && <div className="text-xs text-slate-500">first seen {p.firstGameDate}</div>}
@@ -501,27 +508,7 @@ const DraftCollectionGrid = ({ title, units, gridSource, total, label, cellPrefi
                 return (
                     <div className="mt-4 bg-blue-50 rounded-lg p-4">
                         <h3 className="subsection-title font-bold mb-3">{label} {cellPrefix}{selected} — {players.length} player{players.length > 1 ? 's' : ''}</h3>
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
-                            {players.map((p, i) => (
-                                <div key={`${p.mlbId}-${i}`} className="flex items-center justify-between bg-white rounded p-2 gap-3">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="font-bold text-blue-700">{p.year}</span>
-                                        <span className="font-semibold">{p.name}</span>
-                                        <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">{p.draftTeam || '—'}</span>
-                                        {p.school && <span className="text-xs text-slate-500">{p.school}</span>}
-                                        {p.round != null && p.roundPick != null && (
-                                            <span className="text-xs text-slate-400">
-                                                R{p.round}{p.roundPick > 1 || p.round === 1 ? `.${p.roundPick}` : ''}{p.overallPick ? ` · #${p.overallPick} overall` : ''}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="text-right">
-                                        {p.firstGameDate && <div className="text-xs text-slate-500">first seen {p.firstGameDate}</div>}
-                                        {p.signingBonus && <div className="text-xs text-slate-400">${Number(p.signingBonus).toLocaleString()}</div>}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        <DraftPlayerList players={players} />
                     </div>
                 );
             })()}
