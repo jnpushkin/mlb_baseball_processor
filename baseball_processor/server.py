@@ -15,12 +15,14 @@ import json
 import secrets
 import subprocess
 from datetime import datetime, timedelta
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, quote
 
 from .parsers.mlb_api_parser import parse_mlb_game
 from .utils.http import create_retry_session, get_with_retry
+from .jobs import JobStore
+from .main import deploy_to_surge, load_surge_domain
 
 CACHE_DIR = Path(__file__).parent.parent / 'cache'
 PROJECT_DIR = Path(__file__).parent.parent
@@ -29,6 +31,16 @@ MLB_API_BASE = 'https://statsapi.mlb.com/api/v1'
 _session = create_retry_session()
 _processing = False
 _server_token = ""
+_job_store = None
+_job_store_lock = __import__('threading').Lock()
+
+def get_job_store():
+    global _job_store
+    with _job_store_lock:
+        if _job_store is None:
+            _job_store = JobStore(CACHE_DIR / 'add_game_jobs.json', add_game)
+        return _job_store
+
 
 
 def build_url(host, port, token):
@@ -83,46 +95,76 @@ def fetch_schedule(date_str):
     return games
 
 
-def is_game_cached(game_pk):
+def find_cached_game(game_pk):
     skip = ('career', 'player_bios')
     for f in CACHE_DIR.glob('*.json'):
         if f.name.startswith(skip):
             continue
         try:
-            d = json.load(open(f))
+            with f.open() as source:
+                d = json.load(source)
             if d.get('mlb_game_pk') == game_pk:
-                return True
-        except:
+                return d
+        except (OSError, ValueError, AttributeError):
             continue
-    return False
+    return None
 
 
-def add_game(game_pk):
-    """Fetch game from API, save to cache, run processor."""
+def is_game_cached(game_pk):
+    return find_cached_game(game_pk) is not None
+
+
+def add_game(game_pk, on_progress=None):
+    """Save, build, then deploy; preserve completed stages for safe retries."""
     global _processing
     _processing = True
+    result = {'ok': False, 'gameId': None, 'saved': False, 'processed': False,
+              'deployed': False, 'stage': 'save', 'error': None}
     try:
-        game_data = parse_mlb_game(game_pk, verbose=True)
-        if not game_data:
-            return False, "Failed to parse game"
+        # Retry from the saved game instead of overwriting it or fetching again.
+        game_data = find_cached_game(game_pk)
+        if game_data is None:
+            game_data = parse_mlb_game(game_pk, verbose=True)
+            if not game_data or not game_data.get('game_id'):
+                raise ValueError('Failed to parse game')
+            cache_path = CACHE_DIR / f"{game_data['game_id']}.json"
+            temp = cache_path.with_suffix('.tmp')
+            with temp.open('w') as target:
+                json.dump(game_data, target, indent=2)
+            temp.replace(cache_path)
+        result.update(gameId=game_data['game_id'], saved=True, stage='build')
+        if on_progress: on_progress({**result, 'message': 'Game saved. Building website…'})
 
-        game_id = game_data.get('game_id', '')
-        cache_path = CACHE_DIR / f"{game_id}.json"
-        temp = cache_path.with_suffix('.tmp')
-        with open(temp, 'w') as f:
-            json.dump(game_data, f, indent=2)
-        temp.replace(cache_path)
-
-        # Run processor
+        # Build and deploy separately so an upload failure cannot masquerade as
+        # a successful add, and a failed build never uploads stale artifacts.
         subprocess.run(
-            ['python3', '-m', 'baseball_processor', '--website-only'],
-            cwd=str(PROJECT_DIR), timeout=300
+            ['python3', '-m', 'baseball_processor', '--website-only', '--no-deploy',
+             '--output-excel', str(PROJECT_DIR / 'MLB Game Passport - BREF.xlsx')],
+            cwd=str(PROJECT_DIR), timeout=300, check=True
         )
-        return True, game_id
+        result.update(processed=True, stage='deploy')
+        if on_progress: on_progress({**result, 'message': 'Website built. Deploying…'})
+        domain = load_surge_domain()
+        if not domain:
+            raise RuntimeError('No Surge domain configured')
+        if not deploy_to_surge(str(PROJECT_DIR / 'MLB Game Passport - BREF.html'), domain):
+            raise RuntimeError('Surge deployment failed; check the server log')
+        result.update(ok=True, deployed=True, stage='complete',
+                      message='Game saved, website built and deployed.')
     except Exception as e:
-        return False, str(e)
+        prefixes = {'save': 'Game could not be saved.',
+                    'build': 'Game saved. Website build failed.',
+                    'deploy': 'Game saved and website built. Deployment failed.'}
+        if isinstance(e, subprocess.CalledProcessError):
+            detail = 'Check the server log, then retry.'
+        elif isinstance(e, subprocess.TimeoutExpired):
+            detail = 'Processing exceeded five minutes. Check the server log, then retry.'
+        else:
+            detail = str(e)
+        result.update(error=str(e), message=f"{prefixes[result['stage']]} {detail}")
     finally:
         _processing = False
+    return result
 
 
 PAGE_HTML = """<!DOCTYPE html>
@@ -141,7 +183,9 @@ h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
 .date-label { font-size: 16px; font-weight: 600; flex: 1; text-align: center; }
 .game { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.15s; }
 .game:active { transform: scale(0.98); background: #f1f5f9; }
-.game.cached { opacity: 0.5; }
+.game.cached { background: #f1f5f9; }
+.game-action { width: 100%; text-align: left; font: inherit; color: inherit; }
+.retry-label { margin-top: 8px; font-size: 12px; color: #2563eb; }
 .game .teams { font-size: 16px; font-weight: 600; }
 .game .venue { font-size: 13px; color: #64748b; margin-top: 2px; }
 .game .status { font-size: 12px; color: #94a3b8; margin-top: 2px; }
@@ -150,7 +194,8 @@ h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
 .badge.final { background: #dcfce7; color: #16a34a; }
 .badge.live { background: #fef3c7; color: #d97706; }
 .badge.dh { background: #ffedd5; color: #c2410c; }
-.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; display: none; z-index: 100; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 32px)); background: #1e293b; color: white; padding: 16px; border-radius: 12px; font-size: 14px; display: none; z-index: 100; }
+.toast button { margin: 12px 8px 0 0; padding: 10px 14px; border: 0; border-radius: 6px; cursor: pointer; }
 .toast.show { display: block; }
 .spinner { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); z-index: 50; align-items: center; justify-content: center; }
 .spinner.show { display: flex; }
@@ -162,16 +207,17 @@ h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
 <div class="container">
     <h1>Add Game</h1>
     <div class="date-nav">
-        <button onclick="changeDate(-1)">&larr;</button>
+        <button aria-label="Previous day" onclick="changeDate(-1)">&larr;</button>
         <div class="date-label" id="dateLabel"></div>
-        <button onclick="changeDate(1)">&rarr;</button>
+        <button aria-label="Next day" onclick="changeDate(1)">&rarr;</button>
     </div>
     <div id="games"></div>
 </div>
-<div class="spinner" id="spinner"><div class="spinner-inner">Adding game...</div></div>
-<div class="toast" id="toast"></div>
+<div class="spinner" id="spinner" role="status"><div class="spinner-inner">Saving game, building website and deploying...<br><small>This may take a few minutes.</small></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 let currentDate = new Date();
+let adding = false;
 const ADD_GAME_TOKEN = new URLSearchParams(window.location.search).get('token') || '';
 // Start with today
 loadGames();
@@ -217,40 +263,74 @@ function loadGames() {
                     const dhKind = g.doubleHeader === 'S' ? ' (split)' : '';
                     badges.push(`<span class="badge dh">Game ${g.gameNumber} of ${total}${dhKind}</span>`);
                 }
-                if (g.cached) badges.push('<span class="badge cached">Added</span>');
+                if (g.cached) badges.push('<span class="badge cached">Saved locally</span>');
                 else if (g.status === 'Final') badges.push('<span class="badge final">Final</span>');
                 else if (g.status.includes('Progress')) badges.push('<span class="badge live">Live</span>');
-                const cls = g.cached ? 'game cached' : 'game';
-                const onclick = g.cached ? '' : `onclick="addGame(${g.gamePk})"`;
+                const cls = g.cached ? 'game game-action cached' : 'game game-action';
                 const startTime = fmtTime(g.gameDate);
                 const statusLine = g.status + (g.gameType !== 'R' ? ' [' + g.gameType + ']' : '') + (startTime ? ' • ' + startTime : '');
-                return `<div class="${cls}" ${onclick}>
+                return `<button type="button" class="${cls}" onclick="addGame(${g.gamePk})">
                     <div class="teams">${g.away_name} @ ${g.home_name}${badges.join('')}</div>
                     <div class="venue">${g.venue}</div>
                     <div class="status">${statusLine}</div>
-                </div>`;
+                    ${g.cached ? '<div class="retry-label">Rebuild and retry deployment</div>' : ''}
+                </button>`;
             }).join('');
+        }).catch(() => {
+            document.getElementById('games').textContent = 'Could not load games. Try another date or reload the page.';
+        });
+}
+function showResult(message, retryPk) {
+    const toast = document.getElementById('toast');
+    toast.replaceChildren();
+    const text = document.createElement('div');
+    text.textContent = message;
+    toast.append(text);
+    if (retryPk) {
+        const retry = document.createElement('button');
+        retry.textContent = 'Retry';
+        retry.onclick = () => addGame(retryPk);
+        toast.append(retry);
+    }
+    const dismiss = document.createElement('button');
+    dismiss.textContent = 'Dismiss';
+    dismiss.onclick = () => toast.classList.remove('show');
+    toast.append(dismiss);
+    toast.classList.add('show');
+}
+function followJob(id) {
+    localStorage.setItem('passport-add-job', id);
+    fetch('/api/jobs/' + encodeURIComponent(id), {headers:{'X-Add-Game-Token':ADD_GAME_TOKEN}})
+        .then(r => { if(!r.ok) throw new Error('Could not read job status'); return r.json(); })
+        .then(job => {
+            document.querySelector('.spinner-inner').textContent = job.message || job.stage;
+            if(job.state === 'queued' || job.state === 'running') {
+                adding=true; document.getElementById('spinner').classList.add('show');
+                setTimeout(() => followJob(id), 1500);
+            } else {
+                adding=false; document.getElementById('spinner').classList.remove('show');
+                localStorage.removeItem('passport-add-job');
+                showResult(job.message, job.state==='failed' ? job.gamePk : null);
+                if(job.saved) loadGames();
+            }
+        }).catch(() => {
+            adding=false; document.getElementById('spinner').classList.remove('show');
+            showResult('Connection lost. Your job is saved; reconnect or reload this page to check its progress.');
         });
 }
 function addGame(pk) {
+    if (adding) return;
+    adding = true;
+    document.getElementById('toast').classList.remove('show');
     document.getElementById('spinner').classList.add('show');
-    fetch('/api/add?gamePk=' + pk + '&token=' + encodeURIComponent(ADD_GAME_TOKEN), {
-        method: 'POST',
-        headers: { 'X-Add-Game-Token': ADD_GAME_TOKEN }
-    })
-        .then(r => r.json().then(data => ({ status: r.status, data })))
-        .then(({ status, data }) => {
-            document.getElementById('spinner').classList.remove('show');
-            const toast = document.getElementById('toast');
-            toast.textContent = data.ok ? 'Game added and deployed!' : 'Error: ' + (data.error || ('HTTP ' + status));
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-            if (data.ok) loadGames();
-        })
-        .catch(() => {
-            document.getElementById('spinner').classList.remove('show');
-        });
+    fetch('/api/add?gamePk=' + pk, {method:'POST',headers:{'X-Add-Game-Token':ADD_GAME_TOKEN}})
+        .then(r => r.json().then(data => {if(!r.ok) throw new Error(data.error || 'Could not queue game'); return data;}))
+        .then(job => followJob(job.id))
+        .catch(error => {adding=false;document.getElementById('spinner').classList.remove('show');showResult(error.message,pk);});
 }
+const previousJob=localStorage.getItem('passport-add-job');
+if(previousJob)followJob(previousJob);
+window.addEventListener('online',()=>{const id=localStorage.getItem('passport-add-job');if(id)followJob(id);});
 </script>
 </body>
 </html>"""
@@ -259,7 +339,13 @@ function addGame(pk) {
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path == '/api/games':
+        if parsed.path.startswith('/api/jobs/'):
+            if not is_authorized(parsed, self.headers, _server_token):
+                self._json({'error': 'Invalid or missing token'}, status=403)
+                return
+            job = get_job_store().get(parsed.path.rsplit('/', 1)[-1])
+            self._json(job or {'error':'Job not found'}, status=200 if job else 404)
+        elif parsed.path == '/api/games':
             params = parse_qs(parsed.query)
             date_str = params.get('date', [datetime.now().strftime('%Y-%m-%d')])[0]
             games = fetch_schedule(date_str)
@@ -277,9 +363,6 @@ class Handler(BaseHTTPRequestHandler):
             if not is_authorized(parsed, self.headers, _server_token):
                 self._json({'ok': False, 'error': 'Invalid or missing token'}, status=403)
                 return
-            if _processing:
-                self._json({'ok': False, 'error': 'Already processing a game'})
-                return
             params = parse_qs(parsed.query)
             try:
                 game_pk = int(params.get('gamePk', [0])[0])
@@ -288,12 +371,7 @@ class Handler(BaseHTTPRequestHandler):
             if not game_pk:
                 self._json({'ok': False, 'error': 'No gamePk'})
                 return
-            # Run in thread so we don't block
-            def process():
-                ok, result = add_game(game_pk)
-                return ok, result
-            ok, result = process()
-            self._json({'ok': ok, 'gameId': result if ok else None, 'error': None if ok else result})
+            self._json(get_job_store().submit(game_pk), status=202)
         else:
             self._respond(404, 'Not found')
 
@@ -366,7 +444,7 @@ def main():
     print("  Token:  required for add-game requests")
     print(f"  Press Ctrl+C to stop\n")
 
-    server = HTTPServer((bind_host, args.port), Handler)
+    server = ThreadingHTTPServer((bind_host, args.port), Handler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

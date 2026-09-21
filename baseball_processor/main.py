@@ -63,6 +63,34 @@ def deploy_to_surge(html_path: str, domain: str | None = None) -> bool:
         warn("❌ Surge is not installed. Install with: npm install -g surge")
         return False
 
+    release = None
+    if (Path(html_path).parent / 'release.json').exists():
+        from .website.release import validate_release
+        try:
+            release = validate_release(Path(html_path).parent)
+        except (OSError, ValueError, KeyError) as exc:
+            warn(f"❌ Release validation failed: {exc}")
+            return False
+
+    # Refuse a partial bundle before replacing the working live site.
+    root = Path(html_path).parent
+    try:
+        if not Path(html_path).is_file():
+            raise FileNotFoundError(html_path)
+        manifests = [] if release else [root / 'data.json']
+        data_manifest = json.loads((root / 'data.json').read_text(encoding='utf-8'))
+        if not release and ((root / 'award-data.json').exists() or data_manifest.get('awardChecklists', {}).get('metadata', {}).get('external')):
+            manifests.append(root / 'award-data.json')
+        for manifest in manifests:
+            payload = json.loads(manifest.read_text(encoding='utf-8'))
+            for sidecar in payload.get('__dataSidecars', []):
+                sidecar_path = root / sidecar['path']
+                if not sidecar_path.is_file():
+                    raise FileNotFoundError(sidecar_path)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+        warn(f"❌ Website bundle is incomplete: {exc}")
+        return False
+
     # Load domain from config if not provided
     if not domain:
         domain = load_surge_domain()
@@ -87,17 +115,29 @@ def deploy_to_surge(html_path: str, domain: str | None = None) -> bool:
         temp_html = os.path.join(temp_dir, 'index.html')
         shutil.copy(html_path, temp_html)
 
-        # Copy data.json if it exists alongside the HTML file
-        data_json = os.path.join(os.path.dirname(html_path), 'data.json')
-        if os.path.exists(data_json):
-            shutil.copy(data_json, os.path.join(temp_dir, 'data.json'))
-        for data_sidecar in Path(os.path.dirname(html_path)).glob('data-*.json'):
-            shutil.copy(data_sidecar, os.path.join(temp_dir, data_sidecar.name))
-        award_data_json = os.path.join(os.path.dirname(html_path), 'award-data.json')
-        if os.path.exists(award_data_json):
-            shutil.copy(award_data_json, os.path.join(temp_dir, 'award-data.json'))
-        for award_sidecar in Path(os.path.dirname(html_path)).glob('award-sidecar-*.json'):
-            shutil.copy(award_sidecar, os.path.join(temp_dir, award_sidecar.name))
+        if release:
+            root = Path(html_path).parent
+            for filename in release['files']:
+                if filename == release['html']:
+                    continue
+                target = Path(temp_dir) / filename
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(root / filename, target)
+            shutil.copy(root / 'release.json', Path(temp_dir) / 'release.json')
+            # Cacheable shell uses the generated filename as well as index.html.
+            shutil.copy(html_path, Path(temp_dir) / Path(html_path).name)
+        else:
+            # Copy data.json if it exists alongside the HTML file
+            data_json = os.path.join(os.path.dirname(html_path), 'data.json')
+            if os.path.exists(data_json):
+                shutil.copy(data_json, os.path.join(temp_dir, 'data.json'))
+            for data_sidecar in Path(os.path.dirname(html_path)).glob('data-*.json'):
+                shutil.copy(data_sidecar, os.path.join(temp_dir, data_sidecar.name))
+            award_data_json = os.path.join(os.path.dirname(html_path), 'award-data.json')
+            if os.path.exists(award_data_json):
+                shutil.copy(award_data_json, os.path.join(temp_dir, 'award-data.json'))
+            for award_sidecar in Path(os.path.dirname(html_path)).glob('award-sidecar-*.json'):
+                shutil.copy(award_sidecar, os.path.join(temp_dir, award_sidecar.name))
 
         try:
             # Run surge deployment
@@ -160,7 +200,9 @@ def _maybe_deploy_to_surge(html_path: str, args) -> bool:
 
     if not args.deploy and configured_domain:
         info(f"🚀 Auto-deploying to configured Surge domain: {configured_domain}")
-    return deploy_to_surge(html_path, configured_domain)
+    if not deploy_to_surge(html_path, configured_domain):
+        raise RuntimeError("Website built, but Surge deployment failed")
+    return True
 
 
 def _shared_player_website_url(args) -> str:
@@ -2108,7 +2150,7 @@ def main():
 
     if not os.path.exists(args.input_path) and not args.from_cache_only and not args.from_db:
         warn(f"❌ Input path does not exist: {args.input_path}")
-        return
+        raise SystemExit(1)
 
     info("⚾️ Starting Baseball Game Processor...")
     info(f"📂 Input: {args.input_path}")
@@ -2282,7 +2324,7 @@ def main():
 
     if not games_data:
         warn("❌ No games data to process. Exiting.")
-        return
+        raise SystemExit(1)
 
     # Keep companions.csv in sync with the attended-games set so the user can
     # fill in companion names later. Skipped in quick-stats mode (no I/O).
@@ -2427,6 +2469,7 @@ def main():
         import traceback
         traceback.print_exc()
         error(f"❌ Error during processing: {str(e)}", exc_info=True)
+        raise SystemExit(1) from e
 
 
 

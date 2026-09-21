@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer components {
+  .passport-panel {
+    @apply bg-white border border-slate-200 rounded-xl p-4 sm:p-6;
+  }
+  .passport-button {
+    @apply min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600;
+  }
+  .passport-input {
+    @apply min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white text-slate-900;
+  }
+}
+.text-\[10px\],
+.text-\[11px\] {
+  font-size: 12px;
+}
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+summary {
+  cursor: pointer;
+  min-height: 36px;
+}
+.dark .passport-panel {
+  background: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+.dark .passport-input,
+.dark .passport-button {
+  background: #0f172a;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+.dark .text-slate-400 {
+  color: #a8b7cc;
+}
+@media print {
+  header,
+  nav,
+  footer,
+  button,
+  input,
+  select,
+  .no-print {
+    display: none !important;
+  }
+  .passport-panel {
+    break-inside: avoid;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* Shared visual language: calm surfaces, clear selection, and one primary action. */
+.passport-scope {
+  padding: 10px 16px;
+}
+.passport-scope summary {
+  display: list-item;
+  min-height: 24px;
+  line-height: 24px;
+}
+.passport-scope[open] {
+  padding-bottom: 16px;
+}
+.passport-button[aria-current="page"],
+.passport-button[aria-pressed="true"] {
+  background: #dbeafe;
+  border-color: #2563eb;
+  color: #1e40af;
+}
+.dark .passport-button[aria-current="page"],
+.dark .passport-button[aria-pressed="true"] {
+  background: #1e3a5f;
+  border-color: #60a5fa;
+  color: #dbeafe;
+}
+.passport-hero {
+  background: linear-gradient(115deg, #14283f, #244e6b);
+  color: #f8fafc;
+  border: 1px solid #385a74;
+  border-radius: 16px;
+  padding: 28px;
+}
+.passport-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #c4d8e8;
+}
+.passport-hero-muted {
+  color: #c4d8e8;
+}
+.passport-scoreboard {
+  padding: 14px 20px;
+  background: #0d2036;
+  border: 1px solid #44617c;
+  border-radius: 12px;
+}
+.passport-primary {
+  background: #f8fafc;
+  color: #16324b;
+  border: 1px solid #f8fafc;
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.passport-primary:hover {
+  background: #dbeafe;
+}
+.passport-hero-link {
+  color: #e0edfa;
+  min-height: 44px;
+  padding: 8px 4px;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.passport-progress {
+  display: block;
+  height: 4px;
+  margin-top: 8px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  overflow: hidden;
+  max-width: 260px;
+}
+.passport-progress > span {
+  display: block;
+  height: 100%;
+  background: #3b82f6;
+}
+.dark .passport-progress {
+  background: #475569;
+}
+.passport-panel h1,
+.passport-panel h2 {
+  letter-spacing: -0.02em;
+}
+.passport-panel p {
+  line-height: 1.55;
+}
+.passport-panel button:disabled,
+.passport-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+input::placeholder {
+  color: #64748b;
+}
+.dark input::placeholder {
+  color: #b0bfd0;
+}
+@media (max-width: 639px) {
+  .passport-hero {
+    padding: 20px;
+  }
+  .passport-scoreboard {
+    align-self: flex-start;
+    padding: 10px 16px;
+  }
+  .passport-input,
+  input[type="text"],
+  input[type="date"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+  #global-search-results {
+    right: auto;
+    left: 0;
+    max-width: calc(100vw - 32px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+.passport-stats-table {
+  min-width: 1280px;
+}
+.passport-stats-table th,
+.passport-stats-table td {
+  white-space: nowrap;
+}
+.passport-stats-table th:first-child,
+.passport-stats-table td:first-child {
+  min-width: 220px;
+}
+html:not(.dark) .text-slate-400 {
+  color: #64748b;
+}
+progress {
+  accent-color: #2563eb;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+html:not(.dark) .text-green-600 {
+  color: #15803d;
+}
+html:not(.dark) .text-orange-500,
+html:not(.dark) .text-orange-600 {
+  color: #c2410c;
+}

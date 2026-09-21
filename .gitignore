@@ -13,7 +13,6 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
 build/
 dist/
 
@@ -63,3 +62,14 @@ al-nl/
 
 # Data files
 companions.csv
+
+# Compiled frontend and test artifacts
+node_modules/
+.frontend-build/
+assets/
+release.json
+/sw.js
+playwright-report/
+test-results/
+
+.browser-fixture/
