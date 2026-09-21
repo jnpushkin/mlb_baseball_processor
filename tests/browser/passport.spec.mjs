@@ -735,3 +735,85 @@ test("companion editor keeps draft choices when another edit conflicts", async (
     page.getByRole("button", { name: "Save and publish", exact: true }),
   ).toBeEnabled();
 });
+
+test("companion editor reuses a connected browser session in a fresh tab", async ({
+  page,
+  context,
+}) => {
+  const { readFile } = await import("node:fs/promises");
+  const html = await readFile(
+    new URL("../../baseball_processor/companion_manager.html", import.meta.url),
+    "utf8",
+  );
+  await context.route("**/companions", (r) =>
+    r.fulfill({ contentType: "text/html", body: html }),
+  );
+  await context.route("**/api/companions", async (r) => {
+    const headers = await r.request().allHeaders();
+    const authorized =
+      headers["x-add-game-token"] === "fixture" ||
+      headers.cookie?.includes("passport_manager=fixture");
+    await r.fulfill(
+      authorized
+        ? {
+            headers: {
+              "Set-Cookie":
+                "passport_manager=fixture; HttpOnly; Path=/; SameSite=Strict",
+            },
+            json: {
+              revision: "first",
+              names: ["Dad"],
+              games: [
+                {
+                  gameId: "NYN202609140",
+                  date: "09/14/2026",
+                  homeTeam: "NYM",
+                  awayTeam: "BAL",
+                  venue: "Citi Field",
+                  companions: ["Dad"],
+                },
+              ],
+            },
+          }
+        : { status: 403, json: { error: "Connect to the manager." } },
+    );
+  });
+  await page.goto("/companions");
+  await page.getByLabel("Manager token", { exact: true }).fill("fixture");
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await expect(
+    page.getByRole("checkbox", { name: "Dad", exact: true }),
+  ).toBeChecked();
+  const fresh = await context.newPage();
+  await fresh.goto("/companions");
+  await expect(
+    fresh.getByRole("checkbox", { name: "Dad", exact: true }),
+  ).toBeChecked();
+  await expect(
+    fresh.getByRole("heading", { name: "Connect to your local manager" }),
+  ).toBeHidden();
+  await fresh.close();
+});
+
+test("companion editor opened as a file shows the manager link without API requests", async ({
+  page,
+}) => {
+  const requests = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/")) requests.push(request.url());
+  });
+  await page.goto(
+    new URL("../../baseball_processor/companion_manager.html", import.meta.url)
+      .href,
+  );
+  await expect(
+    page.getByRole("heading", { name: "Open the running companion editor" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Open companion editor", exact: true }),
+  ).toHaveAttribute("href", "http://localhost:5555/companions");
+  await expect(
+    page.getByRole("heading", { name: "Connect to your local manager" }),
+  ).toBeHidden();
+  expect(requests).toEqual([]);
+});

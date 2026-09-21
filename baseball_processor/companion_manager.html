@@ -171,11 +171,29 @@
         Choose an attended game and who was there. Save and publish to update
         your website and ballpark goals.
       </p>
+      <section id="localFile" class="panel" hidden>
+        <h2>Open the running companion editor</h2>
+        <p>
+          This is the editor's HTML file. Open it through the local manager to
+          load games and save changes.
+        </p>
+        <p>
+          <a class="link-button" href="http://localhost:5555/companions"
+            >Open companion editor</a
+          >
+        </p>
+        <p class="muted">
+          If the manager is stopped, run
+          <code>python3 -m baseball_processor.server</code> and open its printed
+          Edit companions link.
+        </p>
+      </section>
       <section id="auth" class="panel" hidden>
         <h2>Connect to your local manager</h2>
         <p>
-          Use the manager link printed when you start the server, or enter its
-          token below.
+          Open the Edit companions link printed when you start the manager, or
+          enter its token below. You only need to connect once per browser while
+          this manager is running.
         </p>
         <form id="authForm">
           <label
@@ -242,236 +260,246 @@
       </div>
     </main>
     <script>
-      const $ = (id) => document.getElementById(id),
-        params = new URLSearchParams(location.search);
-      let token =
-          params.get("token") ||
-          sessionStorage.getItem("passport-manager-token") ||
-          "",
-        records = null,
-        selected = new Set(),
-        extraNames = [],
-        currentId = "",
-        dirty = false,
-        busy = false;
-      const say = (message) => {
-        $("status").textContent = message;
-      };
-      function rememberToken() {
-        sessionStorage.setItem("passport-manager-token", token);
-        $("addGames").href = "/?token=" + encodeURIComponent(token);
-      }
-      async function api(path, options = {}) {
-        const response = await fetch(path, {
-          ...options,
-          headers: {
-            "Content-Type": "application/json",
-            "X-Add-Game-Token": token,
-            ...options.headers,
-          },
-        });
-        const body = await response.json();
-        if (!response.ok) {
-          if (response.status === 403) $("auth").hidden = false;
-          throw Error(body.error || "Request failed");
+      (() => {
+        const $ = (id) => document.getElementById(id),
+          params = new URLSearchParams(location.search);
+        if (location.protocol === "file:") {
+          $("localFile").hidden = false;
+          $("addGames").href = "http://localhost:5555/";
+          $("reload").hidden = true;
+          return;
         }
-        return body;
-      }
-      function renderNames() {
-        const names = [
-          ...new Set([...records.names, ...extraNames, ...selected]),
-        ].sort((a, b) => a.localeCompare(b));
-        $("names").replaceChildren();
-        for (const name of names) {
-          const label = document.createElement("label");
-          label.className = "person";
-          const input = document.createElement("input");
-          input.type = "checkbox";
-          input.checked = selected.has(name);
-          input.addEventListener("change", () => {
-            if (input.checked) selected.add(name);
-            else selected.delete(name);
-            dirty = true;
+        let token =
+            params.get("token") ||
+            sessionStorage.getItem("passport-manager-token") ||
+            "",
+          records = null,
+          selected = new Set(),
+          extraNames = [],
+          currentId = "",
+          dirty = false,
+          busy = false;
+        const say = (message) => {
+          $("status").textContent = message;
+        };
+        function rememberToken() {
+          sessionStorage.setItem("passport-manager-token", token);
+          $("addGames").href = "/?token=" + encodeURIComponent(token);
+        }
+        async function api(path, options = {}) {
+          const response = await fetch(path, {
+            ...options,
+            headers: {
+              "Content-Type": "application/json",
+              "X-Add-Game-Token": token,
+              ...options.headers,
+            },
           });
-          label.append(input, document.createTextNode(name));
-          $("names").append(label);
+          const body = await response.json();
+          if (!response.ok) {
+            if (response.status === 403) $("auth").hidden = false;
+            throw Error(body.error || "Request failed");
+          }
+          return body;
         }
-      }
-      function choose() {
-        const game = records.games.find((g) => g.gameId === $("game").value);
-        currentId = game?.gameId || "";
-        selected = new Set(game?.companions || []);
-        extraNames = [];
-        dirty = false;
-        $("people").disabled = !game;
-        $("selection").textContent = game
-          ? `${game.date} · ${game.awayTeam} @ ${game.homeTeam}${game.gameNumber ? ` · Game ${game.gameNumber}` : ""} · ${game.venue}`
-          : "No matching games. Try another search.";
-        renderNames();
-      }
-      function renderGames() {
-        const query = $("search").value.toLowerCase().trim();
-        const games = records.games.filter(
-          (g) =>
-            (!$("missing").checked || !g.companions.length) &&
-            `${g.date} ${g.awayTeam} ${g.homeTeam} ${g.venue} ${g.companions.join(" ")} ${[g.awayTeam, g.homeTeam].includes("BAL") ? "Orioles Baltimore" : ""}`
-              .toLowerCase()
-              .includes(query),
-        );
-        $("game").replaceChildren();
-        for (const g of games) {
-          const option = document.createElement("option");
-          option.value = g.gameId;
-          option.textContent = `${g.date} · ${g.awayTeam} @ ${g.homeTeam}${g.gameNumber ? ` · Game ${g.gameNumber}` : ""} · ${g.venue}`;
-          $("game").append(option);
+        function renderNames() {
+          const names = [
+            ...new Set([...records.names, ...extraNames, ...selected]),
+          ].sort((a, b) => a.localeCompare(b));
+          $("names").replaceChildren();
+          for (const name of names) {
+            const label = document.createElement("label");
+            label.className = "person";
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.checked = selected.has(name);
+            input.addEventListener("change", () => {
+              if (input.checked) selected.add(name);
+              else selected.delete(name);
+              dirty = true;
+            });
+            label.append(input, document.createTextNode(name));
+            $("names").append(label);
+          }
         }
-        if (games.some((g) => g.gameId === currentId))
-          $("game").value = currentId;
-        $("count").textContent = `${games.length} matching games`;
-        choose();
-      }
-      async function load() {
-        records = await api("/api/companions");
-        records.games.sort((a, b) => {
-          const day = (v) => {
-            const [m, d, y] = v.split("/");
-            return `${y}${m}${d}`;
-          };
-          return (
-            day(b.date).localeCompare(day(a.date)) ||
-            b.gameId.localeCompare(a.gameId)
+        function choose() {
+          const game = records.games.find((g) => g.gameId === $("game").value);
+          currentId = game?.gameId || "";
+          selected = new Set(game?.companions || []);
+          extraNames = [];
+          dirty = false;
+          $("people").disabled = !game;
+          $("selection").textContent = game
+            ? `${game.date} · ${game.awayTeam} @ ${game.homeTeam}${game.gameNumber ? ` · Game ${game.gameNumber}` : ""} · ${game.venue}`
+            : "No matching games. Try another search.";
+          renderNames();
+        }
+        function renderGames() {
+          const query = $("search").value.toLowerCase().trim();
+          const games = records.games.filter(
+            (g) =>
+              (!$("missing").checked || !g.companions.length) &&
+              `${g.date} ${g.awayTeam} ${g.homeTeam} ${g.venue} ${g.companions.join(" ")} ${[g.awayTeam, g.homeTeam].includes("BAL") ? "Orioles Baltimore" : ""}`
+                .toLowerCase()
+                .includes(query),
           );
+          $("game").replaceChildren();
+          for (const g of games) {
+            const option = document.createElement("option");
+            option.value = g.gameId;
+            option.textContent = `${g.date} · ${g.awayTeam} @ ${g.homeTeam}${g.gameNumber ? ` · Game ${g.gameNumber}` : ""} · ${g.venue}`;
+            $("game").append(option);
+          }
+          if (games.some((g) => g.gameId === currentId))
+            $("game").value = currentId;
+          $("count").textContent = `${games.length} matching games`;
+          choose();
+        }
+        async function load() {
+          records = await api("/api/companions");
+          records.games.sort((a, b) => {
+            const day = (v) => {
+              const [m, d, y] = v.split("/");
+              return `${y}${m}${d}`;
+            };
+            return (
+              day(b.date).localeCompare(day(a.date)) ||
+              b.gameId.localeCompare(a.gameId)
+            );
+          });
+          currentId = currentId || params.get("game") || "";
+          rememberToken();
+          $("auth").hidden = true;
+          $("editor").hidden = false;
+          renderGames();
+        }
+        function discardDraft() {
+          return (
+            !dirty ||
+            confirm("Discard the unsaved companion changes for this game?")
+          );
+        }
+        $("game").addEventListener("change", () => {
+          if (discardDraft()) choose();
+          else $("game").value = currentId;
         });
-        currentId = currentId || params.get("game") || "";
-        rememberToken();
-        $("auth").hidden = true;
-        $("editor").hidden = false;
-        renderGames();
-      }
-      function discardDraft() {
-        return (
-          !dirty ||
-          confirm("Discard the unsaved companion changes for this game?")
-        );
-      }
-      $("game").addEventListener("change", () => {
-        if (discardDraft()) choose();
-        else $("game").value = currentId;
-      });
-      $("search").addEventListener("input", () => {
-        if (dirty) {
-          say("Save your companion changes before searching for another game.");
-          return;
-        }
-        renderGames();
-      });
-      $("missing").addEventListener("change", () => {
-        if (discardDraft()) renderGames();
-        else $("missing").checked = !$("missing").checked;
-      });
-      $("reload").onclick = async () => {
-        if (!discardDraft()) return;
-        try {
-          await load();
-          say("Game list updated.");
-        } catch (error) {
-          say(error.message);
-        }
-      };
-      $("authForm").onsubmit = async (event) => {
-        event.preventDefault();
-        token = $("token").value.trim();
-        try {
-          await load();
-          say("Connected.");
-        } catch (error) {
-          say(error.message);
-        }
-      };
-      $("addName").onsubmit = (event) => {
-        event.preventDefault();
-        const value = $("newName").value.trim();
-        if (!value || value.includes("|")) {
-          say("Enter a name without the | separator.");
-          return;
-        }
-        const name =
-          [...records.names, ...extraNames].find(
-            (n) => n.toLowerCase() === value.toLowerCase(),
-          ) || value;
-        extraNames.push(name);
-        selected.add(name);
-        dirty = true;
-        $("newName").value = "";
-        renderNames();
-      };
-      function setBusy(value) {
-        busy = value;
-        $("fields").disabled = value;
-        $("reload").disabled = value;
-        $("resume").hidden =
-          value || !sessionStorage.getItem("passport-companion-job");
-      }
-      async function follow(id) {
-        setBusy(true);
-        sessionStorage.setItem("passport-companion-job", id);
-        try {
-          const job = await api("/api/jobs/" + encodeURIComponent(id));
-          say(job.message || job.stage);
-          if (["queued", "running"].includes(job.state)) {
-            setTimeout(() => follow(id), 1000);
+        $("search").addEventListener("input", () => {
+          if (dirty) {
+            say(
+              "Save your companion changes before searching for another game.",
+            );
             return;
           }
-          sessionStorage.removeItem("passport-companion-job");
-          setBusy(false);
-          if (job.saved) {
-            dirty = false;
+          renderGames();
+        });
+        $("missing").addEventListener("change", () => {
+          if (discardDraft()) renderGames();
+          else $("missing").checked = !$("missing").checked;
+        });
+        $("reload").onclick = async () => {
+          if (!discardDraft()) return;
+          try {
             await load();
+            say("Game list updated.");
+          } catch (error) {
+            say(error.message);
           }
-          say(job.message);
-        } catch (error) {
-          setBusy(false);
-          say(
-            "Connection interrupted. Your submitted job is saved. Use Check saved job to reconnect. " +
-              error.message,
-          );
-        }
-      }
-      $("save").onclick = async () => {
-        if (!currentId || busy) return;
-        setBusy(true);
-        try {
-          const job = await api("/api/companions", {
-            method: "POST",
-            body: JSON.stringify({
-              gameId: currentId,
-              companions: [...selected],
-              revision: records.revision,
-            }),
-          });
-          dirty = false;
-          follow(job.id);
-        } catch (error) {
-          setBusy(false);
-          say(error.message);
-        }
-      };
-      $("resume").onclick = () => {
-        const id = sessionStorage.getItem("passport-companion-job");
-        if (id) follow(id);
-      };
-      window.addEventListener("beforeunload", (event) => {
-        if (dirty) {
+        };
+        $("authForm").onsubmit = async (event) => {
           event.preventDefault();
-          event.returnValue = "";
+          token = $("token").value.trim();
+          try {
+            await load();
+            say("Connected.");
+          } catch (error) {
+            say(error.message);
+          }
+        };
+        $("addName").onsubmit = (event) => {
+          event.preventDefault();
+          const value = $("newName").value.trim();
+          if (!value || value.includes("|")) {
+            say("Enter a name without the | separator.");
+            return;
+          }
+          const name =
+            [...records.names, ...extraNames].find(
+              (n) => n.toLowerCase() === value.toLowerCase(),
+            ) || value;
+          extraNames.push(name);
+          selected.add(name);
+          dirty = true;
+          $("newName").value = "";
+          renderNames();
+        };
+        function setBusy(value) {
+          busy = value;
+          $("fields").disabled = value;
+          $("reload").disabled = value;
+          $("resume").hidden =
+            value || !sessionStorage.getItem("passport-companion-job");
         }
-      });
-      load()
-        .then(() => {
+        async function follow(id) {
+          setBusy(true);
+          sessionStorage.setItem("passport-companion-job", id);
+          try {
+            const job = await api("/api/jobs/" + encodeURIComponent(id));
+            say(job.message || job.stage);
+            if (["queued", "running"].includes(job.state)) {
+              setTimeout(() => follow(id), 1000);
+              return;
+            }
+            sessionStorage.removeItem("passport-companion-job");
+            setBusy(false);
+            if (job.saved) {
+              dirty = false;
+              await load();
+            }
+            say(job.message);
+          } catch (error) {
+            setBusy(false);
+            say(
+              "Connection interrupted. Your submitted job is saved. Use Check saved job to reconnect. " +
+                error.message,
+            );
+          }
+        }
+        $("save").onclick = async () => {
+          if (!currentId || busy) return;
+          setBusy(true);
+          try {
+            const job = await api("/api/companions", {
+              method: "POST",
+              body: JSON.stringify({
+                gameId: currentId,
+                companions: [...selected],
+                revision: records.revision,
+              }),
+            });
+            dirty = false;
+            follow(job.id);
+          } catch (error) {
+            setBusy(false);
+            say(error.message);
+          }
+        };
+        $("resume").onclick = () => {
           const id = sessionStorage.getItem("passport-companion-job");
           if (id) follow(id);
-        })
-        .catch((error) => say(error.message));
+        };
+        window.addEventListener("beforeunload", (event) => {
+          if (dirty) {
+            event.preventDefault();
+            event.returnValue = "";
+          }
+        });
+        load()
+          .then(() => {
+            const id = sessionStorage.getItem("passport-companion-job");
+            if (id) follow(id);
+          })
+          .catch((error) => say(error.message));
+      })();
     </script>
   </body>
 </html>

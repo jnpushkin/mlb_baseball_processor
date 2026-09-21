@@ -33,6 +33,17 @@ class ServerSafetyTests(unittest.TestCase):
         self.assertTrue(is_authorized(parsed, {}, "good"))
         self.assertFalse(is_authorized(parsed, {}, "bad"))
 
+    def test_browser_session_requires_current_token_and_same_origin(self):
+        parsed = urlparse("/api/companions")
+        headers = {"Host": "localhost:5555", "Cookie": "passport_manager=good"}
+        self.assertTrue(is_authorized(parsed, headers, "good"))
+        self.assertFalse(is_authorized(parsed, headers, "restarted-manager"))
+        self.assertTrue(is_authorized(parsed, {**headers, "Origin": "http://localhost:5555"}, "good"))
+        for origin in ["https://example.com", "http://localhost:8080", "null"]:
+            self.assertFalse(is_authorized(parsed, {**headers, "Origin": origin}, "good"))
+        self.assertFalse(is_authorized(parsed, {**headers, "Sec-Fetch-Site": "cross-site"}, "good"))
+        self.assertFalse(is_authorized(parsed, {"Cookie": "invalid cookie"}, "good"))
+
 
 class CompanionEditorTests(unittest.TestCase):
     def setUp(self):
@@ -184,11 +195,29 @@ class CompanionEditorTests(unittest.TestCase):
                     self.assertEqual(403, denied.exception.code)
                 with urlopen(Request(url, headers={"X-Add-Game-Token": "test-token"}), timeout=2) as response:
                     self.assertEqual(["Dad"], json.load(response)["games"][0]["companions"])
+                    cookie = response.headers["Set-Cookie"]
+                    self.assertIn("HttpOnly", cookie)
+                    self.assertIn("SameSite=Strict", cookie)
+                    self.assertNotIn("Expires=", cookie)
+                    cookie = cookie.split(";", 1)[0]
+                with urlopen(Request(url, headers={"Cookie": cookie}), timeout=2) as response:
+                    self.assertEqual(["Dad"], json.load(response)["games"][0]["companions"])
+                with self.assertRaises(HTTPError) as foreign:
+                    urlopen(
+                        Request(
+                            url,
+                            method="POST",
+                            headers={"Cookie": cookie, "Origin": "https://example.com"},
+                            data=json.dumps(payload).encode(),
+                        ),
+                        timeout=2,
+                    )
+                self.assertEqual(403, foreign.exception.code)
                 with urlopen(
                     Request(
                         url,
                         method="POST",
-                        headers={"X-Add-Game-Token": "test-token"},
+                        headers={"Cookie": cookie},
                         data=json.dumps(payload).encode(),
                     ),
                     timeout=2,

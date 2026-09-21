@@ -122,6 +122,8 @@ The same manager has an **Edit companions** page at `/companions` (linked from A
 
 For a local companion-only rebuild without publishing: `npm run build:website -- --refresh-companions`.
 
+After connecting once, the manager sets a browser-session HttpOnly/SameSite=Strict cookie so fresh editor tabs can reuse the connection. Cookie authentication must reject foreign Origin/Sec-Fetch-Site requests; do not remove the token requirement or embed a token in the public website. Opening `companion_manager.html` as a file shows a link to the running manager rather than attempting file-based API requests.
+
 ### Add Game via MLB API
 ```bash
 python3 -m baseball_processor.scrapers.add_game --date 2026-04-07 --teams PHI SF  # By date + teams

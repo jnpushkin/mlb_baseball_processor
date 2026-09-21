@@ -15,6 +15,7 @@ import json
 import secrets
 import subprocess
 from datetime import datetime, timedelta
+from http.cookies import SimpleCookie, CookieError
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, quote
@@ -55,11 +56,25 @@ def bind_host_for_mode(lan_enabled):
 
 def get_request_token(parsed, headers):
     params = parse_qs(parsed.query)
-    return (
+    explicit = (
         params.get('token', [''])[0]
         or headers.get('X-Add-Game-Token', '')
         or headers.get('Authorization', '').removeprefix('Bearer ').strip()
     )
+    if explicit:
+        return explicit
+    # Cookies let a connected browser open another manager tab. Never use them
+    # to authorize requests originating from another site or localhost port.
+    origin = headers.get('Origin', '')
+    if ((origin and origin != f"http://{headers.get('Host', '')}")
+            or headers.get('Sec-Fetch-Site') == 'cross-site'):
+        return ''
+    try:
+        cookies = SimpleCookie(headers.get('Cookie', ''))
+        session = cookies.get('passport_manager')
+        return session.value if session else ''
+    except CookieError:
+        return ''
 
 
 def is_authorized(parsed, headers, expected_token):
@@ -429,6 +444,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Cache-Control', 'no-store')
+        if status < 400:
+            self._manager_session()
         self.send_header('Content-Length', len(body))
         self.end_headers()
         self.wfile.write(body)
@@ -437,9 +454,22 @@ class Handler(BaseHTTPRequestHandler):
         body = content.encode()
         self.send_response(200)
         self.send_header('Content-Type', 'text/html')
+        self.send_header('Cache-Control', 'no-store')
+        self.send_header('Referrer-Policy', 'no-referrer')
+        self._manager_session()
         self.send_header('Content-Length', len(body))
         self.end_headers()
         self.wfile.write(body)
+
+    def _manager_session(self):
+        if _server_token and is_authorized(urlparse(self.path), self.headers, _server_token):
+            cookie = SimpleCookie()
+            cookie['passport_manager'] = _server_token
+            cookie['passport_manager']['httponly'] = True
+            cookie['passport_manager']['samesite'] = 'Strict'
+            cookie['passport_manager']['path'] = '/'
+            # No expiry: the session ends with the browser or manager token.
+            self.send_header('Set-Cookie', cookie.output(header='').strip())
 
     def _respond(self, code, message):
         self.send_response(code)
