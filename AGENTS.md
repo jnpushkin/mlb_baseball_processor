@@ -240,6 +240,18 @@ When encountering repeated errors or discovering project-specific quirks:
 - Add to "Do NOT" section if it's a common mistake
 - Add to "Architecture Notes" if it's a structural insight
 
+### Analysis and identity invariants (2026-09-21)
+- Team display abbreviations, franchise grouping, historical team identity, and source game IDs serve different purposes. The checklist `normalizeTeamCode` returns source-style codes such as `NYN`; do not reuse its output directly for modern display labels. Preserve source IDs used by caches and links.
+- Calculate outcomes with `gameScores` and numeric linescores. Parsing display strings can reverse results when labels differ (`WSH` vs `WAS`); `WAS201407070` must remain an Orioles 8–2 win.
+- Use `utils/event_model.py` for PA/AB eligibility and event state. Walks, sacrifices, runner-only events and catcher interference are not AB; a strikeout with a simultaneous steal remains an AB/K. Never infer hits from the word "double" inside "double play".
+- BREF pre-play scores are **batting-team first**, so reverse bottom-half scores into canonical away/home order. Legacy MLB API `outs_before` is actually post-play outs. Old Gameday supplemental plays can be appended out of order; withhold inferred state for that tail instead of inheriting the final score.
+- Resolve play identities against the same game's participants and side, retaining unresolved/ambiguous cases. Head-to-head rates require actual PA events with both IDs; co-appearances are a separate feature.
+- OBP uses `(H + BB + HBP) / (AB + BB + HBP + SF)`; SH is excluded. Carry SF/SH through both aggregated and per-game rows.
+- New analysis libraries must be declared in `passportKeysForRoute`. Career-share numerators are regular-season only; withhold stale/undersized denominators and recalculate verified percentages when Browse scope changes. Sibling appearance journeys use stable cross-project IDs, never names alone.
+- Physical-park filtering uses `_venueKey`; era filtering deliberately uses the original venue name. Modern display aliases do not imply merging historical franchises such as OAK/ATH or MON/WSH.
+- The planner must use `venueIdentity` for visited parks, pinned park goals, and schedule recommendations. Exact display-name comparison mislabels Alfredo Harp Helú Stadium / Estadio Alfredo Harp Helu as unvisited. Fold accents and explicit aliases, preserving separate physical parks (e.g. the old and new Yankee Stadium).
+- Trip costs, ratings and itinerary entries remain private browser data and private backups. Validate imports before writing; never serialize them into the public archive.
+
 ## Do NOT
 - Create duplicate nested directories like `baseball_processor/baseball_processor/`
 - Use `python` command (always `python3`)

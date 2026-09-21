@@ -1,0 +1,59 @@
+# Functionality release — September 21, 2026
+
+This release follows the functionality audit in `functionality_audit_20260921.md`. It adds a shared event model, corrects the confirmed statistical/filtering issues, and delivers the analysis, personal-context, and planning portions of the roadmap. The final section distinguishes the deeper capabilities that still need additional data or server integration.
+
+## Statistical and identity corrections
+
+- Modern team abbreviations are normalized at publication and display boundaries. Source game/player IDs remain unchanged. Browse offers explicit team-at-the-time versus franchise grouping.
+- Game outcomes use numeric linescores. The 121-game Orioles archive now reconciles to **66–55, 647 runs scored, 605 allowed**.
+- OBP uses AB + BB + HBP + SF; sacrifice bunts are excluded. SF/SH survive both aggregate and per-game serialization. Luis Arraez's June 26, 2026 line now yields .500 OBP.
+- The normalized event model distinguishes plate appearances, AB, hits, walks, sacrifices, interference, strikeout/steal combinations, and runner-only events. It resolves player identities within the game's actual rosters and preserves uncertainty.
+- BREF pre-play scores are batting-team first and are converted to away/home order. Legacy API post-play outs are no longer treated as pre-play outs. Out-of-order supplemental plays in two old spring-training feeds do not inherit final scores.
+- Explorer applies its Games opponent filter. Physical park filters include naming eras: Oracle Park includes 108 games across Oracle/AT&T names.
+- Planner venue matching uses explicit park identities, accent folding and aliases. **April 28, 2024, HOU 8–2 COL at Alfredo Harp Helú Stadium** is recognized as a visit to Estadio Alfredo Harp Helu. The real archive's unvisited reference list drops from 20 to 19. Every recorded venue resolves against the park reference, and old/new Yankee Stadium remain distinct.
+- The retained parity normalization fixes were integrated without replacing newer main-branch backup/doubleheader handling.
+
+## New and expanded tools
+
+**Dashboard → Discover** contains:
+
+1. Play explorer: batter, pitcher, event, outs and situation filters; scoring plays, extra-base hits and grand slams; CSV/JSON exports and exact-play links.
+2. Witnessed batter–pitcher matchups: PA, AB, H, HR, BB, K, AVG, games and individual encounters, with identity/state coverage.
+3. Shared games: co-appearances for teammates or opponents, with source games; separate from actual head-to-head encounters.
+4. Game stories: ranked winning comebacks, lead changes, scoreless stretches, margins and run totals, with half-inning timelines.
+5. Career share: regular-season hits, HR, SB, pitching starts and strikeouts; dated cache references, withheld stale percentages, and on-demand MLB career verification.
+6. Pitch arsenals: measured pitch-type counts/shares and appearance-level velocity history.
+7. Personal milestones: chronological games, parks, teams and player appearances; first sightings with a new team; record return gaps and upcoming park milestones.
+8. Then & now: player ages/debut context, retrospective season awards, and on-demand standings through the preceding day.
+9. Trips: private journal grouping, currency-separated ticket totals, ratings, game-date calendars and private exports.
+10. Player journeys: 95 linked players across the available NCAA/MiLB/MLB appearance archives, joined by shared IDs.
+11. Archive trivia with links to answer evidence.
+
+**Players → Explorer** gains compound AND/OR conditions, selected columns, saved/shareable queries, first/return-visit and pitching-role filters, and presets including 8+ K/no-walk starts, 3+ hits/a steal, and one-run games with 4+ HR. Added rates include ISO, BABIP, K%, BB%, SB%, K/9 and BB/9.
+
+**Dashboard → Next visit** supports a date range, ranked and explained goal/park/franchise matches, probable pitchers, a private itinerary and calendar export. Roster membership is explicitly a possibility, not confirmation of an appearance.
+
+**Dashboard → Journal** gains trip name, rating, ticket cost and currency. Existing backups remain compatible; itinerary data is included. Validation precedes imports, and private data stays out of the public build.
+
+**Dashboard → Data health** gains affected-game lists, normalized-event coverage, provenance and changed-field details, with exports for targeted local review.
+
+## Verification
+
+- Full Python suite: **245 passed, 2 skipped, 17 subtests passed**.
+- Browser suite: **16 passed**, covering lazy loading, routes/Back, offline recaps, phone layouts, compound-query reloads, exact-play links, career-share rescoping, co-appearances, private backup imports, itineraries, and Mexico City venue aliases.
+- Release manifest: **362 files**, checked for existence, SHA-256 integrity, and declared data dependencies.
+- Current archive: **296 games, 22,984 events, 22,363 classified PA**. Both player identities resolve for **22,358 PA**. Five PA have unresolved identities; 3,834 lack reliable pre-play bases; five lack reliable pre-play scores. Missing state stays unknown.
+- All 296 story timelines reconcile with final linescores. No normalized play reports negative runs scored.
+- Whole-archive batting AB/H/BB/K reconciliation found only one duplicate zero-stat Shohei Ohtani two-way box-score row; actual batting totals reconcile.
+- Real-browser review verified historical standings, an MLB career-total refresh, desktop/dark and phone layouts, and the corrected 19-park unvisited list.
+- Cache-only regeneration used no BREF scraping. The normal shared-player export refresh ran; private browser journals were not read into the public bundle.
+
+## Remaining deeper work
+
+These are not presented as finished capabilities:
+
+- Full pitch-location, swing-result, spray and contact-quality distributions require additional event-level enrichment. The new arsenal tool uses existing measured summaries.
+- Data Health exports a repair list; it does not yet enqueue authenticated repair jobs on the local add-game server.
+- Planner rankings use checked current rosters, probable pitchers, pinned goals and park/franchise gaps. They do not guarantee future participation or batch-refresh every historical collection entry.
+- Career references and sibling appearance histories have their own refresh schedules. Live verification is available per player; the archive does not pretend all references are current.
+- Stories use half-inning linescores. They are not pitch-level win-probability or leverage reconstructions. Existing specialty milestone/record views remain the source for those named events.
