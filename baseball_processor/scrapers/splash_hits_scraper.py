@@ -180,7 +180,11 @@ def _repair_known_page_typos(row_text: str) -> str:
     # The MLB.com visitor list currently renders this row as "7/820/18".
     repaired = row_text.replace("7/820/18", "7/8/2018")
     # Same visitor list has Carlos Gonzalez as "Carlos, Gonzales".
-    return repaired.replace("Carlos, Gonzales", "Carlos Gonzalez")
+    repaired = repaired.replace("Carlos, Gonzales", "Carlos Gonzalez")
+    # MLB.com dropped the second "a" from Lars Nootbaar's surname.
+    repaired = repaired.replace("Lars Nootbar", "Lars Nootbaar")
+    # MLB.com renders Landen Roupp's first name as "Landon" on Zac Veen's row.
+    return repaired.replace("Landon Roupp", "Landen Roupp")
 
 
 def _extract_next_data(html: str) -> dict[str, Any]:
@@ -392,6 +396,19 @@ class PlayerIdResolver:
                 ]
                 if active:
                     candidates = active
+
+        # Prefer regular MLB BREF IDs over register/provisional placeholders
+        # when both have accumulated for the same name in old and new caches.
+        canonical_candidates = [
+            candidate for candidate in candidates
+            if (
+                candidate.get("player_id")
+                and not str(candidate["player_id"]).startswith("mlb_")
+                and "000" not in str(candidate["player_id"])
+            )
+        ]
+        if canonical_candidates:
+            candidates = canonical_candidates
 
         csv_candidates = [
             candidate for candidate in candidates

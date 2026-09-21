@@ -25,15 +25,15 @@ Splash Hit Number,Player,Team,Date,Pitcher,PlayerID,Date_yyyymmdd
 24,Dioner Navarro,Los Angeles Dodgers,2011-07-20,Tim Lincecum,navardi01,20110720
 25,Mitch Moreland,Texas Rangers,2012-06-09,Ryan Vogelsong,morelmi01,20120609
 26,Brian McCann,Atlanta Braves,2013-05-10,Matt Cain,mccanbr01,20130510
-27,Carlos Gonzalez,Colorado Rockies,2013-05-25,Barry Zito,gonzaca01,20130525
+27,Carlos González,Colorado Rockies,2013-05-25,Barry Zito,gonzaca01,20130525
 28,Garrett Jones,Pittsburgh Pirates,2013-08-22,Matt Cain,jonesga02,20130822
-29,Carlos Gonzalez,Colorado Rockies,2014-04-11,Madison Bumgarner,gonzaca01,20140411
+29,Carlos González,Colorado Rockies,2014-04-11,Madison Bumgarner,gonzaca01,20140411
 30,Yasmani Grandal,San Diego Padres,2014-04-30,Tim Hudson,grandya01,20140430
 31,Freddie Freeman,Atlanta Braves,2014-05-12,Javier Lopez,freemfr01,20140512
 32,Curtis Granderson,New York Mets,2014-06-08,Tim Lincecum,grandcu01,20140608
 33,Adam Dunn,Chicago White Sox,2014-08-13,Jake Peavy,dunnad01,20140813
 34,Corey Dickerson,Colorado Rockies,2014-08-27,Tim Hudson,dickeco01,20140827
-35,Ender Inciarte,Arizona Diamondbacks,2014-09-09,Yusmiero Petit,inciaen01,20140909
+35,Ender Inciarte,Arizona Diamondbacks,2014-09-09,Yusmeiro Petit,inciaen01,20140909
 36,Bryce Harper,Washington Nationals,2014-10-07,Hunter Strickland,harpebr03,20141007
 37,Cody Asche,Philadelphia Phillies,2015-07-11,Ryan Vogelsong,ascheco01,20150711
 38,Ben Zobrist,Chicago Cubs,2016-05-20,George Kontos,zobribe01,20160520
@@ -45,7 +45,7 @@ Splash Hit Number,Player,Team,Date,Pitcher,PlayerID,Date_yyyymmdd
 44,Rougned Odor,Texas Rangers,2018-08-24,Will Smith,odorro01,20180824
 45,Max Muncy,Los Angeles Dodgers,2018-09-30,Chris Stratton,muncyma01,20180930
 46,Max Muncy,Los Angeles Dodgers,2019-06-09,Madison Bumgarner,muncyma01,20190609
-47,Michael Conforto,New York Mets,2019-07-21,Connor Menez,confomi01,20190721
+47,Michael Conforto,New York Mets,2019-07-21,Conner Menez,confomi01,20190721
 48,Robel Garcia,Chicago Cubs,2019-07-22,Shaun Anderson,garciro02,20190722
 49,Bryce Harper,Philadelphia Phillies,2019-08-09,Tony Watson,harpebr03,20190809
 50,Shin-Soo Choo,Texas Rangers,2020-08-02,Jeff Samardzija,choosh01,20200802
@@ -55,14 +55,17 @@ Splash Hit Number,Player,Team,Date,Pitcher,PlayerID,Date_yyyymmdd
 54,Jake Cronenworth,San Diego Padres,2021-05-09,Johnny Cueto,croneja01,20210509
 55,Max Muncy,Los Angeles Dodgers,2021-05-22,Scott Kazmir,muncyma01,20210522
 56,Joc Pederson,Chicago Cubs,2021-06-03,Anthony DeSclafani,pederjo01,20210603
-57,Bryson Stott,Philadelphia Phillies,2022-09-03,Jacob Junis,stottbr01,20220903
+57,Bryson Stott,Philadelphia Phillies,2022-09-03,Jakob Junis,stottbr01,20220903
 58,Charlie Blackmon,Colorado Rockies,2022-06-07,Jose Alvarez,blackch02,20220607
 59,Jack Suwinski,Pittsburgh Pirates,2023-05-29,Anthony DeSclafani,suwinja01,20230529
 60,Jack Suwinski,Pittsburgh Pirates,2023-05-29,Brett Wisely,suwinja01,20230529
 61,Nathaniel Lowe,Texas Rangers,2023-08-11,Ross Stripling,lowena01,20230811
 62,Josh Naylor,Cleveland Guardians,2023-09-11,Alex Cobb,naylojo01,20230911
-63,Michael Harris II,Atlanta Braves,2024-08-14,Robby Ray,harrimi04,20240814
+63,Michael Harris II,Atlanta Braves,2024-08-14,Robbie Ray,harrimi04,20240814
 64,Kyle Schwarber,Philadelphia Phillies,2025-07-08,Spencer Bivens,schwaky01,20250708
 65,Shohei Ohtani,Los Angeles Dodgers,2025-07-11,Logan Webb,ohtansh01,20250711
 66,Ronny Mauricio,New York Mets,2025-07-27,Randy Rodríguez,mauriro01,20250727
 67,Michael Busch,Chicago Cubs,2026-06-12,Erik Miller,buschmi02,20260612
+68,Zac Veen,Colorado Rockies,2026-08-14,Landen Roupp,veenza01,20260814
+69,Lars Nootbaar,Arizona Diamondbacks,2026-08-29,Ryan Walker,nootbla01,20260829
+70,Alec Burleson,St. Louis Cardinals,2026-09-07,Logan Webb,burleal01,20260907

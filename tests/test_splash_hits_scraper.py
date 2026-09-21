@@ -50,6 +50,8 @@ class SplashHitsScraperTests(unittest.TestCase):
                 "<em>*First right-handed batter with a Splash Hit</em></p>"
             ),
             (
+                "<p>69 Lars Nootbar, ARI 8/29/26 Ryan Walker</p>"
+                "<p>68 Zac Veen, COL 8/14/26 Landon Roupp</p>"
                 "<p>67 Michael Busch, CHC 6/12/26 Erik Miller</p>"
                 "<p>44 Rougned Odor,TEX 8/24/2018 Will Smith</p>"
                 "<p>43 Matt Carpenter, STL 7/820/18 SF Ray Black</p>"
@@ -64,10 +66,13 @@ class SplashHitsScraperTests(unittest.TestCase):
         self.assertEqual("Heliot Ramos*", giants[0]["Player"])
         self.assertEqual("*First right-handed batter with a Splash Hit", giants[0]["Notes"])
 
-        self.assertEqual(4, len(visitors))
+        self.assertEqual(6, len(visitors))
         self.assertEqual("Carlos Gonzalez", visitors[0]["Player"])
         self.assertEqual("Chicago Cubs", visitors[3]["Team"])
         self.assertEqual("2026-06-12", visitors[3]["Date"])
+        self.assertEqual("Landen Roupp", visitors[4]["Pitcher"])
+        self.assertEqual("Lars Nootbaar", visitors[5]["Player"])
+        self.assertEqual("2026-08-29", visitors[5]["Date"])
         self.assertEqual("Texas Rangers", visitors[2]["Team"])
         self.assertEqual("2018-07-08", visitors[1]["Date"])
         self.assertEqual("Ray Black", visitors[1]["Pitcher"])
@@ -109,6 +114,36 @@ class SplashHitsScraperTests(unittest.TestCase):
         self.assertEqual("yastrmi01", resolver.resolve("Mike Yastrzemski", "4/9/25"))
         self.assertEqual("eldribr01", resolver.resolve("Bryce Eldridge", "7/9/26"))
         self.assertEqual("ohtansh01", resolver.resolve("Shohei Ohtani", "7/11/25"))
+
+    def test_player_id_resolver_prefers_canonical_id_over_old_placeholder(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            references = root / "refs"
+            cache = root / "cache"
+            register = root / "register"
+            references.mkdir()
+            cache.mkdir()
+            (register / "data").mkdir(parents=True)
+            (references / "splash_hits_all_lines.csv").write_text(
+                "Splash Hit Number,Player,Date,Opponent,Pitcher,Notes,PlayerID\n",
+                encoding="utf-8",
+            )
+            (references / "other_mccovey_cove_hr.csv").write_text(
+                "Splash Hit Number,Player,Team,Date,Pitcher,PlayerID,Date_yyyymmdd\n",
+                encoding="utf-8",
+            )
+            (cache / "old.json").write_text(json.dumps({
+                "batting": {"away": [{"name": "Zac Veen", "player_id": "veen000zac"}], "home": []},
+                "pitching": {"away": [], "home": []},
+            }), encoding="utf-8")
+            (cache / "current.json").write_text(json.dumps({
+                "batting": {"away": [{"name": "Zac Veen", "player_id": "veenza01"}], "home": []},
+                "pitching": {"away": [], "home": []},
+            }), encoding="utf-8")
+
+            resolver = PlayerIdResolver(references, cache, register)
+
+        self.assertEqual("veenza01", resolver.resolve("Zac Veen", "2026-08-14"))
 
     def test_update_writes_official_page_rows_with_resolved_ids(self):
         html = sample_page(
