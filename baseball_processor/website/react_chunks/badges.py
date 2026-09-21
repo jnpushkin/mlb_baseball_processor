@@ -75,8 +75,8 @@ const UmpireTracker = ({ umpireLog, games }) => {
     const totalChallenges = umpireLog.reduce((sum, u) => sum + (u.absChallenges || 0), 0);
     const totalOverturned = umpireLog.reduce((sum, u) => sum + (u.absOverturned || 0), 0);
     const SortHeader = ({ k, label, align }) => (
-        <th className={`px-3 py-2 ${align || 'text-left'} cursor-pointer hover:bg-slate-100`} onClick={() => handleSort(k)}>
-            {label} {sortKey === k && (sortDir === 'asc' ? '↑' : '↓')}
+        <th aria-sort={sortKey===k?(sortDir==='asc'?'ascending':'descending'):'none'} className={`px-3 py-2 ${align || 'text-left'}`}><button onClick={() => handleSort(k)}>
+            {label} {sortKey === k && (sortDir === 'asc' ? '↑' : '↓')}</button>
         </th>
     );
 
@@ -116,7 +116,9 @@ const UmpireTracker = ({ umpireLog, games }) => {
                             className="px-3 py-1.5 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" />
                     </div>
                 </div>
-                <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                <TableSortControls columns={[{key:'name',label:'Umpire'},{key:'games',label:'Games'},{key:'HP',label:'Home plate'},{key:'lastSeen',label:'Last seen'}]} {...{sortKey,sortDir,setSortKey,setSortDir}}/>
+                <div className="sm:hidden divide-y">{filtered.map(u=><article key={u.name} className="p-4"><h3 className="font-bold">{u.name}</h3><p className="text-sm">{u.games} games · Last seen {u.lastSeen}</p><details><summary className="text-sm text-blue-600">Positions and games</summary><p className="text-sm">{Object.entries(u.positions||{}).map(([p,n])=>`${p}: ${n}`).join(' · ')}</p><p className="text-sm">ABS challenges: {u.absChallenges||0}</p>{(u.gameIds||[]).map((entry,i)=>{const id=typeof entry==='string'?entry:entry.gameId;const g=gameMap[id];return g?<button key={i} className="block py-2 text-blue-600 text-sm" onClick={()=>requestGameDetails(id)}>{g.date} · {g.awayTeam} @ {g.homeTeam}</button>:null;})}</details></article>)}</div>
+                <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-slate-50 sticky top-0">
                             <tr>
@@ -201,6 +203,7 @@ const JerseyCollection = ({ jerseyLog }) => {
     const [selectedNumber, setSelectedNumber] = useState(null);
     const [includeSpring, setIncludeSpring] = useState(false);
     const [search, setSearch] = useState('');
+    const [collectionView, setCollectionView] = useState('missing');
 
     // Build grid of numbers 00-99, filtering spring training if needed
     const numbers = useMemo(() => {
@@ -219,6 +222,8 @@ const JerseyCollection = ({ jerseyLog }) => {
 
     const collected = numbers.filter(n => n.players.length > 0).length;
     const total = numbers.length;
+    const missingNumbers = numbers.filter(n => n.players.length === 0);
+    const visibleNumbers = collectionView === 'missing' ? missingNumbers : numbers;
 
     // Search: find jersey numbers that have a matching player
     const matchingNumbers = useMemo(() => {
@@ -234,49 +239,80 @@ const JerseyCollection = ({ jerseyLog }) => {
 
     return (
         <div className="space-y-4">
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-                <div className="mb-4">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50 via-white to-indigo-50 p-5">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div>
-                            <h2 className="section-title font-bold">Jersey Number Collection</h2>
+                            <div className="small-text font-bold uppercase tracking-[0.16em] text-blue-600">Uniform archive</div>
+                            <h2 className="mt-1 text-2xl font-bold text-slate-900">Jersey Number Collection</h2>
                             <p className="body-text text-slate-500 mt-1">
-                                {collected} of {total} numbers collected ({Math.round(collected / total * 100)}%)
+                                Every number from 00–99, organized around what remains to be witnessed.
                             </p>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <input type="text" placeholder="Search players..." value={search} onChange={(e) => setSearch(e.target.value)}
-                                className="px-3 py-1.5 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none w-40" />
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200">
+                                <div className="text-xl font-bold text-blue-700">{collected}</div>
+                                <div className="text-[10px] uppercase text-slate-400">collected</div>
+                            </div>
+                            <div className="rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200">
+                                <div className="text-xl font-bold text-amber-600">{missingNumbers.length}</div>
+                                <div className="text-[10px] uppercase text-slate-400">missing</div>
+                            </div>
+                            <div className="rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200">
+                                <div className="text-xl font-bold text-indigo-700">{Math.round(collected / total * 100)}%</div>
+                                <div className="text-[10px] uppercase text-slate-400">complete</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                        <div className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-500 transition-all" style={{ width: `${(collected / total * 100)}%` }}></div>
+                    </div>
+                </div>
+
+                <div className="p-5">
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                            <button onClick={() => setCollectionView('missing')} className={`min-h-10 rounded-md px-4 py-2 text-sm font-semibold ${collectionView === 'missing' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Missing ({missingNumbers.length})</button>
+                            <button onClick={() => setCollectionView('all')} className={`min-h-10 rounded-md px-4 py-2 text-sm font-semibold ${collectionView === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>All numbers</button>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <input type="text" placeholder="Search players..." value={search} onChange={(e) => { const value = e.target.value; setSearch(value); if (value) setCollectionView('all'); }}
+                                className="min-h-10 flex-1 rounded-lg border border-slate-200 px-3 py-2 body-text focus:border-blue-500 focus:outline-none sm:w-48" />
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input type="checkbox" checked={includeSpring} onChange={(e) => setIncludeSpring(e.target.checked)} className="rounded" />
                                 <span className="body-text text-slate-600">Include ST</span>
                             </label>
                         </div>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-3 mt-2">
-                        <div className="bg-blue-600 h-3 rounded-full transition-all" style={{ width: `${(collected / total * 100)}%` }}></div>
-                    </div>
-                </div>
 
-                <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(10, 1fr)' }}>
-                    {numbers.map(({ num, players }) => {
+                {collectionView === 'missing' && missingNumbers.length === 0 && (
+                    <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center text-emerald-800">
+                        <div className="text-3xl">🏆</div>
+                        <div className="mt-1 font-bold">Every jersey number collected</div>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-5 gap-2 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-16 xl:grid-cols-20">
+                    {visibleNumbers.map(({ num, players }) => {
                         const hasPlayers = players.length > 0;
                         const isSearchMatch = search && matchingNumbers.has(num);
                         return (
                             <button
                                 key={num}
                                 onClick={() => hasPlayers && setSelectedNumber(selectedNumber === num ? null : num)}
-                                className={`aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
+                                className={`min-h-14 rounded-lg border px-1 py-2 text-center transition-all ${
                                     isSearchMatch
-                                        ? 'bg-amber-400 text-amber-900 ring-2 ring-amber-300 cursor-pointer'
+                                        ? 'border-amber-400 bg-amber-300 text-amber-950 ring-2 ring-amber-200 cursor-pointer'
                                         : hasPlayers
                                         ? selectedNumber === num
-                                            ? 'bg-blue-600 text-white ring-2 ring-blue-400'
-                                            : 'bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer'
-                                        : search ? 'bg-slate-50 text-slate-300' : 'bg-slate-100 text-slate-400'
+                                            ? 'border-blue-700 bg-blue-700 text-white ring-2 ring-blue-300'
+                                            : 'border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100 cursor-pointer'
+                                        : search ? 'border-slate-100 bg-slate-50 text-slate-300' : 'border-dashed border-slate-300 bg-white text-slate-500'
                                 }`}
                                 title={hasPlayers ? `#${num}: ${players.length} player${players.length > 1 ? 's' : ''}` : `#${num}: not seen yet`}
                             >
-                                {num}
+                                <div className="text-sm font-black">#{num}</div>
+                                <div className="mt-0.5 text-[9px] font-medium opacity-70">{hasPlayers ? `${players.length} seen` : 'needed'}</div>
                             </button>
                         );
                     })}
@@ -312,6 +348,7 @@ const JerseyCollection = ({ jerseyLog }) => {
                     );
                 })()}
             </div>
+        </div>
         </div>
     );
 };
@@ -423,6 +460,7 @@ const RoundPickBreakdown = ({ roundNumber, players }) => {
 
 const DraftCollectionGrid = ({ title, units, gridSource, total, label, cellPrefix, search, setSearch, renderDetail }) => {
     const [selected, setSelected] = useState(null);
+    const [collectionView, setCollectionView] = useState('missing');
 
     const cells = useMemo(() => {
         const grid = [];
@@ -434,6 +472,8 @@ const DraftCollectionGrid = ({ title, units, gridSource, total, label, cellPrefi
 
     const collected = cells.filter(c => c.players.length > 0).length;
     const totalPlayers = cells.reduce((acc, c) => acc + c.players.length, 0);
+    const missingCells = cells.filter(c => c.players.length === 0);
+    const visibleCells = collectionView === 'missing' ? missingCells : cells;
 
     const matchingCells = useMemo(() => {
         if (!search) return new Set();
@@ -451,48 +491,77 @@ const DraftCollectionGrid = ({ title, units, gridSource, total, label, cellPrefi
     }, [search, cells]);
 
     return (
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <div className="mb-4">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50 via-white to-indigo-50 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h2 className="section-title font-bold">{title}</h2>
-                        <p className="body-text text-slate-500 mt-1">
-                            {collected} of {total} {units} collected ({Math.round(collected / total * 100)}%) · {totalPlayers} player{totalPlayers === 1 ? '' : 's'}
-                        </p>
+                        <div className="small-text font-bold uppercase tracking-[0.16em] text-indigo-600">Draft archive</div>
+                        <h2 className="mt-1 text-2xl font-bold text-slate-900">{title}</h2>
+                        <p className="mt-1 body-text text-slate-500">Track the selections you have witnessed and surface the remaining gaps.</p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200">
+                            <div className="text-xl font-bold text-indigo-700">{collected}</div>
+                            <div className="text-[10px] uppercase text-slate-400">collected</div>
+                        </div>
+                        <div className="rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200">
+                            <div className="text-xl font-bold text-amber-600">{missingCells.length}</div>
+                            <div className="text-[10px] uppercase text-slate-400">missing</div>
+                        </div>
+                        <div className="rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200">
+                            <div className="text-xl font-bold text-violet-700">{totalPlayers}</div>
+                            <div className="text-[10px] uppercase text-slate-400">players</div>
+                        </div>
+                    </div>
+                </div>
+                <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 transition-all" style={{ width: `${(collected / total * 100)}%` }}></div>
+                </div>
+            </div>
+
+            <div className="p-5">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                        <button onClick={() => setCollectionView('missing')} className={`min-h-10 rounded-md px-4 py-2 text-sm font-semibold ${collectionView === 'missing' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Missing ({missingCells.length})</button>
+                        <button onClick={() => setCollectionView('all')} className={`min-h-10 rounded-md px-4 py-2 text-sm font-semibold ${collectionView === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>All {units}</button>
                     </div>
                     {setSearch && (
                         <input
                             type="text" placeholder="Search players, school, team, year..."
-                            value={search} onChange={(e) => setSearch(e.target.value)}
-                            className="px-3 py-1.5 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none w-64"
+                            value={search} onChange={(e) => { const value = e.target.value; setSearch(value); if (value) setCollectionView('all'); }}
+                            className="min-h-10 rounded-lg border border-slate-200 px-3 py-2 body-text focus:border-blue-500 focus:outline-none sm:w-72"
                         />
                     )}
                 </div>
-                <div className="w-full bg-slate-200 rounded-full h-3 mt-2">
-                    <div className="bg-blue-600 h-3 rounded-full transition-all" style={{ width: `${(collected / total * 100)}%` }}></div>
-                </div>
-            </div>
 
-            <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(10, 1fr)' }}>
-                {cells.map(({ num, players }) => {
+                {collectionView === 'missing' && missingCells.length === 0 && (
+                    <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center text-emerald-800">
+                        <div className="text-3xl">🏆</div>
+                        <div className="mt-1 font-bold">Every {units.slice(0, -1)} collected</div>
+                    </div>
+                )}
+
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-16 xl:grid-cols-20">
+                {visibleCells.map(({ num, players }) => {
                     const hasPlayers = players.length > 0;
                     const isSearchMatch = search && matchingCells.has(num);
                     return (
                         <button
                             key={num}
                             onClick={() => hasPlayers && setSelected(selected === num ? null : num)}
-                            className={`aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
+                            className={`min-h-14 rounded-lg border px-1 py-2 text-center transition-all ${
                                 isSearchMatch
-                                    ? 'bg-amber-400 text-amber-900 ring-2 ring-amber-300 cursor-pointer'
+                                    ? 'border-amber-400 bg-amber-300 text-amber-950 ring-2 ring-amber-200 cursor-pointer'
                                     : hasPlayers
                                     ? selected === num
-                                        ? 'bg-blue-600 text-white ring-2 ring-blue-400'
-                                        : 'bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer'
-                                    : search ? 'bg-slate-50 text-slate-300' : 'bg-slate-100 text-slate-400'
+                                        ? 'border-indigo-700 bg-indigo-700 text-white ring-2 ring-indigo-300'
+                                        : 'border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100 cursor-pointer'
+                                    : search ? 'border-slate-100 bg-slate-50 text-slate-300' : 'border-dashed border-slate-300 bg-white text-slate-500'
                             }`}
                             title={hasPlayers ? `${cellPrefix}${num}: ${players.length} player${players.length > 1 ? 's' : ''}` : `${cellPrefix}${num}: not seen yet`}
                         >
-                            {cellPrefix}{num}
+                            <div className="text-sm font-black">{cellPrefix}{num}</div>
+                            <div className="mt-0.5 text-[9px] font-medium opacity-70">{hasPlayers ? `${players.length} seen` : 'needed'}</div>
                         </button>
                     );
                 })}
@@ -512,6 +581,7 @@ const DraftCollectionGrid = ({ title, units, gridSource, total, label, cellPrefi
                     </div>
                 );
             })()}
+            </div>
         </div>
     );
 };
@@ -1094,13 +1164,13 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
             </div>
 
             {selectedDay && data.byDay[selectedDay] && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedDay(null)}>
+                <Modal label={`Birthdays on ${selectedDay}`} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClose={() => setSelectedDay(null)}>
                     <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b bg-purple-600 text-white rounded-t-lg flex items-center justify-between">
                             <h3 className="font-bold">
                                 {monthNames[parseInt(selectedDay.split('-')[0]) - 1]} {parseInt(selectedDay.split('-')[1])} — {data.byDay[selectedDay].length} player{data.byDay[selectedDay].length > 1 ? 's' : ''}
                             </h3>
-                            <button onClick={() => setSelectedDay(null)} className="text-white hover:text-slate-200 text-xl leading-none">&times;</button>
+                            <button data-dialog-close="true" aria-label="Close dialog" onClick={() => setSelectedDay(null)} className="text-white hover:text-slate-200 text-xl leading-none">&times;</button>
                         </div>
                         <div className="p-4 space-y-2">
                             {data.byDay[selectedDay]
@@ -1114,7 +1184,7 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
                             ))}
                         </div>
                     </div>
-                </div>
+                </Modal>
             )}
             </>;
             })()}
@@ -1241,6 +1311,7 @@ const PersonalRecords = ({ data }) => {
         });
         return result;
     }, [data.summary]);
+    const visibleRecordCount = Object.values(sections).reduce((sum, rows) => sum + rows.length, 0);
 
     // ABS challenge records
     const absRecords = useMemo(() => {
@@ -1449,11 +1520,34 @@ const PersonalRecords = ({ data }) => {
 
     return (
         <div className="space-y-5">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-900 p-5 text-white shadow-sm">
+                <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="max-w-3xl">
+                        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">Witnessed extremes</div>
+                        <h2 className="mt-1 text-2xl font-bold">Personal Record Book</h2>
+                        <p className="mt-2 text-sm leading-relaxed text-slate-200">
+                            The biggest, rarest, fastest, longest, and most unusual performances from your regular season and postseason visits.
+                        </p>
+                    </div>
+                    <div className="flex gap-3">
+                        <div className="rounded-lg bg-white/10 px-4 py-2 text-center backdrop-blur-sm">
+                            <div className="text-xl font-bold">{visibleRecordCount}</div>
+                            <div className="text-[11px] uppercase tracking-wide text-blue-100">records</div>
+                        </div>
+                        <div className="rounded-lg bg-white/10 px-4 py-2 text-center backdrop-blur-sm">
+                            <div className="text-xl font-bold">{(data.games || []).filter(g => g.gameType !== 'spring').length}</div>
+                            <div className="text-[11px] uppercase tracking-wide text-blue-100">games</div>
+                        </div>
+                    </div>
+                </div>
+                <div aria-hidden="true" className="absolute -right-6 -top-10 text-[145px] leading-none opacity-10">🏆</div>
+            </div>
+
             {/* Section 1: Cumulative Totals */}
             {sections.cumulative.length > 0 && (
                 <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl p-4 shadow-md">
-                    <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Across All Games</div>
-                    <div className="grid grid-cols-5 gap-3">
+                    <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Regular season + postseason</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                         {sections.cumulative.map(r => {
                             const info = cumulativeLabels[r.record] || { label: r.record, icon: '?' };
                             return (
@@ -1834,8 +1928,234 @@ const PersonalRecords = ({ data }) => {
     );
 };
 
+const CareerBookendsView = ({ rows, kind }) => {
+    const isDebut = kind === 'debut';
+    const config = isDebut ? {
+        eyebrow: 'First appearances',
+        title: 'MLB Debuts Witnessed',
+        description: 'The first chapter of a major-league career, captured in the exact game where you saw it begin.',
+        latestLabel: 'Most recent witnessed debut',
+        icon: '🌟',
+        gradient: 'from-emerald-950 via-teal-900 to-cyan-800',
+        accent: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    } : {
+        eyebrow: 'Last appearances',
+        title: 'Final MLB Games Witnessed',
+        description: 'The closing line of a major-league career, preserved with the final performance you attended.',
+        latestLabel: 'Most recent witnessed finale',
+        icon: '👋',
+        gradient: 'from-slate-950 via-slate-800 to-amber-900',
+        accent: 'text-amber-800 bg-amber-50 border-amber-200',
+    };
+    const sortedRows = useMemo(() => [...(rows || [])].sort((a, b) => {
+        const dateDiff = new Date(b.date || 0) - new Date(a.date || 0);
+        return dateDiff || String(b.gameId || '').localeCompare(String(a.gameId || ''));
+    }), [rows]);
+    const latest = sortedRows[0];
+    const pitchers = sortedRows.filter(row => row.position === 'P' || (row.ip && row.ip !== '0.0')).length;
+    const positionPlayers = sortedRows.length - pitchers;
+    const teamCount = new Set(sortedRows.map(row => row.team).filter(Boolean)).size;
+    const summaryCards = [
+        { label: isDebut ? 'Debuts witnessed' : 'Final games', value: sortedRows.length, icon: config.icon },
+        { label: 'Position players', value: positionPlayers, icon: '🏏' },
+        { label: 'Pitchers', value: pitchers, icon: '⚾' },
+        { label: 'MLB teams', value: teamCount, icon: '🧢' },
+    ];
+
+    return (
+        <div className="space-y-4">
+            <div className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${config.gradient} p-5 text-white shadow-sm`}>
+                <div className="relative z-10 max-w-3xl">
+                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">{config.eyebrow}</div>
+                    <h2 className="mt-1 text-2xl font-bold">{config.title}</h2>
+                    <p className="mt-2 text-sm leading-relaxed text-white/80">{config.description}</p>
+                </div>
+                <div aria-hidden="true" className="absolute -right-7 -top-10 text-[145px] leading-none opacity-10">{config.icon}</div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {summaryCards.map(card => (
+                    <div key={card.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-lg" aria-hidden="true">{card.icon}</span>
+                            <span className="text-xl font-bold tabular-nums text-slate-900">{card.value}</span>
+                        </div>
+                        <div className="mt-1 text-xs font-medium text-slate-500">{card.label}</div>
+                    </div>
+                ))}
+            </div>
+
+            {latest && (
+                <div className={`rounded-xl border p-4 ${config.accent}`}>
+                    <div className="small-text font-bold uppercase tracking-wide opacity-70">{config.latestLabel}</div>
+                    <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <div className="text-lg font-bold"><PlayerLink playerId={latest.playerId} name={latest.player} /></div>
+                            <div className="mt-1 text-sm opacity-80">
+                                {latest.date} · {latest.team}{latest.opponent ? ` vs ${latest.opponent}` : ''} · {latest.position || '—'}
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 text-sm">
+                            <DebutPerformance r={latest} />
+                            <GameLink gameId={latest.gameId} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <DataTable
+                title={isDebut ? 'Complete debut log' : 'Complete final-game log'}
+                data={sortedRows}
+                defaultSortKey="date"
+                enableDateFilter={true}
+                persistKey={isDebut ? 'debuts' : 'finals'}
+                filterOptions={[{ key: 'team', label: 'Teams' }, { key: 'position', label: 'Positions' }]}
+                mobileCard={(row) => (
+                    <div className="space-y-3 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <div className="text-xs font-medium text-slate-500">{row.date}</div>
+                                <div className="mt-0.5 font-semibold text-slate-900"><PlayerLink playerId={row.playerId} name={row.player} /></div>
+                            </div>
+                            <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${config.accent}`}>{row.position || '—'}</span>
+                        </div>
+                        <div className="text-sm text-slate-600"><strong className="text-slate-800">{row.team}</strong>{row.opponent ? ` vs ${row.opponent}` : ''}</div>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <DebutPerformance r={row} />
+                            <GameLink gameId={row.gameId} />
+                        </div>
+                    </div>
+                )}
+                columns={[
+                    { key: 'date', label: 'Date', className: 'whitespace-nowrap' },
+                    { key: 'player', label: 'Player', render: (value, row) => <PlayerLink playerId={row.playerId} name={value} /> },
+                    { key: 'team', label: 'Team' },
+                    ...(isDebut ? [{ key: 'opponent', label: 'vs' }] : []),
+                    { key: 'position', label: 'Pos' },
+                    { key: 'stats', label: isDebut ? 'Debut performance' : 'Final performance', render: (value, row) => <DebutPerformance r={row} /> },
+                    { key: 'gameId', label: 'Game', render: (value) => <GameLink gameId={value} /> },
+                ]}
+            />
+        </div>
+    );
+};
+
+const SIGNATURE_HR_META = {
+    'Splash Hit': { label: 'Splash Hit', icon: '💦', color: 'bg-cyan-50 text-cyan-800 border-cyan-200' },
+    'McCovey Cove HR': { label: 'McCovey Cove', icon: '🌊', color: 'bg-blue-50 text-blue-800 border-blue-200' },
+    'Eutaw HR': { label: 'Eutaw Street', icon: '🧱', color: 'bg-orange-50 text-orange-800 border-orange-200' },
+    'Pool HR': { label: 'Pool Shot', icon: '🏊', color: 'bg-sky-50 text-sky-800 border-sky-200' },
+};
+
+const signatureTypeFromLabel = (label) => String(label || '').replace(/\s+#\d+\s*$/, '').trim() || 'Signature HR';
+
+const SignatureHRBadge = ({ label }) => {
+    const type = signatureTypeFromLabel(label);
+    const number = String(label || '').match(/#(\d+)/)?.[1];
+    const meta = SIGNATURE_HR_META[type] || { label: type, icon: '⚾', color: 'bg-slate-50 text-slate-700 border-slate-200' };
+    return (
+        <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${meta.color}`}>
+            <span aria-hidden="true">{meta.icon}</span>
+            <span>{meta.label}</span>
+            {number && <span className="font-bold opacity-70">#{number}</span>}
+        </span>
+    );
+};
+
+const SignatureHRsView = ({ rows }) => {
+    const enrichedRows = useMemo(() => (rows || []).map(row => ({
+        ...row,
+        signatureType: signatureTypeFromLabel(row.signatureNumber),
+    })), [rows]);
+
+    const summary = useMemo(() => {
+        const counts = {};
+        enrichedRows.forEach(row => { counts[row.signatureType] = (counts[row.signatureType] || 0) + 1; });
+        return {
+            total: enrichedRows.length,
+            players: new Set(enrichedRows.map(row => row.player).filter(Boolean)).size,
+            counts,
+        };
+    }, [enrichedRows]);
+
+    const summaryCards = [
+        { key: 'total', label: 'Landmark HRs', value: summary.total, icon: '⚾' },
+        { key: 'players', label: 'Unique hitters', value: summary.players, icon: '👤' },
+        ...Object.entries(SIGNATURE_HR_META).map(([key, meta]) => ({
+            key,
+            label: meta.label,
+            value: summary.counts[key] || 0,
+            icon: meta.icon,
+        })),
+    ];
+
+    return (
+        <div className="space-y-4">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-900 via-blue-950 to-cyan-900 p-5 text-white shadow-sm">
+                <div className="relative z-10 max-w-3xl">
+                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">Witnessed landmarks</div>
+                    <h2 className="mt-1 text-2xl font-bold">Signature Home Runs</h2>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-200">
+                        Homers that reached baseball's iconic destinations, matched to the exact attended game by hitter, home-run event, and pitcher.
+                    </p>
+                </div>
+                <div aria-hidden="true" className="absolute -right-8 -top-12 text-[150px] leading-none opacity-10">⚾</div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+                {summaryCards.map(card => (
+                    <div key={card.key} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-lg" aria-hidden="true">{card.icon}</span>
+                            <span className="text-xl font-bold tabular-nums text-slate-900">{card.value}</span>
+                        </div>
+                        <div className="mt-1 text-xs font-medium text-slate-500">{card.label}</div>
+                    </div>
+                ))}
+            </div>
+
+            <DataTable
+                title="Landmark home run log"
+                data={enrichedRows}
+                defaultSortKey="date"
+                enableDateFilter={true}
+                persistKey="sigHRs"
+                filterOptions={[
+                    { key: 'signatureType', label: 'Types', displayFn: value => SIGNATURE_HR_META[value]?.label || value },
+                    { key: 'team', label: 'Teams' },
+                ]}
+                mobileCard={(row) => (
+                    <div className="space-y-3 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <div className="text-xs font-medium text-slate-500">{row.date}</div>
+                                <div className="mt-0.5 font-semibold text-slate-900"><PlayerLink playerId={row.playerId} name={row.player} /></div>
+                            </div>
+                            <SignatureHRBadge label={row.signatureNumber} />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
+                            <span><strong className="text-slate-800">{row.team}</strong> vs {row.opponent}</span>
+                            <span>off {row.pitcher}</span>
+                            <GameLink gameId={row.gameId} />
+                        </div>
+                    </div>
+                )}
+                columns={[
+                    { key: 'date', label: 'Date', className: 'whitespace-nowrap' },
+                    { key: 'player', label: 'Hitter', render: (value, row) => <PlayerLink playerId={row.playerId} name={value} /> },
+                    { key: 'signatureNumber', label: 'Landmark', render: (value) => <SignatureHRBadge label={value} /> },
+                    { key: 'team', label: 'Matchup', render: (value, row) => <span className="whitespace-nowrap"><strong>{value}</strong> <span className="text-slate-400">vs</span> {row.opponent}</span> },
+                    { key: 'pitcher', label: 'Pitcher', render: (value) => <span className="whitespace-nowrap text-slate-600">off {value}</span> },
+                    { key: 'gameId', label: 'Game', render: (value) => <GameLink gameId={value} /> },
+                ]}
+            />
+        </div>
+    );
+};
+
 const SpecialTab = ({ data, initialSubtab, onSubtabChange }) => {
     const [view, setView] = useState(initialSubtab || 'records');
+    useEffect(() => { setView(initialSubtab || 'records'); }, [initialSubtab]);
     return (
         <div>
             <SubNav tabs={[
@@ -1845,28 +2165,10 @@ const SpecialTab = ({ data, initialSubtab, onSubtabChange }) => {
                 { id: 'splash', label: 'Signature HRs' },
             ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'records' && <PersonalRecords data={data} />}
-            {view === 'debuts' && (
-                <DataTable title="🌟 MLB Debuts" data={data.debuts || []} defaultSortKey="date" enableDateFilter={true} persistKey="debuts" columns={[
-                    { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
-                    { key: 'team', label: 'Team' }, { key: 'opponent', label: 'vs' }, { key: 'position', label: 'Pos' },
-                    { key: 'stats', label: 'Debut Performance', render: (v, r) => <DebutPerformance r={r} /> },
-                    { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
-                ]} />
-            )}
-            {view === 'finals' && (
-                <DataTable title="👋 Final MLB Games" data={data.finalGames || []} defaultSortKey="date" enableDateFilter={true} persistKey="finals" columns={[
-                    { key: 'date', label: 'Date' }, { key: 'player', label: 'Player', render: (v, r) => <PlayerLink playerId={r.playerId} name={v} /> },
-                    { key: 'team', label: 'Team' }, { key: 'position', label: 'Pos' },
-                    { key: 'stats', label: 'Final Performance', render: (v, r) => <DebutPerformance r={r} /> },
-                    { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
-                ]} />
-            )}
+            {view === 'debuts' && <CareerBookendsView rows={data.debuts || []} kind="debut" />}
+            {view === 'finals' && <CareerBookendsView rows={data.finalGames || []} kind="final" />}
             {view === 'splash' && (
-                <DataTable title="💦 Signature HRs" data={data.signatureHRs || []} defaultSortKey="date" enableDateFilter={true} persistKey="sigHRs" columns={[
-                    { key: 'date', label: 'Date' }, { key: 'player', label: 'Player' }, { key: 'team', label: 'Team' },
-                    { key: 'opponent', label: 'Opponent' }, { key: 'pitcher', label: 'Pitcher' }, { key: 'signatureNumber', label: 'Type' },
-                    { key: 'gameId', label: 'Game', render: (v) => <GameLink gameId={v} /> }
-                ]} />
+                <SignatureHRsView rows={data.signatureHRs || []} />
             )}
         </div>
     );
@@ -1973,11 +2275,11 @@ const ScorigamiChart = ({ games }) => {
             </div>
 
             {selectedCell && data.scoreGames[selectedCell] && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedCell(null)}>
+                <Modal label={`Games ending ${selectedCell.replace('-', ' to ')}`} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClose={() => setSelectedCell(null)}>
                     <div className="bg-white rounded-lg shadow-lg max-w-lg w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b bg-green-600 text-white rounded-t-lg flex items-center justify-between">
                             <h3 className="font-bold">Final Score: {selectedCell.replace('-', ' - ')} ({data.scoreGames[selectedCell].length} game{data.scoreGames[selectedCell].length > 1 ? 's' : ''})</h3>
-                            <button onClick={() => setSelectedCell(null)} className="text-white hover:text-slate-200 text-xl leading-none">&times;</button>
+                            <button data-dialog-close="true" aria-label="Close dialog" onClick={() => setSelectedCell(null)} className="text-white hover:text-slate-200 text-xl leading-none">&times;</button>
                         </div>
                         <div className="p-3 space-y-2">
                             {data.scoreGames[selectedCell].map((g, i) => (
@@ -1996,7 +2298,7 @@ const ScorigamiChart = ({ games }) => {
                             ))}
                         </div>
                     </div>
-                </div>
+                </Modal>
             )}
         </div>
     );
@@ -2004,6 +2306,7 @@ const ScorigamiChart = ({ games }) => {
 
 const TriviaTab = ({ umpireLog, jerseyLog, firstRoundDraftPicks, playerBios, players, pitchers, games, playerGames, pitcherGames, stadiumAliases, initialSubtab, onSubtabChange }) => {
     const [view, setView] = useState(initialSubtab || 'jerseys');
+    useEffect(()=>{setView(initialSubtab || 'jerseys');},[initialSubtab]);
     const allPlayers = useMemo(() => {
         const seen = new Set();
         return [...(players || []), ...(pitchers || [])].filter(p => { if (seen.has(p.playerId)) return false; seen.add(p.playerId); return true; });

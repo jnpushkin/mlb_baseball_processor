@@ -1,20 +1,12 @@
 """React app chunk: core foundation."""
 
+from .browser_utils import CODE as BROWSER_UTILS_CODE
+from .dialog import CODE as DIALOG_CODE
+
 CODE = r'''const { useState, useMemo, useEffect, useRef } = React;
 
+''' + BROWSER_UTILS_CODE + DIALOG_CODE + r'''
 // ── Global utilities (shared across all components) ──
-const toSortableDate = (d) => {
-    if (!d) return '';
-    const text = String(d).trim();
-    if (/^\d{8}$/.test(text)) return text;
-    if (text.includes('/')) { const [m, dd, y] = text.split('/'); return `${y}${(m||'').padStart(2,'0')}${(dd||'').padStart(2,'0')}`; }
-    const parsed = Date.parse(text);
-    if (!Number.isNaN(parsed)) {
-        const date = new Date(parsed);
-        return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
-    }
-    return text;
-};
 const formatLongDate = (d) => {
     const key = toSortableDate(d);
     if (!/^\d{8}$/.test(key)) return d || '';
@@ -76,10 +68,15 @@ const formatHistoricalStatValue = (value, stat) => {
 };
 
 // Aggregation utilities
+const hasHitterGameStats = (game) => [
+    'pa', 'ab', 'h', 'r', 'rbi', 'hr', 'doubles', 'triples', 'sb', 'cs', 'bb', 'so', 'hbp', 'gidp'
+].some(key => Number(game?.[key] || 0) > 0);
+
 const aggregateHitterStats = (playerGames) => {
     const grouped = {};
     
     playerGames.forEach(game => {
+        if (!hasHitterGameStats(game)) return;
         const key = game.playerId;
         if (!grouped[key]) {
             grouped[key] = {
@@ -234,19 +231,19 @@ const PaginationControls = ({ page, setPage, totalPages, totalItems, rowsPerPage
     const start = (page - 1) * rowsPerPage + 1;
     const end = Math.min(page * rowsPerPage, totalItems);
     return (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '8px 0', fontSize: '0.8rem', color: '#6b7280' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '8px 16px', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
             <span>Showing {start}-{end} of {totalItems}</span>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
-                    style={{ minHeight: '44px', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
+                    style={{ minHeight: '44px', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '6px', cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
                 >← Prev</button>
                 <span style={{ padding: '10px 4px' }}>{page} / {totalPages}</span>
                 <button
                     onClick={() => setPage(Math.min(totalPages, page + 1))}
                     disabled={page === totalPages}
-                    style={{ minHeight: '44px', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', cursor: page === totalPages ? 'default' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
+                    style={{ minHeight: '44px', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '6px', cursor: page === totalPages ? 'default' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
                 >Next →</button>
             </div>
         </div>
@@ -281,36 +278,19 @@ const PlayerLink = ({ playerId, name, external, className = '' }) => {
         ? `https://www.baseball-reference.com/register/player.fcgi?id=${playerId}`
         : `https://www.baseball-reference.com/players/${playerId.charAt(0).toLowerCase()}/${playerId}.shtml`;
 
-    if (external) {
-        return <a href={brefUrl} target="_blank" rel="noopener noreferrer" className={`text-blue-600 hover:underline ${className}`}>{name}</a>;
-    }
-
-    // Default: navigate to Players tab and open timeline
-    const handleClick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        window._pendingPlayerSelect = { id: playerId, name };
-        if (window.__navigateTab) window.__navigateTab('players');
-    };
+    const handleClick=e=>{e.preventDefault();e.stopPropagation();openPassportPlayer(playerId);};
 
     return (
         <span className="inline-flex items-center gap-1">
-            <a href="#players" onClick={handleClick} className={`text-blue-600 hover:underline ${className}`}>{name}</a>
-            <a href={brefUrl} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-slate-600 text-[10px]" title="View on Baseball Reference">↗</a>
+            <a href={passportURL({...readPassportRoute(),player:playerId,game:null})} onClick={handleClick} className={`text-blue-600 hover:underline ${className}`}>{name}</a>
+            <a href={brefUrl} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-slate-600 text-[10px]" aria-label={`View ${name} on Baseball Reference`} title="View on Baseball Reference">↗</a>
         </span>
     );
 };
 
 const requestGameDetails = (gameId, options = {}) => {
     if (!gameId) return;
-    const request = {
-        gameId,
-        focus: options.focus || null,
-        tab: options.tab || options.focus?.tab || null,
-    };
-    window.__pendingGameDetailsRequest = request;
-    window.dispatchEvent(new CustomEvent('gameDetailsRequest', { detail: request }));
-    if (window.__navigateTab) window.__navigateTab('gamelog');
+    navigatePassport({game:gameId,player:null,detail:options.tab||options.focus?.tab||null});
 };
 
 const consumePendingGameDetailsRequest = () => {
@@ -681,12 +661,13 @@ const StatCard = ({ title, value, subtitle, color = 'blue', onClick }) => {
         blue: 'border-blue-600', green: 'border-emerald-600',
         purple: 'border-violet-600', orange: 'border-amber-600'
     };
+    const Tag = onClick ? 'button' : 'div';
     return (
-        <div onClick={onClick} className={`bg-white rounded-lg border border-slate-200 border-l-[3px] ${accents[color]} p-4 ${onClick ? 'cursor-pointer hover:border-slate-300' : ''}`} style={{ boxShadow: 'var(--shadow)' }}>
+        <Tag type={onClick ? "button" : undefined} onClick={onClick} className={`text-left w-full bg-white rounded-lg border border-slate-200 border-l-[3px] ${accents[color]} p-4 ${onClick ? 'cursor-pointer hover:border-slate-300' : ''}`} style={{ boxShadow: 'var(--shadow)' }}>
             <div className="small-text font-medium text-slate-500 mb-1">{title}</div>
             <div className="text-2xl font-bold text-slate-900 tracking-tight">{value}</div>
             {subtitle && <div className="small-text text-slate-400 mt-0.5">{subtitle}</div>}
-        </div>
+        </Tag>
     );
 };
 

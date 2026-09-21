@@ -2,6 +2,7 @@
 Data serializers for converting DataFrames to JSON format for website.
 Complete version with all stats fields and game-by-game data.
 """
+import csv
 import json
 import re
 from collections import defaultdict
@@ -13,6 +14,31 @@ from ..engines.all_time_passing_engine import AllTimePassingEngine, find_passing
 from ..utils.constants import CACHE_DIR, REFERENCES_DIR, STADIUM_ALIASES
 from ..utils.helpers import is_inside_the_park_home_run_play
 from ..utils.stat_utils import parse_batting_detail_counts
+
+
+UVA_SCHOOL_NAME = "University of Virginia"
+
+
+def load_mlb_alumni_by_school(school_name, references_dir=REFERENCES_DIR):
+    """Load MLB alumni for an exact school name from the debut reference CSVs."""
+    alumni = {}
+    for csv_path in sorted(Path(references_dir).glob("* MLB Debuts.csv")):
+        try:
+            with open(csv_path, newline="", encoding="utf-8-sig") as handle:
+                for row in csv.DictReader(handle):
+                    schools = str(row.get("Schools") or "").strip()
+                    player_id = str(row.get("Name-additional") or "").strip()
+                    if school_name not in schools or not player_id:
+                        continue
+                    alumni[player_id] = {
+                        "name": str(row.get("Name") or "").strip(),
+                        "playerId": player_id,
+                        "schools": schools,
+                        "mlbDebutYear": csv_path.name[:4],
+                    }
+        except (OSError, csv.Error) as exc:
+            print(f"   Warning: Could not read school alumni from {csv_path.name}: {exc}")
+    return alumni
 
 
 def _format_date(date_str):
@@ -501,6 +527,7 @@ class DataSerializer:
         games = self._serialize_games(data.get('game_log'), data.get('_raw_games', []))
         player_games = self._serialize_player_games(raw_games)
         pitcher_games = self._serialize_pitcher_games(raw_games)
+        uva_players_seen = self._serialize_uva_players_seen(raw_games)
 
         json_data = {
             "summary": self._serialize_summary(data.get('summary_rows', [])),
@@ -509,6 +536,7 @@ class DataSerializer:
             "players": players,
             "pitchers": pitchers,
             "playersWithoutStats": players_without_stats,
+            "uvaPlayersSeen": uva_players_seen,
             "hallOfFamers": self._serialize_hall_of_famers(data.get('hofers_seen')),
             "awardChecklists": self._serialize_award_checklists(
                 raw_games,
@@ -2430,6 +2458,26 @@ class DataSerializer:
                         detail_counts = parse_batting_detail_counts(player.get('Details', ''), stats=("SB", "CS"))
                         sb = max(int(player.get('SB', 0)), detail_counts.get('SB', 0))
                         cs = max(int(player.get('CS', 0)), detail_counts.get('CS', 0))
+                        if not any(
+                            int(value or 0) > 0
+                            for value in (
+                                pa,
+                                ab,
+                                player.get('H', 0),
+                                player.get('R', 0),
+                                player.get('RBI', 0),
+                                player_extra.get('HR', 0),
+                                player_extra.get('2B', 0),
+                                player_extra.get('3B', 0),
+                                sb,
+                                cs,
+                                player.get('BB', 0),
+                                player.get('SO', 0),
+                                player_extra.get('HBP', 0),
+                                player_extra.get('GIDP', 0),
+                            )
+                        ):
+                            continue
 
                         player_games.append({
                             'date': formatted_date,
@@ -2622,6 +2670,117 @@ class DataSerializer:
                 print(f"   Warning: Could not serialize player without stats: {e}")
                 continue
         return players
+
+    def _serialize_uva_players_seen(self, games):
+        """Build an appearance summary for seen MLB players who attended UVA."""
+        alumni = load_mlb_alumni_by_school(UVA_SCHOOL_NAME)
+        if not alumni:
+            return []
+
+        appearances = {}
+        position_order = {
+            "P": 0, "C": 1, "1B": 2, "2B": 3, "3B": 4, "SS": 5,
+            "LF": 6, "CF": 7, "RF": 8, "OF": 9, "DH": 10,
+            "PH": 11, "PR": 12,
+        }
+
+        for game in games or []:
+            basic_info = game.get("basic_info", {})
+            game_id = game.get("game_id", "")
+            game_type = basic_info.get("game_type", "regular") or "regular"
+            formatted_date, sortable_date = _format_date(basic_info.get("date_yyyymmdd", ""))
+
+            for side in ("away", "home"):
+                team = self._normalize_team(basic_info.get(f"{side}_team_code", ""))
+                rows = [
+                    (player, False)
+                    for player in game.get("batting", {}).get(side, [])
+                ] + [
+                    (player, True)
+                    for player in game.get("pitching", {}).get(side, [])
+                ]
+
+                for player, is_pitching_row in rows:
+                    player_id = str(player.get("player_id") or "").strip()
+                    if player_id not in alumni:
+                        continue
+
+                    entry = appearances.setdefault(player_id, {
+                        **alumni[player_id],
+                        "name": str(player.get("name") or alumni[player_id]["name"]),
+                        "teams": set(),
+                        "positions": set(),
+                        "gameIds": set(),
+                        "gameIdsByType": defaultdict(set),
+                        "dates": {},
+                        "hit": False,
+                        "pitched": False,
+                    })
+                    if team:
+                        entry["teams"].add(team)
+                    if game_id:
+                        entry["gameIds"].add(game_id)
+                        entry["gameIdsByType"][game_type].add(game_id)
+                        if sortable_date:
+                            entry["dates"][game_id] = (sortable_date, formatted_date)
+
+                    if is_pitching_row:
+                        entry["pitched"] = True
+                        entry["positions"].add("P")
+                        continue
+
+                    position = str(player.get("position") or player.get("Pos") or "").strip()
+                    if position:
+                        entry["positions"].update(
+                            part.strip() for part in re.split(r"[,/\s-]+", position) if part.strip()
+                        )
+                    has_batting_role = position != "P" or any(
+                        int(player.get(stat, 0) or 0) > 0
+                        for stat in ("PA", "AB", "H", "R", "RBI", "BB", "HBP")
+                    )
+                    entry["hit"] = entry["hit"] or has_batting_role
+
+        serialized = []
+        for entry in appearances.values():
+            dates = sorted(
+                ((sort_date, display_date, game_id) for game_id, (sort_date, display_date) in entry["dates"].items()),
+                key=lambda item: item[0],
+            )
+            hit = entry.pop("hit")
+            pitched = entry.pop("pitched")
+            if hit and pitched:
+                role = "Position Player / Pitcher"
+            elif pitched:
+                role = "Pitcher"
+            else:
+                role = "Position Player"
+
+            positions = sorted(
+                entry.pop("positions"),
+                key=lambda position: (position_order.get(position, 99), position),
+            )
+            game_ids = entry.pop("gameIds")
+            game_ids_by_type = entry.pop("gameIdsByType")
+            entry.pop("dates")
+            entry.update({
+                "teams": ", ".join(sorted(entry["teams"])),
+                "positions": ", ".join(positions) or "—",
+                "role": role,
+                "games": len(game_ids),
+                "springGames": len(game_ids_by_type.get("spring", set())),
+                "regularGames": len(game_ids_by_type.get("regular", set())),
+                "postseasonGames": len(game_ids_by_type.get("postseason", set())),
+                "allStarGames": len(game_ids_by_type.get("allstar", set())),
+                "firstSeen": dates[0][1] if dates else "",
+                "firstSeenSort": dates[0][0] if dates else "",
+                "firstSeenGameId": dates[0][2] if dates else "",
+                "lastSeen": dates[-1][1] if dates else "",
+                "lastSeenSort": dates[-1][0] if dates else "",
+                "lastSeenGameId": dates[-1][2] if dates else "",
+            })
+            serialized.append(entry)
+
+        return sorted(serialized, key=lambda row: (-row["games"], row["name"]))
 
     def _serialize_teams(self, df):
         """Convert team records DataFrame to JSON."""
@@ -3018,10 +3177,10 @@ class DataSerializer:
         # If it's a decimal (Excel stores time as fraction of a day)
         if isinstance(game_length, (int, float)):
             try:
-                # Convert fraction of day to hours
-                total_hours = game_length * 24
-                hours = int(total_hours)
-                minutes = int((total_hours - hours) * 60)
+                # Round once before splitting: binary fractions can put an exact
+                # minute just below its integer value (e.g. 1:55 -> 1:54).
+                total_minutes = round(game_length * 24 * 60)
+                hours, minutes = divmod(total_minutes, 60)
                 return f"{hours}:{minutes:02d}"
             except Exception:
                 return ""
@@ -3183,6 +3342,7 @@ class DataSerializer:
                 hrs.append({
                     "date": date_str,
                     "player": str(row.get("Player", "")),
+                    "playerId": str(row.get("PlayerID", "")),
                     "team": str(row.get("Team", "")),
                     "opponent": str(row.get("Opponent", "")),
                     "pitcher": str(row.get("Pitcher", "")),

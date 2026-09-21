@@ -44,55 +44,8 @@ class WebsiteGenerator:
         output_file = Path(output_path)
         output_dir = output_file.parent
 
-        # Create the HTML content using template
-        html_content = HTMLTemplate.create_full_page(json_data)
-
-        award_data = json_data.get("awardChecklists")
-        data_payload = dict(json_data)
-        if award_data and award_data.get("metadata", {}).get("available"):
-            data_payload["awardChecklists"] = {
-                "metadata": {
-                    "available": False,
-                    "external": "award-data.json",
-                },
-                "groups": [],
-                "completionSets": [],
-                "seenPlayers": {},
-            }
-
-        # Write HTML file
-        output_file.write_text(html_content, encoding='utf-8')
-
-        data_payload, data_sidecar_files = self._write_data_sidecars(data_payload, output_dir)
-        data_json_content = HTMLTemplate.create_data_json(data_payload)
-
-        # Write data.json alongside the HTML file
-        data_file = output_file.parent / 'data.json'
-        data_file.write_text(data_json_content, encoding='utf-8')
-        award_data_file = output_file.parent / 'award-data.json'
-        award_sidecar_files = []
-        if award_data and award_data.get("metadata", {}).get("available"):
-            award_payload, award_sidecar_files = self._write_award_sidecars(award_data, output_dir)
-            award_data_file.write_text(HTMLTemplate.create_data_json(award_payload), encoding='utf-8')
-        elif award_data_file.exists():
-            award_data_file.unlink()
-            for stale_sidecar in output_dir.glob('award-sidecar-*.json'):
-                stale_sidecar.unlink()
-
-        html_size_mb = output_file.stat().st_size / (1024 * 1024)
-        data_size_mb = data_file.stat().st_size / (1024 * 1024)
-        award_data_size_mb = award_data_file.stat().st_size / (1024 * 1024) if award_data_file.exists() else 0
-
-        if award_data_file.exists():
-            sidecar_count = len(data_sidecar_files) + len(award_sidecar_files)
-            sidecar_summary = f" + {sidecar_count} sidecar(s)" if sidecar_count else ""
-            logging.info(f"Website generated: {output_file.name} ({html_size_mb:.1f} MB) + data.json ({data_size_mb:.1f} MB) + award-data.json ({award_data_size_mb:.1f} MB){sidecar_summary}")
-        else:
-            logging.info(f"Website generated: {output_file.name} ({html_size_mb:.1f} MB) + data.json ({data_size_mb:.1f} MB)")
-        logging.info(f"Location: {output_file.absolute()}")
-        logging.info(f"Open in browser: file://{output_file.absolute()}")
-
-        return output_file
+        from .bundle import build_site
+        return build_site(json_data, output_file)
 
     def _write_data_sidecars(self, data_payload, output_dir):
         """Move large top-level list payloads into smaller sidecar JSON files."""

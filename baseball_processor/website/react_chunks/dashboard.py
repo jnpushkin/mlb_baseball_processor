@@ -495,7 +495,7 @@ const BadgeDetailModal = ({ badge, game, games, playerGames, pitcherGames, caree
         body = <GenericBadgeDetail badge={badge} game={game} games={games} allBadgesByGame={allBadgesByGame} />;
     }
     return (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <Modal label={badge.text || 'Badge details'} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClose={onClose}>
             <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
                 <div className="p-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                     <div className="text-xs uppercase tracking-wide text-blue-100">{(badge.type || '').replace(/-/g, ' ')}</div>
@@ -519,7 +519,7 @@ const BadgeDetailModal = ({ badge, game, games, playerGames, pitcherGames, caree
                             className="px-4 py-2 bg-slate-200 rounded hover:bg-slate-300 text-sm font-semibold">Close</button>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 };
 
@@ -885,33 +885,6 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
     const [badgeTypeFilter, setBadgeTypeFilter] = useState('all');
     const [badgeTextFilter, setBadgeTextFilter] = useState('');
 
-    // Check for pending game selection (from cross-tab links)
-    useEffect(() => {
-        const openRequestedGame = (request) => {
-            if (!request?.gameId) return;
-            const game = (games || []).find(g => g.gameId === request.gameId);
-            if (game) {
-                setSelectedGame(game);
-                const focus = request.focus;
-                const intent = focus
-                    ? { ...focus, gameId: request.gameId, tab: request.tab || focus.tab }
-                    : request.tab
-                        ? { gameId: request.gameId, tab: request.tab }
-                        : null;
-                setModalIntent(intent);
-            }
-        };
-
-        const onGameDetailsRequest = (event) => {
-            window.__pendingGameDetailsRequest = null;
-            openRequestedGame(event.detail);
-        };
-        openRequestedGame(consumePendingGameDetailsRequest());
-        window.addEventListener('gameDetailsRequest', onGameDetailsRequest);
-        return () => window.removeEventListener('gameDetailsRequest', onGameDetailsRequest);
-    }, [games]);
-
-
     // Compute milestones for badge display
     const milestoneData = useMemo(() => computeGameMilestones(games), [games]);
     const gameMilestones = milestoneData.milestones || {};
@@ -1111,7 +1084,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
 
     return (
         <>
-            {/* Total Stats Witnessed */}
+<details className="mb-3"><summary className="passport-button">Game totals and badge filters</summary>
             <div className="bg-gradient-to-r from-teal-700 to-slate-800 rounded-lg shadow-lg p-5 text-white mb-4">
                 <h2 className="text-xl font-bold mb-3">Total Stats Witnessed <span className="text-sm font-normal opacity-80">({totalStats.gameCount} regular season & postseason games)</span></h2>
                 <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3">
@@ -1168,12 +1141,14 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                     )}
                 </div>
             </div>
+
+</details>
             <DataTable
                 title="Game Log"
                 data={searchableGames}
                 defaultSortKey="date"
                 enableDateFilter={true}
-                onRowClick={(row) => setSelectedGame(row)}
+                onRowClick={(row) => requestGameDetails(row.gameId)}
                 filterOptions={[
                     { key: 'gameType', label: 'Game Type', displayFn: (v) => v === 'spring' ? 'Spring Training' : v === 'postseason' ? 'Postseason' : v === 'regular' ? 'Regular Season' : v },
                     { key: 'homeTeam', label: 'Home Team' },
@@ -1200,7 +1175,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                                     </button>
                                 </div>
                                 <button
-                                    onClick={() => setSelectedGame(row)}
+                                    onClick={() => requestGameDetails(row.gameId)}
                                     className="min-h-10 shrink-0 rounded-md bg-blue-600 px-3 body-text font-semibold text-white hover:bg-blue-700"
                                 >
                                     Open
@@ -1233,7 +1208,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                 columns={[
                     { key: 'date', label: 'Date', render: (v, row) => (
                         <div className="flex items-center gap-1.5">
-                            <button className="text-blue-600 hover:underline font-medium" title="Open game recap" onClick={(e) => { e.stopPropagation(); setSelectedGame(row); }}>{v}</button>
+                            <button className="text-blue-600 hover:underline font-medium" title="Open game recap" onClick={(e) => { e.stopPropagation(); requestGameDetails(row.gameId); }}>{v}</button>
                             {row.gameType === 'spring' && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">ST</span>}
                             {row.gameType === 'postseason' && <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-semibold rounded">PS</span>}
                         </div>
@@ -1263,7 +1238,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                             <div className="flex items-center gap-2 whitespace-nowrap">
                                 <GameLink gameId={v} />
                                 <button
-                                    onClick={() => setSelectedGame(row)}
+                                    onClick={() => requestGameDetails(row.gameId)}
                                     className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold"
                                 >
                                     Open
@@ -1274,33 +1249,6 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                 ]}
             />
             
-            {selectedGame && (() => {
-                const toSort = toSortableDate;
-                const sortedGames = [...(games || [])].sort((a, b) => toSort(b.date).localeCompare(toSort(a.date)));
-                const idx = sortedGames.findIndex(g => g.gameId === selectedGame.gameId);
-                const prevGame = idx > 0 ? sortedGames[idx - 1] : null;
-                const nextGame = idx < sortedGames.length - 1 ? sortedGames[idx + 1] : null;
-                return (
-                    <GameDetailsModal
-                        game={selectedGame}
-                        playerGames={playerGames}
-                        pitcherGames={pitcherGames}
-                        careerFirsts={dedupedCareerFirstsByGame[selectedGame.gameId] || []}
-                        allTimePassings={(allTimePassingsByGame || {})[selectedGame.gameId] || []}
-                        debuts={debutsByGame[selectedGame.gameId] || []}
-                        finalGames={finalGamesByGame[selectedGame.gameId] || []}
-                        badges={allBadgesByGame?.[selectedGame.gameId] || []}
-                        onClose={() => { setSelectedGame(null); setModalIntent(null); }}
-                        onPrev={prevGame ? () => { setModalIntent(null); setSelectedGame(prevGame); } : null}
-                        onNext={nextGame ? () => { setModalIntent(null); setSelectedGame(nextGame); } : null}
-                        gameIndex={idx >= 0 ? idx + 1 : null}
-                        totalGames={sortedGames.length}
-                        initialTab={modalIntent?.tab}
-                        focusInning={modalIntent}
-                    />
-                );
-            })()}
-
             {selectedBadge && (
                 <BadgeDetailModal
                     badge={selectedBadge.badge}
@@ -1313,7 +1261,7 @@ const GameLogWithDetails = ({ games, playerGames, pitcherGames, careerFirstsByGa
                     onClose={() => setSelectedBadge(null)}
                     onGoToGame={() => {
                         const g = (games || []).find(gg => gg.gameId === selectedBadge.gameId);
-                        if (g) setSelectedGame(g);
+                        if (g) requestGameDetails(g.gameId);
                     }}
                 />
             )}
@@ -2279,7 +2227,7 @@ const DivisionChecklist = ({ divisionChecklist, games }) => {
 
             {/* Progress Summary */}
             <div className="p-4 bg-slate-50 border-b">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="text-center p-3 bg-white rounded-lg shadow-sm">
                         <div className="text-2xl font-bold text-blue-600">
                             {currentData.teamsSeen}/{currentData.totalTeams}

@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pandas as pd
 
 import baseball_processor.website.serializers as serializers
-from baseball_processor.website.serializers import DataSerializer
+from baseball_processor.website.serializers import DataSerializer, load_mlb_alumni_by_school
 
 
 class FakeSituationTracker:
@@ -152,6 +152,91 @@ class FakeWeatherTracker:
 
 
 class DataSerializerTests(unittest.TestCase):
+    def test_load_mlb_alumni_by_school_matches_uva_without_virginia_false_positives(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            csv_path = Path(temp_dir) / "2025 MLB Debuts.csv"
+            csv_path.write_text(
+                "Name,Schools,Name-additional\n"
+                'Cavalier,University of Virginia (Charlottesville VA),cavali01\n'
+                'Mountaineer,West Virginia University (Morgantown WV),mounta01\n'
+                'Ram,Virginia Commonwealth University (Richmond VA),ram---01\n',
+                encoding="utf-8",
+            )
+
+            alumni = load_mlb_alumni_by_school("University of Virginia", Path(temp_dir))
+
+        self.assertEqual(["cavali01"], list(alumni))
+        self.assertEqual("Cavalier", alumni["cavali01"]["name"])
+        self.assertEqual("2025", alumni["cavali01"]["mlbDebutYear"])
+
+    def test_serialize_uva_players_seen_counts_unique_games_and_roles(self):
+        alumni = {
+            "cavali01": {
+                "name": "Cavalier One",
+                "playerId": "cavali01",
+                "schools": "University of Virginia (Charlottesville VA)",
+                "mlbDebutYear": "2024",
+            },
+            "cavali02": {
+                "name": "Cavalier Two",
+                "playerId": "cavali02",
+                "schools": "University of Virginia (Charlottesville VA)",
+                "mlbDebutYear": "2025",
+            },
+        }
+        games = [
+            {
+                "game_id": "HOM202504010",
+                "basic_info": {
+                    "date_yyyymmdd": "20250401",
+                    "home_team_code": "HOM",
+                    "away_team_code": "AWY",
+                    "game_type": "regular",
+                },
+                "batting": {
+                    "home": [{"player_id": "cavali01", "name": "Cavalier One", "position": "CF", "PA": 4}],
+                    "away": [],
+                },
+                "pitching": {
+                    "home": [{"player_id": "cavali02", "name": "Cavalier Two"}],
+                    "away": [],
+                },
+            },
+            {
+                "game_id": "AWY202510050",
+                "basic_info": {
+                    "date_yyyymmdd": "20251005",
+                    "home_team_code": "AWY",
+                    "away_team_code": "HOM",
+                    "game_type": "postseason",
+                },
+                "batting": {
+                    "home": [],
+                    "away": [{"player_id": "cavali01", "name": "Cavalier One", "position": "DH", "PA": 3}],
+                },
+                "pitching": {
+                    "home": [],
+                    "away": [{"player_id": "cavali01", "name": "Cavalier One"}],
+                },
+            },
+        ]
+
+        with patch(
+            "baseball_processor.website.serializers.load_mlb_alumni_by_school",
+            return_value=alumni,
+        ):
+            rows = DataSerializer()._serialize_uva_players_seen(games)
+
+        by_player = {row["playerId"]: row for row in rows}
+        self.assertEqual(2, by_player["cavali01"]["games"])
+        self.assertEqual(1, by_player["cavali01"]["regularGames"])
+        self.assertEqual(1, by_player["cavali01"]["postseasonGames"])
+        self.assertEqual("Position Player / Pitcher", by_player["cavali01"]["role"])
+        self.assertEqual("P, CF, DH", by_player["cavali01"]["positions"])
+        self.assertEqual("Pitcher", by_player["cavali02"]["role"])
+        self.assertEqual("04/01/2025", by_player["cavali01"]["firstSeen"])
+        self.assertEqual("10/05/2025", by_player["cavali01"]["lastSeen"])
+
     def test_serialize_first_round_draft_picks_preserves_multiple_drafts(self):
         draft_index = {
             "459941": {
@@ -354,6 +439,51 @@ class DataSerializerTests(unittest.TestCase):
 
         self.assertEqual(3, by_player["runner01"]["sb"])
         self.assertEqual(0, by_player["hitter01"]["sb"])
+
+    def test_serialize_player_games_skips_game_only_rows_but_keeps_pa_rows(self):
+        game = {
+            "game_id": "HOM202606290",
+            "basic_info": {
+                "date_yyyymmdd": "20260629",
+                "home_team_code": "HOM",
+                "away_team_code": "AWY",
+                "game_type": "regular",
+            },
+            "batting": {
+                "home": [
+                    {
+                        "player_id": "batpit01",
+                        "name": "Pitcher Batted",
+                        "position": "P",
+                        "AB": 0,
+                        "PA": 1,
+                    },
+                    {
+                        "player_id": "runsub01",
+                        "name": "Pinch Runner",
+                        "position": "PR",
+                        "AB": 0,
+                        "PA": 0,
+                        "R": 1,
+                    },
+                    {
+                        "player_id": "gamepit01",
+                        "name": "Game Only Pitcher",
+                        "position": "P",
+                        "AB": 0,
+                        "PA": 0,
+                    },
+                ],
+                "away": [],
+            },
+        }
+
+        rows = DataSerializer()._serialize_player_games([game])
+        by_player = {row["playerId"]: row for row in rows}
+
+        self.assertEqual({"batpit01", "runsub01"}, set(by_player))
+        self.assertEqual(1, by_player["batpit01"]["pa"])
+        self.assertEqual(1, by_player["runsub01"]["r"])
 
     def test_serialize_milestones_includes_multiple_categories(self):
         milestones = {

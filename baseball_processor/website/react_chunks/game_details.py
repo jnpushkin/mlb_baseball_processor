@@ -166,7 +166,7 @@ CODE = r'''const Calendar = ({ games }) => {
                 </div>
             </div>
             {showModal && selectedDate && (
-                <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+                <Modal label={`${monthNames[monthIndices.indexOf(selectedMonthForModal)]} ${selectedDate.day}, all years`} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClose={() => setShowModal(false)}>
                     <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                             <h3 className="section-title font-bold">{monthNames[monthIndices.indexOf(selectedMonthForModal)]} {selectedDate.day} • All Years</h3>
@@ -204,7 +204,7 @@ CODE = r'''const Calendar = ({ games }) => {
                             <button onClick={() => setShowModal(false)} className="px-6 py-2 bg-blue-600 text-white body-text rounded-lg hover:bg-blue-700 font-medium w-full">Close</button>
                         </div>
                     </div>
-                </div>
+                </Modal>
             )}
         </>
     );
@@ -354,7 +354,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
                 const decided = wins + losses;
                 const winPct = decided > 0 ? (wins / decided) : null;
                 return (
-                <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+                <Modal label={`${selectedMatchup.team} vs ${selectedMatchup.opponent}`} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClose={() => setShowModal(false)}>
                     <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                             <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -412,7 +412,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
                             <button onClick={() => setShowModal(false)} className="px-6 py-2 bg-blue-600 text-white body-text rounded-lg hover:bg-blue-700 font-medium w-full">Close</button>
                         </div>
                     </div>
-                </div>
+                </Modal>
                 );
             })()}
         </>
@@ -563,7 +563,7 @@ const OriolesStadiumMap = ({ orioles }) => {
 
     return (
         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-            <div className="p-4 border-b bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+            <div className="p-4 border-b bg-gradient-to-r from-orange-700 to-orange-800 text-white">
                 <h3 className="font-bold text-lg">🗺️ Orioles Stadium Quest</h3>
                 <p className="text-sm text-orange-100 mt-1">See the Orioles at all 30 MLB stadiums</p>
             </div>
@@ -813,36 +813,36 @@ const OriolesDashboard = ({ orioles, games }) => {
     return (
         <div className="space-y-6">
             {/* Summary Stats */}
-            <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
+            <div className="bg-gradient-to-r from-orange-700 to-orange-800 rounded-lg shadow-lg p-6 text-white">
                 <h2 className="text-2xl font-bold mb-4">🧡 Orioles Dashboard</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                    <div className="bg-black/20 rounded-lg p-3 text-center">
                         <div className="text-3xl font-bold">{summaryStats.record}</div>
                         <div className="text-sm opacity-90">Record</div>
                     </div>
-                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                    <div className="bg-black/20 rounded-lg p-3 text-center">
                         <div className="text-3xl font-bold">{summaryStats.winPct}%</div>
                         <div className="text-sm opacity-90">Win %</div>
                     </div>
-                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                    <div className="bg-black/20 rounded-lg p-3 text-center">
                         <div className="text-3xl font-bold">{summaryStats.runsScored}</div>
                         <div className="text-sm opacity-90">Runs Scored</div>
                     </div>
-                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                    <div className="bg-black/20 rounded-lg p-3 text-center">
                         <div className="text-3xl font-bold">{summaryStats.runsAllowed}</div>
                         <div className="text-sm opacity-90">Runs Allowed</div>
                     </div>
-                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                    <div className="bg-black/20 rounded-lg p-3 text-center">
                         <div className={`text-3xl font-bold ${summaryStats.runDiff >= 0 ? 'text-green-200' : 'text-red-200'}`}>
                             {summaryStats.runDiff >= 0 ? '+' : ''}{summaryStats.runDiff}
                         </div>
                         <div className="text-sm opacity-90">Run Diff</div>
                     </div>
-                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                    <div className="bg-black/20 rounded-lg p-3 text-center">
                         <div className="text-3xl font-bold">{summaryStats.homeRecord}</div>
                         <div className="text-sm opacity-90">Home</div>
                     </div>
-                    <div className="bg-white/20 rounded-lg p-3 text-center">
+                    <div className="bg-black/20 rounded-lg p-3 text-center">
                         <div className="text-3xl font-bold">{summaryStats.awayRecord}</div>
                         <div className="text-sm opacity-90">Away</div>
                     </div>
@@ -1364,7 +1364,7 @@ const CompanionsView = ({ companionData }) => {
 
             {/* Modal for all games */}
             {showGames && selectedCompanion && (
-                <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowGames(false)}>
+                <Modal label={`Games with ${selectedCompanion.name}`} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClose={() => setShowGames(false)}>
                     <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                             <h3 className="section-title font-bold">Games with {selectedCompanion.name}</h3>
@@ -1394,7 +1394,7 @@ const CompanionsView = ({ companionData }) => {
                             <button onClick={() => setShowGames(false)} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium w-full">Close</button>
                         </div>
                     </div>
-                </div>
+                </Modal>
             )}
         </div>
     );

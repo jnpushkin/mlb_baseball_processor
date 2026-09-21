@@ -32,29 +32,26 @@ When processing a new BREF HTML file, the processor automatically:
 ## Deployment
 Website auto-deploys to: https://mlb-processor.surge.sh as part of `python3 -m baseball_processor` / `--website-only`.
 
-The output is the HTML plus JSON sidecars — `MLB Game Passport - BREF.html`, `data.json`, any `data-*.json` chunks, and `award-data.json` / `award-sidecar-*.json` when awards are enabled. The React app fetches `data.json` next to itself at runtime, then merges the sidecars. They must be deployed together; deploying only the HTML produces a "Failed to Load Data: HTTP 404" error on the live site, and omitting sidecars disables their sections.
+The current schema-v2 output is a **complete compiled release**: `MLB Game Passport - BREF.html`, `data.json`, content-hashed `data-index-*.json`, per-game and section `data-*.json` files, `assets/` (compiled JavaScript, CSS, and Leaflet images), `sw.js`, and `release.json`. The HTML loads its specific hashed index, then fetches section libraries and individual game details on demand. `release.json` is the authoritative file list with SHA-256 checksums. Old sidecars may remain locally but are not dependencies of the current build.
 
-### Manual deploy fallback
-If the auto-deploy step times out or fails, redeploy from the **project root** so the directory listing includes the HTML and all JSON sidecars:
+Install the pinned Node build tools once with `npm ci` (Node 22 or newer). Normal website generation invokes the compiler. For a quick UI-only rebuild from the existing serialized archive, run `npm run build:website`.
 
+### Validate and deploy
 ```bash
-# from the project root (which contains the .html, data.json, data-*.json, award-data.json, and award-sidecar-*.json)
-surge . mlb-processor.surge.sh
+python3 -m baseball_processor.website.release
+python3 -c 'import sys; from baseball_processor.main import deploy_to_surge; sys.exit(0 if deploy_to_surge("MLB Game Passport - BREF.html", "mlb-processor.surge.sh") else 1)'
 ```
+The deploy helper validates the manifest, stages exactly its files, and supplies both `index.html` and the named HTML shell. Use this same command if automatic deployment fails. **Do not deploy the project root or copy only HTML/JSON:** the compiled assets and service worker must ship together with their hashed data dependencies. The legacy deployment fallback remains only for older bundles without `release.json`.
 
-Surge expects the index file to be named `index.html`. Stage it in a temp dir if needed:
-
+### Frontend checks
 ```bash
-rm -rf /tmp/mlb-deploy && mkdir -p /tmp/mlb-deploy
-cp "MLB Game Passport - BREF.html" /tmp/mlb-deploy/index.html
-cp data.json /tmp/mlb-deploy/data.json
-cp data-*.json /tmp/mlb-deploy/ 2>/dev/null || true
-cp award-data.json /tmp/mlb-deploy/award-data.json
-cp award-sidecar-*.json /tmp/mlb-deploy/ 2>/dev/null || true
-surge /tmp/mlb-deploy mlb-processor.surge.sh
+python3 -m pip install -r requirements-dev.txt
+npm ci
+python3 -m pytest -q
+npx playwright install chromium
+npm run test:browser
 ```
-
-**Do NOT** deploy a directory that contains only the HTML — `data.json` MUST be alongside it or the site 404s. Include `data-*.json`, `award-data.json`, and `award-sidecar-*.json` chunks whenever they exist.
+Browser tests use an isolated synthetic archive on port 8769; they do not add real games or publish the archive. The CI workflow checks Python regressions, browser journeys, and the fixture release manifest. `frontend/runtime.js`, `frontend/sw.js`, and `frontend/build.mjs` are source files; generated root assets and `sw.js` are ignored.
 
 ## Scraping
 
@@ -178,7 +175,7 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 ## Architecture Notes
 - Milestone detection uses tiered pattern (only highest tier reported per category)
 - Career milestones track every 100 (e.g., Hit #100, #200, #300... up to #4000)
-- Website output is a static React app (10 tabs, 21 subtabs) assembled from `website/react_chunks/` and embedded into the generated HTML
+- Website output is a static React app (10 primary tabs with grouped subtabs) assembled from `website/react_chunks/` and compiled by esbuild/Tailwind into hashed local assets. `react_chunks/passport.jsx` owns the shared route, scope, home, recap, journal, planner, comparisons, and health UI.
 - Website-capable MLB runs write `data/shared_players.json`, then call the sibling NCAA processor's `python3 -m baseball_processor --refresh-shared-players` cache-only command before serialization. This keeps the Players > College tab current. Use `--skip-ncaa-player-refresh` or `MLB_PROCESSOR_SKIP_NCAA_REFRESH=1` only for local/debug runs.
 - All-time passing detection distinguishes "tied" vs "passed" events
 - Game deduplication by date+teams (prevents BREF + API duplicates)
@@ -190,29 +187,52 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 - Player bios cached in `cache/player_bios.json` (fetched from MLB API)
 - MLB draft API `roundPickNumber` is unreliable in some historical payloads (notably 2002 phase/regular round merges). Use `draft_scraper` normalization for within-round slots, preserve `rawRound` for supplemental labels, and keep all draft records for players drafted multiple times.
 - Downloaded BREF HTML backups for API-sourced games should short-circuit to the existing API cache by inferring the BREF-style game ID from the backup filename. Do not reparse those backups just to rediscover the game ID.
+- A date/team matchup is not a unique BREF backup identity because doubleheaders share both. Match local backups to API games using the BREF canonical game ID in the HTML, and give Game 2 a distinct filename so the downloader cannot skip or overwrite it.
+- API pinch-hit home runs must be derived by matching normalized pinch-hitter substitutions to that player's first subsequent plate appearance; HTML-only substitution parsing is unavailable for API-sourced caches.
+- The MLB.com Splash Hits page contains source typos and can encounter both provisional register IDs and later canonical BREF IDs for the same player. Repair known page typos in the scraper and prefer canonical MLB BREF IDs when resolving rows.
+- Signature-HR reference matching cannot use date plus player appearance alone: a player can appear in both games of a doubleheader. Require a positive HR total in the specific game, use the reference pitcher against HR play-by-play when available, and suppress the reference with a warning if it still maps to multiple game IDs.
+- The shared React `DataTable` supplies a default mobile card for every table; specialized story views can still pass `mobileCard` for custom hierarchy. Keep the desktop table hidden below the `sm` breakpoint instead of reintroducing horizontally scrolling phone tables.
+- Global dark-mode CSS recognizes specific light-gradient utility fragments. Reuse the supported `from-blue-50 ... to-indigo-50` collection-header pattern or add a matching override in `website/templates.py`; an unrecognized pale gradient can leave light text on a light background.
 - Individual defensive errors are source-specific: BREF games credit them from `footer_summary[*].E`, while MLB API games expose per-player `stats.fielding.errors` in the boxscore. The defensive tracker should use the BREF footer when present, otherwise row-level API `E`, with play-by-play text only as a fallback for older API caches. BREF footer names can have 3+ tokens (e.g., `Jung Hoo Lee`), so avoid fixed first/last-name regexes.
 - Website IP display should keep outs as the canonical value for UI calculations and use the shared React helpers (`formatOutsAsIP`, `baseballIPToOuts`, `formatHistoricalStatValue`) for display/sort/filter boundaries. Avoid accumulating IP as normal decimal innings in React; it leaks values like `#.6667` instead of baseball notation (`#.2`).
 - Stolen bases and caught stealing are runner-owned events. For BREF games, credit SB/CS from the batting row `Details`/direct row stats via `parse_batting_detail_counts`; play-by-play descriptions happen during another batter's plate appearance and can miscredit the current `batter`.
 - In the situational hitting tracker, any home run with bases loaded is a grand slam even when play-by-play text says only "homered" instead of "grand slam"; the website Bases Loaded grand-slam table should aggregate from the canonical Grand Slams milestone data so it stays consistent with the Milestones tab.
+- Website game durations pass through Excel fractions of a day. Round to total integer minutes before formatting hours/minutes; truncating fractional hours and minutes can turn 1:55 into 1:54.
+- Website date filters must compare normalized date-only values. Mixing `new Date('MM/DD/YYYY')` with `new Date('YYYY-MM-DD')` mixes local and UTC midnight and can exclude the inclusive end date in Pacific time.
+- A successful add-game cache write does not establish successful processing or deployment. Propagate processor exit status and deployment results before reporting "added and deployed" in the local server UI.
+
+- Shared date-only, search-normalization, and distinct-player-count helpers live in `website/react_chunks/browser_utils.py`; their behavior is exercised in Node through `tests/test_audit_regressions.py`.
+- Use the shared `Modal` component in `website/react_chunks/dialog.py` for overlays. It provides accessible naming, Escape dismissal, focus trapping/restoration, body scroll locking, and nested-dialog ordering. Game arrow navigation is passed through its `onPrevious` / `onNext` props.
+- The add-game server reports `saved`, `processed`, and `deployed` separately and reuses cached games on retries. Build subprocesses must use `check=True`; processing failures must exit nonzero. Deployment validates the required JSON manifests and referenced sidecars before uploading.
 
 ## Local Website Review
 ```bash
 python3 -m baseball_processor --from-cache-only --skip-debut-update --website-only --no-deploy --no-emoji
 python3 -m http.server 8765
 ```
-Open `http://127.0.0.1:8765/MLB%20Game%20Passport%20-%20BREF.html`. Keep `data.json` beside the HTML file.
+Open `http://127.0.0.1:8765/MLB%20Game%20Passport%20-%20BREF.html`. Keep every `release.json` dependency beside the HTML file, including `assets/` and the hashed index. Validate the release before preview or deployment.
 
 ## Website Structure (10 tabs)
 1. **Dashboard** - Overview stats, charts, trends
 2. **Games** - Game log with detail modals (box score, lineups, play-by-play, context)
-3. **Players** - Hitters | Pitchers | No Stats | College | Leaderboards
+3. **Players** - Stats | Recognition | Background | Tools groups
 4. **Milestones** - Game Milestones | All-Time Passings (with career firsts)
 5. **Venues** - Map & Tables | Calendar
 6. **Progress** - Division Checklist | Badges | Matchups
 7. **Special** - Records | Debuts | Final Games | Signature HRs
-8. **Frivolities** - Jersey Numbers | Origins | Birthdays | Scorigami | Umpires
+8. **Frivolities** - Jersey Numbers | Draft Picks | Origins | Birthdays | Home/Away | Scorigami | Umpires
 9. **Companions** - Game companion tracking
 10. **Orioles** - Team-specific dashboard
+
+## Website and Add-Game Invariants
+- Add-game POST requests return durable job IDs. Job progress is stored in `cache/add_game_jobs.json`; saved, processed, and deployed stages must remain distinct. Interrupted jobs become retryable failures after restart.
+- The initial index deliberately omits full statistics, milestones, awards, biographies, draft data, and play-by-play. Add every new section dependency to `passportKeysForRoute`; retain navigation entries before their library has loaded.
+- Individual game payloads contain `_detailPlayerGames`, `_detailPitcherGames`, `_detailMilestones`, `_detailCareerFirsts`, and `_detailPassings`. Game dialogs must work from a copied URL and from an explicitly saved offline recap without global libraries.
+- Route changes close entity dialogs themselves. Do not call a history-based close handler after navigating to a new section: that undoes the navigation. Subtab state must also reset when Back returns to a route with no explicit subtab.
+- Shared Browse filters scope the home/recap, games, milestone views, and player stat views. Historical collection sections show a lifetime label. Record Book statistics exclude spring training and must say so.
+- Private journal text, images, goals, and saved views stay in browser storage and private exports. They must never enter the public serialized archive. Import merges must preserve existing notes and images, validate all entries before writes, and report storage failures.
+- First-seen IDs in the release are recomputed chronologically from canonical batting, pitching, and no-stat identities. Do not reuse old cached placeholder first-seen IDs, which can inflate recap totals.
+- Pitch and exit-velocity coverage require a positive measurement; a nonempty object containing only pitch totals is not velocity coverage. Game change fingerprints exclude packaging fields so a frontend rebuild is not reported as a source correction.
 
 ## Error Handling
 When encountering repeated errors or discovering project-specific quirks:

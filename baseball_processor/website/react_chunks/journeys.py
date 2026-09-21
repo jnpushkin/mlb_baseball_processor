@@ -7,12 +7,15 @@ CODE = r'''const CompactStat = ({ label, value, emphasis = false }) => (
     </div>
 );
 
-const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings, milestones, debuts, finalGames }) => {
-    const [search, setSearch] = useState('');
+const DynamicPlayerTable = ({ initialSearch = '', allPlayers, playerGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings, milestones, debuts, finalGames }) => {
+    const [search, setSearch] = useState(initialSearch);
+    useEffect(() => setSearch(initialSearch), [initialSearch]);
     const [sortKey, setSortKey] = useState('pa');
     const [sortDir, setSortDir] = useState('desc');
     const [activeFilter, setActiveFilter] = useState('all');
-    const [gameTypeFilter, setGameTypeFilter] = useState('regular');
+    const scopeType=readPassportRoute().type;
+    const [gameTypeFilter, setGameTypeFilter] = useState(scopeType||'regular');
+    useEffect(()=>setGameTypeFilter(scopeType||'regular'),[scopeType]);
 
     // Check for pending player selection (from search/College tab)
     useEffect(() => {
@@ -63,7 +66,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
     const filtered = useMemo(() => {
         let result = gameTypeData;
         if (activeFilter !== 'all') result = result.filter(row => row.team.includes(activeFilter));
-        if (search) result = result.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(search.toLowerCase())));
+        if (search) result = result.filter(row => Object.values(row).some(val => normalizeSearchText(val).includes(normalizeSearchText(search))));
         return result;
     }, [gameTypeData, search, activeFilter]);
 
@@ -106,7 +109,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
                 <div className="flex items-center gap-2">
                     <PlayerLink playerId={r.playerId} name={v} external />
                     <button
-                        onClick={() => setSelectedPlayer({ id: r.playerId, name: v })}
+                        onClick={() => openPassportPlayer(r.playerId)}
                         className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-semibold whitespace-nowrap"
                         title="View career timeline"
                     >
@@ -123,6 +126,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
         { key: 'avgExitVelo', label: 'Avg EV', render: (v) => v ? `${v}` : '-' },
     ];
 
+    const {page,setPage,totalPages,paginatedData,totalItems}=usePagination(sorted,50);
     const gameTypeLabels = { all: 'All Games', spring: 'Spring Training', regular: 'Regular Season', postseason: 'Postseason' };
 
     return (
@@ -137,24 +141,28 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
                     <input type="text" placeholder="Search players..." value={search} onChange={(e) => setSearch(e.target.value)} className="min-h-11 flex-1 min-w-[200px] px-4 py-2 body-text border rounded-lg" />
-                    <select value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg bg-green-50">
+                    <details className="flex-1"><summary className="passport-button inline-flex items-center">Filters</summary><div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 mt-2">
+                    <select aria-label="Table game type" value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg bg-green-50">
                         <option value="all">All Games</option>
                         <option value="regular">Regular Season</option>
                         <option value="spring">Spring Training</option>
                         <option value="postseason">Postseason</option>
                     </select>
-                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
-                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
+                    <input type="date" aria-label="Start date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
+                    <input type="date" aria-label="End date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
                     {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="min-h-11 px-3 py-2 body-text text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md">Clear Dates</button>}
-                    <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg">
+                    <select aria-label="Team filter" value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg">
                         <option value="all">All Teams</option>
                         {filterValues.map(val => <option key={val} value={val}>{val}</option>)}
                     </select>
+                    </div></details>
                 </div>
                 {useFiltered && <div className="bg-yellow-50 border border-yellow-200 rounded p-3"><p className="body-text text-yellow-900">Stats recalculated for selected date range</p></div>}
             </div>
-            <div className="sm:hidden divide-y divide-slate-100 max-h-[72vh] overflow-y-auto">
-                {sorted.map((row) => (
+            <TableSortControls {...{columns,sortKey,sortDir,setSortKey,setSortDir}}/>
+            <PaginationControls {...{page,setPage,totalPages,totalItems}}/>
+            <div className="sm:hidden divide-y divide-slate-100">
+                {paginatedData.map((row) => (
                     <article key={row.playerId} className="p-4 space-y-3">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -164,7 +172,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
                                 <div className="small-text text-slate-500 mt-1 truncate">{row.team}</div>
                             </div>
                             <button
-                                onClick={() => setSelectedPlayer({ id: row.playerId, name: row.name })}
+                                onClick={() => openPassportPlayer(row.playerId)}
                                 className="min-h-10 shrink-0 rounded-md border border-slate-200 px-3 body-text font-semibold text-slate-700 hover:bg-slate-50"
                             >
                                 Timeline
@@ -180,16 +188,17 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
                             <CompactStat label="OPS" value={row.ops} />
                             <CompactStat label="Max EV" value={row.maxExitVelo || '-'} />
                         </div>
+                        <details><summary className="text-sm text-blue-600">All stats</summary><dl className="grid grid-cols-2 gap-2 mt-2">{columns.filter(c=>c.key!=='name').map(c=><div key={c.key}><dt className="text-xs text-slate-500"><StatDefinition label={c.label}/></dt><dd className="text-sm">{c.render?c.render(row[c.key],row):row[c.key]}</dd></div>)}</dl></details>
                     </article>
                 ))}
             </div>
-            <div className="hidden sm:block overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                <table className="w-full">
+            <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full passport-stats-table">
                     <thead className="bg-slate-50 sticky top-0">
-                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} className="px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
+                        <tr>{columns.map(col => <th key={col.key} aria-sort={sortKey===col.key?(sortDir==='asc'?'ascending':'descending'):'none'} className="text-left small-text font-medium text-slate-500 uppercase"><button className="px-4 py-3 w-full text-left hover:bg-slate-100" onClick={()=>handleSort(col.key)}><StatDefinition label={col.label}/> {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</button></th>)}</tr>
                     </thead>
                     <tbody className="divide-y">
-                        {sorted.map((row) => (
+                        {paginatedData.map((row) => (
                             <tr key={row.playerId} className="hover:bg-blue-50">
                                 {columns.map(col => <td key={col.key} className="px-4 py-3 body-text">{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
                             </tr>
@@ -199,7 +208,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
             </div>
 
             {selectedPlayer && (
-                <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPlayer(null)}>
+                <Modal label={selectedPlayer.name} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClose={() => setSelectedPlayer(null)}>
                     <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
                             <div className="flex items-center gap-3">
@@ -209,7 +218,7 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
                                         className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-white">Pre-MLB Stats →</button>
                                 )}
                             </div>
-                            <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
+                            <button data-dialog-close="true" aria-label="Close dialog" onClick={() => setSelectedPlayer(null)} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
                         </div>
                         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
                             <PlayerTimeline
@@ -227,18 +236,21 @@ const DynamicPlayerTable = ({ allPlayers, playerGames, ncaaCrossRef, careerFirst
                             />
                         </div>
                     </div>
-                </div>
+                </Modal>
             )}
         </div>
     );
 };
 
-const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings, milestones, debuts, finalGames }) => {
-    const [search, setSearch] = useState('');
+const DynamicPitcherTable = ({ initialSearch = '', allPitchers, pitcherGames, ncaaCrossRef, careerFirstsByPlayer, allTimePassings, milestones, debuts, finalGames }) => {
+    const [search, setSearch] = useState(initialSearch);
+    useEffect(() => setSearch(initialSearch), [initialSearch]);
     const [sortKey, setSortKey] = useState('ip');
     const [sortDir, setSortDir] = useState('desc');
     const [activeFilter, setActiveFilter] = useState('all');
-    const [gameTypeFilter, setGameTypeFilter] = useState('regular');
+    const scopeType=readPassportRoute().type;
+    const [gameTypeFilter, setGameTypeFilter] = useState(scopeType||'regular');
+    useEffect(()=>setGameTypeFilter(scopeType||'regular'),[scopeType]);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [useFiltered, setUseFiltered] = useState(false);
@@ -289,7 +301,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
     const filtered = useMemo(() => {
         let result = gameTypeData;
         if (activeFilter !== 'all') result = result.filter(row => row.team.includes(activeFilter));
-        if (search) result = result.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(search.toLowerCase())));
+        if (search) result = result.filter(row => Object.values(row).some(val => normalizeSearchText(val).includes(normalizeSearchText(search))));
         return result;
     }, [gameTypeData, search, activeFilter]);
 
@@ -332,7 +344,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
                 <div className="flex items-center gap-2">
                     <PlayerLink playerId={r.playerId} name={v} external />
                     <button
-                        onClick={() => setSelectedPitcher({ id: r.playerId, name: v })}
+                        onClick={() => openPassportPlayer(r.playerId)}
                         className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-semibold whitespace-nowrap"
                         title="View career timeline"
                     >
@@ -351,6 +363,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
         { key: 'avgSpinRate', label: 'Avg Spin', render: (v) => v ? `${v}` : '-' },
     ];
 
+    const {page,setPage,totalPages,paginatedData,totalItems}=usePagination(sorted,50);
     const gameTypeLabels = { all: 'All Games', spring: 'Spring Training', regular: 'Regular Season', postseason: 'Postseason' };
 
     return (
@@ -365,24 +378,28 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
                     <input type="text" placeholder="Search pitchers..." value={search} onChange={(e) => setSearch(e.target.value)} className="min-h-11 flex-1 min-w-[200px] px-4 py-2 body-text border rounded-lg" />
-                    <select value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg bg-green-50">
+                    <details className="flex-1"><summary className="passport-button inline-flex items-center">Filters</summary><div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 mt-2">
+                    <select aria-label="Table game type" value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg bg-green-50">
                         <option value="all">All Games</option>
                         <option value="regular">Regular Season</option>
                         <option value="spring">Spring Training</option>
                         <option value="postseason">Postseason</option>
                     </select>
-                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
-                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
+                    <input type="date" aria-label="Start date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
+                    <input type="date" aria-label="End date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
                     {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="min-h-11 px-3 py-2 body-text text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md">Clear Dates</button>}
-                    <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg">
+                    <select aria-label="Team filter" value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg">
                         <option value="all">All Teams</option>
                         {filterValues.map(val => <option key={val} value={val}>{val}</option>)}
                     </select>
+                    </div></details>
                 </div>
                 {useFiltered && <div className="bg-yellow-50 border border-yellow-200 rounded p-3"><p className="body-text text-yellow-900">Stats recalculated for selected date range</p></div>}
             </div>
-            <div className="sm:hidden divide-y divide-slate-100 max-h-[72vh] overflow-y-auto">
-                {sorted.map((row) => (
+            <TableSortControls {...{columns,sortKey,sortDir,setSortKey,setSortDir}}/>
+            <PaginationControls {...{page,setPage,totalPages,totalItems}}/>
+            <div className="sm:hidden divide-y divide-slate-100">
+                {paginatedData.map((row) => (
                     <article key={row.playerId} className="p-4 space-y-3">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -392,7 +409,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
                                 <div className="small-text text-slate-500 mt-1 truncate">{row.team}</div>
                             </div>
                             <button
-                                onClick={() => setSelectedPitcher({ id: row.playerId, name: row.name })}
+                                onClick={() => openPassportPlayer(row.playerId)}
                                 className="min-h-10 shrink-0 rounded-md border border-slate-200 px-3 body-text font-semibold text-slate-700 hover:bg-slate-50"
                             >
                                 Timeline
@@ -408,16 +425,17 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
                             <CompactStat label="SV" value={row.saves} />
                             <CompactStat label="Max" value={row.maxSpeed || '-'} />
                         </div>
+                        <details><summary className="text-sm text-blue-600">All stats</summary><dl className="grid grid-cols-2 gap-2 mt-2">{columns.filter(c=>c.key!=='name').map(c=><div key={c.key}><dt className="text-xs text-slate-500"><StatDefinition label={c.label}/></dt><dd className="text-sm">{c.render?c.render(row[c.key],row):row[c.key]}</dd></div>)}</dl></details>
                     </article>
                 ))}
             </div>
-            <div className="hidden sm:block overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                <table className="w-full">
+            <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full passport-stats-table">
                     <thead className="bg-slate-50 sticky top-0">
-                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} className="px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100">{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
+                        <tr>{columns.map(col => <th key={col.key} aria-sort={sortKey===col.key?(sortDir==='asc'?'ascending':'descending'):'none'} className="text-left small-text font-medium text-slate-500 uppercase"><button className="px-4 py-3 w-full text-left hover:bg-slate-100" onClick={()=>handleSort(col.key)}><StatDefinition label={col.label}/> {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</button></th>)}</tr>
                     </thead>
                     <tbody className="divide-y">
-                        {sorted.map((row) => (
+                        {paginatedData.map((row) => (
                             <tr key={row.playerId} className="hover:bg-blue-50">
                                 {columns.map(col => <td key={col.key} className="px-4 py-3 body-text">{col.render ? col.render(row[col.key], row) : row[col.key]}</td>)}
                             </tr>
@@ -427,7 +445,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
             </div>
 
             {selectedPitcher && (
-                <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPitcher(null)}>
+                <Modal label={selectedPitcher.name} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClose={() => setSelectedPitcher(null)}>
                     <div className="bg-white rounded-lg shadow-lg max-w-4xl max-w-[95vw] w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-purple-700 text-white">
                             <div className="flex items-center gap-3">
@@ -437,7 +455,7 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
                                         className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-white">Pre-MLB Stats →</button>
                                 )}
                             </div>
-                            <button onClick={() => setSelectedPitcher(null)} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
+                            <button data-dialog-close="true" aria-label="Close dialog" onClick={() => setSelectedPitcher(null)} className="text-white hover:text-slate-200 text-2xl leading-none">&times;</button>
                         </div>
                         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
                             <PitcherTimeline
@@ -455,13 +473,14 @@ const DynamicPitcherTable = ({ allPitchers, pitcherGames, ncaaCrossRef, careerFi
                             />
                         </div>
                     </div>
-                </div>
+                </Modal>
             )}
         </div>
     );
 };
 
 const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions = null, enableDateFilter = false, enableExport = true, paginate = true, onRowClick = null, persistKey = null, mobileCard = null }) => {
+    persistKey = persistKey || title.replace(/[^a-z0-9]/gi,'_').toLowerCase();
     const loadPersisted = (key, fallback) => {
         if (!persistKey) return fallback;
         try { const v = JSON.parse(localStorage.getItem(`dt_${persistKey}_${key}`)); return v !== null ? v : fallback; } catch { return fallback; }
@@ -495,15 +514,9 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
             }
         });
         if (enableDateFilter && (startDate || endDate)) {
-            result = result.filter(row => {
-                const rowDate = new Date(row.date);
-                if (isNaN(rowDate)) return true;
-                if (startDate && rowDate < new Date(startDate)) return false;
-                if (endDate && rowDate > new Date(endDate)) return false;
-                return true;
-            });
+            result = result.filter(row => isDateInRange(row.date, startDate, endDate));
         }
-        if (search) result = result.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(search.toLowerCase())));
+        if (search) result = result.filter(row => Object.values(row).some(val => normalizeSearchText(val).includes(normalizeSearchText(search))));
         return result;
     }, [data, search, activeFilters, startDate, endDate, filters]);
 
@@ -559,6 +572,43 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
 
     const hasActiveFilters = Object.values(activeFilters).some(v => v && v !== 'all') || startDate || endDate;
 
+    const defaultMobileCard = (row) => {
+        const visibleColumns = columns.filter(col => !isMissingValue(row[col.key]));
+        const primaryColumn = visibleColumns.find(col => /^(player|name|hitter|pitcher|umpire)$/i.test(col.label || ''))
+            || visibleColumns[0]
+            || columns[0];
+        const detailColumns = visibleColumns.filter(col => col.key !== primaryColumn?.key).slice(0, 6);
+        const renderValue = (col) => col?.render ? col.render(row[col.key], row) : row[col?.key];
+
+        return (
+            <div className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <div className="small-text uppercase tracking-wide text-slate-400">{primaryColumn?.label}</div>
+                        <div className="mt-0.5 font-semibold text-slate-900 break-words">{renderValue(primaryColumn)}</div>
+                    </div>
+                    {sortKey && row[sortKey] !== undefined && primaryColumn?.key !== sortKey && (
+                        <div className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-sm font-semibold text-slate-700">
+                            {row[sortKey]}
+                        </div>
+                    )}
+                </div>
+                {onRowClick && <button className="passport-button mt-2" onClick={() => onRowClick(row)}>Open details</button>}
+                {detailColumns.length > 0 && (
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+                        {detailColumns.map(col => (
+                            <div key={col.key} className="min-w-0">
+                                <dt className="small-text uppercase tracking-wide text-slate-400">{col.label}</dt>
+                                <dd className="mt-0.5 body-text text-slate-700 break-words">{renderValue(col)}</dd>
+                            </div>
+                        ))}
+                    </dl>
+                )}
+            </div>
+        );
+    };
+    const renderMobileCard = mobileCard || defaultMobileCard;
+
     return (
         <div className="bg-white rounded-lg border border-slate-200" style={{ boxShadow: 'var(--shadow)' }}>
             <div className="p-4 border-b border-slate-100 space-y-3">
@@ -574,15 +624,17 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
                     <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="min-h-11 flex-1 min-w-[200px] px-3 py-2 body-text border border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    <details className="flex-1"><summary className="passport-button inline-flex items-center">Filters</summary><div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 mt-2">
                     {enableDateFilter && (
                         <>
-                            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
-                            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
+                            <input type="date" aria-label="Start date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
+                            <input type="date" aria-label="End date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="min-h-11 px-4 py-2 body-text border rounded-lg" />
                         </>
                     )}
                     {filters.map(filter => (
                         <select
                             key={filter.key}
+                            aria-label={filter.label}
                             value={activeFilters[filter.key] || 'all'}
                             onChange={(e) => handleFilterChange(filter.key, e.target.value)}
                             className="min-h-11 px-4 py-2 body-text border rounded-lg"
@@ -601,22 +653,23 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
                             Clear filters
                         </button>
                     )}
+                    </div></details>
                 </div>
             </div>
+            <TableSortControls {...{columns,sortKey,sortDir,setSortKey,setSortDir}}/>
             {paginate && <PaginationControls page={page} setPage={setPage} totalPages={totalPages} totalItems={totalItems} />}
-            {mobileCard && (
-                <div className="sm:hidden divide-y divide-slate-100">
+            <div className="sm:hidden divide-y divide-slate-100">
                     {displayData.map((row, idx) => (
                         <div key={row.id || row.gameId || `mobile-item-${idx}`}>
-                            {mobileCard(row, idx)}
+                            {renderMobileCard(row, idx)}
+                            <details className="px-4 pb-3"><summary className="text-sm text-blue-600">All details</summary><dl className="grid grid-cols-2 gap-3 mt-2">{columns.map(c=><div key={c.key}><dt className="text-xs text-slate-500"><StatDefinition label={c.label}/></dt><dd className="text-sm break-words">{c.render?c.render(row[c.key],row):row[c.key]}</dd></div>)}</dl></details>
                         </div>
                     ))}
-                </div>
-            )}
-            <div className={`${mobileCard ? 'hidden sm:block ' : ''}overflow-x-auto relative`} style={{ maxHeight: '600px', overflowY: 'auto' }}>
+            </div>
+            <div className="hidden sm:block overflow-x-auto relative">
                 <table className="w-full min-w-full">
                     <thead className="bg-slate-50 sticky top-0 z-10 shadow-[0_1px_0_0_rgba(148,163,184,0.25)]">
-                        <tr>{columns.map(col => <th key={col.key} onClick={() => handleSort(col.key)} aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className={`px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100 ${col.headerClassName || ''}`} style={col.headerStyle}>{col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</th>)}</tr>
+                        <tr>{columns.map(col => <th key={col.key} aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className={`px-4 py-3 text-left small-text font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100 ${col.headerClassName || ''}`} style={col.headerStyle}><button className="w-full text-left" onClick={()=>handleSort(col.key)}><StatDefinition label={col.label}/> {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}</button></th>)}</tr>
                     </thead>
                     <tbody className="divide-y">
                         {displayData.map((row, idx) => (
@@ -634,9 +687,17 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
 
 const Leaderboards = ({ data }) => {
     const [category, setCategory] = useState('batting');
+    const scopeType=readPassportRoute().type;
+    const [gameTypeFilter, setGameTypeFilter] = useState(scopeType||'regular');
+    useEffect(()=>setGameTypeFilter(scopeType||'regular'),[scopeType]);
     // Auto-calculate reasonable minimums: ~2 AB per game attended, ~0.5 IP per game
-    const autoMinAB = useMemo(() => Math.max(10, Math.round((data.games?.length || 50) * 0.4)), [data.games]);
-    const autoMinIP = useMemo(() => Math.max(5, Math.round((data.games?.length || 50) * 0.2)), [data.games]);
+    const scopedGameCount = useMemo(() => {
+        const games = data.games || [];
+        if (gameTypeFilter === 'all') return games.length || 50;
+        return games.filter(g => (g.gameType || 'regular') === gameTypeFilter).length || 50;
+    }, [data.games, gameTypeFilter]);
+    const autoMinAB = useMemo(() => Math.max(10, Math.round(scopedGameCount * 0.4)), [scopedGameCount]);
+    const autoMinIP = useMemo(() => Math.max(5, Math.round(scopedGameCount * 0.2)), [scopedGameCount]);
     const [minAB, setMinAB] = useState(autoMinAB);
     const [minIP, setMinIP] = useState(autoMinIP);
     const [startDate, setStartDate] = useState('');
@@ -644,26 +705,30 @@ const Leaderboards = ({ data }) => {
     const [useFiltered, setUseFiltered] = useState(false);
     
     useEffect(() => { setUseFiltered(!!(startDate || endDate)); }, [startDate, endDate]);
+    useEffect(() => {
+        setMinAB(autoMinAB);
+        setMinIP(autoMinIP);
+    }, [autoMinAB, autoMinIP]);
     
     const playersData = useMemo(() => {
-        if (!useFiltered || (!startDate && !endDate)) return data.players || [];
         const filteredGames = (data.playerGames || []).filter(game => {
+            if (gameTypeFilter !== 'all' && (game.gameType || 'regular') !== gameTypeFilter) return false;
             if (startDate && game.dateSort < startDate) return false;
             if (endDate && game.dateSort > endDate) return false;
             return true;
         });
         return aggregateHitterStats(filteredGames);
-    }, [data.players, data.playerGames, startDate, endDate, useFiltered]);
+    }, [data.playerGames, gameTypeFilter, startDate, endDate]);
     
     const pitchersData = useMemo(() => {
-        if (!useFiltered || (!startDate && !endDate)) return data.pitchers || [];
         const filteredGames = (data.pitcherGames || []).filter(game => {
+            if (gameTypeFilter !== 'all' && (game.gameType || 'regular') !== gameTypeFilter) return false;
             if (startDate && game.dateSort < startDate) return false;
             if (endDate && game.dateSort > endDate) return false;
             return true;
         });
         return aggregatePitcherStats(filteredGames);
-    }, [data.pitchers, data.pitcherGames, startDate, endDate, useFiltered]);
+    }, [data.pitcherGames, gameTypeFilter, startDate, endDate]);
     
     const battingLeaders = useMemo(() => {
         const all = playersData;
@@ -723,6 +788,8 @@ const Leaderboards = ({ data }) => {
         );
     };
     
+    const gameTypeLabels = { all: 'All Games', spring: 'Spring Training', regular: 'Regular Season', postseason: 'Postseason' };
+
     return (
         <div className="space-y-6">
             <div className="bg-white rounded-lg border border-slate-200 p-4">
@@ -732,6 +799,15 @@ const Leaderboards = ({ data }) => {
                         <button onClick={() => setCategory('pitching')} className={`px-6 py-2 rounded body-text font-medium ${category === 'pitching' ? 'bg-blue-600 text-white' : 'bg-slate-100 hover:bg-slate-200'}`}>Pitching</button>
                     </div>
                     <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-2 body-text bg-green-50 px-3 py-2 rounded border">
+                            <span className="font-medium">Games:</span>
+                            <select aria-label="Table game type" value={gameTypeFilter} onChange={(e) => setGameTypeFilter(e.target.value)} className="px-2 py-1 body-text border rounded bg-white">
+                                <option value="all">All Games</option>
+                                <option value="regular">Regular Season</option>
+                                <option value="spring">Spring Training</option>
+                                <option value="postseason">Postseason</option>
+                            </select>
+                        </label>
                         {category === 'batting' && (
                             <label className="flex items-center gap-2 body-text bg-blue-50 px-3 py-2 rounded border">
                                 <span className="font-medium">Min AB:</span>
@@ -750,10 +826,10 @@ const Leaderboards = ({ data }) => {
                     <div className="flex flex-wrap items-center gap-4">
                         <label className="flex items-center gap-2 body-text">
                             <span className="font-medium text-slate-700">Date Range:</span>
-                            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-3 py-2 body-text border rounded-lg" />
+                            <input type="date" aria-label="Start date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-3 py-2 body-text border rounded-lg" />
                         </label>
                         <span className="text-slate-400">to</span>
-                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-3 py-2 body-text border rounded-lg" />
+                        <input type="date" aria-label="End date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-3 py-2 body-text border rounded-lg" />
                         {(startDate || endDate) && <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-3 py-2 body-text text-slate-600 hover:text-slate-900 border rounded-lg hover:bg-slate-50">Clear Dates</button>}
                         {useFiltered && <div className="ml-auto"><span className="px-3 py-2 body-text bg-yellow-100 text-yellow-900 rounded-lg border border-yellow-300">⚡ Stats recalculated for date range</span></div>}
                     </div>
@@ -761,7 +837,7 @@ const Leaderboards = ({ data }) => {
             </div>
             {category === 'batting' && (
                 <div>
-                    <h3 className="subsection-title font-bold mb-4">📊 Rate Stats (Min {minAB} AB)</h3>
+                    <h3 className="subsection-title font-bold mb-4">📊 Rate Stats ({gameTypeLabels[gameTypeFilter]}, Min {minAB} AB)</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <LeaderCard title="AVG" leaders={battingLeaders.avg} stat="avg" isRateStat={true} />
                         <LeaderCard title="OBP" leaders={battingLeaders.obp} stat="obp" isRateStat={true} />
@@ -781,7 +857,7 @@ const Leaderboards = ({ data }) => {
             )}
             {category === 'pitching' && (
                 <div>
-                    <h3 className="subsection-title font-bold mb-4">📊 Rate Stats (Min {minIP} IP)</h3>
+                    <h3 className="subsection-title font-bold mb-4">📊 Rate Stats ({gameTypeLabels[gameTypeFilter]}, Min {minIP} IP)</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <LeaderCard title="ERA" leaders={pitchingLeaders.era} stat="era" isRateStat={true} />
                         <LeaderCard title="WHIP" leaders={pitchingLeaders.whip} stat="whip" isRateStat={true} />
@@ -807,6 +883,7 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
     const [timelineQuickFilter, setTimelineQuickFilter] = useState('all');
     const [milestoneScope, setMilestoneScope] = useState('curated');
     const [selectedMilestoneType, setSelectedMilestoneType] = useState('all');
+    const [showMilestoneFilters, setShowMilestoneFilters] = useState(false);
     const visibleMilestones = milestoneScope === 'all' ? (allMilestones || milestones || []) : (milestones || []);
 
     useEffect(() => {
@@ -1098,13 +1175,11 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                     </div>
                 )}
 
-                {/* Category filters */}
-                <div className="flex flex-wrap gap-2 mt-4">
+                {/* Primary categories stay intentionally compact; detailed filters live below. */}
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                     {[
                         { id: 'all', label: 'All', count: totalCount + careerEventsCount + allTimePassingsCount },
                         { id: 'firsts', label: '⭐ Career Events', count: careerEventsCount },
-                        { id: 'career-firsts', label: 'Firsts', count: firstCareerEventsCount },
-                        { id: 'career-lasts', label: 'Lasts', count: careerLastsCount },
                         { id: 'all-time', label: '📈 All-Time', count: allTimePassingsCount },
                         { id: 'batting', label: '🏏 Batting', count: battingCount },
                         { id: 'pitching', label: '⚾ Pitching', count: pitchingCount },
@@ -1121,7 +1196,7 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                                     setSelectedMilestoneType('all');
                                 }
                             }}
-                            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                            className={`min-h-10 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
                                 activeCategory === cat.id
                                     ? 'bg-blue-600 text-white'
                                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -1130,83 +1205,99 @@ const MilestonesView = ({ milestones, allMilestones, games, careerFirsts, career
                             {cat.label} <span className="ml-1 opacity-75">({cat.count})</span>
                         </button>
                     ))}
+                    <button
+                        type="button"
+                        onClick={() => setShowMilestoneFilters(value => !value)}
+                        className={`ml-auto min-h-10 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+                            showMilestoneFilters || activeCategory === 'career-firsts' || activeCategory === 'career-lasts' || selectedMilestoneType !== 'all' || timelineQuickFilter !== 'all'
+                                ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                        {showMilestoneFilters ? 'Hide filters' : 'More filters'}
+                    </button>
                 </div>
 
-                {isGameMilestoneCategory && milestoneTypeOptions.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-slate-100">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                {showMilestoneFilters && (
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="grid gap-4 lg:grid-cols-3">
                             <div>
-                                <div className="text-xs font-bold uppercase text-slate-500">Milestone type</div>
-                                <div className="text-xs text-slate-500">
-                                    {selectedMilestoneType === 'all'
-                                        ? `${milestoneTypeTotal} ${activeGameMilestoneLabel} ${matchWord}`
-                                        : `${selectedTypeCount} ${selectedTypeOption?.label || selectedMilestoneType} ${matchWord}`}
-                                    {searchTerm ? ` for "${searchTerm}"` : ''}
+                                <label className="small-text font-bold uppercase tracking-wide text-slate-500">Career detail</label>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                    {[
+                                        { id: 'firsts', label: 'All career events' },
+                                        { id: 'career-firsts', label: 'Firsts' },
+                                        { id: 'career-lasts', label: 'Lasts' },
+                                    ].map(cat => (
+                                        <button
+                                            key={cat.id}
+                                            type="button"
+                                            onClick={() => { setActiveCategory(cat.id); setTimelineQuickFilter('all'); setSelectedMilestoneType('all'); }}
+                                            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${activeCategory === cat.id ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'}`}
+                                        >
+                                            {cat.label}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
-                            {(selectedMilestoneType !== 'all' || searchTerm) && (
+                            <div>
+                                <label className="small-text font-bold uppercase tracking-wide text-slate-500" htmlFor="milestone-type-filter">Milestone type</label>
+                                <select
+                                    id="milestone-type-filter"
+                                    value={selectedMilestoneType}
+                                    disabled={!isGameMilestoneCategory}
+                                    onChange={(event) => { setSelectedMilestoneType(event.target.value); setTimelineQuickFilter('all'); }}
+                                    className="mt-2 min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm disabled:opacity-50"
+                                >
+                                    <option value="all">All {activeGameMilestoneLabel} ({milestoneTypeTotal})</option>
+                                    {milestoneTypeOptions.map(option => (
+                                        <option key={option.type} value={option.type}>{option.icon} {option.label} ({option.count})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="small-text font-bold uppercase tracking-wide text-slate-500" htmlFor="timeline-filter">Timeline emphasis</label>
+                                <select
+                                    id="timeline-filter"
+                                    value={timelineQuickFilter}
+                                    disabled={viewMode !== 'date' || isCareerCategory}
+                                    onChange={(event) => setTimelineQuickFilter(event.target.value)}
+                                    className="mt-2 min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm disabled:opacity-50"
+                                >
+                                    <option value="all">Everything</option>
+                                    <option value="career-count">Career Count</option>
+                                    <option value="firsts">Firsts</option>
+                                    <option value="lasts">Lasts</option>
+                                    <option value="all-time">All-Time</option>
+                                    <option value="big-game">Big Game</option>
+                                    <option value="batting">Batting</option>
+                                    <option value="pitching">Pitching</option>
+                                </select>
+                            </div>
+                        </div>
+                        {(selectedMilestoneType !== 'all' || timelineQuickFilter !== 'all' || searchTerm || activeCategory === 'career-firsts' || activeCategory === 'career-lasts') && (
+                            <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
+                                <div className="text-xs text-slate-500">
+                                    {activeMilestoneMatchCount} matching {matchWord}{searchTerm ? ` for "${searchTerm}"` : ''}
+                                </div>
                                 <button
                                     type="button"
-                                    onClick={() => { setSelectedMilestoneType('all'); setSearchTerm(''); setTimelineQuickFilter('all'); }}
-                                    className="self-start sm:self-auto rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                    onClick={() => { setActiveCategory('all'); setSelectedMilestoneType('all'); setTimelineQuickFilter('all'); setSearchTerm(''); }}
+                                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
                                 >
                                     Clear filters
                                 </button>
-                            )}
-                        </div>
-                        <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto pr-1">
-                            <button
-                                type="button"
-                                onClick={() => { setSelectedMilestoneType('all'); setTimelineQuickFilter('all'); }}
-                                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                    selectedMilestoneType === 'all'
-                                        ? 'bg-slate-900 text-white'
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                }`}
-                            >
-                                All {activeGameMilestoneLabel} ({milestoneTypeTotal})
-                            </button>
-                            {milestoneTypeOptions.map(option => (
-                                <button
-                                    key={option.type}
-                                    type="button"
-                                    onClick={() => { setSelectedMilestoneType(option.type); setTimelineQuickFilter('all'); }}
-                                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                        selectedMilestoneType === option.type
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    }`}
-                                    title={`${option.count} ${option.label}`}
-                                >
-                                    <span className="mr-1">{option.icon}</span>{option.label} <span className="opacity-75">({option.count})</span>
-                                </button>
-                            ))}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
-                {viewMode === 'date' && !isCareerCategory && (
-                    <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
-                        {[
-                            { id: 'all', label: 'Everything' },
-                            { id: 'career-count', label: 'Career Count' },
-                            { id: 'firsts', label: 'Firsts' },
-                            { id: 'lasts', label: 'Lasts' },
-                            { id: 'all-time', label: 'All-Time' },
-                            { id: 'big-game', label: 'Big Game' },
-                            { id: 'batting', label: 'Batting' },
-                            { id: 'pitching', label: 'Pitching' },
-                        ].map(filter => (
-                            <button
-                                key={filter.id}
-                                onClick={() => setTimelineQuickFilter(filter.id)}
-                                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                    timelineQuickFilter === filter.id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                }`}
-                            >
-                                {filter.label}
-                            </button>
-                        ))}
+                {!showMilestoneFilters && (selectedMilestoneType !== 'all' || timelineQuickFilter !== 'all' || activeCategory === 'career-firsts' || activeCategory === 'career-lasts') && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span>Active:</span>
+                        {selectedMilestoneType !== 'all' && <span className="rounded-full bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">{selectedTypeOption?.label || selectedMilestoneType}</span>}
+                        {timelineQuickFilter !== 'all' && <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700">{timelineQuickFilter.replace('-', ' ')}</span>}
+                        {(activeCategory === 'career-firsts' || activeCategory === 'career-lasts') && <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">{activeCategory === 'career-firsts' ? 'Firsts' : 'Lasts'}</span>}
                     </div>
                 )}
             </div>
@@ -2003,6 +2094,74 @@ const CollegePlayersView = ({ data, onViewPlayer }) => {
     );
 };
 
+const UvaPlayersView = ({ data, onViewPlayer }) => {
+    const players = data.uvaPlayersSeen || [];
+    const positionPlayers = players.filter(player => player.role !== 'Pitcher').length;
+    const pitchers = players.filter(player => player.role.includes('Pitcher')).length;
+    const regularSeasonPlayers = players.filter(player => (player.regularGames || 0) > 0).length;
+
+    if (players.length === 0) {
+        return <EmptyState icon="⚔️" title="No UVA Alumni Seen" message="No MLB players in your games were matched to the University of Virginia." />;
+    }
+
+    const renderSeenDate = (value, row, gameIdKey) => (
+        row[gameIdKey]
+            ? <button onClick={() => requestGameDetails(row[gameIdKey])} className="text-blue-600 hover:underline">{value}</button>
+            : value
+    );
+
+    return (
+        <div className="space-y-6">
+            <div className="rounded-xl border border-orange-200 bg-gradient-to-r from-orange-50 to-blue-50 p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 className="section-title font-bold text-slate-900">Virginia Cavaliers in the Majors</h2>
+                        <p className="body-text text-slate-600">MLB players you have seen who attended the University of Virginia.</p>
+                    </div>
+                    <div className="text-4xl" aria-hidden="true">⚔️</div>
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <StatCard title="UVA Alumni Seen" value={players.length} color="blue" />
+                <StatCard title="Position Players" value={positionPlayers} color="orange" />
+                <StatCard title="Pitchers" value={pitchers} color="purple" />
+                <StatCard title="Regular Season" value={regularSeasonPlayers} subtitle="players seen" color="green" />
+            </div>
+            <div className="space-y-2">
+                <p className="small-text text-slate-500">
+                    Default order: games seen, most to least. Select any column heading to re-sort.
+                </p>
+                <DataTable
+                    title={`⚔️ UVA Alumni Seen (${players.length} players)`}
+                    data={players}
+                    defaultSortKey="games"
+                    columns={[
+                    { key: 'name', label: 'Player', render: (value, row) => (
+                        <div className="flex items-center gap-2">
+                            {onViewPlayer && row.playerId ? (
+                                <button onClick={() => onViewPlayer(row.playerId, value)} className="text-blue-600 hover:underline text-left">{value}</button>
+                            ) : (
+                                <PlayerLink playerId={row.playerId} name={value} />
+                            )}
+                            <a href={`https://www.baseball-reference.com/players/${(row.playerId || '').charAt(0).toLowerCase()}/${row.playerId}.shtml`} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-slate-600 text-xs" title="View on Baseball Reference">↗</a>
+                        </div>
+                    )},
+                    { key: 'positions', label: 'Positions' },
+                    { key: 'teams', label: 'MLB Teams Seen' },
+                    { key: 'games', label: 'Games Seen' },
+                    { key: 'regularGames', label: 'REG' },
+                    { key: 'postseasonGames', label: 'POST' },
+                    { key: 'springGames', label: 'SPR' },
+                    { key: 'firstSeen', label: 'First Seen', render: (value, row) => renderSeenDate(value, row, 'firstSeenGameId') },
+                    { key: 'lastSeen', label: 'Last Seen', render: (value, row) => renderSeenDate(value, row, 'lastSeenGameId') },
+                    { key: 'mlbDebutYear', label: 'MLB Debut' },
+                    ]}
+                />
+            </div>
+        </div>
+    );
+};
+
 const NoStatsPlayers = ({ data }) => {
     const [selectedPlayer, setSelectedPlayer] = useState(null);
 
@@ -2061,11 +2220,11 @@ const NoStatsPlayers = ({ data }) => {
                 ]}
             />
             {selectedPlayer && selectedPlayer.gameList && selectedPlayer.gameList.length > 0 && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPlayer(null)}>
+                <Modal label={`Games with ${selectedPlayer.name}`} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClose={() => setSelectedPlayer(null)}>
                     <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 border-b bg-slate-700 text-white rounded-t-lg flex items-center justify-between">
                             <h3 className="font-bold">{selectedPlayer.name} — {selectedPlayer.gameList.length} game{selectedPlayer.gameList.length > 1 ? 's' : ''}</h3>
-                            <button onClick={() => setSelectedPlayer(null)} className="text-white hover:text-slate-200 text-xl leading-none">&times;</button>
+                            <button data-dialog-close="true" aria-label="Close dialog" onClick={() => setSelectedPlayer(null)} className="text-white hover:text-slate-200 text-xl leading-none">&times;</button>
                         </div>
                         <div className="p-3 space-y-2">
                             {selectedPlayer.gameList.map((g, i) => (
@@ -2079,7 +2238,7 @@ const NoStatsPlayers = ({ data }) => {
                             ))}
                         </div>
                     </div>
-                </div>
+                </Modal>
             )}
         </div>
     );

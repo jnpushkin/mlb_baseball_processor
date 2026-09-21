@@ -1108,6 +1108,7 @@ const normalizePlayerSubtab = (subtab) => {
 // Players tab: absorbs Leaderboards and Explorer
 const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
     const hasCollegeData = Object.keys(data.ncaaCrossRef || {}).length > 0;
+    const hasUvaData = (data.uvaPlayersSeen || []).length > 0;
     const hasSituationalData = [
         'rispPerformance',
         'twoOutPerformance',
@@ -1121,12 +1122,19 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
         'lineupMatrix',
     ].some(key => (data[key] || []).length > 0);
     const [view, setView] = useState(normalizePlayerSubtab(initialSubtab) || 'hitters');
+    const [playerSearch, setPlayerSearch] = useState('');
+    useEffect(() => {
+        if (window._pendingPlayerSearch !== undefined) {
+            setPlayerSearch(window._pendingPlayerSearch);
+            delete window._pendingPlayerSearch;
+        }
+    });
 
     useEffect(() => {
-        const normalized = normalizePlayerSubtab(initialSubtab);
-        if (normalized && normalized !== initialSubtab && onSubtabChange) onSubtabChange(normalized);
+        const normalized = normalizePlayerSubtab(initialSubtab) || 'hitters';
+        if (initialSubtab && normalized !== initialSubtab && onSubtabChange) onSubtabChange(normalized);
         if (normalized && normalized !== view) setView(normalized);
-    }, [initialSubtab, view, onSubtabChange]);
+    }, [initialSubtab]);
 
     useEffect(() => {
         if (window._pendingPlayerSelect) {
@@ -1137,31 +1145,72 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
     });
 
     const handleViewPlayer = (playerId, name) => {
-        setView('hitters');
-        window._pendingPlayerSelect = { id: playerId, name };
+        openPassportPlayer(playerId);
     };
 
     const subtabs = [
         { id: 'hitters', label: 'Hitters' },
         { id: 'pitchers', label: 'Pitchers' },
-        ...((data.awardChecklists?.groups || []).length > 0 ? [{ id: 'awards', label: 'Awards' }] : []),
-        ...((data.allStarChecklists?.groups || []).length > 0 ? [{ id: 'allstars', label: 'All-Stars' }] : []),
+        ...((data.__libraries?.awardChecklists || (data.awardChecklists?.groups || []).length > 0) ? [{ id: 'awards', label: 'Awards' }] : []),
+        ...((data.__libraries?.allStarChecklists || (data.allStarChecklists?.groups || []).length > 0) ? [{ id: 'allstars', label: 'All-Stars' }] : []),
         ...((data.hallOfFamers || []).length > 0 ? [{ id: 'hof', label: 'Hall of Fame' }] : []),
         ...(hasSituationalData ? [{ id: 'situational', label: 'Situational' }] : []),
         ...((data.wpaLeaders || []).length > 0 ? [{ id: 'wpa', label: 'WPA' }] : []),
         ...(hasDefenseData ? [{ id: 'defense', label: 'Defense' }] : []),
         ...((data.playersWithoutStats || []).length > 0 ? [{ id: 'nostats', label: 'No Stats' }] : []),
+        ...(hasUvaData ? [{ id: 'uva', label: 'UVA' }] : []),
         ...(hasCollegeData ? [{ id: 'college', label: 'College & MiLB' }] : []),
         { id: 'leaders', label: 'Leaderboards' },
         { id: 'statcast', label: 'Statcast' },
         { id: 'explorer', label: 'Explorer' },
     ];
 
+    const playerGroups = [
+        { id: 'stats', label: 'Stats', tabs: ['hitters', 'pitchers', 'situational', 'wpa', 'defense', 'leaders'] },
+        { id: 'recognition', label: 'Recognition', tabs: ['awards', 'allstars', 'hof'] },
+        { id: 'background', label: 'Background', tabs: ['uva', 'college', 'nostats'] },
+        { id: 'tools', label: 'Tools', tabs: ['statcast', 'explorer'] },
+    ].map(group => ({
+        ...group,
+        items: group.tabs.map(id => subtabs.find(tab => tab.id === id)).filter(Boolean),
+    })).filter(group => group.items.length > 0);
+    const activePlayerGroup = playerGroups.find(group => group.items.some(item => item.id === view)) || playerGroups[0];
+    const changePlayerView = (nextView) => {
+        setView(nextView);
+        if (onSubtabChange) onSubtabChange(nextView);
+    };
+
     return (
         <div>
-            <SubNav tabs={subtabs} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
-            {view === 'hitters' && <DynamicPlayerTable allPlayers={data.players || []} playerGames={data.playerGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} milestones={data.milestones || []} debuts={data.debuts || []} finalGames={data.finalGames || []} />}
-            {view === 'pitchers' && <DynamicPitcherTable allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} milestones={data.milestones || []} debuts={data.debuts || []} finalGames={data.finalGames || []} />}
+            <div className="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex gap-1 overflow-x-auto border-b border-slate-100 bg-slate-50 p-1.5" style={{ scrollbarWidth: 'none' }}>
+                    {playerGroups.map(group => {
+                        const isActive = group.id === activePlayerGroup?.id;
+                        return (
+                            <button
+                                key={group.id}
+                                onClick={() => changePlayerView(group.items[0].id)}
+                                className={`min-h-10 shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${isActive ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-white hover:text-slate-900'}`}
+                            >
+                                {group.label}
+                            </button>
+                        );
+                    })}
+                </div>
+                <div className="flex flex-wrap gap-1 p-2">
+                    {(activePlayerGroup?.items || []).map(item => (
+                        <button
+                            key={item.id}
+                            onClick={() => changePlayerView(item.id)}
+                            className={`min-h-10 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors ${view === item.id ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            {view === 'hitters' && <DynamicPlayerTable initialSearch={playerSearch} allPlayers={data.players || []} playerGames={data.playerGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} milestones={data.milestones || []} debuts={data.debuts || []} finalGames={data.finalGames || []} />}
+            {view === 'pitchers' && <DynamicPitcherTable initialSearch={playerSearch} allPitchers={data.pitchers || []} pitcherGames={data.pitcherGames || []} ncaaCrossRef={data.ncaaCrossRef} careerFirstsByPlayer={data.careerFirstsByPlayer || {}} allTimePassings={data.allTimePassings || []} milestones={data.milestones || []} debuts={data.debuts || []} finalGames={data.finalGames || []} />}
             {view === 'awards' && <AwardChecklistsView awardChecklists={data.awardChecklists || {}} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} games={data.games || []} />}
             {view === 'allstars' && <AwardChecklistsView awardChecklists={data.allStarChecklists || {}} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} games={data.games || []} />}
             {view === 'hof' && <HallOfFamersView hallOfFamers={data.hallOfFamers || []} />}
@@ -1169,6 +1218,7 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
             {view === 'wpa' && <WpaLeadersView wpaLeaders={data.wpaLeaders || []} />}
             {view === 'defense' && <DefenseLineupView data={data} />}
             {view === 'nostats' && <NoStatsPlayers data={data} />}
+            {view === 'uva' && <UvaPlayersView data={data} onViewPlayer={handleViewPlayer} />}
             {view === 'college' && <CollegePlayersView data={data} onViewPlayer={handleViewPlayer} />}
             {view === 'leaders' && (data.players?.length ? <Leaderboards data={data} /> : <EmptyState icon="🏅" title="No Player Data" message="No player statistics available." />)}
             {view === 'statcast' && <StatcastView playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} games={data.games || []} />}
@@ -1180,6 +1230,7 @@ const PlayersTabV2 = ({ data, initialSubtab, onSubtabChange }) => {
 // Milestones tab: absorbs History
 const MilestonesTabV2 = ({ data, onTabChange, initialSubtab, onSubtabChange }) => {
     const [view, setView] = useState(initialSubtab || 'milestones');
+    useEffect(() => { setView(initialSubtab || 'milestones'); }, [initialSubtab]);
     return (
         <div>
             <SubNav tabs={[
@@ -1361,6 +1412,7 @@ const WeatherTimingView = ({ weatherTiming }) => {
 // Venues tab: absorbs Calendar + Statcast
 const VenuesTab = ({ data, initialSubtab, onSubtabChange }) => {
     const [view, setView] = useState(initialSubtab || 'map');
+    useEffect(()=>{setView(initialSubtab || 'map');},[initialSubtab]);
 
     const enhancedStadiums = useMemo(() => {
         const gamesByVenue = {};
@@ -1430,6 +1482,7 @@ const VenuesTab = ({ data, initialSubtab, onSubtabChange }) => {
 // Progress tab: absorbs Matchups
 const ProgressTab = ({ data, initialSubtab, onSubtabChange }) => {
     const [view, setView] = useState(initialSubtab || 'checklist');
+    useEffect(()=>{setView(initialSubtab || 'checklist');},[initialSubtab]);
     return (
         <div>
             <SubNav tabs={[

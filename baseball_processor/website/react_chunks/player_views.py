@@ -5,46 +5,33 @@ CODE = r'''const VALID_TABS = new Set(['dashboard','gamelog','players','mileston
 const TAB_REDIRECTS = { 'games': 'gamelog', 'calendar': 'venues', 'history': 'milestones', 'leaderboards': 'players', 'matchups': 'progress' };
 
 const App = () => {
-    const parseHash = (hash) => {
-        const parts = (hash || '').split('/');
-        let tabId = parts[0];
-        let subtabId = parts[1] || null;
-        if (tabId === 'explore') {
-            tabId = 'players';
-            subtabId = 'explorer';
-        }
-        if (TAB_REDIRECTS[tabId]) tabId = TAB_REDIRECTS[tabId];
-        return { tab: VALID_TABS.has(tabId) ? tabId : null, subtab: subtabId };
-    };
-
-    const [tab, setTabRaw] = useState(() => {
-        const { tab: t } = parseHash(window.location.hash.slice(1));
-        if (t) return t;
-        const saved = localStorage.getItem('baseballActiveTab');
-        if (saved && VALID_TABS.has(saved)) return saved;
-        if (saved === 'explore') return 'players';
-        if (saved && TAB_REDIRECTS[saved]) return TAB_REDIRECTS[saved];
-        return 'dashboard';
-    });
-    const [subtab, setSubtab] = useState(() => {
-        const { subtab: s } = parseHash(window.location.hash.slice(1));
-        return s;
-    });
-    const subtabMemory = useRef({}); // Remember last subtab per tab
-
-    const setTab = (newTab) => {
-        // Save current subtab for current tab
-        if (subtab) subtabMemory.current[tab] = subtab;
-        setTabRaw(newTab);
-        // Restore remembered subtab for the new tab (or null)
-        setSubtab(subtabMemory.current[newTab] || null);
-    };
+    const route = usePassportRoute();
+    const tab = VALID_TABS.has(route.tab) ? route.tab : (TAB_REDIRECTS[route.tab] || 'dashboard');
+    const subtab = route.subtab;
+    const setTab = (newTab, requestedSubtab) => navigatePassport({tab:newTab,subtab:requestedSubtab||null,game:null,player:null,q:null});
+    const setTabRaw = newTab => navigatePassport({tab:newTab,game:null,player:null});
+    const setSubtab = subtab => navigatePassport({subtab,game:null,player:null});
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem('baseballDarkMode');
         if (saved !== null) return saved === 'true';
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     });
-    const [data, setData] = useState(BASEBALL_DATA);
+    const [rawData, setData] = useState(BASEBALL_DATA);
+    const scoped = (tab==='dashboard'&&[null,'','recap'].includes(subtab)) || ['gamelog','milestones'].includes(tab) || (tab==='players' && ['hitters','pitchers','leaders','leaderboards',null].includes(subtab));
+    const data = useMemo(()=>scoped?scopePassportData(rawData,route):rawData,[rawData,JSON.stringify(route),scoped]);
+    const keys=passportKeysForRoute(route);
+    const [sectionError,setSectionError]=useState('');
+    const [sectionRetry,setSectionRetry]=useState(0);
+    const [loadingSection,setLoadingSection]=useState(false);
+    const ready=!!rawData && window.passportKeysLoaded(keys);
+    useEffect(()=>{
+        if(!rawData)return;
+        let live=true;setSectionError('');
+        if(window.passportKeysLoaded(keys)){setLoadingSection(false);return;}
+        setLoadingSection(true);
+        window.loadPassportKeys(keys).then(()=>{if(live)setLoadingSection(false);}).catch(e=>{if(live){setLoadingSection(false);setSectionError(e.message);}});
+        return()=>{live=false;};
+    },[!!rawData,JSON.stringify(keys),sectionRetry]);
     const [loadError, setLoadError] = useState(DATA_LOAD_ERROR);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchOpen, setSearchOpen] = useState(false);
@@ -55,52 +42,21 @@ const App = () => {
     const navScrollRef = useRef(null);
 
     useEffect(() => {
-        if (!data && !loadError) {
-            window.__onDataReady = (d) => setData(d);
-            window.__onDataError = (e) => setLoadError(e);
-            if (BASEBALL_DATA) setData(BASEBALL_DATA);
-            if (DATA_LOAD_ERROR) setLoadError(DATA_LOAD_ERROR);
-        }
-        return () => { window.__onDataReady = null; window.__onDataError = null; };
-    }, []);
-
-    useEffect(() => {
-        localStorage.setItem('baseballActiveTab', tab);
-        const hashTarget = subtab ? `${tab}/${subtab}` : tab;
-        if (window.location.hash.slice(1) !== hashTarget) {
-            history.replaceState(null, '', '#' + hashTarget);
-        }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [tab, subtab]);
-
-    useEffect(() => {
-        const onHashChange = () => {
-            const { tab: t, subtab: s } = parseHash(window.location.hash.slice(1));
-            if (t) { setTabRaw(t); setSubtab(s); }
-        };
-        window.addEventListener('hashchange', onHashChange);
-        return () => window.removeEventListener('hashchange', onHashChange);
-    }, []);
+        window.__onDataReady=setData;window.__onDataError=setLoadError;
+        if(BASEBALL_DATA)setData(BASEBALL_DATA);
+        if(DATA_LOAD_ERROR)setLoadError(DATA_LOAD_ERROR);
+        return()=>{window.__onDataReady=null;window.__onDataError=null;};
+    },[]);
 
     useEffect(() => {
         document.documentElement.classList.toggle('dark', darkMode);
         localStorage.setItem('baseballDarkMode', darkMode);
     }, [darkMode]);
 
-    // Global tab navigation for cross-linking from child components
-    useEffect(() => {
-        window.__navigateTab = (tabId, subId) => {
-            let resolved = tabId;
-            let resolvedSubId = subId;
-            if (tabId === 'explore') {
-                resolved = 'players';
-                resolvedSubId = 'explorer';
-            }
-            if (TAB_REDIRECTS[tabId]) resolved = TAB_REDIRECTS[tabId];
-            if (VALID_TABS.has(resolved)) { setTabRaw(resolved); setSubtab(resolvedSubId || null); }
-        };
-        return () => { window.__navigateTab = null; };
-    }, []);
+    useEffect(()=>{
+        window.__navigateTab=(id,subtab)=>navigatePassport({tab:TAB_REDIRECTS[id]||id,subtab:subtab||null,game:null,player:null});
+        return()=>{window.__navigateTab=null;};
+    },[]);
 
     // Scroll-to-top visibility
     useEffect(() => {
@@ -126,18 +82,20 @@ const App = () => {
     useEffect(() => {
         const tabIds = [...VALID_TABS];
         const onKey = (e) => {
+            if (e.defaultPrevented || dialogStack.length) return;
             if (e.key === 'Escape') {
-                if (searchOpen) { setSearchOpen(false); return; }
-                // Close any open modal by dispatching a custom event
-                window.dispatchEvent(new CustomEvent('closeModals'));
+                if (searchOpen) { setSearchOpen(false); searchRef.current?.querySelector('input')?.focus(); return; }
+
             }
             // Don't navigate tabs if user is typing in an input
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
-            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && e.target.closest('[aria-label="Main navigation"][role="tablist"]')) {
                 const idx = tabIds.indexOf(tab);
                 if (idx === -1) return;
                 const next = e.key === 'ArrowRight' ? (idx + 1) % tabIds.length : (idx - 1 + tabIds.length) % tabIds.length;
+                e.preventDefault();
                 setTab(tabIds[next]);
+                navScrollRef.current?.querySelectorAll('[role="tab"]')[next]?.focus();
             }
             // "/" focuses search
             if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
@@ -151,125 +109,28 @@ const App = () => {
     }, [tab, searchOpen]);
 
     const searchResults = useMemo(() => {
-        if (!data || !searchQuery || searchQuery.length < 2) return { items: [], totalPlayers: 0 };
-        const q = searchQuery.toLowerCase();
-        const items = [];
-        let totalPlayers = 0;
-        const pushLimited = (item, type, limit) => {
-            if (items.filter(r => r.type === type).length < limit) items.push(item);
-        };
+        const all=rawData?passportSearch(rawData,searchQuery):[];
+        return {items:all.slice(0,10),total:all.length,totalPlayers:0};
+    },[rawData,searchQuery]);
 
-        // Search players (with stats context)
-        const seenPlayers = new Set();
-        (data.players || []).forEach(p => {
-            if (p.name && p.name.toLowerCase().includes(q) && !seenPlayers.has(p.playerId)) {
-                seenPlayers.add(p.playerId);
-                totalPlayers++;
-                if (items.filter(r => r.type === 'player' || r.type === 'pitcher').length < 6) {
-                    items.push({ type: 'player', icon: '👤', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.avg || ''} AVG, ${p.hr || 0} HR`, tab: 'players', id: p.playerId });
-                }
-            }
-        });
-        (data.pitchers || []).forEach(p => {
-            if (p.name && p.name.toLowerCase().includes(q) && !seenPlayers.has(p.playerId)) {
-                seenPlayers.add(p.playerId);
-                totalPlayers++;
-                if (items.filter(r => r.type === 'player' || r.type === 'pitcher').length < 6) {
-                    items.push({ type: 'pitcher', icon: '⚾', label: p.name, sub: `${p.team || ''} • ${p.games}G, ${p.era || ''} ERA, ${p.so || 0} K`, tab: 'players', id: p.playerId });
-                }
-            }
-        });
-
-        // Search teams
-        const teamRows = data.teams || [];
-        teamRows.forEach(t => {
-            const code = t.team || '';
-            const name = TEAM_CODE_TO_NAME[code] || '';
-            const text = `${code} ${name}`.toLowerCase();
-            if (text.includes(q)) {
-                pushLimited({ type: 'team', icon: '🧢', label: code, sub: `${name || 'Team'} • ${t.games || 0} games`, tab: 'venues', searchValue: code }, 'team', 4);
-            }
-        });
-
-        // Search venues
-        (data.stadiums || []).forEach(v => {
-            const stadiumName = v.name || v.stadium || '';
-            const text = `${stadiumName} ${v.city || ''} ${v.state || ''} ${v.team || ''}`.toLowerCase();
-            if (text.includes(q)) {
-                pushLimited({ type: 'venue', icon: '🏟️', label: stadiumName, sub: `${v.games || 0} games${v.city ? ` • ${v.city}` : ''}`, tab: 'venues', searchValue: stadiumName }, 'venue', 4);
-            }
-        });
-
-        // Search games (by team, date, venue, score, id)
-        const seenGames = new Set();
-        (data.games || []).forEach(g => {
-            if (items.filter(r => r.type === 'game').length >= 5) return;
-            const text = `${g.awayTeam || ''} ${g.homeTeam || ''} ${g.date || ''} ${g.venue || ''} ${g.score || ''} ${g.gameId || ''}`.toLowerCase();
-            if (text.includes(q) && !seenGames.has(g.gameId)) {
-                seenGames.add(g.gameId);
-                items.push({ type: 'game', icon: '📋', label: `${g.awayTeam} @ ${g.homeTeam}`, sub: `${g.date || ''} • ${g.score || ''} • ${g.venue || ''}`, tab: 'gamelog', id: g.gameId });
-            }
-        });
-
-        // Search milestones
-        (data.milestones || []).forEach(m => {
-            if (items.filter(r => r.type === 'milestone').length >= 5) return;
-            const text = `${m.player || ''} ${m.type || ''} ${m.description || ''} ${m.detail || ''} ${m.team || ''}`.toLowerCase();
-            if (text.includes(q)) {
-                items.push({ type: 'milestone', icon: '🏆', label: m.player || m.type, sub: `${m.type || ''}${m.date ? ` • ${m.date}` : ''}`, tab: 'milestones', searchValue: m.player || m.type || searchQuery });
-            }
-        });
-        (data.careerFirsts || []).forEach(m => {
-            if (items.filter(r => r.type === 'career').length >= 4) return;
-            const text = `${m.player_name || ''} ${m.milestone || ''} ${m.venue || ''} ${m.opponent || ''}`.toLowerCase();
-            if (text.includes(q)) {
-                items.push({ type: 'career', icon: '⭐', label: m.player_name || 'Career event', sub: `${m.milestone || ''}${m.date_display ? ` • ${m.date_display}` : ''}`, tab: 'milestones', searchValue: m.player_name || m.milestone || searchQuery });
-            }
-        });
-        (data.careerLasts || []).forEach(m => {
-            if (items.filter(r => r.type === 'last').length >= 3) return;
-            const text = `${m.player_name || ''} ${m.milestone || ''} ${m.venue || ''} ${m.opponent || ''}`.toLowerCase();
-            if (text.includes(q)) {
-                items.push({ type: 'last', icon: '🏁', label: m.player_name || 'Career last', sub: `${m.milestone || ''}${m.date_display ? ` • ${m.date_display}` : ''}`, tab: 'milestones', searchValue: m.player_name || m.milestone || searchQuery });
-            }
-        });
-        (data.allTimePassings || []).forEach(p => {
-            if (items.filter(r => r.type === 'history').length >= 3) return;
-            const text = `${p.player_name || ''} ${p.stat_name || ''} ${p.new_rank || ''}`.toLowerCase();
-            if (text.includes(q)) {
-                items.push({ type: 'history', icon: '📈', label: p.player_name || 'All-time movement', sub: `#${p.new_rank} ${p.stat_name || ''}${p.date_display ? ` • ${p.date_display}` : ''}`, tab: 'milestones', subtab: 'history', searchValue: p.player_name || p.stat_name || searchQuery });
-            }
-        });
-
-        return { items, totalPlayers };
-    }, [data, searchQuery]);
+    useEffect(() => {
+        if(searchQuery.trim().length < 2) return;
+        const timer=setTimeout(()=>window.loadPassportKeys(['searchEvents']).catch(()=>{}),200);
+        return ()=>clearTimeout(timer);
+    },[searchQuery]);
 
     const handleSearchResult = (r) => {
-        if (r.type === 'player' || r.type === 'pitcher') {
-            window._pendingPlayerSelect = { id: r.id, name: r.label };
+        if (searchOpen && searchQuery) navigatePassport({tab:'dashboard',subtab:'search',q:searchQuery,game:null,player:null});
+        if(r.type==='player'||r.type==='pitcher')openPassportPlayer(r.id);
+        else if(r.type==='game')requestGameDetails(r.id);
+        else if(r.gameId)requestGameDetails(r.gameId);
+        else if(r.type==='team')navigatePassport({tab:'gamelog',subtab:null,team:r.searchValue,game:null,player:null});
+        else if(r.type==='venue')navigatePassport({tab:'gamelog',subtab:null,venue:r.searchValue,game:null,player:null});
+        else {
+            if(['milestone','career','last','history'].includes(r.type))window._pendingMilestoneSearch=r.searchValue||r.label;
+            navigatePassport({tab:r.tab,subtab:r.subtab||null,game:null,player:null});
         }
-        if (r.type === 'game') {
-            requestGameDetails(r.id);
-        }
-        if (['milestone', 'career', 'last', 'history'].includes(r.type)) {
-            window._pendingMilestoneSearch = r.searchValue || r.label;
-        }
-        if (r.type === 'venue') {
-            window._pendingVenueSearch = r.searchValue || r.label;
-            localStorage.setItem('dt_stadiums_search', JSON.stringify(r.searchValue || r.label));
-        }
-        if (r.type === 'team') {
-            window._pendingTeamSearch = r.searchValue || r.label;
-            localStorage.setItem('dt_teams_search', JSON.stringify(r.searchValue || r.label));
-        }
-        if (r.subtab) {
-            setSubtab(r.subtab);
-            setTabRaw(r.tab);
-        } else {
-            setTab(r.tab);
-        }
-        setSearchQuery('');
-        setSearchOpen(false);
+        setSearchQuery('');setSearchOpen(false);
     };
 
     useEffect(() => {
@@ -331,21 +192,32 @@ const App = () => {
                 <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <div>
                         <h1 className={`page-title ${darkMode ? 'text-white' : 'text-slate-900'}`}>MLB Game Passport</h1>
-                        <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{data.games?.length || 0} games attended • {new Set([...(data.players || []).map(p => p.playerId), ...(data.pitchers || []).map(p => p.playerId), ...(data.playersWithoutStats || []).map(p => p.playerId)]).size} players seen</p>
+                        <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{data.games?.length || 0} games attended • {passportMetrics(data.games||[]).players.toLocaleString()} players seen</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div ref={searchRef} role="search" className="relative flex-1 sm:flex-none">
+                        <div ref={searchRef} role="search" onKeyDown={(e) => {
+                            if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+                            const buttons = [...searchRef.current.querySelectorAll('[data-search-result]')];
+                            if (!buttons.length) return;
+                            e.preventDefault();
+                            const index = buttons.indexOf(document.activeElement);
+                            const next = index < 0 ? (e.key === 'ArrowDown' ? 0 : buttons.length - 1) : (index + (e.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+                            buttons[next].focus();
+                        }} className="relative flex-1 sm:flex-none">
                             <input
                                 type="text"
                                 placeholder="Search players, games, milestones"
                                 aria-label="Search players, games, and milestones"
+                                aria-expanded={searchOpen && searchQuery.length >= 2}
+                                aria-controls="global-search-results"
                                 value={searchQuery}
                                 onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
                                 onFocus={() => setSearchOpen(true)}
+                                onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();navigatePassport({tab:'dashboard',subtab:'search',q:searchQuery,game:null,player:null});setSearchOpen(false);}}}
 	                            className={`min-h-11 w-full sm:w-56 md:w-72 px-3 py-2 rounded-lg text-sm transition-colors border ${darkMode ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:border-blue-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-500'} outline-none`}
                             />
                             {searchOpen && searchQuery.length >= 2 && (
-                                <div className={`absolute top-full right-0 mt-1 w-80 sm:w-96 rounded-lg shadow-md border z-[60] max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                <div id="global-search-results" aria-label="Search results" className={`absolute top-full right-0 mt-1 w-80 sm:w-96 rounded-lg shadow-md border z-[60] max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                                     {searchResults.items.length === 0 ? (
                                         <div className={`px-4 py-6 text-center text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>No results for "{searchQuery}"</div>
                                     ) : (<>
@@ -354,7 +226,7 @@ const App = () => {
                                             const idx = r.label.toLowerCase().indexOf(q);
                                             const highlighted = idx >= 0 ? <>{r.label.slice(0, idx)}<span className="bg-yellow-200 text-yellow-900 rounded px-0.5">{r.label.slice(idx, idx + searchQuery.length)}</span>{r.label.slice(idx + searchQuery.length)}</> : r.label;
                                             return (
-                                                <button key={`search-${r.type}-${r.id || r.label}-${i}`} onClick={() => handleSearchResult(r)}
+                                                <button data-search-result="true" key={`search-${r.type}-${r.id || r.label}-${i}`} onClick={() => handleSearchResult(r)}
                                                     className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${darkMode ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-blue-50 text-slate-800'}`}>
                                                     <span className="text-lg shrink-0 w-6 text-center">{r.icon || '•'}</span>
                                                     <span className="text-xs font-medium uppercase opacity-50 w-16 shrink-0">{r.type}</span>
@@ -366,11 +238,12 @@ const App = () => {
                                             );
                                         })}
                                         {searchResults.totalPlayers > 6 && (
-                                            <button onClick={() => { window._pendingPlayerSearch = searchQuery; setTab('players'); setSearchQuery(''); setSearchOpen(false); }}
+                                            <button data-search-result="true" onClick={() => { window._pendingPlayerSearch = searchQuery; setTab('players', 'hitters'); setSearchQuery(''); setSearchOpen(false); }}
                                                 className={`w-full text-center px-4 py-2 text-xs font-medium border-t transition-colors ${darkMode ? 'text-blue-400 border-slate-700 hover:bg-slate-700' : 'text-blue-600 border-slate-100 hover:bg-blue-50'}`}>
-                                                View all {searchResults.totalPlayers} player matches
+                                                Filter hitter and pitcher tables ({searchResults.totalPlayers} matches)
                                             </button>
                                         )}
+                                        <button data-search-result="true" className="passport-button w-full" onClick={()=>{navigatePassport({tab:'dashboard',subtab:'search',q:searchQuery,game:null,player:null});setSearchOpen(false);}}>See all {searchResults.total} results</button>
                                     </>)}
                                 </div>
                             )}
@@ -425,16 +298,21 @@ const App = () => {
                 </div>
             </nav>
             <main role="tabpanel" className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
-                {tab === 'dashboard' && <Dashboard data={data} onTabChange={setTab} />}
+                <PassportScope data={rawData} route={route}/>
+                {!scoped && <p className="text-sm text-slate-500 mb-3">Lifetime archive · this collection does not use the Browse scope.</p>}
+                {!ready ? <section className="passport-panel" role="status"><p>{sectionError||'Loading this section…'}</p>{sectionError&&<div className="flex gap-2 mt-3"><button className="passport-button" onClick={()=>setSectionRetry(sectionRetry+1)}>Retry section</button><button className="passport-button" onClick={()=>location.reload()}>Reload site</button></div>}</section> : <>
+                {tab === 'dashboard' && <PassportDashboard data={data} allData={rawData} route={route} onResult={handleSearchResult} />}
                 {tab === 'gamelog' && (data.games?.length ? <GameLogWithDetails games={data.games} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} allTimePassingsByGame={data.allTimePassingsByGame || {}} debuts={data.debuts || []} finalGames={data.finalGames || []} /> : <EmptyState icon="📋" title="No Games" message="Add game HTML files to the Current Season Games folder and run the processor." />)}
                 {tab === 'players' && <PlayersTabV2 data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'milestones' && <MilestonesTabV2 data={data} onTabChange={setTab} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'venues' && <VenuesTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'progress' && <ProgressTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'special' && <SpecialTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
-                {tab === 'trivia' && <TriviaTab umpireLog={data.umpireLog || []} jerseyLog={data.jerseyLog || {}} firstRoundDraftPicks={data.firstRoundDraftPicks || {}} playerBios={data.playerBios || {}} players={data.players || []} pitchers={data.pitchers || []} games={data.games || []} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} stadiumAliases={data.stadiumAliases || {}} initialSubtab={subtab} onSubtabChange={setSubtab} />}
+                {tab === 'trivia' && <TriviaTab umpireLog={data.umpireLog || []} jerseyLog={data.jerseyLog || {}} firstRoundDraftPicks={data.firstRoundDraftPicks || {}} playerBios={data.playerBios || {}} players={data.players || []} pitchers={data.pitchers || []} games={subtab==='home-away'?(data.homeAwayGames||data.games||[]):(data.games || [])} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} stadiumAliases={data.stadiumAliases || {}} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'companions' && <CompanionsView companionData={data.companionData} />}
                 {tab === 'orioles' && <OriolesDashboard orioles={data.orioles || []} games={data.games || []} />}
+                </>}
+                {ready&&(route.player||route.game)&&<PassportEntity route={route} data={rawData}/>}
             </main>
             <footer className={`border-t mt-8 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between">

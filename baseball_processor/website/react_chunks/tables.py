@@ -360,6 +360,7 @@ const GameConditions = ({ games }) => {
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-6">
             <h3 className="subsection-title font-bold text-slate-900 mb-3">Game Conditions</h3>
+            <p className="small-text text-slate-500 mb-3">All attended games with available data, including spring training.</p>
             <div className="divide-y divide-slate-100">
                 {stats.hasTemp && (
                     <ConditionRow label="Temperature" unit={String.fromCharCode(176) + 'F'}
@@ -601,9 +602,9 @@ const Dashboard = ({ data, onTabChange }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard title="Games" value={data.games?.length || 0} color="blue" onClick={() => onTabChange && onTabChange('gamelog')} />
-                <StatCard title="Players" value={data.players?.length || 0} color="green" onClick={() => onTabChange && onTabChange('players')} />
-                <StatCard title="Milestones" value={data.milestones?.length || 0} color="purple" onClick={() => onTabChange && onTabChange('milestones')} />
-                <StatCard title="Teams" value={data.teams?.length || 0} color="orange" onClick={() => onTabChange && onTabChange('venues')} />
+                <StatCard title="Players seen" value={countPlayersSeen(data).toLocaleString()} color="green" onClick={() => onTabChange && onTabChange('players')} />
+                <StatCard title="Game milestones" value={data.milestones?.length || 0} color="purple" onClick={() => onTabChange && onTabChange('milestones', 'milestones')} />
+                <StatCard title="Teams" subtitle="Includes spring opponents" value={data.teams?.length || 0} color="orange" onClick={() => onTabChange && onTabChange('venues')} />
             </div>
 
             {recentMomentCards.length > 0 && (
@@ -613,7 +614,7 @@ const Dashboard = ({ data, onTabChange }) => {
                             <h3 className="subsection-title font-bold text-slate-900">Recent Notable Moments</h3>
                             <p className="small-text text-slate-500 mt-1">Milestones, debuts, final games, and all-time list movement from the latest games.</p>
                         </div>
-                        <button onClick={() => onTabChange && onTabChange('milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium shrink-0">View all →</button>
+                        <button onClick={() => onTabChange && onTabChange('milestones', 'milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium shrink-0">View all →</button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
                         {recentMomentCards.map((m, i) => (
@@ -710,7 +711,7 @@ const Dashboard = ({ data, onTabChange }) => {
                         <div className="bg-white rounded-lg border border-slate-200 p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="subsection-title font-bold text-slate-900">🌟 Recent MLB Debuts</h3>
-                                <button onClick={() => onTabChange && onTabChange('special')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
+                                <button onClick={() => onTabChange && onTabChange('special', 'debuts')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
                             </div>
                             <div className="space-y-3">
                                 {recentDebuts.map((d, i) => (
@@ -729,7 +730,7 @@ const Dashboard = ({ data, onTabChange }) => {
                         <div className="bg-white rounded-lg border border-slate-200 p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="subsection-title font-bold text-slate-900">👋 Recent Final Games</h3>
-                                <button onClick={() => onTabChange && onTabChange('special')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
+                                <button onClick={() => onTabChange && onTabChange('special', 'finals')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
                             </div>
                             <div className="space-y-3">
                                 {recentFinalGames.map((d, i) => (
@@ -754,7 +755,7 @@ const Dashboard = ({ data, onTabChange }) => {
                         <div className="bg-white rounded-lg border border-slate-200 p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="subsection-title font-bold text-slate-900">⭐ Notable Career Milestones</h3>
-                                <button onClick={() => onTabChange && onTabChange('milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
+                                <button onClick={() => onTabChange && onTabChange('milestones', 'milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all →</button>
                             </div>
                             <div className="space-y-3">
                                 {notableCareerMilestones.map((m, i) => {
@@ -777,7 +778,7 @@ const Dashboard = ({ data, onTabChange }) => {
                         <div className="bg-white rounded-lg border border-slate-200 p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="subsection-title font-bold text-slate-900">📜 History Witnessed</h3>
-                                <button onClick={() => onTabChange && onTabChange('milestones')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all {data.allTimePassings?.length || 0} →</button>
+                                <button onClick={() => onTabChange && onTabChange('milestones', 'history')} className="small-text text-blue-600 hover:text-blue-800 font-medium">View all {data.allTimePassings?.length || 0} →</button>
                             </div>
                             <div className="space-y-3">
                                 {topPassings.map((p, i) => (

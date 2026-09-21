@@ -2,16 +2,7 @@
 
 CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, debuts, finalGames, badges, onClose, onPrev, onNext, gameIndex, totalGames, initialTab, focusInning }) => {
     const [activeTab, setActiveTab] = useState(initialTab || 'boxscore');
-
-    useEffect(() => {
-        const onKey = (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
-            if (e.key === 'ArrowLeft' && onPrev) { e.stopPropagation(); onPrev(); }
-            if (e.key === 'ArrowRight' && onNext) { e.stopPropagation(); onNext(); }
-        };
-        window.addEventListener('keydown', onKey, true);
-        return () => window.removeEventListener('keydown', onKey, true);
-    }, [onPrev, onNext]);
+    const [offlineMessage,setOfflineMessage]=useState('');
 
     useEffect(() => {
         setActiveTab(initialTab || 'boxscore');
@@ -607,7 +598,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                     <td className="px-3 py-2">
                                         <div className="flex items-center gap-2">
                                             <PlayerLink playerId={player.playerId} name={player.name} />
-                                            {player.jerseyNumber && <button className="text-xs text-slate-400 hover:text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('trivia', 'jerseys'); if (onClose) onClose(); }}>#{player.jerseyNumber}</button>}
+                                            {player.jerseyNumber && <button className="text-xs text-slate-400 hover:text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); window.__navigateTab('trivia', 'jerseys'); }}>#{player.jerseyNumber}</button>}
                                         </div>
                                     </td>
                                     <td className="px-3 py-2 text-center">
@@ -828,7 +819,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
     };
     
     return (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-stretch sm:items-center justify-center z-[80] sm:p-4" onClick={onClose}>
+        <Modal label={`${game.awayTeam} at ${game.homeTeam}, ${game.date}`} className="fixed inset-0 bg-black bg-opacity-50 flex items-stretch sm:items-center justify-center z-[80] sm:p-4" onClose={onClose} onPrevious={onPrev} onNext={onNext}>
             <div className="bg-white rounded-none sm:rounded-lg shadow-lg w-full h-full sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden" style={{ maxWidth: 'min(72rem, 95vw)' }} onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className={`p-4 sm:p-6 border-b ${game.gameType === 'spring' ? 'bg-gradient-to-r from-green-600 to-green-700' : 'bg-gradient-to-r from-blue-600 to-blue-700'} text-white flex-shrink-0`}>
@@ -842,8 +833,13 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                             {game.gameType === 'spring' && <span className="px-2 py-0.5 bg-white/20 text-white text-xs font-semibold rounded">Spring Training</span>}
                             {game.gameType === 'postseason' && <span className="px-2 py-0.5 bg-yellow-400/30 text-white text-xs font-semibold rounded">Postseason</span>}
                         </div>
-                        <button onClick={onClose} className="min-h-10 min-w-10 inline-flex items-center justify-center rounded-md text-white hover:bg-white/10 hover:text-slate-100 text-2xl leading-none" aria-label="Close game details">&times;</button>
+                        <button data-dialog-close="true" onClick={onClose} className="min-h-10 min-w-10 inline-flex items-center justify-center rounded-md text-white hover:bg-white/10 hover:text-slate-100 text-2xl leading-none" aria-label="Close game details">&times;</button>
                     </div>
+                    <div className="flex flex-wrap gap-2 mt-3 no-print">
+                        <button className="px-3 py-2 rounded border border-white/40 text-sm" onClick={()=>navigatePassport({tab:'dashboard',subtab:'journal',journalGame:game.gameId,game:null,player:null})}>Add a memory</button>
+                        <button className="px-3 py-2 rounded border border-white/40 text-sm" onClick={async()=>{try{await window.saveOfflineGame(game.gameId);setOfflineMessage('Game saved for offline reading on this device.');}catch(e){setOfflineMessage(e.message);}}}>Save offline</button>
+                        <button className="px-3 py-2 rounded border border-white/40 text-sm" onClick={async()=>{try{await navigator.clipboard.writeText(location.href);setOfflineMessage('Game link copied.');}catch{setOfflineMessage('Copy this page address to share the game.');}}}>Copy game link</button>
+                    </div><p role="status" className="text-sm mt-1">{offlineMessage}</p>
                     <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex flex-wrap items-center gap-2 body-text text-blue-100">
                             <span>{game.date}</span>
@@ -854,7 +850,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                         </div>
                     </div>
                     <div className="body-text text-blue-100 mt-2">
-                        📍 <button className="inline-flex min-h-10 items-center align-middle hover:underline hover:text-white" onClick={() => { if (window.__navigateTab) window.__navigateTab('venues'); if (onClose) onClose(); }}>{game.venue}</button>
+                        📍 <button className="inline-flex min-h-10 items-center align-middle hover:underline hover:text-white" onClick={() => { if (window.__navigateTab) window.__navigateTab('venues'); }}>{game.venue}</button>
                         {game.attendance > 0 && <> • 👥 {game.attendance.toLocaleString()} fans</>}
                         {game.gameLength && <> • ⏱️ {game.gameLength}</>}
                     </div>
@@ -972,7 +968,6 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                         <button className="inline-flex min-h-10 items-center font-medium text-blue-600 hover:underline" onClick={() => {
                                             window._pendingUmpireSearch = game.umpires[pos];
                                             if (window.__navigateTab) window.__navigateTab('trivia', 'umpires');
-                                            if (onClose) onClose();
                                         }}>{game.umpires[pos]}</button>
                                     </div>
                                 ) : null)}
@@ -1007,7 +1002,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
 
                     {/* Milestones from this game */}
                     {(() => {
-                        const gameMilestones = BASEBALL_DATA.milestones.filter(m => m.gameId === game.gameId);
+                        const gameMilestones = game._detailMilestones || (BASEBALL_DATA?.milestones || []).filter(m => m.gameId === game.gameId);
                         if (gameMilestones.length === 0) return null;
                         return (
                             <div className="mt-4 bg-white rounded-lg p-4 shadow-sm">
@@ -1296,7 +1291,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                     </div>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 };
 

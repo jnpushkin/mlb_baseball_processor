@@ -1,5 +1,6 @@
 """HTML template for the baseball statistics website."""
 import json
+import re
 from .react_app import ReactComponents
 
 class HTMLTemplate:
@@ -19,11 +20,11 @@ class HTMLTemplate:
     <meta name="description" content="Interactive baseball statistics portal - game logs, milestones, player stats, stadium maps, and more.">
     <meta name="theme-color" content="#1e40af" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
-    <meta property="og:title" content="Baseball Statistics Portal">
+    <meta property="og:title" content="MLB Game Passport">
     <meta property="og:description" content="Interactive baseball statistics portal with game logs, milestones, player comparisons, and stadium maps.">
     <meta property="og:type" content="website">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x26be;</text></svg>">
-    <title>Baseball Statistics Portal</title>
+    <title>MLB Game Passport</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.28.5/babel.min.js"></script>
@@ -58,15 +59,15 @@ class HTMLTemplate:
         .page-title {{ font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }}
         .section-title {{ font-size: 1.125rem; font-weight: 600; letter-spacing: -0.015em; }}
         .subsection-title {{ font-size: 0.9375rem; font-weight: 600; }}
-        .body-text {{ font-size: 0.8125rem; }}
-        .small-text {{ font-size: 0.6875rem; }}
+        .body-text {{ font-size: 0.875rem; }}
+        .small-text {{ font-size: 0.75rem; }}
 
         /* Tabular numbers for stats */
         td, .stat-num {{ font-variant-numeric: tabular-nums; }}
 
         /* Table and UI consistency */
         table {{ font-size: 0.8125rem; }}
-        thead th {{ font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); }}
+        thead th {{ font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); }}
         button {{ font-size: 0.8125rem; }}
         input, select {{ font-size: 0.8125rem; }}
 
@@ -233,8 +234,8 @@ class HTMLTemplate:
         @media (max-width: 640px) {{
             .page-title {{ font-size: 1.125rem; }}
             .section-title {{ font-size: 1rem; }}
-            table {{ font-size: 0.6875rem; }}
-            thead th {{ font-size: 0.625rem; }}
+            table {{ font-size: 0.75rem; }}
+            thead th {{ font-size: 0.75rem; }}
         }}
 
         /* Ensure tables scroll horizontally on small screens */
@@ -464,6 +465,16 @@ class HTMLTemplate:
     <script type="text/babel">{react_code}</script>
 </body>
 </html>"""
+
+    @staticmethod
+    def create_compiled_page(index_path, assets):
+        """Keep the established theme while shipping no browser compiler or CDN runtime."""
+        html = HTMLTemplate.create_full_page({})
+        html = re.sub(r'<script\b[^>]*>[\s\S]*?</script>', '', html)
+        html = re.sub(r'<link[^>]+(?:unpkg.com|fonts.googleapis.com|fonts.gstatic.com)[^>]*>', '', html)
+        html = html.replace('</head>', f'<link rel="stylesheet" href="{assets["css"]}"></head>')
+        scripts = f'<script>window.__BOOT_URL={json.dumps(index_path)};</script><script defer src="{assets["js"]}"></script>'
+        return html.replace('</body>', scripts + '</body>')
 
     @staticmethod
     def create_data_json(json_data):
