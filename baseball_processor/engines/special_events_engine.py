@@ -195,7 +195,7 @@ class SpecialEventsEngine:
         normalized = unicodedata.normalize('NFD', name)
         ascii_name = ''.join(char for char in normalized if unicodedata.category(char) != 'Mn')
 
-        return ascii_name.strip().lower()
+        return re.sub(r"\s+", " ", ascii_name).strip().lower()
 
     def _resolve_player_id(self, name):
         """Resolve a player name to their BREF player ID."""
@@ -307,11 +307,10 @@ class SpecialEventsEngine:
         self.detect_leadoff_home_runs()
         self.detect_grand_slams()
         
-        # Always use HTML-based detection (soup should always be available)
         if self.soup:
             self.detect_pinch_hit_hrs_from_html()
         else:
-            debug("⚠️ No HTML soup available - pinch hit detection skipped")
+            self.detect_pinch_hit_hrs_from_substitutions()
         
         return self.game_data
 
@@ -460,6 +459,96 @@ class SpecialEventsEngine:
                 pitcher=play.get("pitcher", ""),
                 description=description or "Grand Slam",
             )
+
+    def detect_pinch_hit_hrs_from_substitutions(self):
+        """Detect API-sourced pinch-hit home runs from normalized substitutions."""
+        substitutions = self.game_data.get("substitutions", []) or []
+        plays = self.game_data.get("play_by_play", []) or []
+        if not substitutions or not plays:
+            return
+
+        existing = {
+            (
+                event.get("player_id", ""),
+                str(event.get("inning", "")),
+                str(event.get("half", "")).lower(),
+            )
+            for event in self.special_events.get("pinch_hit_hrs", [])
+        }
+
+        for substitution in substitutions:
+            raw = str(substitution.get("raw") or substitution.get("text") or "")
+            player_in = str(substitution.get("player_in") or "").strip()
+            pinch_text = f"{raw} {player_in}"
+            if not re.search(r"pinch[- ]h(?:itter|its?\s+for)", pinch_text, flags=re.IGNORECASE):
+                continue
+
+            player_name = re.sub(r"^pinch[- ]hitter\s+", "", player_in, flags=re.IGNORECASE).strip()
+            if not player_name:
+                match = re.search(
+                    r"pinch[- ]hitter\s+(.+?)\s+replaces\s+",
+                    raw,
+                    flags=re.IGNORECASE,
+                )
+                player_name = match.group(1).strip() if match else ""
+            if not player_name:
+                continue
+
+            player_id = str(substitution.get("player_id") or self._resolve_player_id(player_name) or "")
+            replaced_player = str(substitution.get("player_out") or substitution.get("replaced_player") or "").strip()
+            inning = substitution.get("inning")
+            half = str(substitution.get("half") or "").lower()
+
+            for play in plays:
+                if str(play.get("inning")) != str(inning):
+                    continue
+                if half and str(play.get("half") or "").lower() != half:
+                    continue
+
+                batter_name = str(play.get("batter") or "").strip()
+                batter_id = str(play.get("batter_id") or self._resolve_player_id(batter_name) or "")
+                same_batter = bool(player_id and batter_id and player_id == batter_id)
+                if not same_batter:
+                    same_batter = (
+                        self._normalize_name_for_comparison(player_name)
+                        == self._normalize_name_for_comparison(batter_name)
+                    )
+                if not same_batter:
+                    continue
+
+                # A pinch-hitter designation applies only to the first plate
+                # appearance after the substitution.
+                if not self._is_home_run_play(play):
+                    break
+
+                event_key = (player_id or batter_id, str(inning), half)
+                if event_key in existing:
+                    break
+
+                play_half = str(play.get("half") or half).lower()
+                side = "away" if play_half == "top" else "home"
+                opponent_side = "home" if side == "away" else "away"
+                self.special_events["pinch_hit_hrs"].append({
+                    "player": batter_name or player_name,
+                    "player_id": player_id or batter_id,
+                    "team": self.basic.get(f"{side}_team", ""),
+                    "team_code": self.basic.get(f"{side}_team_code", ""),
+                    "opposing_team": self.basic.get(f"{opponent_side}_team", ""),
+                    "opponent_code": self.basic.get(f"{opponent_side}_team_code", ""),
+                    "inning": inning,
+                    "half": play_half,
+                    "description": play.get("description", ""),
+                    "pitcher": play.get("pitcher", ""),
+                    "game_id": self.game_id,
+                    "game_date": self.game_date,
+                    "final_score": self.final_score,
+                    "is_home_game": side == "home",
+                    "replaced_player": replaced_player,
+                    "home_runs": 1,
+                    "rbi": play.get("rbi", 1),
+                })
+                existing.add(event_key)
+                break
 
     def detect_pinch_hit_hrs_from_html(self):
         """Detect pinch hit home runs with chronological substitution processing."""

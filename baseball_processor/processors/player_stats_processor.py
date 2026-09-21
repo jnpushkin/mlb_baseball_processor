@@ -427,7 +427,7 @@ class PlayerStatsProcessor(BaseProcessor):
         hitters_df = pd.DataFrame(hitter_rows)
 
         if not hitters_df.empty:
-            stat_cols = ["AB", "H", "RBI", "R", "HR", "2B", "3B", "SB", "BB", "SO", "HBP", "CS", "GIDP"]
+            stat_cols = ["PA", "AB", "H", "RBI", "R", "HR", "2B", "3B", "SB", "BB", "SO", "HBP", "CS", "GIDP"]
             hitters_df = hitters_df.loc[~(hitters_df[stat_cols] == 0).all(axis=1)].reset_index(drop=True)
             hitters_df = hitters_df.sort_values("G", ascending=False).reset_index(drop=True)
 

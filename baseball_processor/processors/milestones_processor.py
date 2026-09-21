@@ -356,6 +356,7 @@ class MilestonesProcessor(BaseProcessor):
                     special_events["leadoff_hrs"] = existing_leadoff_hrs
                     special_engine.special_events["leadoff_hrs"] = existing_leadoff_hrs
             special_engine.detect_grand_slams()
+            special_engine.detect_pinch_hit_hrs_from_substitutions()
             special_events = game.get("special_events", {})
         except Exception:
             pass

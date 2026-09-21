@@ -1,9 +1,12 @@
 import logging
 import os
+import re
+import unicodedata
 import pandas as pd
 from ..excel.generators import ExcelGeneratorUtils
 from ..utils.helpers import standardize_team_code, safe_get_int, safe_get_str
 from ..utils.constants import SPLASH_HITS_FILE, MCCOVEY_COVE_FILE, EUTAW_FILE, POOL_HR_FILE
+from ..utils.stat_utils import extract_extra_batting_stats, parse_batting_detail_counts
 from .base_processor import BaseProcessor
 
 
@@ -31,10 +34,12 @@ class SignatureHomeRunsProcessor(BaseProcessor):
         for game in self.games:
             matches = self._process_game_for_signature_hrs(game, reference_data)
             signature_matches.extend(matches)
-            for match in matches:
-                match_type = match.get("Type", "Unknown")
-                if match_type in matches_by_type:
-                    matches_by_type[match_type] += 1
+
+        signature_matches = self._remove_ambiguous_signature_matches(signature_matches)
+        for match in signature_matches:
+            match_type = match.get("Type", "Unknown")
+            if match_type in matches_by_type:
+                matches_by_type[match_type] += 1
         
         # Report breakdown by type
         print(f"   📊 Signature HR breakdown:")
@@ -47,6 +52,37 @@ class SignatureHomeRunsProcessor(BaseProcessor):
         
         print(f"   ✅ Found {len(signature_matches)} signature home runs total")
         return df_signature
+
+    @staticmethod
+    def _signature_reference_key(match):
+        hit_number = match.get("HitNumber")
+        if hit_number is not None and not pd.isna(hit_number):
+            return (str(match.get("Type", "")), str(hit_number))
+        return (
+            str(match.get("Type", "")),
+            str(match.get("Date", "")),
+            str(match.get("Player", "")),
+            str(match.get("Pitcher", "")),
+        )
+
+    def _remove_ambiguous_signature_matches(self, matches):
+        """Suppress a reference event if it still maps to multiple games."""
+        games_by_reference = {}
+        for match in matches:
+            key = self._signature_reference_key(match)
+            games_by_reference.setdefault(key, set()).add(str(match.get("GameID", "")))
+
+        ambiguous = {
+            key: game_ids
+            for key, game_ids in games_by_reference.items()
+            if len(game_ids) > 1
+        }
+        for key, game_ids in ambiguous.items():
+            print(
+                "   ⚠️ Ambiguous signature HR reference "
+                f"{key}: matched {', '.join(sorted(game_ids))}; suppressing all candidates"
+            )
+        return [match for match in matches if self._signature_reference_key(match) not in ambiguous]
     
     def _load_reference_data(self):
         """Load and prepare all signature HR reference data."""
@@ -265,11 +301,8 @@ class SignatureHomeRunsProcessor(BaseProcessor):
         return matches
     
     def _check_splash_hits(self, game, date_str, game_id, reference_data):
-        """Check for splash hits and McCovey Cove HRs - matching by PlayerID only."""
+        """Check for splash hits and McCovey Cove HRs in this specific game."""
         matches = []
-        
-        # Get player IDs from the game
-        batter_ids = self._get_batter_ids(game)
         
         # Check Giants splash hits
         if 'splash_giants' in reference_data:
@@ -280,8 +313,7 @@ class SignatureHomeRunsProcessor(BaseProcessor):
             for _, row in date_matches.iterrows():
                 player_id = safe_get_str(row, "PlayerID", "").strip()
                 
-                # Only match by PlayerID
-                if player_id and player_id in batter_ids:
+                if self._player_homered_in_game(game, player_id, row.get("Pitcher")):
                     match = self._create_signature_match(row, game_id, "Splash Hit", is_visitor=False)
                     if match:
                         matches.append(match)
@@ -295,8 +327,7 @@ class SignatureHomeRunsProcessor(BaseProcessor):
             for _, row in date_matches.iterrows():
                 player_id = safe_get_str(row, "PlayerID", "").strip()
                 
-                # Only match by PlayerID
-                if player_id and player_id in batter_ids:
+                if self._player_homered_in_game(game, player_id, row.get("Pitcher")):
                     match = self._create_signature_match(row, game_id, "McCovey Cove HR", is_visitor=True)
                     if match:
                         matches.append(match)
@@ -310,8 +341,6 @@ class SignatureHomeRunsProcessor(BaseProcessor):
         if 'eutaw' not in reference_data:
             return matches
         
-        batter_ids = self._get_batter_ids(game)
-        
         eutaw_hits = reference_data['eutaw'][
             reference_data['eutaw']["Date_yyyymmdd"] == date_str
         ]
@@ -319,14 +348,14 @@ class SignatureHomeRunsProcessor(BaseProcessor):
         for _, row in eutaw_hits.iterrows():
             player_id = safe_get_str(row, "PlayerID", "").strip()
             
-            # Only match by PlayerID
-            if player_id and player_id in batter_ids:
+            if self._player_homered_in_game(game, player_id, row.get("Pitcher")):
                 # Get the date - prefer Date_parsed if available
                 date_value = row.get("Date_parsed", row.get("Date"))
                 
                 match = {
                     "Date": date_value,
                     "Player": safe_get_str(row, "Player", ""),
+                    "PlayerID": player_id,
                     "Team": standardize_team_code(safe_get_str(row, "Team", "")),
                     "Opponent": standardize_team_code(safe_get_str(row, "Pitcher Team", "")),
                     "Pitcher": safe_get_str(row, "Pitcher", ""),
@@ -345,9 +374,6 @@ class SignatureHomeRunsProcessor(BaseProcessor):
         if 'pool' not in reference_data:
             return matches
         
-        # Get player IDs from game
-        batter_ids = self._get_batter_ids(game)
-        
         pool_hits = reference_data['pool'][
             reference_data['pool']["Date_yyyymmdd"] == date_str
         ]
@@ -355,14 +381,14 @@ class SignatureHomeRunsProcessor(BaseProcessor):
         for _, row in pool_hits.iterrows():
             player_id = safe_get_str(row, "PlayerID", "").strip()
             
-            # Only match by PlayerID (since you're adding this column)
-            if player_id and player_id in batter_ids:
+            if self._player_homered_in_game(game, player_id, row.get("Pitcher")):
                 # Get the date - prefer Date_parsed if available
                 date_value = row.get("Date_parsed", row.get("Date"))
                 
                 match = {
                     "Date": date_value,
                     "Player": safe_get_str(row, "Player", ""),
+                    "PlayerID": player_id,
                     "Team": standardize_team_code(safe_get_str(row, "Team", "")),
                     "Opponent": standardize_team_code(safe_get_str(row, "Opponent", "")),
                     "Pitcher": safe_get_str(row, "Pitcher", ""),
@@ -383,6 +409,60 @@ class SignatureHomeRunsProcessor(BaseProcessor):
                 if player_id:
                     batter_ids.add(player_id)
         return batter_ids
+
+    @staticmethod
+    def _normalize_person_name(value):
+        text = unicodedata.normalize("NFKD", str(value or ""))
+        text = "".join(char for char in text if not unicodedata.combining(char))
+        return re.sub(r"[^a-z0-9]+", "", text.casefold())
+
+    def _player_homered_in_game(self, game, player_id, expected_pitcher=None):
+        """Return whether the referenced player hit an HR in this game.
+
+        Batting totals provide the broad check. When this player's HR play(s)
+        and pitcher names are available, the reference pitcher disambiguates
+        same-day games as well.
+        """
+        player_id = str(player_id or "").strip()
+        if not player_id:
+            return False
+
+        homered = False
+        player_name = ""
+        pbp_hr_count = safe_get_int(extract_extra_batting_stats(game).get(player_id, {}), "HR", 0)
+        for side in ("home", "away"):
+            for player in game.get("batting", {}).get(side, []) or []:
+                row_player_id = str(player.get("player_id") or player.get("bref_id") or "").strip()
+                if row_player_id != player_id:
+                    continue
+                player_name = str(player.get("name") or "")
+                detail_hr_count = parse_batting_detail_counts(player.get("Details", ""), stats=("HR",)).get("HR", 0)
+                homered = safe_get_int(player, "HR", 0) > 0 or detail_hr_count > 0 or pbp_hr_count > 0
+                break
+            if homered:
+                break
+        if not homered:
+            return False
+
+        expected_pitcher_key = self._normalize_person_name(expected_pitcher)
+        if not expected_pitcher_key:
+            return True
+
+        hr_pitchers = []
+        for play in game.get("play_by_play", []) or []:
+            batter_id = str(play.get("batter_id") or "").strip()
+            same_batter = batter_id == player_id
+            if not same_batter and player_name:
+                same_batter = self._normalize_person_name(play.get("batter")) == self._normalize_person_name(player_name)
+            event_type = str(play.get("event_type") or play.get("event") or "").strip().lower().replace(" ", "_")
+            is_home_run = bool(play.get("home_run")) or event_type == "home_run"
+            pitcher_key = self._normalize_person_name(play.get("pitcher"))
+            if same_batter and is_home_run and pitcher_key:
+                hr_pitchers.append(pitcher_key)
+
+        if not hr_pitchers:
+            return True
+        return expected_pitcher_key in hr_pitchers
     
     def _get_player_names(self, game):
         """Get set of all player names from the game."""
@@ -421,6 +501,7 @@ class SignatureHomeRunsProcessor(BaseProcessor):
             match = {
                 "Date": date_value,
                 "Player": player,
+                "PlayerID": safe_get_str(row, "PlayerID", ""),
                 "Team": standardize_team_code(team),
                 "Opponent": standardize_team_code(opponent),
                 "Pitcher": safe_get_str(row, "Pitcher", ""),
@@ -496,9 +577,9 @@ class SignatureHomeRunsProcessor(BaseProcessor):
             df = df.drop(columns=["HitNumber", "Type"], errors="ignore")
 
             # Keep only the expected columns that exist
-            desired = ["Date", "Player", "Team", "Opponent", "Pitcher", "Signature HR Number", "GameID"]
+            desired = ["Date", "Player", "PlayerID", "Team", "Opponent", "Pitcher", "Signature HR Number", "GameID"]
             df = df[[c for c in desired if c in df.columns]]
-            
+
             print(f"   ✅ Final signature DataFrame has {len(df)} rows")
 
             return df
@@ -507,4 +588,3 @@ class SignatureHomeRunsProcessor(BaseProcessor):
             print(f"   ⚠️ Error creating signature DataFrame: {e}")
             logging.exception("Error details:")
             return pd.DataFrame()
- 
