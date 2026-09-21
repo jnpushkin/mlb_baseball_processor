@@ -186,7 +186,7 @@ class MilestonesProcessorTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             milestones, *_ = MilestonesProcessor(games).process_all_milestones()
 
-        self.assertEqual(22, len(milestones["Multi-SB Games"]))
+        self.assertEqual(23, len(milestones["Multi-SB Games"]))
 
     def test_api_play_by_play_grand_slam_becomes_milestone(self):
         game = {

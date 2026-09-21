@@ -2,7 +2,7 @@
   "stat": "IP",
   "stat_name": "Innings Pitched",
   "type": "pitching",
-  "last_updated": "2026-06-22",
+  "last_updated": "2026-09-20",
   "leaders": [
     {
       "rank": 1,
@@ -792,51 +792,51 @@
     },
     {
       "rank": 132,
+      "player_id": "scherma01",
+      "name": "Max Scherzer",
+      "value": 3035
+    },
+    {
+      "rank": 133,
       "player_id": "maysca01",
       "name": "Carl Mays",
       "value": 3021
     },
     {
-      "rank": 132,
+      "rank": 133,
       "player_id": "kennebr01",
       "name": "Brickyard Kennedy",
       "value": 3021
     },
     {
-      "rank": 134,
+      "rank": 135,
       "player_id": "bendech01",
       "name": "Chief Bender",
       "value": 3017
     },
     {
-      "rank": 135,
+      "rank": 136,
       "player_id": "darwida01",
       "name": "Danny Darwin",
       "value": 3016
     },
     {
-      "rank": 136,
+      "rank": 137,
       "player_id": "hawlepi01",
       "name": "Pink Hawley",
       "value": 3012
     },
     {
-      "rank": 137,
+      "rank": 138,
       "player_id": "adamsba01",
       "name": "Babe Adams",
       "value": 2995
     },
     {
-      "rank": 138,
+      "rank": 139,
       "player_id": "newhoha01",
       "name": "Hal Newhouser",
       "value": 2993
-    },
-    {
-      "rank": 139,
-      "player_id": "scherma01",
-      "name": "Max Scherzer",
-      "value": 2985
     },
     {
       "rank": 140,
@@ -858,14 +858,14 @@
     },
     {
       "rank": 142,
-      "player_id": "walshed01",
-      "name": "Ed Walsh",
+      "player_id": "breitte01",
+      "name": "Ted Breitenstein",
       "value": 2964
     },
     {
       "rank": 142,
-      "player_id": "breitte01",
-      "name": "Ted Breitenstein",
+      "player_id": "walshed01",
+      "name": "Ed Walsh",
       "value": 2964
     },
     {
