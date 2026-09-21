@@ -422,6 +422,7 @@ const buildAwardSetMembers = (awardSet, groups) => {
             playerId: item.playerId,
             name: item.name,
             checked,
+            goalEligible: !!item.goalEligible,
             gamesSeen: checked ? Number(item.gamesSeen || 0) : 0,
             firstSeen: checked ? item.firstSeen || '' : '',
             lastSeen: checked ? item.lastSeen || '' : '',
@@ -740,10 +741,11 @@ const AwardChecklistDrillIn = ({ awardSet, seenPlayers, playerGames, pitcherGame
 const AwardChecklistsView = ({ awardChecklists, playerGames, pitcherGames, games }) => {
     const groups = awardChecklists?.groups || [];
     const completionSets = awardChecklists?.completionSets || [];
-    const awardSets = useMemo(() => completionSets.map(awardSet => ({
+    const [collectionView, setCollectionView] = useState('goals');
+    const awardSets = useMemo(() => completionSets.filter(set => collectionView === 'history' || canPursueCollection(set, awardChecklists?.metadata)).map(awardSet => ({
         ...awardSet,
         members: buildAwardSetMembers(awardSet, groups),
-    })), [completionSets, groups]);
+    })).map(set => collectionView === 'goals' ? attainableCollection(set) : set), [completionSets, groups, collectionView, awardChecklists?.metadata]);
     const seenPlayers = awardChecklists?.seenPlayers || {};
     const totals = awardChecklists?.metadata || {};
     const entryLabel = totals.entryLabel || 'Award Entries';
@@ -822,7 +824,7 @@ const AwardChecklistsView = ({ awardChecklists, playerGames, pitcherGames, games
         setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
     };
 
-    if (!groups.length || !awardSets.length) {
+    if (!groups.length || !completionSets.length) {
         return <EmptyState title={emptyTitle} message={emptyMessage} />;
     }
 
@@ -842,18 +844,27 @@ const AwardChecklistsView = ({ awardChecklists, playerGames, pitcherGames, games
 
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <section className="passport-panel space-y-3">
+                <h2 className="text-xl font-bold">{collectionView === 'goals' ? 'Collections you can still advance' : 'Historical collections'}</h2>
+                <p className="text-sm text-slate-500">Available goals count winners you have seen plus unseen players on active MLB rosters. Other unseen players remain in All history.</p>
+                <p className="text-xs text-slate-500">{hasFreshCollectionRosters(totals) ? `MLB rosters checked ${totals.rosterAsOf.slice(0, 10)}. Roster status can change before a game.` : 'A fresh roster check is needed before suggesting goals.'}</p>
+                <div className="flex gap-2" role="group" aria-label="Award collection view">
+                    {[['goals', 'Available goals'], ['history', 'All history']].map(([value, label]) => <button key={value} className={collectionView === value ? 'passport-primary' : 'passport-button'} aria-pressed={collectionView === value} onClick={() => {setCollectionView(value);setSelectedMember(null);setStatusFilter('all');}}>{label}</button>)}
+                </div>
+                {!awardSets.length && <p>No unseen active MLB targets in these collections. Browse All history for the full archive.</p>}
+            </section>
+            {collectionView === 'history' && <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard title="Checked Off" value={(totals.seenCount || 0).toLocaleString()} subtitle={`${totals.uniqueSeenPlayers || 0} players seen`} color="blue" />
                 <StatCard title={entryLabel} value={(totals.entryCount || 0).toLocaleString()} color="green" />
                 <StatCard title="Completion Sets" value={(totals.setCount || awardSets.length).toLocaleString()} subtitle={`${totals.completedSetCount || 0} complete`} color="purple" />
                 <StatCard title="Categories" value={(totals.groupCount || groups.length).toLocaleString()} color="orange" />
-            </div>
+            </div>}
 
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden" style={{ boxShadow: 'var(--shadow)' }}>
                 <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-slate-100">
                     <div className="flex flex-wrap items-center gap-2">
                         <button onClick={() => setStatusFilter('all')} className={`px-3 py-2 rounded-lg body-text font-semibold ${statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>All</button>
-                        <button onClick={() => setStatusFilter('complete')} className={`px-3 py-2 rounded-lg body-text font-semibold ${statusFilter === 'complete' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>Completed</button>
+                        <button onClick={() => {setCollectionView('history');setStatusFilter('complete');setSelectedMember(null);}} className={`px-3 py-2 rounded-lg body-text font-semibold ${statusFilter === 'complete' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>Completed</button>
                         <button onClick={() => setStatusFilter('started')} className={`px-3 py-2 rounded-lg body-text font-semibold ${statusFilter === 'started' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>In Progress</button>
                         <button onClick={() => setStatusFilter('empty')} className={`px-3 py-2 rounded-lg body-text font-semibold ${statusFilter === 'empty' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>Not Started</button>
                     </div>
@@ -877,7 +888,7 @@ const AwardChecklistsView = ({ awardChecklists, playerGames, pitcherGames, games
                                 <span className="body-text font-bold text-slate-900">All Sets</span>
                                 <span className="small-text font-bold text-slate-500">{awardSets.length}</span>
                             </div>
-                            <div className="small-text text-slate-500 mt-1">{allSetsSubtitle}</div>
+                                <div className="small-text text-slate-500 mt-1">{collectionView === 'goals' ? 'Collections with unseen active MLB players' : allSetsSubtitle}</div>
                         </button>
                         {libraryStats.map(library => (
                             <button
@@ -899,7 +910,7 @@ const AwardChecklistsView = ({ awardChecklists, playerGames, pitcherGames, games
                         <div className="flex items-end justify-between gap-3 mb-3">
                             <div>
                                 <h2 className="section-title font-bold text-slate-900">Completion Sets</h2>
-                                <div className="small-text text-slate-500">Finite award collections with missing-entry lists and badge-style completion.</div>
+                                <div className="small-text text-slate-500">{collectionView === 'goals' ? 'Progress excludes other unseen historical and inactive players.' : 'Full historical checklists, including players no longer active.'}</div>
                             </div>
                             <div className="small-text text-slate-500">{filteredSets.length} sets</div>
                         </div>

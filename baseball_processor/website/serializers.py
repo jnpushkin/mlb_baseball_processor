@@ -697,6 +697,8 @@ class DataSerializer:
         from .analysis_data import build_analysis_data, build_player_journeys
         json_data.update(build_analysis_data(raw_games, games, CACHE_DIR))
         json_data["playerJourneys"] = build_player_journeys(json_data)
+        from .collection_goals import apply_collection_goals
+        apply_collection_goals(json_data)
 
         # Annotate player/pitcher games with career/season high flags
         self._annotate_career_highs(json_data)

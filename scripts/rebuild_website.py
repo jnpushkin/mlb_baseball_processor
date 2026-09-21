@@ -10,6 +10,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from baseball_processor.website.bundle import build_site
+from baseball_processor.website.collection_goals import apply_collection_goals
 from baseball_processor.website.serializers import DataSerializer
 
 
@@ -49,4 +50,5 @@ if args.refresh_companions:
     ])}
     data["companionData"] = serializer._serialize_companions()
     data["generatedAt"] = datetime.now().strftime("%B %d, %Y at %I:%M %p")
+apply_collection_goals(data)
 print(build_site(data, root / "MLB Game Passport - BREF.html", retain_indexes=args.retain_index))

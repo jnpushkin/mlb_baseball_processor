@@ -28,6 +28,23 @@ const countPlayersSeen = (data) => new Set([
     ...(data.players || []), ...(data.pitchers || []), ...(data.playersWithoutStats || [])
 ].map(p => p.playerId).filter(Boolean)).size;
 
+const hasFreshCollectionRosters = (meta, now = Date.now()) => {
+    const age = now - Date.parse(meta?.rosterAsOf || '');
+    return !!meta?.rosterFresh && age >= 0 && age <= 7 * 86400000;
+};
+const canPursueCollection = (set, meta) => !!set?.goalAvailable && hasFreshCollectionRosters(meta);
+const attainableCollection = (set) => ({
+    ...set,
+    total: set.goalTotal || 0,
+    missing: set.activeMissing || 0,
+    completionPct: set.goalTotal ? Math.round((set.seen / set.goalTotal) * 100) : 0,
+    isComplete: !!set.goalTotal && !set.activeMissing,
+    status: !set.goalTotal ? 'empty' : !set.activeMissing ? 'complete' : set.seen ? 'started' : 'empty',
+    nextMissing: (set.activeTargets || []).map(p => p.name),
+    members: set.members?.filter(member => member.checked || member.goalEligible),
+    subtitle: 'Seen winners plus players on active MLB rosters. Other unseen entries are in All history.',
+});
+
 const getGlobalSearchResults = (data, searchQuery, TEAM_CODE_TO_NAME = {}) => {
     if (!data || !searchQuery || searchQuery.length < 2) return { items: [], totalPlayers: 0 };
     const q = normalizeSearchText(searchQuery);

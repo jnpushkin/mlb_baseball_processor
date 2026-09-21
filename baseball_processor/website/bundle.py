@@ -192,6 +192,8 @@ def build_site(data, output_file, *, retain_indexes=()):
         __gameFiles=game_files,
         __gameVersions=game_versions,
         __collectionSets=data.get("awardChecklists", {}).get("completionSets", []),
+        __collectionMeta={k: data.get("awardChecklists", {}).get("metadata", {}).get(k)
+                          for k in ("rosterAsOf", "rosterFresh")},
         __moments=(data.get("careerFirsts") or [])[-24:],
         __health={
             "games": len(games),

@@ -817,3 +817,233 @@ test("companion editor opened as a file shows the manager link without API reque
   ).toBeHidden();
   expect(requests).toEqual([]);
 });
+
+async function collectionGoalsFixture(page, stale = false) {
+  const metadata = {
+    available: true,
+    rosterFresh: true,
+    rosterAsOf: stale ? "2020-01-01T00:00:00Z" : new Date().toISOString(),
+  };
+  const target = { playerId: "active", name: "Active Winner", mlbId: 123 };
+  const sets = [
+    {
+      id: "mixed",
+      title: "Mixed winners",
+      library: "Awards",
+      priority: 1,
+      criteria: { awardKeys: ["mvp"] },
+      total: 4,
+      seen: 1,
+      missing: 3,
+      goalTotal: 2,
+      activeMissing: 1,
+      activeMissingPlayers: 1,
+      activeTargets: [target],
+      excludedMissing: 2,
+      goalAvailable: true,
+    },
+    {
+      id: "old",
+      title: "1900 Award Class",
+      library: "Seasons",
+      priority: 2,
+      criteria: { year: 1900 },
+      total: 1,
+      seen: 0,
+      missing: 1,
+      goalTotal: 0,
+      activeMissing: 0,
+      activeMissingPlayers: 0,
+      activeTargets: [],
+      goalAvailable: false,
+    },
+    {
+      id: "retired",
+      title: "Retired-only winners",
+      library: "Seasons",
+      priority: 3,
+      criteria: { year: 2010 },
+      total: 1,
+      seen: 0,
+      missing: 1,
+      goalTotal: 0,
+      activeMissing: 0,
+      activeMissingPlayers: 0,
+      activeTargets: [],
+      goalAvailable: false,
+    },
+    {
+      id: "complete",
+      title: "Finished collection",
+      library: "Seasons",
+      priority: 4,
+      criteria: { year: 2025 },
+      total: 1,
+      seen: 1,
+      missing: 0,
+      goalTotal: 1,
+      activeMissing: 0,
+      activeMissingPlayers: 0,
+      activeTargets: [],
+      goalAvailable: false,
+      isComplete: true,
+    },
+  ];
+  const groups = [
+    {
+      awardKey: "mvp",
+      award: "MVP",
+      items: [
+        {
+          id: "seen",
+          playerId: "jose",
+          name: "Seen Winner",
+          year: 2025,
+          checked: true,
+          goalEligible: true,
+        },
+        {
+          id: "old",
+          playerId: "old",
+          name: "Old Winner",
+          year: 1900,
+          checked: false,
+          goalEligible: false,
+        },
+        {
+          id: "retired",
+          playerId: "retired",
+          name: "Retired Winner",
+          year: 2010,
+          checked: false,
+          goalEligible: false,
+        },
+        {
+          id: "active",
+          playerId: "active",
+          name: "Active Winner",
+          year: 2026,
+          checked: false,
+          goalEligible: true,
+        },
+      ],
+    },
+  ];
+  await page.route("**/data-index-*.json", async (r) => {
+    const data = await (await r.fetch()).json();
+    await r.fulfill({
+      json: { ...data, __collectionSets: sets, __collectionMeta: metadata },
+    });
+  });
+  await page.route("**/data-awardChecklists-*.json", (r) =>
+    r.fulfill({
+      json: { metadata, groups, completionSets: sets, seenPlayers: {} },
+    }),
+  );
+}
+
+test("collections and planner suggest active targets and keep retired-only sets in history", async ({
+  page,
+}) => {
+  await collectionGoalsFixture(page);
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "passport:goals",
+      JSON.stringify([
+        { id: "old", name: "1900 Award Class", kind: "collection" },
+        { id: "retired", name: "Retired-only winners", kind: "collection" },
+      ]),
+    ),
+  );
+  await page.goto("/#dashboard/collections");
+  const mixed = page.getByRole("article", { name: "Mixed winners" });
+  await expect(mixed).toContainText("1 / 2 eligible entries");
+  await expect(mixed).toContainText("1 unseen active player");
+  await expect(
+    page.getByRole("article", { name: "1900 Award Class" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("article", { name: "Retired-only winners" }),
+  ).toHaveCount(0);
+  await mixed.getByRole("button", { name: "Pin goal", exact: true }).click();
+  await page.getByRole("button", { name: "All history", exact: true }).click();
+  await expect(
+    page.getByRole("article", { name: "1900 Award Class" }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("article", { name: "Retired-only winners" })
+      .getByRole("button", { name: "Pin goal", exact: true }),
+  ).toHaveCount(0);
+  await expect(mixed).toContainText("1 / 4 entries");
+  await page.getByRole("button", { name: "Completed", exact: true }).click();
+  await expect(
+    page.getByRole("article", { name: "Finished collection" }),
+  ).toBeVisible();
+  await expect(mixed).toHaveCount(0);
+  await page.goto("/#dashboard/plan");
+  await page.getByText("Other goals and watchlist", { exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Pin Active Winner", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Pin Retired Winner", exact: true }),
+  ).toHaveCount(0);
+  await page.goto("/#dashboard");
+  await expect(
+    page.getByRole("heading", { name: "Collections you can advance" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Mixed winners/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Retired-only winners/ }),
+  ).toHaveCount(0);
+});
+
+test("award detail checklists use the same attainable scope", async ({
+  page,
+}) => {
+  await collectionGoalsFixture(page);
+  await page.goto("/#players/awards");
+  await expect(
+    page.getByRole("heading", { name: "Collections you can still advance" }),
+  ).toBeVisible();
+  await expect(page.getByText("1900 Award Class", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByText("Retired Winner", { exact: true })).toHaveCount(
+    0,
+  );
+  await page
+    .getByRole("button", { name: "Open checklist", exact: true })
+    .first()
+    .click();
+  await expect(
+    page.getByText("Active Winner", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(page.getByText("Old Winner", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Retired Winner", { exact: true })).toHaveCount(
+    0,
+  );
+});
+
+test("stale roster snapshots do not offer collection goals", async ({
+  page,
+}) => {
+  await collectionGoalsFixture(page, true);
+  await page.goto("/#dashboard/collections");
+  await expect(
+    page.getByText(/A fresh MLB roster check is needed/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("article", { name: "Mixed winners" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "All history", exact: true }).click();
+  await expect(
+    page.getByRole("article", { name: "Mixed winners" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Pin goal", exact: true }),
+  ).toHaveCount(0);
+});

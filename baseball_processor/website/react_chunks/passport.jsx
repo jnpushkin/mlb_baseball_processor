@@ -843,8 +843,13 @@ const PassportHome = ({ data, allData, route }) => {
     ? games.filter((g) => !knownGames.includes(g.gameId))
     : [];
   const sets = (allData.__collectionSets || [])
-    .filter((s) => s.missing > 0 && s.seen > 0)
-    .sort((a, b) => a.missing - b.missing)
+    .filter((s) => canPursueCollection(s, allData.__collectionMeta))
+    .map(attainableCollection)
+    .sort(
+      (a, b) =>
+        a.activeMissingPlayers - b.activeMissingPlayers ||
+        a.missing - b.missing,
+    )
     .slice(0, 3);
   return (
     <div className="space-y-5">
@@ -928,7 +933,7 @@ const PassportHome = ({ data, allData, route }) => {
           )}
         </section>
         <section className="passport-panel">
-          <h2 className="text-lg font-bold">Close to completing</h2>
+          <h2 className="text-lg font-bold">Collections you can advance</h2>
           {sets.map((s) => (
             <button
               key={s.id}
@@ -939,7 +944,9 @@ const PassportHome = ({ data, allData, route }) => {
             >
               <strong>{s.title}</strong>
               <span className="block text-sm text-slate-500">
-                {s.seen} of {s.total} entries · {s.missing} remaining
+                {s.activeMissingPlayers} unseen active{" "}
+                {s.activeMissingPlayers === 1 ? "player" : "players"} · {s.seen}{" "}
+                of {s.total} eligible entries
               </span>
               <span className="passport-progress" aria-hidden="true">
                 <span
@@ -949,7 +956,9 @@ const PassportHome = ({ data, allData, route }) => {
             </button>
           ))}
           <p className="text-xs text-slate-500">
-            Historical sets can include retired players.
+            {sets.length
+              ? "Targets use active MLB rosters. Historical and inactive missing players stay out of your goals."
+              : "No verified active targets right now. Your full checklists are available in Collections → All history."}
           </p>
         </section>
       </div>
@@ -1163,8 +1172,22 @@ const photoStore = (mode, key, value) =>
 const PassportCollections = ({ data }) => {
   const [goals, save, error] = usePersonal("goals", []);
   const [filter, setFilter] = useState("");
+  const [collectionView, setCollectionView] = useState("goals");
   const sets = [...(data.__collectionSets || [])]
-    .sort((a, b) => a.missing - b.missing)
+    .filter(
+      (s) =>
+        collectionView === "history" ||
+        (collectionView === "completed"
+          ? s.isComplete
+          : canPursueCollection(s, data.__collectionMeta)),
+    )
+    .map((s) => (collectionView === "goals" ? attainableCollection(s) : s))
+    .sort((a, b) =>
+      collectionView === "goals"
+        ? a.activeMissingPlayers - b.activeMissingPlayers ||
+          a.priority - b.priority
+        : a.priority - b.priority,
+    )
     .filter((s) =>
       normalizeSearchText(s.title).includes(normalizeSearchText(filter)),
     );
@@ -1179,8 +1202,14 @@ const PassportCollections = ({ data }) => {
       <section className="passport-panel">
         <h1 className="text-2xl font-bold">Your collections</h1>
         <p className="text-sm text-slate-500">
-          Lifetime collection progress. Checked award entries mean you have seen
-          the winner at any point, unless the detailed checklist says otherwise.
+          Goals count winners you have seen plus unseen players on active MLB
+          rosters. Other unseen players are excluded from goal progress. All
+          history keeps the full checklists.
+        </p>
+        <p className="text-xs text-slate-500 mt-2">
+          {hasFreshCollectionRosters(data.__collectionMeta)
+            ? `MLB rosters checked ${data.__collectionMeta.rosterAsOf.slice(0, 10)}. Injured, minor-league and unsigned players can return as targets after a roster refresh.`
+            : "A fresh MLB roster check is needed before suggesting goals. Historical progress is still available."}
         </p>
         <div className="flex flex-wrap gap-2 mt-3">
           {[
@@ -1210,6 +1239,28 @@ const PassportCollections = ({ data }) => {
           ))}
         </div>
       </section>
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-label="Collection view"
+      >
+        {[
+          ["goals", "Available goals"],
+          ["completed", "Completed"],
+          ["history", "All history"],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            className={
+              collectionView === value ? "passport-primary" : "passport-button"
+            }
+            aria-pressed={collectionView === value}
+            onClick={() => setCollectionView(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <input
         aria-label="Find a collection"
         placeholder="Find a collection"
@@ -1219,11 +1270,16 @@ const PassportCollections = ({ data }) => {
       />
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {sets.map((s) => (
-          <article key={s.id} className="passport-panel">
+          <article key={s.id} className="passport-panel" aria-label={s.title}>
             <h2 className="font-bold">{s.title}</h2>
             <p className="text-sm text-slate-500 my-2">
-              {s.seen} / {s.total} entries ·{" "}
-              {s.missing === 0 ? "Complete" : `${s.missing} missing`}
+              {s.seen} / {s.total}{" "}
+              {collectionView === "goals" ? "eligible " : ""}entries ·{" "}
+              {collectionView === "goals"
+                ? `${s.activeMissingPlayers} unseen active ${s.activeMissingPlayers === 1 ? "player" : "players"}`
+                : s.missing === 0
+                  ? "Complete"
+                  : `${s.missing} not seen`}
             </p>
             <progress
               className="w-full"
@@ -1231,14 +1287,35 @@ const PassportCollections = ({ data }) => {
               max={s.total}
               aria-label={`${s.title} completion`}
             />
+            {collectionView === "goals" && (
+              <p className="text-sm text-slate-500 mt-2">
+                Next: {s.nextMissing.slice(0, 4).join(", ")}
+                {s.nextMissing.length > 4 ? "…" : ""}
+              </p>
+            )}
+            {collectionView === "goals" && s.excludedMissing > 0 && (
+              <p className="text-xs text-slate-500 mt-1">
+                {s.excludedMissing} other unseen entries kept in history.
+              </p>
+            )}
+            {collectionView === "history" &&
+              !canPursueCollection(s, data.__collectionMeta) &&
+              s.missing > 0 && (
+                <p className="text-xs text-slate-500 mt-2">
+                  Historical checklist · no verified active targets.
+                </p>
+              )}
             <div className="flex gap-2 mt-2">
-              <button
-                className="passport-button"
-                aria-pressed={goals.some((g) => g.id === s.id)}
-                onClick={() => pin(s)}
-              >
-                {goals.some((g) => g.id === s.id) ? "Unpin goal" : "Pin goal"}
-              </button>
+              {(canPursueCollection(s, data.__collectionMeta) ||
+                goals.some((g) => g.id === s.id)) && (
+                <button
+                  className="passport-button"
+                  aria-pressed={goals.some((g) => g.id === s.id)}
+                  onClick={() => pin(s)}
+                >
+                  {goals.some((g) => g.id === s.id) ? "Unpin goal" : "Pin goal"}
+                </button>
+              )}
               <button
                 className="passport-button"
                 onClick={() =>
@@ -1251,6 +1328,13 @@ const PassportCollections = ({ data }) => {
           </article>
         ))}
       </div>
+      {!sets.length && (
+        <p className="passport-panel">
+          {collectionView === "goals"
+            ? "No collections with unseen active MLB players match. Browse All history for past collections."
+            : "No collections match this view."}
+        </p>
+      )}
       <PassportNotice>{error}</PassportNotice>
     </div>
   );
@@ -1456,11 +1540,19 @@ const PassportPlanner = ({ data }) => {
   const missingCandidates = [
     ...new Set(
       goals
-        .filter((g) => g.kind === "collection")
-        .flatMap(
+        .filter(
           (g) =>
+            g.kind === "collection" &&
+            canPursueCollection(
+              (data.__collectionSets || []).find((s) => s.id === g.id),
+              data.__collectionMeta,
+            ),
+        )
+        .flatMap((g) =>
+          (
             (data.__collectionSets || []).find((s) => s.id === g.id)
-              ?.nextMissing || [],
+              ?.activeTargets || []
+          ).map((player) => player.name),
         ),
     ),
   ];
@@ -1608,7 +1700,14 @@ const PassportPlanner = ({ data }) => {
                   {g.kind === "player"
                     ? rosters[g.id] || "Roster status unverified"
                     : g.kind === "collection"
-                      ? "Historical collection; some entries may be unattainable"
+                      ? canPursueCollection(
+                          (data.__collectionSets || []).find(
+                            (s) => s.id === g.id,
+                          ),
+                          data.__collectionMeta,
+                        )
+                        ? "Unseen active MLB targets available"
+                        : "Historical collection · no verified active targets"
                       : g.kind}
                 </small>
               </span>
@@ -1638,10 +1737,12 @@ const PassportPlanner = ({ data }) => {
         <PassportNotice>{error || rosterMessage}</PassportNotice>
         {missingCandidates.length > 0 && (
           <div className="mt-4 border-t pt-4">
-            <h2 className="font-bold">Missing from your pinned collections</h2>
+            <h2 className="font-bold">
+              Active targets from your pinned collections
+            </h2>
             <p className="text-sm text-slate-500">
-              A few missing entries to explore. Pin a player and check their
-              current roster status before planning a visit.
+              Unseen players on the checked MLB rosters. Pin a player and
+              confirm their current roster before planning a visit.
             </p>
             <div className="flex flex-wrap gap-2 mt-2">
               {missingCandidates.map((candidate) => (

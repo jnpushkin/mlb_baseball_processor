@@ -2199,6 +2199,13 @@ def main():
             warn(f"⚠️ Failed to update debuts: {e}")
             info("   Continuing with existing debut data...")
 
+    if not args.excel_only and not _should_skip_network_reference_updates(args):
+        try:
+            from .website.collection_goals import refresh_rosters
+            refresh_rosters()
+        except Exception as error:
+            warn(f"Could not refresh collection roster targets: {error}. Keeping the previous snapshot.")
+
     awards_refreshed = False
     if _should_update_awards(args):
         awards_refreshed = _refresh_awards_if_stale(
