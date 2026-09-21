@@ -479,7 +479,7 @@ const DynamicPitcherTable = ({ initialSearch = '', allPitchers, pitcherGames, nc
     );
 };
 
-const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions = null, enableDateFilter = false, enableExport = true, paginate = true, onRowClick = null, persistKey = null, mobileCard = null }) => {
+const DataTable = ({ data, columns, title, defaultSortKey = null, defaultSortDir = 'desc', filterOptions = null, enableDateFilter = false, enableExport = true, paginate = true, rowsPerPage = 50, onRowClick = null, persistKey = null, mobileCard = null }) => {
     persistKey = persistKey || title.replace(/[^a-z0-9]/gi,'_').toLowerCase();
     const loadPersisted = (key, fallback) => {
         if (!persistKey) return fallback;
@@ -487,7 +487,7 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
     };
     const [search, setSearch] = useState(() => loadPersisted('search', ''));
     const [sortKey, setSortKey] = useState(() => loadPersisted('sortKey', defaultSortKey || columns[0]?.key));
-    const [sortDir, setSortDir] = useState(() => loadPersisted('sortDir', 'desc'));
+    const [sortDir, setSortDir] = useState(() => loadPersisted('sortDir', defaultSortDir));
     const [activeFilters, setActiveFilters] = useState(() => loadPersisted('filters', {}));
     const [startDate, setStartDate] = useState(() => loadPersisted('startDate', ''));
     const [endDate, setEndDate] = useState(() => loadPersisted('endDate', ''));
@@ -549,7 +549,7 @@ const DataTable = ({ data, columns, title, defaultSortKey = null, filterOptions 
         });
     }, [filtered, sortKey, sortDir, columns]);
 
-    const { page, setPage, totalPages, paginatedData, totalItems } = usePagination(sorted, 50);
+    const { page, setPage, totalPages, paginatedData, totalItems } = usePagination(sorted, rowsPerPage);
     const displayData = paginate ? paginatedData : sorted;
 
     const handleSort = (key) => {

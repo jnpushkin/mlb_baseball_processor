@@ -1,6 +1,6 @@
 """React app chunk: core."""
 
-CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, debuts, finalGames, badges, onClose, onPrev, onNext, gameIndex, totalGames, initialTab, focusInning }) => {
+CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFirsts, allTimePassings, debuts, finalGames, badges, onClose, onPrev, onNext, gameIndex, totalGames, initialTab, focusInning, focusPlay }) => {
     const [activeTab, setActiveTab] = useState(initialTab || 'boxscore');
     const [offlineMessage,setOfflineMessage]=useState('');
 
@@ -9,13 +9,14 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
     }, [game?.gameId, initialTab]);
 
     useEffect(() => {
-        if (activeTab !== 'playbyplay' || !focusInning) return;
-        const targetId = `pbp-${game.gameId}-${focusInning.half}-${focusInning.inning}`;
-        window.setTimeout(() => {
+        if (activeTab !== 'playbyplay' || (!focusInning && focusPlay == null)) return;
+        const targetId = focusPlay != null ? `pbp-play-${game.gameId}-${focusPlay}` : `pbp-${game.gameId}-${focusInning.half}-${focusInning.inning}`;
+        const timer = window.setTimeout(() => {
             const target = document.getElementById(targetId);
             if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 80);
-    }, [activeTab, focusInning, game?.gameId]);
+        return () => window.clearTimeout(timer);
+    }, [activeTab, focusInning?.half, focusInning?.inning, focusPlay, game?.gameId]);
 
     const cleanPersonName = (name) => String(name || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
     const keyPlayShortLabel = (play) => play?.type === 'grand_slam' ? 'grand slam' : play?.type === 'inside_the_park_hr' ? 'inside-the-park HR' : 'HR';
@@ -763,7 +764,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                             </div>
                             <div className="divide-y">
                                 {inning.plays.map((play, playIdx) => (
-                                    <div key={`play-${inning.inning}-${inning.half}-${playIdx}`} className={`p-3 hover:bg-blue-50 ${
+                                    <div id={`pbp-play-${game.gameId}-${play.playIndex}`} key={`play-${inning.inning}-${inning.half}-${playIdx}`} className={`p-3 scroll-mt-20 hover:bg-blue-50 ${focusPlay != null && Number(focusPlay) === play.playIndex ? 'ring-2 ring-inset ring-blue-500' : ''} ${
                                         play.isHomeRun ? 'bg-orange-50' : 
                                         play.isStrikeout ? 'bg-red-50' : 
                                         play.isStolenBase ? 'bg-green-50' :
@@ -776,7 +777,7 @@ CODE = r'''const GameDetailsModal = ({ game, playerGames, pitcherGames, careerFi
                                                     {play.outs !== null ? `${play.outs} out${play.outs !== 1 ? 's' : ''}` : ''}
                                                 </div>
                                                 {play.score && (
-                                                    <div className="text-xs font-mono text-blue-600 font-bold">
+                                                    <div title={`Score before play (${game.awayTeam}–${game.homeTeam})`} className="text-xs font-mono text-blue-600 font-bold">
                                                         {play.score}
                                                     </div>
                                                 )}

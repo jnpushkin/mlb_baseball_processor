@@ -62,18 +62,30 @@ const usePassportRoute = () => {
   }, []);
   return route;
 };
-const scopeGames = (games, scope) =>
-  (games || []).filter(
+const scopeGames = (games, scope) => {
+  const list = games || [],
+    venue = canonicalVenue(list, scope.venue);
+  return list.filter(
     (g) =>
       (!scope.year || toSortableDate(g.date).startsWith(scope.year)) &&
       (!scope.type || g.gameType === scope.type) &&
-      (!scope.team || g.homeTeam === scope.team || g.awayTeam === scope.team) &&
-      (!scope.venue || g.venue === scope.venue) &&
+      (!scope.team ||
+        sameTeam(g.homeTeam, scope.team, scope.teamMode === "franchise") ||
+        sameTeam(g.awayTeam, scope.team, scope.teamMode === "franchise")) &&
+      (!scope.venue ||
+        (scope.venueMode === "era"
+          ? g.venue === scope.venue
+          : (g._venueKey || g.venue) === venue)) &&
       (!scope.companion || (g._companions || []).includes(scope.companion)) &&
       (!scope.side ||
         !scope.team ||
-        (scope.side === "home" ? g.homeTeam : g.awayTeam) === scope.team),
+        sameTeam(
+          scope.side === "home" ? g.homeTeam : g.awayTeam,
+          scope.team,
+          scope.teamMode === "franchise",
+        )),
   );
+};
 const passportMetrics = (games) => {
   const players = new Set(games.flatMap((g) => g._players || []));
   const totals = {};
@@ -129,6 +141,12 @@ const scopePassportData = (data, route) => {
   return result;
 };
 const PASSPORT_FEATURES = [
+  [
+    "Discover: plays, matchups and career share",
+    "dashboard",
+    "discover",
+    "play explorer batter pitcher duels career share drama stories arsenals personal milestones trips trivia",
+  ],
   ["Season recap", "dashboard", "recap", "season memories share recap"],
   [
     "Collections",
@@ -328,6 +346,27 @@ const passportKeysForRoute = (route) => {
     keys = [...keys, "milestones", "careerFirsts"];
   if (route.tab === "dashboard" && route.subtab === "search")
     keys = [...keys, "searchEvents"];
+  if (route.tab === "dashboard" && route.subtab === "discover") {
+    const analysisKeys = {
+      plays: ["playEvents"],
+      duels: ["playEvents"],
+      shared: ["playerGames", "pitcherGames"],
+      stories: ["gameStories"],
+      arsenal: ["pitchArsenal"],
+      career: ["careerContext", "playerGames", "pitcherGames"],
+      personal: ["playerGames", "pitcherGames"],
+      context: ["playerBios", "awardChecklists", "careerContext"],
+      trips: [],
+      journeys: ["ncaaCrossRef", "playerBios", "playerJourneys"],
+      quiz: [],
+    };
+    keys = [
+      ...keys,
+      ...(analysisKeys[route.tool || "plays"] || analysisKeys.plays),
+    ];
+  }
+  if (route.tab === "dashboard" && route.subtab === "health")
+    keys = [...keys, "analysisHealth", "dataChanges"];
   if (route.player) keys = [...keys, ...basic];
   return [...new Set(keys)];
 };
@@ -351,15 +390,48 @@ const validatePassportBackup = (payload) => {
     if (
       !id ||
       !object(entry) ||
-      ["notes", "seat", "moment", "companions", "updatedAt"].some(
-        (k) => entry[k] != null && typeof entry[k] !== "string",
-      )
+      [
+        "notes",
+        "seat",
+        "moment",
+        "companions",
+        "updatedAt",
+        "trip",
+        "ticketCost",
+        "currency",
+        "rating",
+      ].some((k) => entry[k] != null && typeof entry[k] !== "string")
     )
       throw Error("Invalid journal entry");
+    if (
+      entry.ticketCost &&
+      (!Number.isFinite(Number(entry.ticketCost)) ||
+        Number(entry.ticketCost) < 0)
+    )
+      throw Error("Invalid ticket cost");
+    if (entry.rating && !["1", "2", "3", "4", "5"].includes(entry.rating))
+      throw Error("Invalid game rating");
+    if (entry.currency && !/^[A-Z]{3}$/.test(entry.currency))
+      throw Error("Invalid currency");
   }
-  for (const key of ["images", "views", "goals"])
+  for (const key of ["images", "views", "goals", "itinerary"])
     if (payload[key] != null && !Array.isArray(payload[key]))
       throw Error("Invalid backup list");
+  for (const row of payload.itinerary || []) {
+    if (
+      !object(row) ||
+      !Number.isInteger(row.gamePk) ||
+      typeof row.matchup !== "string" ||
+      typeof row.date !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(row.date) ||
+      !Number.isFinite(Date.parse(row.date)) ||
+      typeof row.venue !== "string" ||
+      (row.gameDate != null && typeof row.gameDate !== "string") ||
+      (row.gameDate && !Number.isFinite(Date.parse(row.gameDate))) ||
+      (row.isTimeTBA != null && typeof row.isTimeTBA !== "boolean")
+    )
+      throw Error("Invalid itinerary");
+  }
   for (const row of payload.images || []) {
     if (
       !object(row) ||
@@ -497,9 +569,37 @@ const PassportScope = ({ data, route }) => {
           onChange={(e) => navigatePassport({ venue: e.target.value })}
         >
           <option value="">All ballparks</option>
-          {[...new Set(data.games.map((g) => g.venue))].sort().map((v) => (
-            <option key={v}>{v}</option>
-          ))}
+          {[
+            ...new Set(
+              data.games.map((g) =>
+                route.venueMode === "era" ? g.venue : g._venueKey || g.venue,
+              ),
+            ),
+          ]
+            .sort()
+            .map((v) => (
+              <option key={v}>{v}</option>
+            ))}
+        </select>
+        <select
+          aria-label="Ballpark grouping"
+          className="passport-input"
+          value={route.venueMode || "park"}
+          onChange={(e) =>
+            navigatePassport({ venueMode: e.target.value, venue: null })
+          }
+        >
+          <option value="park">Physical ballpark</option>
+          <option value="era">Name at the time</option>
+        </select>
+        <select
+          aria-label="Team grouping"
+          className="passport-input"
+          value={route.teamMode || "era"}
+          onChange={(e) => navigatePassport({ teamMode: e.target.value })}
+        >
+          <option value="era">Team at the time</option>
+          <option value="franchise">Whole franchise</option>
         </select>
         <select
           aria-label="Home or away scope"
@@ -984,6 +1084,15 @@ const PassportJournal = ({ data, route }) => {
   }, [gameId]);
   const field = (key, value) => setDraft({ ...draft, [key]: value });
   const save = async () => {
+    try {
+      validatePassportBackup({
+        schemaVersion: 1,
+        journal: { [gameId]: draft },
+      });
+    } catch (error) {
+      setMessage(error.message);
+      return;
+    }
     setBusy(true);
     try {
       await photoStore("put", gameId, photos);
@@ -1017,6 +1126,7 @@ const PassportJournal = ({ data, route }) => {
           ],
           views: readPersonal("views", []),
           goals: readPersonal("goals", []),
+          itinerary: readPersonal("itinerary", []),
         },
         "my-baseball-passport-private-backup.json",
       );
@@ -1039,7 +1149,7 @@ const PassportJournal = ({ data, route }) => {
       if (!saveJournal(merged)) throw Error("Storage unavailable");
       setDraft(merged[gameId] || {});
       setPhotos((await photoStore("get", gameId))?.images || []);
-      for (const key of ["views", "goals"])
+      for (const key of ["views", "goals", "itinerary"])
         if (Array.isArray(payload[key]))
           localStorage.setItem(
             "passport:" + key,
@@ -1098,9 +1208,63 @@ const PassportJournal = ({ data, route }) => {
           />
         </label>
       ))}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <label>
+          Trip name
+          <input
+            aria-label="Trip name"
+            className="passport-input w-full"
+            value={draft.trip || ""}
+            onChange={(e) => field("trip", e.target.value)}
+            placeholder="e.g. Summer ballpark trip"
+          />
+        </label>
+        <label>
+          Game rating
+          <select
+            aria-label="Game rating"
+            className="passport-input w-full"
+            value={draft.rating || ""}
+            onChange={(e) => field("rating", e.target.value)}
+          >
+            <option value="">Not rated</option>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>
+                {n} / 5
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Ticket cost
+          <input
+            aria-label="Ticket cost"
+            type="number"
+            min="0"
+            step="0.01"
+            className="passport-input w-full"
+            value={draft.ticketCost || ""}
+            onChange={(e) => field("ticketCost", e.target.value)}
+          />
+        </label>
+        <label>
+          Currency
+          <select
+            aria-label="Currency"
+            className="passport-input w-full"
+            value={draft.currency || "USD"}
+            onChange={(e) => field("currency", e.target.value)}
+          >
+            {["USD", "CAD", "MXN", "JPY", "GBP", "EUR"].map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </label>
+      </div>
       <label className="block">
         Notes
         <textarea
+          aria-label="Notes"
           rows={5}
           className="passport-input w-full"
           value={draft.notes || ""}
@@ -1310,7 +1474,11 @@ const PassportPlanner = ({ data }) => {
       !seenTeams.has(t) &&
       !(t === "ATH" && seenTeams.has("OAK")),
   );
-  const visited = new Set(data.games.map((g) => g.venue));
+  const parkIdentity = (name) =>
+    venueIdentity(name, data.stadiumAliases || {}, ALL_MLB_STADIUMS || []);
+  const visited = new Set(
+    data.games.map((g) => parkIdentity(g._venueKey || g.venue)),
+  );
   const [rosters, setRosters] = useState({});
   const [rosterTeams, setRosterTeams] = useState({});
   const [rosterMessage, setRosterMessage] = useState("");
@@ -1369,26 +1537,42 @@ const PassportPlanner = ({ data }) => {
     }
   };
   const currentParks = (ALL_MLB_STADIUMS || []).filter(
-    (v) =>
-      v.current &&
-      !visited.has(v.name) &&
-      !(v.aliases || []).some((a) => visited.has(a)),
+    (v) => v.current && !visited.has(parkIdentity(v.name)),
   );
   const [schedule, setSchedule] = useState([]);
+  const [endDate, setEndDate] = useState("");
+  const [itinerary, saveItinerary, itineraryError] = usePersonal(
+    "itinerary",
+    [],
+  );
+  const [onlyMatches, setOnlyMatches] = useState(false);
   const [message, setMessage] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const loadSchedule = async () => {
+    if (
+      !date ||
+      (endDate &&
+        (endDate < date ||
+          (Date.parse(endDate) - Date.parse(date)) / 86400000 > 31))
+    ) {
+      setMessage(
+        "Choose a date range of up to 31 days, with the end on or after the start.",
+      );
+      return;
+    }
     setMessage("Loading schedule…");
     try {
       const res = await fetch(
-        `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${encodeURIComponent(date)}&hydrate=team,venue`,
+        `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${encodeURIComponent(date)}&endDate=${encodeURIComponent(endDate || date)}&hydrate=team,venue,probablePitcher`,
       );
       if (!res.ok) throw Error();
       const payload = await res.json();
       setSchedule((payload.dates || []).flatMap((d) => d.games || []));
       setMessage(
         payload.dates?.length
-          ? "Scheduled teams and venues only. Player participation is not confirmed."
+          ? "Schedule retrieved " +
+              new Date().toLocaleString() +
+              ". Roster matches are possibilities; probable pitchers can change."
           : "No MLB games are scheduled for this date.",
       );
     } catch {
@@ -1423,10 +1607,29 @@ const PassportPlanner = ({ data }) => {
               ) === normalizeSearchText(t.name),
           );
         if (goal.kind === "ballpark")
-          return normalizeSearchText(game.venue?.name) === text;
+          return parkIdentity(game.venue?.name) === parkIdentity(goal.name);
         return false;
       })
       .map((g) => g.name);
+  const scheduleReasons = (g) => {
+    const reasons = scheduleGoals(g);
+    const venue = data.stadiumAliases?.[g.venue?.name] || g.venue?.name;
+    if (venue && !visited.has(parkIdentity(venue)))
+      reasons.push("Potential new ballpark");
+    for (const team of [g.teams.away.team, g.teams.home.team]) {
+      const code = Object.keys(TEAM_LOGO_IDS).find(
+        (c) => TEAM_LOGO_IDS[c] === team.id,
+      );
+      if (code && ![...seenTeams].some((t) => sameTeam(t, code, true)))
+        reasons.push(`New franchise: ${team.name}`);
+    }
+    return [...new Set(reasons)];
+  };
+  const rankedSchedule = [...schedule].sort(
+    (a, b) =>
+      scheduleReasons(b).length - scheduleReasons(a).length ||
+      a.gameDate.localeCompare(b.gameDate),
+  );
   return (
     <div className="space-y-4">
       <section className="passport-panel">
@@ -1563,7 +1766,11 @@ const PassportPlanner = ({ data }) => {
         ))}
       </details>
       <section className="passport-panel">
-        <h2 className="text-lg font-bold">Check a date</h2>
+        <h2 className="text-lg font-bold">Find the most useful next visit</h2>
+        <p className="text-sm text-slate-500">
+          Ranked by distinct pinned goals and potential new parks or franchises.
+          Check player rosters above to include their goals in rankings.
+        </p>
         <div className="flex flex-wrap gap-2 mt-2">
           <input
             type="date"
@@ -1572,35 +1779,123 @@ const PassportPlanner = ({ data }) => {
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
+          <input
+            type="date"
+            aria-label="Planning end date"
+            className="passport-input"
+            value={endDate}
+            min={date}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+          <label className="text-sm">
+            <input
+              type="checkbox"
+              checked={onlyMatches}
+              onChange={(e) => setOnlyMatches(e.target.checked)}
+            />{" "}
+            Goal matches only
+          </label>
           <button className="passport-button" onClick={loadSchedule}>
             Find scheduled games
           </button>
         </div>
         <PassportNotice>{message}</PassportNotice>
-        {schedule.map((g) => (
-          <article key={g.gamePk} className="py-3 border-b">
-            <strong>
-              {g.teams.away.team.name} @ {g.teams.home.team.name}
-            </strong>
-            <p className="text-sm">
-              {g.venue?.name} · {g.status?.detailedState}
-              {!visited.has(g.venue?.name) ? " · Potential new ballpark" : ""}
-            </p>
-            {scheduleGoals(g).length > 0 && (
-              <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                Potential goal matches: {scheduleGoals(g).join(" · ")}
+        {rankedSchedule
+          .filter((g) => !onlyMatches || scheduleReasons(g).length)
+          .map((g) => (
+            <article key={g.gamePk} className="py-3 border-b">
+              <strong>
+                {g.officialDate || g.gameDate?.slice(0, 10)} ·{" "}
+                {g.teams.away.team.name} @ {g.teams.home.team.name}
+              </strong>
+              <p className="text-sm">
+                {scheduleReasons(g).length} matches:{" "}
+                {scheduleReasons(g).join(" · ") || "No matches yet"}
               </p>
-            )}
-            <a
-              className="text-blue-600 text-sm"
-              href={`https://www.mlb.com/gameday/${g.gamePk}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Schedule details ↗
-            </a>
-          </article>
-        ))}
+              <p className="text-sm text-slate-500">
+                Probable pitchers:{" "}
+                {g.teams.away.probablePitcher?.fullName || "TBD"} /{" "}
+                {g.teams.home.probablePitcher?.fullName || "TBD"}
+              </p>
+              <button
+                className="passport-button"
+                disabled={itinerary.some((r) => r.gamePk === g.gamePk)}
+                onClick={() =>
+                  saveItinerary([
+                    ...itinerary,
+                    {
+                      gamePk: g.gamePk,
+                      gameDate: g.gameDate,
+                      isTimeTBA: !!g.isTimeTBA,
+                      date: g.officialDate || g.gameDate.slice(0, 10),
+                      matchup: `${g.teams.away.team.name} @ ${g.teams.home.team.name}`,
+                      venue: g.venue?.name || "",
+                    },
+                  ])
+                }
+              >
+                Add to itinerary
+              </button>
+              <p className="text-sm">
+                {g.venue?.name} · {g.status?.detailedState}
+                {!visited.has(parkIdentity(g.venue?.name))
+                  ? " · Potential new ballpark"
+                  : ""}
+              </p>
+              {scheduleGoals(g).length > 0 && (
+                <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                  Potential goal matches: {scheduleGoals(g).join(" · ")}
+                </p>
+              )}
+              <a
+                className="text-blue-600 text-sm"
+                href={`https://www.mlb.com/gameday/${g.gamePk}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Schedule details ↗
+              </a>
+            </article>
+          ))}
+      </section>
+      <section className="passport-panel space-y-3">
+        <h2 className="text-lg font-bold">Planned itinerary</h2>
+        <p className="text-sm text-slate-500">
+          Saved privately on this device and included in your journal backup.
+          Calendar times follow the schedule as retrieved; check for later
+          changes.
+        </p>
+        {itineraryError && <p role="status">{itineraryError}</p>}
+        {[...itinerary]
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .map((g) => (
+            <div key={g.gamePk} className="flex justify-between gap-3">
+              <span>
+                {g.date} · {g.matchup} · {g.venue}
+              </span>
+              <button
+                className="passport-button"
+                onClick={() =>
+                  saveItinerary(itinerary.filter((r) => r.gamePk !== g.gamePk))
+                }
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        <button
+          className="passport-button"
+          disabled={!itinerary.length}
+          onClick={() =>
+            downloadTextFile(
+              calendarForGames(itinerary),
+              "baseball-itinerary.ics",
+              "text/calendar",
+            )
+          }
+        >
+          Export itinerary calendar
+        </button>
       </section>
     </div>
   );
@@ -1616,7 +1911,13 @@ const PassportCompare = ({ data, route }) => {
           .sort()
           .reverse()
       : axis === "venue"
-        ? [...new Set(data.games.map((g) => g.venue))].sort()
+        ? [
+            ...new Set(
+              data.games.map((g) =>
+                route.venueMode === "era" ? g.venue : g._venueKey || g.venue,
+              ),
+            ),
+          ].sort()
         : companions.map((c) => c.name);
   const left = a || options[0],
     right = b || options[1] || options[0];
@@ -1629,7 +1930,8 @@ const PassportCompare = ({ data, route }) => {
       axis === "season"
         ? toSortableDate(g.date).startsWith(value)
         : axis === "venue"
-          ? g.venue === value
+          ? (route.venueMode === "era" ? g.venue : g._venueKey || g.venue) ===
+            value
           : ids.has(g.gameId),
     );
   };
@@ -1746,6 +2048,7 @@ const PassportHealth = ({ data }) => {
           </div>
         ))}
       </div>
+      <AnalysisHealthDetails data={data} />
       <h2 className="font-bold">Sources and refreshes</h2>
       {Object.entries(h.sources || {}).map(([s, n]) => (
         <p key={s}>
@@ -1935,6 +2238,7 @@ const PassportDashboard = ({ data, allData, route, onResult }) => {
   const tabs = [
     ["", "Overview"],
     ["recap", "Recap"],
+    ["discover", "Discover"],
     ["collections", "Collections"],
     ["journal", "Journal"],
     ["plan", "Next visit"],
@@ -1995,6 +2299,7 @@ const PassportDashboard = ({ data, allData, route, onResult }) => {
       </nav>
       {view === "" && <PassportHome {...{ data, allData, route }} />}
       {view === "recap" && <PassportRecap {...{ data, allData, route }} />}
+      {view === "discover" && <AnalysisHub data={allData} route={route} />}
       {view === "collections" && <PassportCollections data={allData} />}{" "}
       {view === "journal" && <PassportJournal data={allData} route={route} />}{" "}
       {view === "plan" && <PassportPlanner data={allData} />}{" "}
@@ -2107,6 +2412,12 @@ const PassportEntity = ({ route, data, onClose }) => {
         gameIndex={gameIndex >= 0 ? gameIndex + 1 : undefined}
         totalGames={orderedGames.length}
         initialTab={route.detail}
+        focusPlay={route.playIndex != null ? Number(route.playIndex) : null}
+        focusInning={
+          route.inning
+            ? { inning: Number(route.inning), half: route.half || "top" }
+            : null
+        }
       />
     );
   }

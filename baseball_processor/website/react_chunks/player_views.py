@@ -17,7 +17,7 @@ const App = () => {
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     });
     const [rawData, setData] = useState(BASEBALL_DATA);
-    const scoped = (tab==='dashboard'&&[null,'','recap'].includes(subtab)) || ['gamelog','milestones'].includes(tab) || (tab==='players' && ['hitters','pitchers','leaders','leaderboards',null].includes(subtab));
+    const scoped = (tab==='dashboard'&&[null,'','recap','discover'].includes(subtab)) || ['gamelog','milestones'].includes(tab) || (tab==='players' && ['hitters','pitchers','leaders','leaderboards',null].includes(subtab));
     const data = useMemo(()=>scoped?scopePassportData(rawData,route):rawData,[rawData,JSON.stringify(route),scoped]);
     const keys=passportKeysForRoute(route);
     const [sectionError,setSectionError]=useState('');

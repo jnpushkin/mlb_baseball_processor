@@ -7,6 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from baseball_processor.website.bundle import build_site
+from baseball_processor.website.analysis_data import game_story
 
 root = Path(__file__).resolve().parents[1] / ".browser-fixture"
 games = []
@@ -20,7 +21,7 @@ for index, year in enumerate((2026, 2025, 2024)):
             "gameType": "regular",
             "homeTeam": "BAL",
             "awayTeam": "SF",
-            "venue": "Oriole Park at Camden Yards",
+            "venue": "Alfredo Harp Helú Stadium" if year == 2024 else "Oriole Park at Camden Yards",
             "source": "mlb",
             "score": "SF 5 - 4 BAL",
             "attendance": 30000,
@@ -67,7 +68,7 @@ data = {
     "players": [{"playerId": "jose", "name": "José Ramírez", "team": "SF", "games": 3, "hr": 3}],
     "pitchers": [],
     "playerGames": rows,
-    "pitcherGames": [],
+    "pitcherGames": [{"gameId":"TEST2026","date":"09/14/2026","playerId":"pitcher","name":"Test Pitcher","team":"BAL","opponent":"SF","gameType":"regular","outs":9,"so":8,"bb":0,"gameStarts":1,"isStarter":True}],
     "playersWithoutStats": [],
     "teams": [{"team": "SF", "games": 3}, {"team": "BAL", "games": 3}],
     "stadiums": [],
@@ -92,6 +93,24 @@ data = {
     "jerseyLog": {},
     "ncaaCrossRef": {},
 }
+events = []
+for g in games:
+    g["linescore"] = {"away": {"runs": 5, "innings": [3, 2]}, "home": {"runs": 4, "innings": [4, 0]}}
+    event = {"id": g["gameId"]+":0", "gameId": g["gameId"], "date": g["date"], "playIndex": 0,
+             "inning": 1, "half": "top", "batterId": "jose", "batter": "José Ramírez",
+             "pitcherId": "pitcher", "pitcher": "Test Pitcher", "isPA": True, "isAB": True,
+             "isHit": True, "isHomeRun": False, "isWalk": False, "isStrikeout": False,
+             "eventType": "single", "description": "Single to CF", "basesBefore": [],
+             "scoreBefore": [0, 0], "scoreDiff": 0, "outsBefore": 0, "outs": 0}
+    events.append(event)
+    g["playByPlay"] = [event]
+data.update({
+    "playEvents": events, "gameStories": [game_story(g) for g in games],
+    "pitchArsenal": [{"gameId": "TEST2026", "date": "09/14/2026", "playerId": "pitcher", "name": "Test Pitcher", "code": "FF", "pitchType": "Fastball", "count": 50, "avgSpeed": 94.5, "totalPitches": 80}],
+    "careerContext": {"jose": {"mlbId": 123, "cacheRefreshedAt": "2010-01-01", "totals": {"hitting": {"hits": 2}}}},
+    "playerJourneys": {"available": True, "players": [{"playerId": "jose", "name": "José Ramírez", "appearances": [{"date": "09/14/2024", "gameId": "TEST2024", "level": "MLB"}]}]},
+    "analysisHealth": [{"gameId": "TEST2026", "date": "09/14/2026", "source": "mlb", "pa": 1, "plays": 1, "unknown": 0, "unresolved": 0, "missingBases": 0, "missingScore": 0}],
+})
 build_site(data, root / "index.html")
 if "--build-only" not in sys.argv:
     ThreadingHTTPServer(("127.0.0.1", 8769), partial(SimpleHTTPRequestHandler, directory=str(root))).serve_forever()

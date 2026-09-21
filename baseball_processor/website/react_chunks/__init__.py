@@ -12,6 +12,7 @@ from .special import CODE as SPECIAL_CODE
 from .explorer import CODE as EXPLORER_CODE
 from .passport import CODE as PASSPORT_CODE
 from .player_views import CODE as PLAYER_VIEWS_CODE
+from .insights import CODE as INSIGHTS_CODE
 
 REACT_CHUNKS = [
     CORE_FOUNDATION_CODE,
@@ -25,6 +26,7 @@ REACT_CHUNKS = [
     SPECIAL_CODE,
     EXPLORER_CODE,
     PASSPORT_CODE,
+    INSIGHTS_CODE,
     PLAYER_VIEWS_CODE,
 ]
 
