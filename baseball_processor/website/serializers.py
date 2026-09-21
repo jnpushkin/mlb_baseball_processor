@@ -12,6 +12,7 @@ import pandas as pd
 
 from ..engines.all_time_passing_engine import AllTimePassingEngine, find_passings_reverse_lookup, load_gamelogs_cache
 from ..utils.constants import CACHE_DIR, REFERENCES_DIR, STADIUM_ALIASES
+from ..utils.companions import companion_map, normalize_companion_game_id
 from ..utils.helpers import is_inside_the_park_home_run_play
 from ..utils.stat_utils import parse_batting_detail_counts
 
@@ -3553,14 +3554,7 @@ class DataSerializer:
             return {"companions": {}, "gameCompanions": {}}
 
         # Build game -> companions mapping
-        game_companions = {}
-        for _, row in df_companions.iterrows():
-            game_id = str(row['GameID']).strip()
-            companions_str = str(row.get('Companions', '')).strip()
-            if companions_str and companions_str != 'nan':
-                companions_list = [c.strip() for c in companions_str.split('|') if c.strip()]
-                if companions_list:
-                    game_companions[game_id] = companions_list
+        game_companions = companion_map(df_companions.to_dict('records'))
 
         if not game_companions:
             return {"companions": {}, "gameCompanions": {}}
@@ -3587,7 +3581,7 @@ class DataSerializer:
 
         for _, game_row in game_log.iterrows():
             raw_game_id = game_row.get('GameID', '')
-            game_id = extract_game_id(raw_game_id)
+            game_id = normalize_companion_game_id(extract_game_id(raw_game_id))
             if game_id not in game_companions:
                 continue
 

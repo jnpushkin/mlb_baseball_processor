@@ -118,6 +118,10 @@ python3 -m baseball_processor.server --token abc   # Use a stable add-game token
 ```
 Opens a web UI at the printed tokenized local URL. Use `--lan` for the printed phone URL. Browse dates, tap a game to add it, auto-processes and deploys.
 
+The same manager has an **Edit companions** page at `/companions` (linked from Add Games and the public Companions tab). Use its printed tokenized URL, choose an attended game, select/add names, and **Save and publish**. It updates the authoritative local `companions.csv`, backs up prior contents under `cache/companion_backups/`, rebuilds companion summaries, and deploys the complete release. Add-game and companion jobs share one serial queue; stale edits are rejected. The public static site cannot write records directly. On a phone, start with `--lan` and follow the manager's phone link.
+
+For a local companion-only rebuild without publishing: `npm run build:website -- --refresh-companions`.
+
 ### Add Game via MLB API
 ```bash
 python3 -m baseball_processor.scrapers.add_game --date 2026-04-07 --teams PHI SF  # By date + teams
@@ -256,6 +260,7 @@ When encountering repeated errors or discovering project-specific quirks:
 - Physical-park filtering uses `_venueKey`; era filtering deliberately uses the original venue name. Modern display aliases do not imply merging historical franchises such as OAK/ATH or MON/WSH.
 - The planner must use `venueIdentity` for visited parks, pinned park goals, and schedule recommendations. Exact display-name comparison mislabels Alfredo Harp Helú Stadium / Estadio Alfredo Harp Helu as unvisited. Fold accents and explicit aliases, preserving separate physical parks (e.g. the old and new Yankee Stadium).
 - Next Visit has three fixed lifetime goals: Orioles at all 30 current MLB home parks, Orioles with Dad at those parks, and any teams with Dad at those parks. The shared Orioles/Dad goal requires both on the same attended game, never an intersection of two independently visited-park sets. Use `_companions` / `companionData.gameCompanions` for Dad; former, international and spring parks are separate from the 30-park denominator. Planned itineraries do not count as attendance.
+- Companion CSV IDs can contain spreadsheet-added whitespace (including NBSP) and `.00` suffixes. Use `normalize_companion_game_id` for joins and synchronization; merge duplicate rows without allowing blank entries to erase names. Preserve source prefixes and doubleheader numbers. `companions.csv` remains the local authoritative source and is intentionally gitignored; browser edits must write it and regenerate public companion data, not create a browser-only override.
 - Journal and its dependent Trips tool are retired. Old journal links redirect to Next Visit. Private backups live in Saved Views; keep legacy notes/images compatible in backups without reintroducing their UI or deleting existing browser data.
 - Trip costs, ratings and itinerary entries remain private browser data and private backups. Validate imports before writing; never serialize them into the public archive.
 

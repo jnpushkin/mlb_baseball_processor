@@ -309,7 +309,7 @@ const App = () => {
                 {tab === 'progress' && <ProgressTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'special' && <SpecialTab data={data} initialSubtab={subtab} onSubtabChange={setSubtab} />}
                 {tab === 'trivia' && <TriviaTab umpireLog={data.umpireLog || []} jerseyLog={data.jerseyLog || {}} firstRoundDraftPicks={data.firstRoundDraftPicks || {}} playerBios={data.playerBios || {}} players={data.players || []} pitchers={data.pitchers || []} games={subtab==='home-away'?(data.homeAwayGames||data.games||[]):(data.games || [])} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} stadiumAliases={data.stadiumAliases || {}} initialSubtab={subtab} onSubtabChange={setSubtab} />}
-                {tab === 'companions' && <CompanionsView companionData={data.companionData} />}
+                {tab === 'companions' && <><CompanionEditorLink /><CompanionsView companionData={data.companionData} /></>}
                 {tab === 'orioles' && <OriolesDashboard orioles={data.orioles || []} games={data.games || []} />}
                 </>}
                 {ready&&(route.player||route.game)&&<PassportEntity route={route} data={rawData}/>}

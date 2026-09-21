@@ -23,6 +23,7 @@ from .parsers.mlb_api_parser import parse_mlb_game
 from .utils.http import create_retry_session, get_with_retry
 from .jobs import JobStore
 from .main import deploy_to_surge, load_surge_domain
+from .companion_manager import CompanionConflict, read_records, save_edit, validate_edit
 
 CACHE_DIR = Path(__file__).parent.parent / 'cache'
 PROJECT_DIR = Path(__file__).parent.parent
@@ -38,7 +39,7 @@ def get_job_store():
     global _job_store
     with _job_store_lock:
         if _job_store is None:
-            _job_store = JobStore(CACHE_DIR / 'add_game_jobs.json', add_game)
+            _job_store = JobStore(CACHE_DIR / 'add_game_jobs.json', add_game, update_companions)
         return _job_store
 
 
@@ -167,6 +168,28 @@ def add_game(game_pk, on_progress=None):
     return result
 
 
+def update_companions(payload, on_progress=None):
+    result = {'ok': False, 'saved': False, 'processed': False, 'deployed': False, 'stage': 'save'}
+    try:
+        result['gameId'] = save_edit(PROJECT_DIR, payload)
+        result.update(saved=True, stage='build', message='Companions saved. Updating website…')
+        if on_progress:
+            on_progress(dict(result))
+        subprocess.run(['python3', str(PROJECT_DIR / 'scripts/rebuild_website.py'), '--refresh-companions'],
+                       cwd=str(PROJECT_DIR), timeout=300, check=True)
+        result.update(processed=True, stage='deploy', message='Website updated. Publishing…')
+        if on_progress:
+            on_progress(dict(result))
+        domain = load_surge_domain()
+        if not domain or not deploy_to_surge(str(PROJECT_DIR / 'MLB Game Passport - BREF.html'), domain):
+            raise RuntimeError('Publishing failed. The saved companions are safe; retry to publish.')
+        result.update(ok=True, deployed=True, stage='complete', message='Companions saved and published. Ballpark goals are updated.')
+    except Exception as error:
+        prefix = 'Companions saved; website update failed.' if result['saved'] else 'Companions were not saved.'
+        result.update(error=str(error), message=f'{prefix} {error}')
+    return result
+
+
 PAGE_HTML = """<!DOCTYPE html>
 <html>
 <head>
@@ -206,6 +229,7 @@ h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
 <body>
 <div class="container">
     <h1>Add Game</h1>
+    <p style="margin-bottom:16px"><a id="companionLink" href="/companions">Edit companions for attended games</a></p>
     <div class="date-nav">
         <button aria-label="Previous day" onclick="changeDate(-1)">&larr;</button>
         <div class="date-label" id="dateLabel"></div>
@@ -219,6 +243,7 @@ h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
 let currentDate = new Date();
 let adding = false;
 const ADD_GAME_TOKEN = new URLSearchParams(window.location.search).get('token') || '';
+document.getElementById('companionLink').href = '/companions?token=' + encodeURIComponent(ADD_GAME_TOKEN);
 // Start with today
 loadGames();
 
@@ -339,7 +364,17 @@ window.addEventListener('online',()=>{const id=localStorage.getItem('passport-ad
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path.startswith('/api/jobs/'):
+        if parsed.path == '/companions':
+            self._html((Path(__file__).parent / 'companion_manager.html').read_text())
+        elif parsed.path == '/api/companions':
+            if not is_authorized(parsed, self.headers, _server_token):
+                self._json({'error': 'Open the manager link printed at startup, or enter its token.'}, status=403)
+                return
+            try:
+                self._json(read_records(PROJECT_DIR))
+            except (OSError, ValueError, KeyError):
+                self._json({'error': 'Build the website once before editing companions.'}, status=503)
+        elif parsed.path.startswith('/api/jobs/'):
             if not is_authorized(parsed, self.headers, _server_token):
                 self._json({'error': 'Invalid or missing token'}, status=403)
                 return
@@ -359,7 +394,21 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
-        if parsed.path == '/api/add':
+        if parsed.path == '/api/companions':
+            if not is_authorized(parsed, self.headers, _server_token):
+                self._json({'error': 'Invalid or missing token'}, status=403)
+                return
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 0 < length <= 16384:
+                    raise ValueError('Invalid edit size')
+                payload = validate_edit(PROJECT_DIR, json.loads(self.rfile.read(length)))
+                self._json(get_job_store().submit_companions(payload), status=202)
+            except CompanionConflict as error:
+                self._json({'error': str(error)}, status=409)
+            except (ValueError, TypeError, KeyError) as error:
+                self._json({'error': str(error)}, status=400)
+        elif parsed.path == '/api/add':
             if not is_authorized(parsed, self.headers, _server_token):
                 self._json({'ok': False, 'error': 'Invalid or missing token'}, status=403)
                 return
@@ -379,6 +428,7 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(data).encode()
         self.send_response(status)
         self.send_header('Content-Type', 'application/json')
+        self.send_header('Cache-Control', 'no-store')
         self.send_header('Content-Length', len(body))
         self.end_headers()
         self.wfile.write(body)
@@ -415,7 +465,7 @@ def get_local_ip():
 def main():
     global _server_token
 
-    parser = argparse.ArgumentParser(description='Local web server for adding games')
+    parser = argparse.ArgumentParser(description='Local manager for adding games and editing companions')
     parser.add_argument('--port', type=int, default=5555)
     parser.add_argument(
         '--lan',
@@ -425,7 +475,7 @@ def main():
     parser.add_argument(
         '--token',
         default=None,
-        help='Token required for add-game POSTs. Defaults to a random token printed at startup.'
+        help='Token required for adding games and editing companions. Defaults to a random token printed at startup.'
     )
     args = parser.parse_args()
 
@@ -435,13 +485,14 @@ def main():
     print(f"Starting server on port {args.port}...")
     print(f"  Mode:   {'LAN enabled' if args.lan else 'local only'}")
     print(f"  Local:  {build_url('localhost', args.port, _server_token)}")
+    print(f"  Edit companions: {build_url('localhost', args.port, _server_token).replace('/?', '/companions?')}")
     if args.lan:
         local_ip = get_local_ip()
         print(f"  Phone:  {build_url(local_ip, args.port, _server_token)}")
         print("  Note:   LAN mode allows devices on the same network to reach this server.")
     else:
         print("  Phone:  disabled (restart with --lan to allow same-wifi access)")
-    print("  Token:  required for add-game requests")
+    print("  Token:  required for adding games and editing companions")
     print(f"  Press Ctrl+C to stop\n")
 
     server = ThreadingHTTPServer((bind_host, args.port), Handler)

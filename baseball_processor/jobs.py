@@ -9,9 +9,10 @@ from pathlib import Path
 
 
 class JobStore:
-    def __init__(self, path, operation):
+    def __init__(self, path, operation, companion_operation=None):
         self.path = Path(path)
         self.operation = operation
+        self.companion_operation = companion_operation
         self.lock = threading.RLock()
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="add-game")
         try:
@@ -37,13 +38,22 @@ class JobStore:
             return dict(self.jobs[job_id]) if job_id in self.jobs else None
 
     def submit(self, game_pk):
+        return self._submit("add-game", {"gamePk": game_pk})
+
+    def submit_companions(self, payload):
+        return self._submit("companions", {"payload": payload})
+
+    def _submit(self, kind, details):
         with self.lock:
             for job in self.jobs.values():
-                if job["gamePk"] == game_pk and job["state"] in ("queued", "running"):
+                if (job.get("kind", "add-game") == kind
+                        and all(job.get(k) == v for k, v in details.items())
+                        and job["state"] in ("queued", "running")):
                     return dict(job)
             job = {
                 "id": uuid.uuid4().hex,
-                "gamePk": game_pk,
+                "kind": kind,
+                **details,
                 "state": "queued",
                 "stage": "queued",
                 "message": "Waiting to process",
@@ -65,8 +75,12 @@ class JobStore:
     def _run(self, job_id):
         self._update(job_id, state="running", stage="save", message="Saving game")
         try:
-            result = self.operation(
-                self.jobs[job_id]["gamePk"], on_progress=lambda values: self._update(job_id, **values)
+            job = self.jobs[job_id]
+            companion_job = job.get("kind") == "companions"
+            operation = self.companion_operation if companion_job else self.operation
+            result = operation(
+                job["payload"] if companion_job else job["gamePk"],
+                on_progress=lambda values: self._update(job_id, **values)
             )
             self._update(job_id, **result, state="complete" if result["ok"] else "failed")
         except Exception as exc:

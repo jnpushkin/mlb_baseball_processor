@@ -1132,6 +1132,16 @@ const CompanionStadiumMap = ({ companion }) => {
     );
 };
 
+const CompanionEditorLink = () => <section className="passport-panel mb-4 space-y-3">
+    <h2 className="text-xl font-bold">Edit who attended</h2>
+    <p className="text-slate-500">Choose a game, select companions, then save and publish. Your companion totals and ballpark goals update together.</p>
+    <a className="passport-button inline-block" href="http://localhost:5555/companions" target="_blank" rel="noopener noreferrer">Open companion editor ↗</a>
+    <details className="text-sm"><summary className="cursor-pointer font-semibold">Open the local manager</summary>
+        <p className="mt-2">The editor runs on your computer. Start the manager and open its printed link, then choose Edit companions. If asked, use the token from that link.</p>
+        <pre className="mt-2 whitespace-pre-wrap">python3 -m baseball_processor.server</pre>
+        <p className="mt-2">For a phone on the same Wi-Fi, start with <code>--lan</code> and use the printed phone link.</p>
+    </details>
+</section>;
 const CompanionsView = ({ companionData }) => {
     const [selectedCompanion, setSelectedCompanion] = useState(null);
     const [showGames, setShowGames] = useState(false);
@@ -1143,13 +1153,7 @@ const CompanionsView = ({ companionData }) => {
                 <div className="text-center py-8">
                     <p className="body-text text-slate-600 mb-4">No companion data found.</p>
                     <div className="bg-slate-50 rounded-lg p-4 max-w-lg mx-auto text-left">
-                        <p className="font-semibold text-slate-800 mb-2">To track games with companions:</p>
-                        <ol className="list-decimal list-inside space-y-1 text-sm text-slate-600">
-                            <li>Edit <code className="bg-slate-200 px-1 rounded">companions.csv</code> in your MLB Game Tracker folder</li>
-                            <li>Add rows with format: <code className="bg-slate-200 px-1 rounded">GameID,Companion1|Companion2</code></li>
-                            <li>Example: <code className="bg-slate-200 px-1 rounded">BAL202505090,Dad</code></li>
-                            <li>Regenerate the website</li>
-                        </ol>
+                        <p className="text-sm text-slate-600">Use the companion editor above to choose who attended each game. Saving publishes the updated records and progress.</p>
                     </div>
                 </div>
             </div>

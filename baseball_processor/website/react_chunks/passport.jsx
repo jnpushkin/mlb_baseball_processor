@@ -1532,6 +1532,12 @@ const PassportPlanner = ({ data }) => {
           tagged Dad in Companions; the Orioles-with-Dad goal requires both at
           the same game.
         </p>
+        <button
+          className="mt-3 text-sm text-blue-700 dark:text-blue-300 underline"
+          onClick={() => navigatePassport({ tab: "companions", subtab: null })}
+        >
+          Manage companions
+        </button>
       </section>
       <div className="grid lg:grid-cols-3 gap-4">
         {progress.map((goal) => (

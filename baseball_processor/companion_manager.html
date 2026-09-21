@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Edit companions · MLB Game Passport</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f1f5f9;
+        color: #0f172a;
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+      }
+      .container {
+        max-width: 760px;
+        margin: auto;
+        padding: 24px 16px;
+      }
+      h1 {
+        font-size: 28px;
+        margin: 12px 0 4px;
+      }
+      h2 {
+        font-size: 20px;
+        margin: 0 0 12px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      .muted {
+        color: #64748b;
+      }
+      .panel {
+        background: white;
+        border: 1px solid #cbd5e1;
+        border-radius: 16px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+      label {
+        display: block;
+      }
+      input[type="search"],
+      input[type="text"],
+      input[type="password"],
+      select {
+        width: 100%;
+        min-height: 44px;
+        padding: 10px;
+        font: inherit;
+        border: 1px solid #94a3b8;
+        border-radius: 8px;
+        margin: 6px 0 16px;
+        min-width: 0;
+      }
+      button,
+      .link-button {
+        font: inherit;
+        min-height: 44px;
+        padding: 10px 16px;
+        border: 1px solid #94a3b8;
+        border-radius: 8px;
+        cursor: pointer;
+        background: white;
+        color: #0f172a;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .primary {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+        color: white;
+      }
+      a {
+        color: #1d4ed8;
+      }
+      .names {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .person {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        min-height: 44px;
+        border: 1px solid #cbd5e1;
+        padding: 10px;
+        border-radius: 8px;
+        overflow-wrap: anywhere;
+      }
+      .person input {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .row input[type="text"] {
+        flex: 1;
+        margin: 0;
+        min-width: 160px;
+      }
+      .row input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+      }
+      label.row {
+        min-height: 44px;
+        margin-bottom: 8px;
+      }
+      fieldset {
+        padding: 0;
+        border: 0;
+        min-width: 0;
+      }
+      legend {
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      #status {
+        padding: 12px 0;
+        white-space: pre-wrap;
+      }
+      #status:empty {
+        display: none;
+      }
+      .selected {
+        background: #eff6ff;
+        border-radius: 8px;
+        padding: 12px;
+        margin: 12px 0;
+      }
+      small {
+        display: block;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 450px) {
+        h1 {
+          font-size: 24px;
+        }
+        .panel {
+          padding: 16px;
+        }
+        .names {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <a id="addGames" href="/">← Add games</a>
+      <h1>Edit companions</h1>
+      <p class="muted">
+        Choose an attended game and who was there. Save and publish to update
+        your website and ballpark goals.
+      </p>
+      <section id="auth" class="panel" hidden>
+        <h2>Connect to your local manager</h2>
+        <p>
+          Use the manager link printed when you start the server, or enter its
+          token below.
+        </p>
+        <form id="authForm">
+          <label
+            >Manager token<input
+              id="token"
+              type="password"
+              autocomplete="off"
+              required /></label
+          ><button class="primary">Connect</button>
+        </form>
+      </section>
+      <section id="editor" class="panel" hidden>
+        <fieldset id="fields">
+          <legend>Find a game</legend>
+          <label
+            >Search games<input
+              id="search"
+              type="search"
+              placeholder="Date, ballpark, team or companion"
+          /></label>
+          <label class="row"
+            ><input id="missing" type="checkbox" /> Only games without
+            companions</label
+          >
+          <label
+            >Attended game<select
+              id="game"
+              aria-label="Attended game"
+            ></select></label
+          ><small id="count" class="muted"></small>
+          <div id="selection" class="selected"></div>
+          <fieldset id="people">
+            <legend>Who was there?</legend>
+            <div id="names" class="names"></div>
+            <form id="addName" class="row">
+              <input
+                id="newName"
+                aria-label="New companion name"
+                type="text"
+                maxlength="60"
+                placeholder="Add a companion"
+              /><button>Add name</button>
+            </form>
+            <p class="muted">
+              Leave all names unchecked if you attended alone.
+            </p>
+            <button type="button" id="save" class="primary">
+              Save and publish
+            </button>
+          </fieldset>
+        </fieldset>
+      </section>
+      <p id="status" role="status" aria-live="polite"></p>
+      <div class="row">
+        <button id="reload" type="button">Reload game list</button
+        ><button id="resume" type="button" hidden>Check saved job</button
+        ><a
+          id="live"
+          href="https://mlb-processor.surge.sh/#dashboard/plan"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Open ballpark goals ↗</a
+        >
+      </div>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id),
+        params = new URLSearchParams(location.search);
+      let token =
+          params.get("token") ||
+          sessionStorage.getItem("passport-manager-token") ||
+          "",
+        records = null,
+        selected = new Set(),
+        extraNames = [],
+        currentId = "",
+        dirty = false,
+        busy = false;
+      const say = (message) => {
+        $("status").textContent = message;
+      };
+      function rememberToken() {
+        sessionStorage.setItem("passport-manager-token", token);
+        $("addGames").href = "/?token=" + encodeURIComponent(token);
+      }
+      async function api(path, options = {}) {
+        const response = await fetch(path, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Add-Game-Token": token,
+            ...options.headers,
+          },
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          if (response.status === 403) $("auth").hidden = false;
+          throw Error(body.error || "Request failed");
+        }
+        return body;
+      }
+      function renderNames() {
+        const names = [
+          ...new Set([...records.names, ...extraNames, ...selected]),
+        ].sort((a, b) => a.localeCompare(b));
+        $("names").replaceChildren();
+        for (const name of names) {
+          const label = document.createElement("label");
+          label.className = "person";
+          const input = document.createElement("input");
+          input.type = "checkbox";
+          input.checked = selected.has(name);
+          input.addEventListener("change", () => {
+            if (input.checked) selected.add(name);
+            else selected.delete(name);
+            dirty = true;
+          });
+          label.append(input, document.createTextNode(name));
+          $("names").append(label);
+        }
+      }
+      function choose() {
+        const game = records.games.find((g) => g.gameId === $("game").value);
+        currentId = game?.gameId || "";
+        selected = new Set(game?.companions || []);
+        extraNames = [];
+        dirty = false;
+        $("people").disabled = !game;
+        $("selection").textContent = game
+          ? `${game.date} · ${game.awayTeam} @ ${game.homeTeam}${game.gameNumber ? ` · Game ${game.gameNumber}` : ""} · ${game.venue}`
+          : "No matching games. Try another search.";
+        renderNames();
+      }
+      function renderGames() {
+        const query = $("search").value.toLowerCase().trim();
+        const games = records.games.filter(
+          (g) =>
+            (!$("missing").checked || !g.companions.length) &&
+            `${g.date} ${g.awayTeam} ${g.homeTeam} ${g.venue} ${g.companions.join(" ")} ${[g.awayTeam, g.homeTeam].includes("BAL") ? "Orioles Baltimore" : ""}`
+              .toLowerCase()
+              .includes(query),
+        );
+        $("game").replaceChildren();
+        for (const g of games) {
+          const option = document.createElement("option");
+          option.value = g.gameId;
+          option.textContent = `${g.date} · ${g.awayTeam} @ ${g.homeTeam}${g.gameNumber ? ` · Game ${g.gameNumber}` : ""} · ${g.venue}`;
+          $("game").append(option);
+        }
+        if (games.some((g) => g.gameId === currentId))
+          $("game").value = currentId;
+        $("count").textContent = `${games.length} matching games`;
+        choose();
+      }
+      async function load() {
+        records = await api("/api/companions");
+        records.games.sort((a, b) => {
+          const day = (v) => {
+            const [m, d, y] = v.split("/");
+            return `${y}${m}${d}`;
+          };
+          return (
+            day(b.date).localeCompare(day(a.date)) ||
+            b.gameId.localeCompare(a.gameId)
+          );
+        });
+        currentId = currentId || params.get("game") || "";
+        rememberToken();
+        $("auth").hidden = true;
+        $("editor").hidden = false;
+        renderGames();
+      }
+      function discardDraft() {
+        return (
+          !dirty ||
+          confirm("Discard the unsaved companion changes for this game?")
+        );
+      }
+      $("game").addEventListener("change", () => {
+        if (discardDraft()) choose();
+        else $("game").value = currentId;
+      });
+      $("search").addEventListener("input", () => {
+        if (dirty) {
+          say("Save your companion changes before searching for another game.");
+          return;
+        }
+        renderGames();
+      });
+      $("missing").addEventListener("change", () => {
+        if (discardDraft()) renderGames();
+        else $("missing").checked = !$("missing").checked;
+      });
+      $("reload").onclick = async () => {
+        if (!discardDraft()) return;
+        try {
+          await load();
+          say("Game list updated.");
+        } catch (error) {
+          say(error.message);
+        }
+      };
+      $("authForm").onsubmit = async (event) => {
+        event.preventDefault();
+        token = $("token").value.trim();
+        try {
+          await load();
+          say("Connected.");
+        } catch (error) {
+          say(error.message);
+        }
+      };
+      $("addName").onsubmit = (event) => {
+        event.preventDefault();
+        const value = $("newName").value.trim();
+        if (!value || value.includes("|")) {
+          say("Enter a name without the | separator.");
+          return;
+        }
+        const name =
+          [...records.names, ...extraNames].find(
+            (n) => n.toLowerCase() === value.toLowerCase(),
+          ) || value;
+        extraNames.push(name);
+        selected.add(name);
+        dirty = true;
+        $("newName").value = "";
+        renderNames();
+      };
+      function setBusy(value) {
+        busy = value;
+        $("fields").disabled = value;
+        $("reload").disabled = value;
+        $("resume").hidden =
+          value || !sessionStorage.getItem("passport-companion-job");
+      }
+      async function follow(id) {
+        setBusy(true);
+        sessionStorage.setItem("passport-companion-job", id);
+        try {
+          const job = await api("/api/jobs/" + encodeURIComponent(id));
+          say(job.message || job.stage);
+          if (["queued", "running"].includes(job.state)) {
+            setTimeout(() => follow(id), 1000);
+            return;
+          }
+          sessionStorage.removeItem("passport-companion-job");
+          setBusy(false);
+          if (job.saved) {
+            dirty = false;
+            await load();
+          }
+          say(job.message);
+        } catch (error) {
+          setBusy(false);
+          say(
+            "Connection interrupted. Your submitted job is saved. Use Check saved job to reconnect. " +
+              error.message,
+          );
+        }
+      }
+      $("save").onclick = async () => {
+        if (!currentId || busy) return;
+        setBusy(true);
+        try {
+          const job = await api("/api/companions", {
+            method: "POST",
+            body: JSON.stringify({
+              gameId: currentId,
+              companions: [...selected],
+              revision: records.revision,
+            }),
+          });
+          dirty = false;
+          follow(job.id);
+        } catch (error) {
+          setBusy(false);
+          say(error.message);
+        }
+      };
+      $("resume").onclick = () => {
+        const id = sessionStorage.getItem("passport-companion-job");
+        if (id) follow(id);
+      };
+      window.addEventListener("beforeunload", (event) => {
+        if (dirty) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
+      load()
+        .then(() => {
+          const id = sessionStorage.getItem("passport-companion-job");
+          if (id) follow(id);
+        })
+        .catch((error) => say(error.message));
+    </script>
+  </body>
+</html>

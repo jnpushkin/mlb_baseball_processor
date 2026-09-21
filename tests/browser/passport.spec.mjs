@@ -580,3 +580,158 @@ test("planner ranks the three goals and adjusts for Dad on a phone", async ({
     ),
   ).toBeTruthy();
 });
+
+test("companion editor selects names, publishes, and reloads authoritative records", async ({
+  page,
+}) => {
+  const { readFile } = await import("node:fs/promises");
+  const html = await readFile(
+    new URL("../../baseball_processor/companion_manager.html", import.meta.url),
+    "utf8",
+  );
+  let records = {
+    revision: "first",
+    names: ["Dad", "Mom"],
+    games: [
+      {
+        gameId: "CLE201605280",
+        date: "05/28/2016",
+        awayTeam: "BAL",
+        homeTeam: "CLE",
+        venue: "Progressive Field",
+        companions: ["Dad"],
+      },
+      {
+        gameId: "NYN202609140",
+        date: "09/14/2026",
+        awayTeam: "BAL",
+        homeTeam: "NYM",
+        venue: "Citi Field",
+        companions: [],
+      },
+    ],
+  };
+  let submitted;
+  await page.route("**/companions?token=fixture", (r) =>
+    r.fulfill({ contentType: "text/html", body: html }),
+  );
+  await page.route("**/api/companions", async (r) => {
+    expect(r.request().headers()["x-add-game-token"]).toBe("fixture");
+    if (r.request().method() === "POST") {
+      submitted = r.request().postDataJSON();
+      records = {
+        ...records,
+        revision: "second",
+        games: records.games.map((g) =>
+          g.gameId === submitted.gameId
+            ? { ...g, companions: submitted.companions }
+            : g,
+        ),
+      };
+      await r.fulfill({
+        status: 202,
+        json: { id: "companion-job", state: "queued" },
+      });
+    } else await r.fulfill({ json: records });
+  });
+  await page.route("**/api/jobs/companion-job", (r) =>
+    r.fulfill({
+      json: {
+        state: "complete",
+        saved: true,
+        processed: true,
+        deployed: true,
+        message: "Companions saved and published. Ballpark goals are updated.",
+      },
+    }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/companions?token=fixture");
+  await page
+    .getByRole("combobox", { name: "Attended game", exact: true })
+    .selectOption("NYN202609140");
+  await page.getByRole("checkbox", { name: "Dad", exact: true }).check();
+  await page
+    .getByRole("textbox", { name: "New companion name" })
+    .fill("Friend <b>");
+  await page.getByRole("button", { name: "Add name", exact: true }).click();
+  await expect(
+    page.getByRole("checkbox", { name: "Friend <b>", exact: true }),
+  ).toBeChecked();
+  await page
+    .getByRole("button", { name: "Save and publish", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Companions saved and published. Ballpark goals are updated.",
+  );
+  expect(submitted).toEqual({
+    gameId: "NYN202609140",
+    companions: ["Dad", "Friend <b>"],
+    revision: "first",
+  });
+  await page.reload();
+  await expect(
+    page.getByRole("checkbox", { name: "Dad", exact: true }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("checkbox", { name: "Friend <b>", exact: true }),
+  ).toBeChecked();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+});
+
+test("companion editor keeps draft choices when another edit conflicts", async ({
+  page,
+}) => {
+  const { readFile } = await import("node:fs/promises");
+  const html = await readFile(
+    new URL("../../baseball_processor/companion_manager.html", import.meta.url),
+    "utf8",
+  );
+  await page.route("**/companions?token=fixture", (r) =>
+    r.fulfill({ contentType: "text/html", body: html }),
+  );
+  await page.route("**/api/companions", (r) =>
+    r.fulfill(
+      r.request().method() === "POST"
+        ? {
+            status: 409,
+            json: {
+              error:
+                "Companions changed in another edit. Reload the game list before saving.",
+            },
+          }
+        : {
+            json: {
+              revision: "first",
+              names: ["Dad"],
+              games: [
+                {
+                  gameId: "ONE",
+                  date: "09/14/2026",
+                  homeTeam: "NYM",
+                  awayTeam: "BAL",
+                  venue: "Citi Field",
+                  companions: [],
+                },
+              ],
+            },
+          },
+    ),
+  );
+  await page.goto("/companions?token=fixture");
+  await page.getByRole("checkbox", { name: "Dad", exact: true }).check();
+  await page
+    .getByRole("button", { name: "Save and publish", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText("another edit");
+  await expect(
+    page.getByRole("checkbox", { name: "Dad", exact: true }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("button", { name: "Save and publish", exact: true }),
+  ).toBeEnabled();
+});

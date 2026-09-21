@@ -772,6 +772,7 @@ def _sync_companions_csv(games_data):
     games are skipped (companions tracking is for attended regular/post games).
     """
     import csv as _csv
+    from .utils.companions import normalize_companion_game_id
 
     csv_path = BASE_DIR / "companions.csv"
     if not csv_path.exists():
@@ -787,7 +788,7 @@ def _sync_companions_csv(games_data):
                 first = (row[0] or '').strip()
                 if not first or first.startswith('#') or first == 'GameID':
                     continue
-                existing_ids.add(first)
+                existing_ids.add(normalize_companion_game_id(first))
     except Exception as e:
         warn(f"      ⚠️  Could not read companions.csv for sync: {e}")
         return
@@ -799,7 +800,7 @@ def _sync_companions_csv(games_data):
         game_id = (game.get('game_id') or bi.get('game_id') or '').strip()
         if not game_id:
             continue
-        game_id = _bref_game_id(game_id)
+        game_id = normalize_companion_game_id(_bref_game_id(game_id))
         if game_id in existing_ids or game_id in seen_in_batch:
             continue
         if bi.get('game_type') == 'spring':
