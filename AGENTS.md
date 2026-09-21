@@ -43,6 +43,8 @@ python3 -c 'import sys; from baseball_processor.main import deploy_to_surge; sys
 ```
 The deploy helper validates the manifest, stages exactly its files, and supplies both `index.html` and the named HTML shell. Use this same command if automatic deployment fails. **Do not deploy the project root or copy only HTML/JSON:** the compiled assets and service worker must ship together with their hashed data dependencies. The legacy deployment fallback remains only for older bundles without `release.json`.
 
+Releases retain two previous hashed indexes and all their data dependencies in `release.json.previousIndexes` so already-open tabs keep working. To restore an older locally available release during a repair, use `npm run build:website -- --retain-index data-index-<hash>.json`. Retention is bounded; the runtime also refreshes the stable `data.json` pointer on a missing hashed file and retries once. Never cache stable release pointers ahead of the network or merge an old in-flight section response into a newer index. Verify deployment transitions, not just a fresh-page load.
+
 ### Frontend checks
 ```bash
 python3 -m pip install -r requirements-dev.txt

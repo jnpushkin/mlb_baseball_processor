@@ -26,6 +26,14 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || event.request.method !== "GET")
     return;
+  // Stable release pointers must never be served from an older shell cache.
+  if (
+    event.request.cache === "no-store" ||
+    /\/(data|release)\.json$/.test(url.pathname)
+  ) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request).catch(() =>

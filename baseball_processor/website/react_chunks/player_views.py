@@ -31,7 +31,7 @@ const App = () => {
         setLoadingSection(true);
         window.loadPassportKeys(keys).then(()=>{if(live)setLoadingSection(false);}).catch(e=>{if(live){setLoadingSection(false);setSectionError(e.message);}});
         return()=>{live=false;};
-    },[!!rawData,JSON.stringify(keys),sectionRetry]);
+    },[rawData?.__generation,JSON.stringify(keys),sectionRetry]);
     const [loadError, setLoadError] = useState(DATA_LOAD_ERROR);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchOpen, setSearchOpen] = useState(false);

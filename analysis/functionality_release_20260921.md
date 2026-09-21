@@ -57,3 +57,15 @@ These are not presented as finished capabilities:
 - Planner rankings use checked current rosters, probable pitchers, pinned goals and park/franchise gaps. They do not guarantee future participation or batch-refresh every historical collection entry.
 - Career references and sibling appearance histories have their own refresh schedules. Live verification is available per player; the archive does not pretend all references are current.
 - Stories use half-inning linescores. They are not pitch-level win-probability or leverage reconstructions. Existing specialty milestone/record views remain the source for those named events.
+
+## Open-tab deployment repair
+
+The 09:42 release remained open in the browser after the 11:02 deployment. Its hashed index and section URLs had been removed from the published bundle, producing 404s across Games, Players, Awards and Milestones. A fresh-load check of the current manifest did not cover this transition.
+
+The loader now refreshes the stable index on an expired file, retries against the current paths, coalesces simultaneous refreshes and rejects late responses from the old release. Compatible loaded sections remain available; changed sections reload. The same recovery covers direct game links, saved-game downloads and expired boot indexes. Recovery preserves the route and browser storage; a browser regression also verifies that an unsaved journal draft remains mounted. Stable release pointers bypass the service-worker cache.
+
+Bundles retain two earlier indexes and their complete data graphs, with checksums and dependency validation. This deployment explicitly restores the 09:42 index so existing tabs running the original loader can retry successfully.
+
+Validation: **247 Python tests passed, 2 skipped, 17 subtests passed; 22 browser tests passed**, including four expired-section journeys, an expired boot index and the unsaved-draft case. Nine runtime/service-worker regressions run through the Python CI suite. Ruff and the fixture release validator passed. The rebuilt production manifest contains **681 files**, including the restored legacy dependencies.
+
+Post-deploy verification: all 681 live files returned HTTP 200 with matching SHA-256 checksums. The live browser loaded Awards and all ten primary tabs without section errors. The original user tab was left open.

@@ -112,6 +112,36 @@ class BundleTests(unittest.TestCase):
         (directory / "assets/app-test.css").write_text("compiled css")
         return SimpleNamespace(stdout=json.dumps({"js": "assets/app-test.js", "css": "assets/app-test.css"}))
 
+    def test_retained_release_dependencies_are_complete_and_bounded(self):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("baseball_processor.website.bundle.subprocess.run", side_effect=self.fake_compile),
+        ):
+            root = Path(directory)
+            indexes = []
+            for version in range(4):
+                build_site({"games": [], "milestones": [{"type": str(version)}]}, root / "site.html")
+                manifest = validate_release(root)
+                self.assertEqual(list(reversed(indexes[-2:])), manifest["previousIndexes"])
+                indexes.append(manifest["index"])
+            self.assertNotIn(indexes[0], manifest["files"])
+            # Identical rebuilds do not evict a prior release.
+            build_site({"games": [], "milestones": [{"type": "3"}]}, root / "site.html")
+            self.assertEqual(manifest["previousIndexes"], validate_release(root)["previousIndexes"])
+            # An explicitly retained older release can restore an already-open tab.
+            build_site({"games": [], "milestones": [{"type": "4"}]}, root / "site.html", retain_indexes=[indexes[0]])
+            manifest = validate_release(root)
+            self.assertEqual([indexes[0], indexes[-1]], manifest["previousIndexes"])
+            old = json.loads((root / indexes[0]).read_text())
+            dependency = old["__libraries"]["milestones"]
+            del manifest["files"][dependency]
+            (root / "release.json").write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "Untracked data dependency"):
+                validate_release(root)
+            (root / dependency).write_text("corrupted old file")
+            with self.assertRaisesRegex(ValueError, "Invalid retained data file"):
+                build_site({"games": [], "milestones": [{"type": "5"}]}, root / "site.html", retain_indexes=[indexes[0]])
+
     def test_index_is_small_and_game_is_self_contained(self):
         game = {
             "gameId": "test1",
@@ -172,6 +202,13 @@ class BundleTests(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which("node"), "Node needed for production JS helpers")
 class PassportSelectionTests(unittest.TestCase):
+    def test_release_runtime_recovery(self):
+        root = Path(__file__).resolve().parents[1]
+        result = subprocess.run(
+            ["node", "--test", "tests/frontend/runtime.test.mjs"], cwd=root, capture_output=True, text=True
+        )
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_scope_metrics_alias_search_and_exact_rank(self):
         source = (
             (Path(__file__).resolve().parents[1] / "baseball_processor/website/react_chunks/passport.jsx")

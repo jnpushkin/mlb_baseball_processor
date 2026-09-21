@@ -15,11 +15,14 @@ def validate_release(directory):
             raise ValueError(f"Missing release file: {name}")
         if hashlib.sha256(path.read_bytes()).hexdigest() != expected["sha256"]:
             raise ValueError(f"Release file changed after build: {name}")
-    index = json.loads((directory / manifest["index"]).read_text())
-    refs = [*index["__libraries"].values(), *index["__gameFiles"].values()]
-    for ref in refs:
-        if ref not in manifest["files"]:
-            raise ValueError(f"Untracked data dependency: {ref}")
+    for index_path in [manifest["index"], *manifest.get("previousIndexes", [])]:
+        if index_path not in manifest["files"]:
+            raise ValueError(f"Untracked data index: {index_path}")
+        index = json.loads((directory / index_path).read_text())
+        refs = [*index["__libraries"].values(), *index["__gameFiles"].values()]
+        for ref in refs:
+            if ref not in manifest["files"]:
+                raise ValueError(f"Untracked data dependency: {ref}")
     html = (directory / manifest["html"]).read_text()
     if "text/babel" in html or "cdn.tailwindcss.com" in html:
         raise ValueError("Browser compiler remains in release")

@@ -432,3 +432,76 @@ test("Mexico City attendance is recognized under both stadium names", async ({
   await expect(parks).not.toContainText("Estadio Alfredo Harp Helu");
   await expect(parks).toContainText("Tokyo Dome");
 });
+
+for (const [route, heading] of [
+  ["gamelog", /Game Log/],
+  ["players", /Hitter Statistics/],
+  ["players/awards", /No Award Data/],
+  ["milestones", /No Milestones/],
+]) {
+  test(`expired release recovers ${route} without reloading the page`, async ({
+    page,
+  }) => {
+    let boots = 0,
+      refreshes = 0;
+    await page.route("**/data-index-*.json", async (request) => {
+      boots++;
+      const old = await (await request.fetch()).json();
+      for (const key of Object.keys(old.__libraries))
+        old.__libraries[key] = `expired/${old.__libraries[key]}`;
+      await request.fulfill({ json: old });
+    });
+    await page.route("**/expired/*.json", (request) =>
+      request.fulfill({ status: 404, body: "expired release" }),
+    );
+    await page.route("**/data.json", (request) => {
+      refreshes++;
+      return request.continue();
+    });
+    await page.goto(`/#${route}?year=2026`);
+    await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Retry section" }),
+    ).toHaveCount(0);
+    await expect(page).toHaveURL(/year=2026/);
+    expect(boots).toBe(1);
+    expect(refreshes).toBe(1);
+  });
+}
+
+test("expired boot index recovers a directly linked game", async ({ page }) => {
+  await page.route("**/data-index-*.json", (r) =>
+    r.fulfill({ status: 404, body: "expired release" }),
+  );
+  await page.goto("/#dashboard?game=TEST2026");
+  await expect(page.getByRole("dialog", { name: /SF at BAL/ })).toBeVisible();
+});
+
+test("data recovery keeps a journal draft mounted", async ({ page }) => {
+  await page.route("**/data-index-*.json", async (request) => {
+    const old = await (await request.fetch()).json();
+    old.__libraries.searchEvents = "expired-search.json";
+    await request.fulfill({ json: old });
+  });
+  await page.route("**/expired-search.json", (request) =>
+    request.fulfill({ status: 404, body: "expired" }),
+  );
+  await page.goto("/#dashboard/journal");
+  await page.getByLabel("Notes", { exact: true }).fill("Unsaved private draft");
+  // The shared search loads in the background while the journal is open.
+  const refreshed = page.waitForResponse((response) =>
+    response.url().endsWith("/data.json"),
+  );
+  await page
+    .getByRole("textbox", { name: "Search players, games, and milestones" })
+    .fill("Jose");
+  await expect(
+    page
+      .locator("#global-search-results")
+      .getByRole("button", { name: /José Ramírez/ }),
+  ).toBeVisible();
+  await refreshed;
+  await expect(page.getByLabel("Notes", { exact: true })).toHaveValue(
+    "Unsaved private draft",
+  );
+});

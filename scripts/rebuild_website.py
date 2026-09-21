@@ -1,5 +1,6 @@
 """Rebuild only website assets from the current serialized data; no network enrichment."""
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -19,6 +20,10 @@ def read_payload(path):
     return value
 
 
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--retain-index", action="append", default=[],
+                    help="Keep an additional local hashed index and its data available to open tabs (up to two).")
+args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 data = read_payload(root / "data.json")
 if data.get("__schemaVersion") == 2:
@@ -30,4 +35,4 @@ if data.get("__schemaVersion") == 2:
     data["generatedAt"] = generated
 elif (root / "award-data.json").exists():
     data["awardChecklists"] = read_payload(root / "award-data.json")
-print(build_site(data, root / "MLB Game Passport - BREF.html"))
+print(build_site(data, root / "MLB Game Passport - BREF.html", retain_indexes=args.retain_index))

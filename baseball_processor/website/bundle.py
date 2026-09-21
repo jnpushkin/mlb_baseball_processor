@@ -78,7 +78,7 @@ def search_events(data):
     return results
 
 
-def build_site(data, output_file):
+def build_site(data, output_file, *, retain_indexes=()):
     data = normalize_website_teams(data)
     for row in data.get("matchupMatrix", {}).get("matrix", []):
         for code in list(row):
@@ -88,6 +88,8 @@ def build_site(data, output_file):
     directory = output_file.parent
     directory.mkdir(parents=True, exist_ok=True)
     files = {}
+    previous_release = directory / "release.json"
+    prior = json.loads(previous_release.read_text()) if previous_release.exists() else {}
 
     def write(name, content):
         (directory / name).write_bytes(content)
@@ -257,6 +259,23 @@ def build_site(data, output_file):
         .replace("__VERSION__", hashlib.sha256(html.encode()).hexdigest()[:16])
     )
     write("sw.js", sw.encode())
-    manifest = {"schemaVersion": SCHEMA_VERSION, "index": index_path, "html": output_file.name, "files": files}
+    # Open tabs still refer to immutable files from their original index.
+    # Keep two earlier indexes with their entire dependency graphs; the runtime
+    # can refresh data.json when an even older file has expired.
+    candidates = [*retain_indexes, prior.get("index"), *prior.get("previousIndexes", [])]
+    previous_indexes = list(dict.fromkeys(p for p in candidates if p and p != index_path))[:2]
+    for old_index_path in previous_indexes:
+        old_index = json.loads((directory / old_index_path).read_text())
+        dependencies = [old_index_path, *old_index["__libraries"].values(), *old_index["__gameFiles"].values()]
+        for name in dependencies:
+            if name in files:
+                continue
+            content = (directory / name).read_bytes()
+            digest = hashlib.sha256(content).hexdigest()
+            if Path(name).name != name or not name.endswith(f"-{digest[:16]}.json"):
+                raise ValueError(f"Invalid retained data file: {name}")
+            files[name] = {"sha256": digest, "bytes": len(content)}
+    manifest = {"schemaVersion": SCHEMA_VERSION, "index": index_path, "html": output_file.name,
+                "previousIndexes": previous_indexes, "files": files}
     (directory / "release.json").write_bytes(encode(manifest))
     return output_file
