@@ -171,6 +171,12 @@ def _normalize_text(value: Any) -> str:
     return re.sub(r"\s+", " ", text.strip()).casefold()
 
 
+def _normalize_name(value: Any) -> str:
+    text = _normalize_text(value)
+    text = text.replace(".", "").replace("'", "").replace("’", "").replace("-", " ")
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def _normalize_stadium(value: Any) -> str:
     normalized = _normalize_text(value)
     for canonical, aliases in STADIUM_ALIASES.items():
@@ -204,7 +210,7 @@ def _normalize_value(field: str, value: Any) -> Any:
 
 
 def _row_name(row: dict[str, Any]) -> str:
-    return _normalize_text(row.get("name") or row.get("Name") or "")
+    return _normalize_name(row.get("name") or row.get("Name") or "")
 
 
 def _row_id(row: dict[str, Any]) -> str:

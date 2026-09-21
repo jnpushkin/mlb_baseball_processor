@@ -241,7 +241,7 @@ const MatchupMatrix = ({ matchupData, games }) => {
 
     // Normalize team codes for matching (e.g., ATH -> OAK)
     const normalizeCode = (code) => {
-        return normalizeTeamCode(code);
+        return franchiseTeamCode(code);
     };
 
     const handleCellClick = (team, opponent, count) => {
@@ -319,23 +319,9 @@ const MatchupMatrix = ({ matchupData, games }) => {
             {showModal && selectedMatchup && (() => {
                 // Compute record from selectedMatchup.team's perspective
                 const getResult = (game) => {
-                    const scoreStr = game.score || '';
-                    const m = scoreStr.match(/(\w+)\s+(\d+)\s*-\s*(\d+)\s+(\w+)/);
-                    let awayScore, homeScore;
-                    if (m) {
-                        const [, team1, s1, s2, team2] = m;
-                        const nHome = normalizeCode(game.homeTeam);
-                        if (normalizeCode(team2) === nHome) {
-                            awayScore = parseInt(s1); homeScore = parseInt(s2);
-                        } else {
-                            awayScore = parseInt(s2); homeScore = parseInt(s1);
-                        }
-                    } else {
-                        const m2 = scoreStr.match(/(\d+)\s*-\s*(\d+)/);
-                        if (!m2) return null;
-                        awayScore = parseInt(m2[1]); homeScore = parseInt(m2[2]);
-                    }
-                    if (isNaN(awayScore) || isNaN(homeScore)) return null;
+                    const scores = gameScores(game);
+                    if (!scores) return null;
+                    const {awayScore, homeScore} = scores;
                     const isHome = normalizeCode(game.homeTeam) === normalizeCode(selectedMatchup.team);
                     const teamScore = isHome ? homeScore : awayScore;
                     const oppScore = isHome ? awayScore : homeScore;
@@ -613,28 +599,6 @@ const OriolesDashboard = ({ orioles, games }) => {
             .sort((a, b) => new Date(a.date) - new Date(b.date));
     }, [games]);
 
-    // Helper to parse score from format like "BOS 6 - 5 BAL" or "6-5"
-    const parseScore = (scoreStr, homeTeam, awayTeam) => {
-        if (!scoreStr) return null;
-        // Try format: "AWAY # - # HOME" (e.g., "BOS 6 - 5 BAL")
-        const match1 = scoreStr.match(/(\w+)\s+(\d+)\s*-\s*(\d+)\s+(\w+)/);
-        if (match1) {
-            const [_, team1, score1, score2, team2] = match1;
-            // Determine which score belongs to home/away
-            if (team2 === homeTeam || team2.includes(homeTeam)) {
-                return { awayScore: parseInt(score1), homeScore: parseInt(score2) };
-            } else {
-                return { awayScore: parseInt(score2), homeScore: parseInt(score1) };
-            }
-        }
-        // Try simple format: "#-#"
-        const match2 = scoreStr.match(/(\d+)\s*-\s*(\d+)/);
-        if (match2) {
-            return { awayScore: parseInt(match2[1]), homeScore: parseInt(match2[2]) };
-        }
-        return null;
-    };
-
     // Calculate summary stats
     const summaryStats = useMemo(() => {
         let wins = 0, losses = 0, runsScored = 0, runsAllowed = 0, homeRuns = 0;
@@ -642,7 +606,7 @@ const OriolesDashboard = ({ orioles, games }) => {
 
         oriolesGames.forEach(game => {
             const isHome = game.homeTeam === 'BAL';
-            const scores = parseScore(game.score, game.homeTeam, game.awayTeam);
+            const scores = gameScores(game);
             if (!scores) return;
 
             const { awayScore, homeScore } = scores;
@@ -676,7 +640,7 @@ const OriolesDashboard = ({ orioles, games }) => {
 
     // Normalize team codes (OAK and ATH are the same franchise)
     const normalizeTeam = (code) => {
-        return normalizeTeamCode(code);
+        return franchiseTeamCode(code);
     };
 
     // Calculate opponent breakdown
@@ -688,7 +652,7 @@ const OriolesDashboard = ({ orioles, games }) => {
             const isHome = game.homeTeam === 'BAL';
             const rawOpponent = isHome ? game.awayTeam : game.homeTeam;
             const opponent = normalizeTeam(rawOpponent);
-            const scores = parseScore(game.score, game.homeTeam, game.awayTeam);
+            const scores = gameScores(game);
             if (!scores) return;
 
             const { awayScore, homeScore } = scores;
@@ -729,7 +693,7 @@ const OriolesDashboard = ({ orioles, games }) => {
 
         oriolesGames.forEach(game => {
             const isHome = game.homeTeam === 'BAL';
-            const scores = parseScore(game.score, game.homeTeam, game.awayTeam);
+            const scores = gameScores(game);
             if (!scores) return;
 
             const { awayScore, homeScore } = scores;
@@ -931,7 +895,7 @@ const OriolesDashboard = ({ orioles, games }) => {
                             <tbody>
                                 {alEastOpponents.map(o => (
                                     <tr key={o.team} className="border-b last:border-0 hover:bg-slate-50">
-                                        <td className="py-2 font-semibold">{o.team}</td>
+                                        <td className="py-2 font-semibold">{displayTeamCode(o.team)}</td>
                                         <td className="py-2 text-center">{o.games}</td>
                                         <td className="py-2 text-center font-mono">{o.record}</td>
                                         <td className="py-2 text-center">{o.runsScored}</td>
@@ -963,7 +927,7 @@ const OriolesDashboard = ({ orioles, games }) => {
                             <tbody>
                                 {otherOpponents.map(o => (
                                     <tr key={o.team} className="border-b last:border-0 hover:bg-slate-50">
-                                        <td className="py-2 font-semibold">{o.team}</td>
+                                        <td className="py-2 font-semibold">{displayTeamCode(o.team)}</td>
                                         <td className="py-2 text-center">{o.games}</td>
                                         <td className="py-2 text-center font-mono">{o.record}</td>
                                         <td className={`py-2 text-center font-semibold ${o.runDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>

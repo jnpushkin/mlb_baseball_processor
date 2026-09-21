@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .react_app import ReactComponents
+from ..utils.team_identity import normalize_website_teams, display_team
 from .templates import HTMLTemplate
 
 SCHEMA_VERSION = 2
@@ -78,6 +79,11 @@ def search_events(data):
 
 
 def build_site(data, output_file):
+    data = normalize_website_teams(data)
+    for row in data.get("matchupMatrix", {}).get("matrix", []):
+        for code in list(row):
+            if code != display_team(code):
+                row[display_team(code)] = row.pop(code)
     output_file = Path(output_file)
     directory = output_file.parent
     directory.mkdir(parents=True, exist_ok=True)
@@ -209,6 +215,21 @@ def build_site(data, output_file):
         ]
     except (OSError, ValueError):
         index["__health"]["corrections"] = []
+    changes = []
+    if index["__health"]["corrections"]:
+        current_games = {g["gameId"]: g for g in games}
+        for gid in index["__health"]["corrections"]:
+            old_ref = previous.get("__gameFiles", {}).get(gid)
+            try:
+                old = json.loads((directory / old_ref).read_text())
+            except (OSError, ValueError, TypeError):
+                continue
+            current = current_games[gid]
+            for field in ("score", "venue", "attendance", "homeTeam", "awayTeam"):
+                if old.get(field) != current.get(field):
+                    changes.append({"gameId": gid, "date": current["date"], "field": field,
+                                    "before": old.get(field), "after": current.get(field)})
+    libraries["dataChanges"] = hashed("dataChanges", changes)
     index_path = hashed("index", index)
     write("data.json", encode(index))
     with tempfile.TemporaryDirectory(prefix="mlb-frontend-") as temp:

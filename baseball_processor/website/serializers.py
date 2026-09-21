@@ -693,6 +693,10 @@ class DataSerializer:
             "generatedAt": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
         }
 
+        from .analysis_data import build_analysis_data, build_player_journeys
+        json_data.update(build_analysis_data(raw_games, games, CACHE_DIR))
+        json_data["playerJourneys"] = build_player_journeys(json_data)
+
         # Annotate player/pitcher games with career/season high flags
         self._annotate_career_highs(json_data)
 
@@ -1204,6 +1208,7 @@ class DataSerializer:
                     "bb": int(row.get("BB", 0)),
                     "so": int(row.get("SO", 0)),
                     "hbp": int(row.get("HBP", 0)),
+                    "sf": int(row.get("SF", 0)), "sh": int(row.get("SH", 0)),
                     "gidp": int(row.get("GIDP", 0)),
                     "tb": int(row.get("TB", 0)),
                     "xbh": int(row.get("XBH", 0)),
@@ -2455,7 +2460,7 @@ class DataSerializer:
                                 'GIDP': int(player.get('GDP', 0)),
                             }
 
-                        detail_counts = parse_batting_detail_counts(player.get('Details', ''), stats=("SB", "CS"))
+                        detail_counts = parse_batting_detail_counts(player.get('Details', ''), stats=("SB", "CS", "SF", "SH"))
                         sb = max(int(player.get('SB', 0)), detail_counts.get('SB', 0))
                         cs = max(int(player.get('CS', 0)), detail_counts.get('CS', 0))
                         if not any(
@@ -2506,6 +2511,8 @@ class DataSerializer:
                             'so': int(player.get('SO', 0)),
                             'hbp': player_extra.get('HBP', 0),
                             'gidp': player_extra.get('GIDP', 0),
+                            'sf': max(int(player.get('SF', 0) or 0), detail_counts.get('SF', 0)),
+                            'sh': max(int(player.get('SH', 0) or 0), detail_counts.get('SH', 0)),
                         })
                         game_seen[(side, player_id)] = len(player_games) - 1
                         # Add hit data (exit velo) if available
@@ -2514,6 +2521,7 @@ class DataSerializer:
                             player_games[-1]['maxExitVelo'] = hit_info.get('maxExitVelo')
                             player_games[-1]['avgExitVelo'] = hit_info.get('avgExitVelo')
                             player_games[-1]['maxDistance'] = hit_info.get('maxDistance')
+                            player_games[-1]['battedBalls'] = hit_info.get('battedBalls', 0)
             except Exception as e:
                 print(f"   ⚠️ Error serializing player game: {e}")
                 continue

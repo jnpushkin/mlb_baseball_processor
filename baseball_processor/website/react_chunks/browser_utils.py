@@ -121,4 +121,21 @@ const getGlobalSearchResults = (data, searchQuery, TEAM_CODE_TO_NAME = {}) => {
 
     return { items, totalPlayers };
 };
+
+const TEAM_DISPLAY_ALIASES = {NYN:'NYM',NYA:'NYY',SFN:'SF',LAN:'LAD',SDN:'SD',SLN:'STL',CHN:'CHC',CHA:'CWS',CHW:'CWS',KCA:'KC',TBA:'TB',WAS:'WSH',WSN:'WSH',ANA:'LAA',FLO:'FLA'};
+const displayTeamCode = code => TEAM_DISPLAY_ALIASES[code] || code;
+const franchiseTeamCode = code => ({OAK:'ATH',FLA:'MIA',MON:'WSH',CAL:'LAA'})[displayTeamCode(code)] || displayTeamCode(code);
+const sameTeam = (a,b,franchise=false) => (franchise ? franchiseTeamCode(a) : displayTeamCode(a)) === (franchise ? franchiseTeamCode(b) : displayTeamCode(b));
+const gameScores = game => {
+    const away = game?.linescore?.away?.runs, home = game?.linescore?.home?.runs;
+    if (away != null && home != null && Number.isFinite(Number(away)) && Number.isFinite(Number(home))) return {awayScore:Number(away),homeScore:Number(home)};
+    const match = String(game?.score || '').match(/(?:[A-Z]+\s+)?(\d+)\s*[-–]\s*(\d+)/);
+    return match ? {awayScore:Number(match[1]),homeScore:Number(match[2])} : null;
+};
+const canonicalVenue = (games, venue) => games.find(g => g.venue === venue)?._venueKey || venue;
+const venueIdentity = (venue, aliases = {}, stadiums = []) => {
+    const key = normalizeSearchText(aliases[venue] || venue);
+    const stadium = stadiums.find(s => [s.name, ...(s.aliases || [])].some(name => normalizeSearchText(aliases[name] || name) === key));
+    return stadium ? `stadium:${stadium.id}` : `name:${key}`;
+};
 '''

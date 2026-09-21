@@ -85,7 +85,7 @@ const aggregateHitterStats = (playerGames) => {
                 teams: new Set(),
                 games: 0,
                 ab: 0, pa: 0, h: 0, r: 0, rbi: 0, hr: 0,
-                doubles: 0, triples: 0, sb: 0, cs: 0, bb: 0, so: 0, hbp: 0, gidp: 0,
+                doubles: 0, triples: 0, sb: 0, cs: 0, bb: 0, so: 0, hbp: 0, gidp: 0, sf: 0, sh: 0,
                 _maxEV: 0, _evSum: 0, _evCount: 0, _maxDist: 0
             };
         }
@@ -106,6 +106,7 @@ const aggregateHitterStats = (playerGames) => {
         grouped[key].so += (game.so || 0);
         grouped[key].hbp += (game.hbp || 0);
         grouped[key].gidp += (game.gidp || 0);
+        grouped[key].sf += (game.sf || 0); grouped[key].sh += (game.sh || 0);
         // Exit velo aggregation
         if (game.maxExitVelo) {
             grouped[key]._maxEV = Math.max(grouped[key]._maxEV, game.maxExitVelo);
@@ -125,7 +126,8 @@ const aggregateHitterStats = (playerGames) => {
         const tb = singles + (p.doubles * 2) + (p.triples * 3) + (p.hr * 4);
         const xbh = p.doubles + p.triples + p.hr;
         const avg = p.ab > 0 ? (p.h / p.ab).toFixed(3) : '0.000';
-        const obp = p.pa > 0 ? ((p.h + p.bb + p.hbp) / p.pa).toFixed(3) : '0.000';
+        const obpDenominator = p.ab + p.bb + p.hbp + p.sf;
+        const obp = obpDenominator > 0 ? ((p.h + p.bb + p.hbp) / obpDenominator).toFixed(3) : '0.000';
         const slg = p.ab > 0 ? (tb / p.ab).toFixed(3) : '0.000';
         const ops = (parseFloat(obp) + parseFloat(slg)).toFixed(3);
         const maxExitVelo = p._maxEV > 0 ? p._maxEV : null;
@@ -135,7 +137,11 @@ const aggregateHitterStats = (playerGames) => {
         return {
             ...p,
             team: Array.from(p.teams).join(', '),
-            tb, xbh, avg, obp, slg, ops, maxExitVelo, avgExitVelo, maxDistance
+            tb, xbh, avg, obp, slg, ops, maxExitVelo, avgExitVelo, maxDistance,
+            iso: p.ab ? ((tb-p.h)/p.ab).toFixed(3) : null,
+            kPct: p.pa ? (100*p.so/p.pa).toFixed(1) : null, bbPct: p.pa ? (100*p.bb/p.pa).toFixed(1) : null,
+            sbPct: p.sb+p.cs ? (100*p.sb/(p.sb+p.cs)).toFixed(1) : null,
+            babip: p.ab-p.so-p.hr+p.sf > 0 ? ((p.h-p.hr)/(p.ab-p.so-p.hr+p.sf)).toFixed(3) : null
         };
     });
 };
@@ -200,6 +206,7 @@ const aggregatePitcherStats = (pitcherGames) => {
             ...p,
             team: Array.from(p.teams).join(', '),
             ip, era, whip, maxSpeed, avgSpeed, avgSpinRate,
+            k9: p.outs ? (27*p.so/p.outs).toFixed(2) : null, bb9: p.outs ? (27*p.bb/p.outs).toFixed(2) : null,
             totalPitches: p._totalPitches
         };
     });
@@ -290,7 +297,7 @@ const PlayerLink = ({ playerId, name, external, className = '' }) => {
 
 const requestGameDetails = (gameId, options = {}) => {
     if (!gameId) return;
-    navigatePassport({game:gameId,player:null,detail:options.tab||options.focus?.tab||null});
+    navigatePassport({game:gameId,player:null,detail:options.tab||options.focus?.tab||null,inning:options.focus?.inning ? String(options.focus.inning) : null,half:options.focus?.half||null,playIndex:options.focus?.playIndex != null ? String(options.focus.playIndex) : null});
 };
 
 const consumePendingGameDetailsRequest = () => {
@@ -355,7 +362,7 @@ const getTeamLogoUrl = (code) => {
 
 const TeamLogo = ({ code, size = 22, className = '' }) => {
     const [failed, setFailed] = useState(false);
-    const cleanCode = String(code || '').trim().toUpperCase();
+    const cleanCode = displayTeamCode(String(code || '').trim().toUpperCase());
     const url = failed ? null : getTeamLogoUrl(cleanCode);
     const style = { width: size, height: size };
     const wrapperClass = `inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/95 ring-1 ring-slate-200 ${className}`;
@@ -384,7 +391,7 @@ const TeamLogo = ({ code, size = 22, className = '' }) => {
 const TeamToken = ({ code, logoSize = 20, className = '' }) => (
     <span className={`inline-flex items-center gap-1.5 ${className}`}>
         <TeamLogo code={code} size={logoSize} />
-        <span>{code}</span>
+        <span>{displayTeamCode(code)}</span>
     </span>
 );
 
@@ -409,7 +416,7 @@ const getFlagUrl = (countryCode) => {
 };
 
 const getTeamLogoHtml = (code, className = 'stadium-logo-marker-img', fallbackClassName = 'stadium-logo-cluster-code') => {
-    const cleanCode = String(code || '').trim().toUpperCase();
+    const cleanCode = displayTeamCode(String(code || '').trim().toUpperCase());
     const logoUrl = getTeamLogoUrl(cleanCode);
 
     if (logoUrl) {

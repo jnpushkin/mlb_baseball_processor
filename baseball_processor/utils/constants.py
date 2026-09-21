@@ -219,6 +219,8 @@ STADIUM_ALIASES = {
     'Comerica Park': [],
     'Kauffman Stadium': [],
     'Globe Life Park in Arlington': ['The Ballpark in Arlington', 'Rangers Ballpark in Arlington', 'Ameriquest Field'],
+    'Alfredo Harp Helú Stadium': ['Alfredo Harp Helu Stadium', 'Estadio Alfredo Harp Helu', 'Estadio Alfredo Harp Helú'],
+    'Sutter Health Park': ['Raley Field'],
 }
 
 # Milestone thresholds for badges

@@ -58,162 +58,37 @@ class SituationalHittingTracker:
     
     def process_game_situations(self, game):
         """Extract situational data from play-by-play."""
-        game_id = game.get("game_id", "")
-        basic_info = game.get("basic_info", {})
-        # CRITICAL FIX: Use raw_plays which has runners_on_base and score data
-        play_by_play = game.get("raw_plays", [])
-        
-        if not play_by_play:
-            return
-        
-        # CRITICAL FIX: Build name-to-ID mapping from batting lineup
-        name_to_id = {}
-        for side in ["home", "away"]:
-            for player in game.get("batting", {}).get(side, []):
-                player_id = player.get("player_id")
-                player_name = player.get("name", "")
-                if player_id and player_name:
-                    # Normalize the name (handle non-breaking spaces)
-                    import unicodedata
-                    normalized_name = player_name.replace('\u00a0', ' ')
-                    normalized_name = unicodedata.normalize('NFKD', normalized_name)
-                    name_to_id[normalized_name] = player_id
-                    name_to_id[player_name] = player_id  # Keep original too
-        
-        for play in play_by_play:
-            if not isinstance(play, dict):
+        from ..utils.event_model import normalize_events
+
+        for play in normalize_events(game):
+            if not play['isAB'] or not play['batterId']:
                 continue
-            
-            # Get batter name and look up ID
-            batter_name = play.get("batter", "")
-            if not batter_name:
-                continue
-            
-            # Normalize batter name from play-by-play
-            import unicodedata
-            batter_name_normalized = batter_name.replace('\u00a0', ' ')
-            batter_name_normalized = unicodedata.normalize('NFKD', batter_name_normalized)
-            
-            # Look up player ID
-            batter_id = name_to_id.get(batter_name_normalized) or name_to_id.get(batter_name)
-            
-            if not batter_id:
-                continue  # Skip if we can't find the player ID
-            
-            # Extract play context
-            outs = play.get("outs", 0)
-            runners = play.get("runners_on_base", "---")
-            score = play.get("score", "0-0")
-            inning = play.get("inning", 1)
-            description = play.get("description", "").lower()
-            
-            # Initialize player if needed
-            if self.player_situations[batter_id]["name"] == "":
-                self.player_situations[batter_id]["name"] = batter_name_normalized
-            
-            # Determine if this is a plate appearance (not a stolen base, etc.)
-            is_pa = any(keyword in description for keyword in [
-                'single', 'double', 'triple', 'home', 'walk', 'strikeout', 
-                'groundout', 'flyball', 'lineout', 'popfly', 'hit by pitch'
-            ])
-            
-            if not is_pa:
-                continue
-            
-            # Determine if ball was put in play for a hit
-            is_hit = any(keyword in description for keyword in [
-                'single', 'double', 'triple', 'home run', 'homered'
-            ])
-            
-            is_hr = any(keyword in description for keyword in [
-                'home run', 'homered', 'grand slam'
-            ])
-            
-            # Parse score to determine ahead/behind/tied
-            score_parts = score.split('-')
-            if len(score_parts) == 2:
-                try:
-                    batting_team = play.get("batting_team", "")
-                    home_team = basic_info.get("home_team", "")
-                    
-                    # Determine which score is for batting team
-                    if batting_team == home_team:
-                        team_score = int(score_parts[1])
-                        opp_score = int(score_parts[0])
-                    else:
-                        team_score = int(score_parts[0])
-                        opp_score = int(score_parts[1])
-                    
-                    score_diff = team_score - opp_score
-                except Exception:
-                    score_diff = 0
-            else:
-                score_diff = 0
-            
-            # Analyze runners situation
-            has_runner_2nd = '2' in runners
-            has_runner_3rd = '3' in runners
-            risp = has_runner_2nd or has_runner_3rd
-            bases_loaded = '1' in runners and '2' in runners and '3' in runners
-            
-            # Track RISP situations
+            stats = self.player_situations[play['batterId']]
+            stats['name'] = play['batter']
+            bases, outs, diff = play['basesBefore'], play['outsBefore'], play['scoreDiff']
+            risp = bases is not None and any(b in bases for b in (2, 3))
+            situations = []
             if risp:
-                self.player_situations[batter_id]["risp_ab"] += 1
-                if is_hit:
-                    self.player_situations[batter_id]["risp_hits"] += 1
-                if is_hr:
-                    self.player_situations[batter_id]["risp_hr"] += 1
-                # RBI tracking would need additional data
-            
-            # Track 2-out situations
+                situations.append('risp')
             if outs == 2:
-                self.player_situations[batter_id]["two_outs_ab"] += 1
-                if is_hit:
-                    self.player_situations[batter_id]["two_outs_hits"] += 1
-                if is_hr:
-                    self.player_situations[batter_id]["two_outs_hr"] += 1
-            
-            # Track RISP with 2 outs (most clutch!)
+                situations.append('two_outs')
             if risp and outs == 2:
-                self.player_situations[batter_id]["risp_2out_ab"] += 1
-                if is_hit:
-                    self.player_situations[batter_id]["risp_2out_hits"] += 1
-                if is_hr:
-                    self.player_situations[batter_id]["risp_2out_hr"] += 1
-            
-            # Track bases loaded
-            if bases_loaded:
-                self.player_situations[batter_id]["bases_loaded_ab"] += 1
-                if is_hit:
-                    self.player_situations[batter_id]["bases_loaded_hits"] += 1
-                if is_hr or 'grand slam' in description:
-                    self.player_situations[batter_id]["bases_loaded_hr"] += 1
-                    # A home run with all three bases occupied is a grand slam, even
-                    # when the play text only says "homered" and not "grand slam".
-                    self.player_situations[batter_id]["bases_loaded_grand_slams"] += 1
-            
-            # Track late & close (7th+ inning, within 3 runs)
-            if inning >= 7 and abs(score_diff) <= 3:
-                self.player_situations[batter_id]["late_close_ab"] += 1
-                if is_hit:
-                    self.player_situations[batter_id]["late_close_hits"] += 1
-                if is_hr:
-                    self.player_situations[batter_id]["late_close_hr"] += 1
-            
-            # Track ahead/behind/tied
-            if score_diff > 0:  # Team is ahead
-                self.player_situations[batter_id]["ahead_ab"] += 1
-                if is_hit:
-                    self.player_situations[batter_id]["ahead_hits"] += 1
-            elif score_diff < 0:  # Team is behind
-                self.player_situations[batter_id]["behind_ab"] += 1
-                if is_hit:
-                    self.player_situations[batter_id]["behind_hits"] += 1
-            else:  # Tied game
-                self.player_situations[batter_id]["tied_ab"] += 1
-                if is_hit:
-                    self.player_situations[batter_id]["tied_hits"] += 1
-    
+                situations.append('risp_2out')
+            if bases == [1, 2, 3]:
+                situations.append('bases_loaded')
+                if play['isHomeRun']:
+                    stats['bases_loaded_grand_slams'] += 1
+            if play['inning'] >= 7 and diff is not None and abs(diff) <= 3:
+                situations.append('late_close')
+            for prefix in situations:
+                stats[prefix + '_ab'] += 1
+                stats[prefix + '_hits'] += int(play['isHit'])
+                stats[prefix + '_hr'] += int(play['isHomeRun'])
+            if diff is not None:
+                prefix = 'ahead' if diff > 0 else 'behind' if diff < 0 else 'tied'
+                stats[prefix + '_ab'] += 1
+                stats[prefix + '_hits'] += int(play['isHit'])
+
     def create_risp_dataframe(self, min_ab=5):
         """Create DataFrame of RISP performance."""
         rows = []

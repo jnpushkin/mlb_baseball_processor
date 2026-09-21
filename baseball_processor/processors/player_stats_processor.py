@@ -166,8 +166,8 @@ class PlayerStatsProcessor(BaseProcessor):
 
             # Process individual stats
             has_meaningful_stats = False
-            for stat in ("AB", "R", "H", "RBI", "BB", "SO", "PA"):
-                value = safe_get_int(player, stat, 0)
+            for stat in ("AB", "R", "H", "RBI", "BB", "SO", "PA", "SF", "SH"):
+                value = max(safe_get_int(player, stat, 0), parse_batting_detail_counts(player.get("Details", ""), stats=(stat,)).get(stat, 0)) if stat in ("SF", "SH") else safe_get_int(player, stat, 0)
                 hit_tot[player_id][stat] += value
                 hit_by_type[game_type][player_id][stat] += value
                 if value > 0:
@@ -363,7 +363,8 @@ class PlayerStatsProcessor(BaseProcessor):
             total_bases = singles + 2 * doubles + 3 * triples + 4 * homers
             xbh = doubles + triples + homers
 
-            obp = ((hits + stats.get("BB", 0) + stats.get("HBP", 0)) / pa) if pa > 0 else 0.000
+            obp_denominator = ab + stats.get("BB", 0) + stats.get("HBP", 0) + stats.get("SF", 0)
+            obp = ((hits + stats.get("BB", 0) + stats.get("HBP", 0)) / obp_denominator) if obp_denominator > 0 else 0.000
             slg = (total_bases / ab) if ab > 0 else 0.000
             ops = obp + slg
 
@@ -387,6 +388,7 @@ class PlayerStatsProcessor(BaseProcessor):
                 "GIDP": stats.get("GIDP", 0),
                 "SO": stats.get("SO", 0),
                 "PA": pa,
+                "SF": stats.get("SF", 0), "SH": stats.get("SH", 0),
                 "TB": total_bases,
                 "XBH": xbh,
                 "OBP": round(obp, 3),
