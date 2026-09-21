@@ -109,22 +109,33 @@ test("mobile sorting, full details, and game rows remain accessible", async ({
   ).toBeTruthy();
 });
 
-test("private journal survives reload and is not in the shared route", async ({
+test("Journal is removed and old links open the ballpark goals", async ({
   page,
 }) => {
-  await page.goto("/#dashboard/journal");
-  await page
-    .getByLabel("Notes", { exact: true })
-    .fill("Private regression note");
-  await page.getByRole("button", { name: "Save journal", exact: true }).click();
+  await page.goto("/#dashboard/journal?journalGame=TEST2026");
+  await expect(page).toHaveURL(/#dashboard\/plan$/);
   await expect(
-    page.getByRole("status").filter({ hasText: "Saved on this device" }),
+    page.getByRole("heading", { name: "Your next ballpark visit" }),
   ).toBeVisible();
-  await page.reload();
-  await expect(page.getByLabel("Notes", { exact: true })).toHaveValue(
-    "Private regression note",
-  );
-  expect(page.url()).not.toContain("Private");
+  await expect(
+    page.getByRole("button", { name: "Journal", exact: true }),
+  ).toHaveCount(0);
+  const goal = page.getByRole("article", {
+    name: "Orioles in every ballpark",
+    exact: true,
+  });
+  await expect(goal.getByRole("progressbar")).toHaveAttribute("value", "1");
+  await expect(goal.getByRole("progressbar")).toHaveAttribute("max", "30");
+  await expect(
+    page
+      .getByRole("article", {
+        name: "Orioles in every ballpark with Dad",
+        exact: true,
+      })
+      .getByRole("progressbar"),
+  ).toHaveAttribute("value", "0");
+  await goal.getByText("Missing parks (29)", { exact: true }).click();
+  await expect(goal).toContainText("Oracle Park");
 });
 
 test("Back restores a default subtab and saved views restore scope", async ({
@@ -222,7 +233,6 @@ test("all discovery sections render on a phone without overflowing", async ({
     ["Pitch arsenals", "Pitch arsenals"],
     ["Personal milestones", "Personal milestones"],
     ["Then & now", "Then & now"],
-    ["Trips", "Your baseball trips"],
     ["Player journeys", "Player journeys"],
     ["Trivia", "Personal baseball trivia"],
   ];
@@ -301,23 +311,24 @@ test("compound queries survive reload and malformed query links stay usable", as
   ).toBeVisible();
 });
 
-test("trip fields and itinerary survive a private backup import", async ({
+test("Saved views imports private plans and preserves legacy backups", async ({
   page,
 }) => {
-  await page.goto("/#dashboard/journal");
+  await page.goto("/#dashboard/saved");
   const backup = {
     schemaVersion: 1,
-    journal: {
-      TEST2026: {
-        notes: "Imported note",
-        trip: "Regression trip",
-        rating: "5",
-        ticketCost: "42.50",
-        currency: "USD",
-      },
-    },
+    journal: { TEST2026: { notes: "Legacy private note" } },
+    views: [
+      { name: "Imported season", route: { tab: "gamelog", year: "2026" } },
+    ],
     itinerary: [
-      { gamePk: 1, date: "2026-09-21", venue: "Test park", matchup: "A @ B" },
+      {
+        gamePk: 1,
+        date: "2026-09-21",
+        venue: "Test park",
+        matchup: "A @ B",
+        withDad: true,
+      },
     ],
   };
   await page.getByLabel("Import backup", { exact: true }).setInputFiles({
@@ -325,21 +336,21 @@ test("trip fields and itinerary survive a private backup import", async ({
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(backup)),
   });
-  await expect(page.getByLabel("Trip name", { exact: true })).toHaveValue(
-    "Regression trip",
-  );
-  await expect(page.getByLabel("Ticket cost", { exact: true })).toHaveValue(
-    "42.50",
-  );
-  await page.reload();
-  await expect(page.getByLabel("Game rating", { exact: true })).toHaveValue(
-    "5",
-  );
+  await expect(
+    page.getByText("Backup imported. Existing saved items were preserved."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Imported season", exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => JSON.parse(localStorage.getItem("passport:journal")).TEST2026.notes,
+    ),
+  ).toBe("Legacy private note");
   await page.getByRole("button", { name: "Next visit", exact: true }).click();
-  await expect(page.getByText("A @ B", { exact: false })).toBeVisible();
-  await page.getByRole("button", { name: "Discover", exact: true }).click();
-  await page.getByRole("button", { name: "Trips", exact: true }).click();
-  await expect(page.getByText("USD 42.50", { exact: true })).toBeVisible();
+  await expect(page.getByText(/A @ B.*With Dad/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(/A @ B.*With Dad/)).toBeVisible();
 });
 
 test("date range schedule can be saved as an itinerary and exported", async ({
@@ -355,7 +366,7 @@ test("date range schedule can be saved as an itinerary and exported", async ({
                 gamePk: 999,
                 gameDate: "2026-09-21T23:05:00Z",
                 officialDate: "2026-09-21",
-                venue: { name: "Test park" },
+                venue: { name: "Fenway Park" },
                 teams: {
                   away: {
                     team: {
@@ -421,16 +432,17 @@ test("co-appearances show shared games independently of plate appearances", asyn
   await expect(page.getByRole("dialog", { name: /SF at BAL/ })).toBeVisible();
 });
 
-test("Mexico City attendance is recognized under both stadium names", async ({
+test("Mexico City is a separate completed visit rather than a missing current home park", async ({
   page,
 }) => {
   await page.goto("/#dashboard/plan");
-  const parks = page
-    .locator("details")
-    .filter({ hasText: "Unvisited current ballparks" });
-  await parks.locator("summary").click();
-  await expect(parks).not.toContainText("Estadio Alfredo Harp Helu");
-  await expect(parks).toContainText("Tokyo Dome");
+  const goal = page.getByRole("article", {
+    name: "Orioles in every ballpark",
+    exact: true,
+  });
+  await goal.getByText("Other parks visited (1)", { exact: true }).click();
+  await expect(goal).toContainText("Estadio Alfredo Harp Helu");
+  await expect(goal.getByRole("progressbar")).toHaveAttribute("max", "30");
 });
 
 for (const [route, heading] of [
@@ -477,7 +489,9 @@ test("expired boot index recovers a directly linked game", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: /SF at BAL/ })).toBeVisible();
 });
 
-test("data recovery keeps a journal draft mounted", async ({ page }) => {
+test("data recovery preserves an unsaved planning date range", async ({
+  page,
+}) => {
   await page.route("**/data-index-*.json", async (request) => {
     const old = await (await request.fetch()).json();
     old.__libraries.searchEvents = "expired-search.json";
@@ -486,22 +500,83 @@ test("data recovery keeps a journal draft mounted", async ({ page }) => {
   await page.route("**/expired-search.json", (request) =>
     request.fulfill({ status: 404, body: "expired" }),
   );
-  await page.goto("/#dashboard/journal");
-  await page.getByLabel("Notes", { exact: true }).fill("Unsaved private draft");
-  // The shared search loads in the background while the journal is open.
+  await page.goto("/#dashboard/plan");
+  await page.getByLabel("Planning date", { exact: true }).fill("2026-10-01");
+  await page
+    .getByLabel("Planning end date", { exact: true })
+    .fill("2026-10-07");
   const refreshed = page.waitForResponse((response) =>
     response.url().endsWith("/data.json"),
   );
   await page
     .getByRole("textbox", { name: "Search players, games, and milestones" })
     .fill("Jose");
-  await expect(
-    page
-      .locator("#global-search-results")
-      .getByRole("button", { name: /José Ramírez/ }),
-  ).toBeVisible();
   await refreshed;
-  await expect(page.getByLabel("Notes", { exact: true })).toHaveValue(
-    "Unsaved private draft",
+  await expect(page.getByLabel("Planning date", { exact: true })).toHaveValue(
+    "2026-10-01",
   );
+  await expect(
+    page.getByLabel("Planning end date", { exact: true }),
+  ).toHaveValue("2026-10-07");
+});
+
+test("planner ranks the three goals and adjusts for Dad on a phone", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const game = (id, venue, orioles) => ({
+    gamePk: id,
+    officialDate: "2026-09-21",
+    gameDate: `2026-09-21T${id === 1 ? "18" : "20"}:00:00Z`,
+    venue: { name: venue },
+    teams: {
+      away: {
+        team: {
+          id: orioles ? 110 : 137,
+          name: orioles ? "Baltimore Orioles" : "San Francisco Giants",
+        },
+      },
+      home: { team: { id: 111, name: "Boston Red Sox" } },
+    },
+    status: { detailedState: "Scheduled" },
+  });
+  await page.route("**/api/v1/schedule?**", (request) =>
+    request.fulfill({
+      json: {
+        dates: [
+          {
+            games: [
+              game(1, "Fenway Park", false),
+              game(2, "Wrigley Field", true),
+              game(3, "Oriole Park at Camden Yards", true),
+            ],
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto("/#dashboard/plan?year=2026");
+  await page
+    .getByRole("button", { name: "Find scheduled games", exact: true })
+    .click();
+  const results = page.locator("#next-visit-schedule article");
+  await expect(results).toHaveCount(3);
+  await expect(results.first()).toContainText("Wrigley Field");
+  await expect(results.first()).toContainText(
+    "Orioles in every ballpark with Dad",
+  );
+  await page.getByLabel("Planning with Dad", { exact: true }).uncheck();
+  await expect(results).toHaveCount(1);
+  await expect(results.first()).toContainText("Wrigley Field");
+  await expect(results.first()).not.toContainText("every ballpark with Dad");
+  await page.getByLabel("Planning goal", { exact: true }).selectOption("dad");
+  await expect(
+    page.getByLabel("Planning with Dad", { exact: true }),
+  ).toBeChecked();
+  await expect(results).toHaveCount(3);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
 });

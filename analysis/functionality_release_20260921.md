@@ -69,3 +69,19 @@ Bundles retain two earlier indexes and their complete data graphs, with checksum
 Validation: **247 Python tests passed, 2 skipped, 17 subtests passed; 22 browser tests passed**, including four expired-section journeys, an expired boot index and the unsaved-draft case. Nine runtime/service-worker regressions run through the Python CI suite. Ruff and the fixture release validator passed. The rebuilt production manifest contains **681 files**, including the restored legacy dependencies.
 
 Post-deploy verification: all 681 live files returned HTTP 200 with matching SHA-256 checksums. The live browser loaded Awards and all ten primary tabs without section errors. The original user tab was left open.
+
+## Personalized ballpark goals
+
+Journal and its dependent Trips tool have been removed. Old Journal links redirect to Next Visit. Private backup import/export now lives in Saved Views and preserves legacy notes/images without displaying the retired editor.
+
+Next Visit now tracks three permanent goals across the 30 current MLB home ballparks:
+
+- Orioles in every ballpark: **24/30**, six remaining.
+- Orioles in every ballpark with Dad: **16/30**, fourteen remaining.
+- Every ballpark with Dad, any teams: **23/30**, seven remaining.
+
+Each goal has missing and completed parks, with qualifying first-visit links. Historical, international and spring training venues appear separately. Orioles-with-Dad completion requires a qualifying shared game; separate Orioles and Dad visits do not combine into completion. Stadium renames share physical identity, including Rate Field/Guaranteed Rate Field and Daikin Park/Minute Maid Park, verified against the MLB 2026 teams/venue API.
+
+Schedule recommendations prioritize remaining park goals, support focusing on a goal and planning with/without Dad, and save that companion choice in the private itinerary. Saving a planned visit does not affect completion. Existing generic player/team/collection goals remain in a collapsed watchlist.
+
+Validation includes 23 passing browser journeys, the Python/Node regression suite, release checksums/dependencies, and a visual review using the full local archive. New regression cases cover same-game Dad/Orioles matching, historical-versus-current venues, renamed parks, goal-specific recommendations, private itinerary imports, retired links, and phone layout.

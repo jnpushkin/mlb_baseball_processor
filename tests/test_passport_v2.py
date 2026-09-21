@@ -202,6 +202,54 @@ class BundleTests(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which("node"), "Node needed for production JS helpers")
 class PassportSelectionTests(unittest.TestCase):
+    def test_ballpark_goals_require_matching_games_and_normalize_physical_parks(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "baseball_processor/website/react_chunks/passport.jsx").read_text().split("const usePersonal =")[0]
+        checks = r"""
+        const stadiums=[
+          {id:'oracle',name:'Oracle Park',aliases:['AT&T Park'],current:true,team:'SF'},
+          {id:'camden',name:'Camden Yards',current:true,team:'BAL'},
+          {id:'fenway',name:'Fenway Park',current:true,team:'BOS'},
+          {id:'newyankee',name:'Yankee Stadium',aliases:['Yankee Stadium III'],current:true,team:'NYY'},
+          {id:'oldyankee',name:'Old Yankee Stadium',aliases:['Yankee Stadium II'],current:false,team:'NYY'},
+          {id:'rate',name:'Rate Field',aliases:['U.S. Cellular Field','Guaranteed Rate Field'],current:true,team:'CHW'},
+          {id:'mexico',name:'Estadio Alfredo Harp Helu',aliases:['Alfredo Harp Helú Stadium'],current:true,international:true,team:'INT'},
+          {id:'spring',name:'Spring Park',current:true,springTraining:true,team:'ST'}];
+        const games=[
+          {gameId:'alone',venue:'AT&T Park',homeTeam:'SF',awayTeam:'BAL'},
+          {gameId:'dad',venue:'Oracle Park',homeTeam:'SF',awayTeam:'LAD',_companions:['Dad']},
+          {gameId:'both',venue:'Camden Yards',homeTeam:'Baltimore Orioles',awayTeam:'TB',_companions:['Dad']},
+          {gameId:'repeat',venue:'Camden Yards',homeTeam:'BAL',awayTeam:'TB',_companions:['Dad']},
+          {gameId:'old',venue:'Yankee Stadium II',homeTeam:'NYY',awayTeam:'BAL',_companions:['Dad']},
+          {gameId:'mexico',venue:'Alfredo Harp Helú Stadium',homeTeam:'BAL',awayTeam:'HOU',_companions:['Dad']},
+          {gameId:'rate',venue:'U.S. Cellular Field',homeTeam:'CHW',awayTeam:'BAL'}];
+        const data={games,companionData:{gameCompanions:{rate:['Dad']}}};
+        const progress=ballparkGoalProgress(data,stadiums);
+        assert.deepEqual(progress.map(g=>g.parks.length),[5,5,5]);
+        assert.deepEqual(progress.map(g=>g.completed.length),[3,2,3]);
+        assert.ok(progress[1].missing.some(p=>p.id==='oracle')); // Two separate games cannot complete the shared goal.
+        assert.ok(progress.every(g=>g.missing.some(p=>p.id==='newyankee')));
+        assert.deepEqual(progress.map(g=>g.otherParks.length),[2,2,2]);
+        """
+        checks += r"""
+        const identity=name=>venueIdentity(name,{},stadiums);
+        const schedule=(park,orioles=true)=>({venue:{name:park},teams:{home:{team:{id:111,name:'Boston Red Sox'}},away:{team:{id:orioles?110:137,name:orioles?'Baltimore Orioles':'San Francisco Giants'}}}});
+        const matches=(park,orioles=true,dad=true,focus='all')=>ballparkScheduleMatches(schedule(park,orioles),progress,identity,dad,focus).map(g=>g.id);
+        assert.deepEqual(matches('Fenway Park'),['orioles','orioles-dad','dad']);
+        assert.deepEqual(matches('Oracle Park'),['orioles-dad']);
+        assert.deepEqual(matches('Fenway Park',false),['dad']);
+        assert.deepEqual(matches('Fenway Park',true,false),['orioles']);
+        assert.deepEqual(matches('Fenway Park',true,true,'orioles-dad'),['orioles-dad']);
+        assert.deepEqual(matches('Guaranteed Rate Field'),[]);
+        assert.deepEqual(matches('Unknown Park'),[]);
+        assert.deepEqual(matches('Old Yankee Stadium'),[]);
+        assert.equal(progress[0].completed.length,3); // Recommendations do not change completion.
+        assert.doesNotThrow(()=>validatePassportBackup({schemaVersion:1,itinerary:[]}));
+        assert.throws(()=>validatePassportBackup({schemaVersion:1,itinerary:[{gamePk:1,matchup:'A @ B',date:'2026-09-21',venue:'Park',withDad:'yes'}]}));
+        """
+        result = subprocess.run(["node", "-e", CODE + "\n" + source + "\nconst assert=require('node:assert/strict');\n" + checks], capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+
     def test_release_runtime_recovery(self):
         root = Path(__file__).resolve().parents[1]
         result = subprocess.run(

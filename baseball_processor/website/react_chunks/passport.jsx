@@ -145,7 +145,7 @@ const PASSPORT_FEATURES = [
     "Discover: plays, matchups and career share",
     "dashboard",
     "discover",
-    "play explorer batter pitcher duels career share drama stories arsenals personal milestones trips trivia",
+    "play explorer batter pitcher duels career share drama stories arsenals personal milestones trivia",
   ],
   ["Season recap", "dashboard", "recap", "season memories share recap"],
   [
@@ -155,12 +155,11 @@ const PASSPORT_FEATURES = [
     "awards missing completion goals",
   ],
   [
-    "Game journal",
+    "Next visit",
     "dashboard",
-    "journal",
-    "notes photos ticket seats companions",
+    "plan",
+    "planner goals watchlist orioles ballparks dad",
   ],
-  ["Next visit", "dashboard", "plan", "planner goals watchlist"],
   [
     "Compare visits",
     "dashboard",
@@ -356,7 +355,6 @@ const passportKeysForRoute = (route) => {
       career: ["careerContext", "playerGames", "pitcherGames"],
       personal: ["playerGames", "pitcherGames"],
       context: ["playerBios", "awardChecklists", "careerContext"],
-      trips: [],
       journeys: ["ncaaCrossRef", "playerBios", "playerJourneys"],
       quiz: [],
     };
@@ -383,10 +381,10 @@ const validatePassportBackup = (payload) => {
   if (
     !object(payload) ||
     payload.schemaVersion !== 1 ||
-    !object(payload.journal)
+    (payload.journal != null && !object(payload.journal))
   )
     throw Error("Invalid backup");
-  for (const [id, entry] of Object.entries(payload.journal)) {
+  for (const [id, entry] of Object.entries(payload.journal || {})) {
     if (
       !id ||
       !object(entry) ||
@@ -428,7 +426,8 @@ const validatePassportBackup = (payload) => {
       typeof row.venue !== "string" ||
       (row.gameDate != null && typeof row.gameDate !== "string") ||
       (row.gameDate && !Number.isFinite(Date.parse(row.gameDate))) ||
-      (row.isTimeTBA != null && typeof row.isTimeTBA !== "boolean")
+      (row.isTimeTBA != null && typeof row.isTimeTBA !== "boolean") ||
+      (row.withDad != null && typeof row.withDad !== "boolean")
     )
       throw Error("Invalid itinerary");
   }
@@ -472,9 +471,114 @@ const validatePassportBackup = (payload) => {
       throw Error("Invalid goal");
   return payload;
 };
+const isOriolesTeam = (team) => {
+  if (team?.id === 110) return true;
+  const name =
+    typeof team === "object" ? team?.abbreviation || team?.name : team;
+  return ["bal", "baltimore", "baltimore orioles"].includes(
+    normalizeSearchText(name),
+  );
+};
+const ballparkGoalProgress = (data, stadiums) => {
+  const identity = (name) =>
+    venueIdentity(name, data.stadiumAliases || {}, stadiums);
+  const current = stadiums.filter(
+    (park) =>
+      park.current &&
+      !park.springTraining &&
+      !park.international &&
+      !["ST", "INT"].includes(park.team),
+  );
+  const targets = [
+    ...new Map(current.map((park) => [identity(park.name), park])).values(),
+  ];
+  const definitions = [
+    {
+      id: "orioles",
+      title: "Orioles in every ballpark",
+      orioles: true,
+      dad: false,
+    },
+    {
+      id: "orioles-dad",
+      title: "Orioles in every ballpark with Dad",
+      orioles: true,
+      dad: true,
+    },
+    { id: "dad", title: "Every ballpark with Dad", orioles: false, dad: true },
+  ];
+  return definitions.map((goal) => {
+    const matches = (data.games || []).filter((game) => {
+      const companions = [
+        ...(game._companions || []),
+        ...(data.companionData?.gameCompanions?.[game.gameId] || []),
+      ];
+      return (
+        (!goal.orioles || [game.homeTeam, game.awayTeam].some(isOriolesTeam)) &&
+        (!goal.dad ||
+          companions.some((name) => normalizeSearchText(name) === "dad"))
+      );
+    });
+    const byPark = new Map();
+    for (const game of matches) {
+      const key = identity(game._venueKey || game.venue);
+      if (!byPark.has(key)) byPark.set(key, []);
+      byPark.get(key).push(game);
+    }
+    const parks = targets.map((park) => ({
+      ...park,
+      identity: identity(park.name),
+      visits: byPark.get(identity(park.name)) || [],
+    }));
+    const targetKeys = new Set(parks.map((park) => park.identity));
+    const otherParks = [...byPark]
+      .filter(([key]) => !targetKeys.has(key))
+      .map(([key, visits]) => ({
+        identity: key,
+        name:
+          stadiums.find((park) => identity(park.name) === key)?.name ||
+          visits[0]._venueKey ||
+          visits[0].venue,
+        visits,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return {
+      ...goal,
+      parks,
+      otherParks,
+      completed: parks.filter((park) => park.visits.length),
+      missing: parks.filter((park) => !park.visits.length),
+    };
+  });
+};
+const ballparkScheduleMatches = (
+  game,
+  progress,
+  identity,
+  withDad = true,
+  focus = "all",
+) => {
+  const park = identity(game.venue?.name);
+  const orioles = [game.teams?.home?.team, game.teams?.away?.team].some(
+    isOriolesTeam,
+  );
+  return progress.filter(
+    (goal) =>
+      (focus === "all" || goal.id === focus) &&
+      (!goal.dad || withDad) &&
+      (!goal.orioles || orioles) &&
+      goal.missing.some((p) => p.identity === park),
+  );
+};
+
 const usePersonal = (key, fallback) => {
   const [value, setValue] = useState(() => readPersonal(key, fallback));
   const [error, setError] = useState("");
+  useEffect(() => {
+    const refresh = () => setValue(readPersonal(key, fallback));
+    window.addEventListener("passport-personal", refresh);
+    return () => window.removeEventListener("passport-personal", refresh);
+  }, [key]);
   const save = (next) => {
     try {
       localStorage.setItem("passport:" + key, JSON.stringify(next));
@@ -787,12 +891,11 @@ const PassportHome = ({ data, allData, route }) => {
                 onClick={() =>
                   navigatePassport({
                     tab: "dashboard",
-                    subtab: "journal",
-                    journalGame: latest.gameId,
+                    subtab: "plan",
                   })
                 }
               >
-                Add a memory
+                Plan the next visit
               </button>
             </div>
           </>
@@ -937,7 +1040,7 @@ const PassportRecap = ({ data, allData, route }) => {
               try {
                 await navigator.clipboard.writeText(location.href);
                 setMessage(
-                  "Share link copied. Private journal entries are not included.",
+                  "Share link copied. Private saved data is not included.",
                 );
               } catch {
                 setMessage(
@@ -1057,284 +1160,6 @@ const photoStore = (mode, key, value) =>
       };
     };
   });
-const PassportJournal = ({ data, route }) => {
-  const [journal, saveJournal, storageError] = usePersonal("journal", {});
-  const games = [...data.games].sort((a, b) =>
-    toSortableDate(b.date).localeCompare(toSortableDate(a.date)),
-  );
-  const [gameId, setGameId] = useState(
-    route.journalGame || games[0]?.gameId || "",
-  );
-  const [draft, setDraft] = useState(journal[gameId] || {});
-  const [photos, setPhotos] = useState([]);
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    setDraft(journal[gameId] || {});
-    setMessage("");
-    let live = true;
-    photoStore("get", gameId)
-      .then((row) => {
-        if (live) setPhotos(row?.images || []);
-      })
-      .catch(() => setMessage("Image storage is unavailable in this browser."));
-    return () => {
-      live = false;
-    };
-  }, [gameId]);
-  const field = (key, value) => setDraft({ ...draft, [key]: value });
-  const save = async () => {
-    try {
-      validatePassportBackup({
-        schemaVersion: 1,
-        journal: { [gameId]: draft },
-      });
-    } catch (error) {
-      setMessage(error.message);
-      return;
-    }
-    setBusy(true);
-    try {
-      await photoStore("put", gameId, photos);
-      const saved = saveJournal({
-        ...journal,
-        [gameId]: { ...draft, updatedAt: new Date().toISOString() },
-      });
-      setMessage(
-        saved
-          ? "Saved on this device. Export a backup to keep another copy."
-          : "Notes could not be saved. Your draft is still here; export a backup before clearing space.",
-      );
-    } catch {
-      setMessage(
-        "Could not save images. Your draft is still here; free browser storage and retry.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-  const backup = async () => {
-    try {
-      const images = await photoStore("get");
-      downloadPassport(
-        {
-          schemaVersion: 1,
-          journal: { ...journal, [gameId]: draft },
-          images: [
-            ...images.filter((row) => row.gameId !== gameId),
-            { gameId, images: photos },
-          ],
-          views: readPersonal("views", []),
-          goals: readPersonal("goals", []),
-          itinerary: readPersonal("itinerary", []),
-        },
-        "my-baseball-passport-private-backup.json",
-      );
-      setMessage("Backup exported. It includes your private notes and images.");
-    } catch {
-      setMessage("Could not export images. Please retry.");
-    }
-  };
-  const importBackup = async (file) => {
-    if (!file) return;
-    try {
-      const payload = validatePassportBackup(JSON.parse(await file.text()));
-      for (const row of payload.images || []) {
-        const existing = (await photoStore("get", row.gameId))?.images || [];
-        await photoStore("put", row.gameId, [
-          ...new Set([...existing, ...row.images]),
-        ]);
-      }
-      const merged = { ...payload.journal, ...journal };
-      if (!saveJournal(merged)) throw Error("Storage unavailable");
-      setDraft(merged[gameId] || {});
-      setPhotos((await photoStore("get", gameId))?.images || []);
-      for (const key of ["views", "goals", "itinerary"])
-        if (Array.isArray(payload[key]))
-          localStorage.setItem(
-            "passport:" + key,
-            JSON.stringify(
-              [...readPersonal(key, []), ...payload[key]].filter(
-                (v, i, a) =>
-                  a.findIndex(
-                    (x) => JSON.stringify(x) === JSON.stringify(v),
-                  ) === i,
-              ),
-            ),
-          );
-      setMessage(
-        "Backup imported. Existing notes and images were preserved where both copies contain the same game.",
-      );
-    } catch {
-      setMessage(
-        "Could not finish importing. Check the backup and available browser storage, then retry. Existing notes and images were preserved.",
-      );
-    }
-  };
-  return (
-    <section className="passport-panel space-y-4">
-      <h1 className="text-2xl font-bold">Game journal</h1>
-      <p className="text-sm text-slate-500">
-        Private to this browser. Notes and images are never added to the public
-        website. Export a backup before changing devices or clearing browser
-        storage.
-      </p>
-      <label className="block">
-        Game
-        <select
-          className="passport-input w-full"
-          aria-label="Journal game"
-          value={gameId}
-          onChange={(e) => setGameId(e.target.value)}
-        >
-          {games.map((g) => (
-            <option key={g.gameId} value={g.gameId}>
-              {g.date} · {g.awayTeam} @ {g.homeTeam}
-            </option>
-          ))}
-        </select>
-      </label>
-      {["seat", "companions", "moment"].map((k) => (
-        <label key={k} className="block capitalize">
-          {k === "moment"
-            ? "Favorite moment"
-            : k === "seat"
-              ? "Seat / section"
-              : "Companions"}
-          <input
-            className="passport-input w-full"
-            value={draft[k] || ""}
-            onChange={(e) => field(k, e.target.value)}
-          />
-        </label>
-      ))}
-      <div className="grid sm:grid-cols-2 gap-3">
-        <label>
-          Trip name
-          <input
-            aria-label="Trip name"
-            className="passport-input w-full"
-            value={draft.trip || ""}
-            onChange={(e) => field("trip", e.target.value)}
-            placeholder="e.g. Summer ballpark trip"
-          />
-        </label>
-        <label>
-          Game rating
-          <select
-            aria-label="Game rating"
-            className="passport-input w-full"
-            value={draft.rating || ""}
-            onChange={(e) => field("rating", e.target.value)}
-          >
-            <option value="">Not rated</option>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>
-                {n} / 5
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Ticket cost
-          <input
-            aria-label="Ticket cost"
-            type="number"
-            min="0"
-            step="0.01"
-            className="passport-input w-full"
-            value={draft.ticketCost || ""}
-            onChange={(e) => field("ticketCost", e.target.value)}
-          />
-        </label>
-        <label>
-          Currency
-          <select
-            aria-label="Currency"
-            className="passport-input w-full"
-            value={draft.currency || "USD"}
-            onChange={(e) => field("currency", e.target.value)}
-          >
-            {["USD", "CAD", "MXN", "JPY", "GBP", "EUR"].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <label className="block">
-        Notes
-        <textarea
-          aria-label="Notes"
-          rows={5}
-          className="passport-input w-full"
-          value={draft.notes || ""}
-          onChange={(e) => field("notes", e.target.value)}
-        />
-      </label>
-      <label className="block">
-        Photo or ticket image
-        <input
-          className="block text-sm my-2 max-w-full"
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          onChange={async (e) => {
-            const f = e.target.files[0];
-            if (!f) return;
-            if (
-              !["image/png", "image/jpeg", "image/webp"].includes(f.type) ||
-              f.size > 5 * 1024 * 1024
-            ) {
-              setMessage("Choose a PNG, JPEG, or WebP smaller than 5 MB.");
-              return;
-            }
-            const reader = new FileReader();
-            reader.onload = () => setPhotos([...photos, reader.result]);
-            reader.readAsDataURL(f);
-          }}
-        />
-      </label>
-      <div className="grid grid-cols-2 gap-3">
-        {photos.map((src, i) => (
-          <figure key={i}>
-            <img
-              src={src}
-              alt={`Personal game image ${i + 1}`}
-              className="rounded-lg max-h-64 object-contain"
-            />
-            <button
-              className="passport-button"
-              onClick={() => setPhotos(photos.filter((_, n) => n !== i))}
-            >
-              Remove image {i + 1}
-            </button>
-          </figure>
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <button
-          className="passport-button"
-          disabled={!gameId || busy}
-          onClick={save}
-        >
-          {busy ? "Saving…" : "Save journal"}
-        </button>
-        <button className="passport-button" onClick={backup}>
-          Export private backup
-        </button>
-        <label className="passport-button">
-          Import backup
-          <input
-            type="file"
-            accept="application/json"
-            className="block text-xs max-w-full"
-            onChange={(e) => importBackup(e.target.files[0])}
-          />
-        </label>
-      </div>
-      <PassportNotice>{storageError || message}</PassportNotice>
-    </section>
-  );
-};
 const PassportCollections = ({ data }) => {
   const [goals, save, error] = usePersonal("goals", []);
   const [filter, setFilter] = useState("");
@@ -1430,49 +1255,91 @@ const PassportCollections = ({ data }) => {
     </div>
   );
 };
+const BallparkGoalCard = ({ goal, onPlan }) => (
+  <article className="passport-panel space-y-3" aria-label={goal.title}>
+    <h2 className="text-lg font-bold">{goal.title}</h2>
+    <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+      {goal.completed.length}
+      <span className="text-lg text-slate-500">
+        {" "}
+        / {goal.parks.length} parks
+      </span>
+    </p>
+    <progress
+      className="w-full accent-blue-600"
+      value={goal.completed.length}
+      max={goal.parks.length || 1}
+      aria-label={`${goal.title} progress`}
+    />
+    <p className="text-sm text-slate-500">
+      {goal.missing.length
+        ? `${goal.missing.length} to go`
+        : "All current ballparks complete!"}
+    </p>
+    <button className="passport-button" onClick={() => onPlan(goal)}>
+      Plan for this goal
+    </button>
+    <details>
+      <summary className="font-semibold cursor-pointer">
+        Missing parks ({goal.missing.length})
+      </summary>
+      <ul className="mt-2 space-y-2 text-sm">
+        {goal.missing.map((park) => (
+          <li key={park.id}>{park.name}</li>
+        ))}
+      </ul>
+    </details>
+    <details>
+      <summary className="font-semibold cursor-pointer">
+        Completed parks ({goal.completed.length})
+      </summary>
+      <ul className="mt-2 space-y-2 text-sm">
+        {goal.completed.map((park) => {
+          const first = [...park.visits].sort((a, b) =>
+            toSortableDate(a.date).localeCompare(toSortableDate(b.date)),
+          )[0];
+          return (
+            <li key={park.id}>
+              <button
+                className="text-left text-blue-700 dark:text-blue-300 underline"
+                onClick={() => requestGameDetails(first.gameId)}
+              >
+                {park.name}
+              </button>
+              <span className="block text-slate-500">
+                First: {first.date} · {park.visits.length}{" "}
+                {park.visits.length === 1 ? "game" : "games"}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </details>
+    {!!goal.otherParks.length && (
+      <details>
+        <summary className="font-semibold cursor-pointer">
+          Other parks visited ({goal.otherParks.length})
+        </summary>
+        <p className="mt-2 text-sm text-slate-500">
+          Former home parks, international venues and spring training parks
+          count separately.
+        </p>
+        <ul className="mt-2 space-y-2 text-sm">
+          {goal.otherParks.map((park) => (
+            <li key={park.identity}>{park.name}</li>
+          ))}
+        </ul>
+      </details>
+    )}
+  </article>
+);
+
 const PassportPlanner = ({ data }) => {
   const [goals, save, error] = usePersonal("goals", []);
   const [name, setName] = useState("");
   const [kind, setKind] = useState("player");
   const seenTeams = new Set(
     data.games.flatMap((g) => [g.homeTeam, g.awayTeam]),
-  );
-  const missingTeams = Object.keys(TEAM_CODE_TO_NAME).filter(
-    (t) =>
-      [
-        "ARI",
-        "ATL",
-        "BAL",
-        "BOS",
-        "CHC",
-        "CWS",
-        "CIN",
-        "CLE",
-        "COL",
-        "DET",
-        "HOU",
-        "KC",
-        "LAA",
-        "LAD",
-        "MIA",
-        "MIL",
-        "MIN",
-        "NYM",
-        "NYY",
-        "ATH",
-        "PHI",
-        "PIT",
-        "SD",
-        "SF",
-        "SEA",
-        "STL",
-        "TB",
-        "TEX",
-        "TOR",
-        "WSH",
-      ].includes(t) &&
-      !seenTeams.has(t) &&
-      !(t === "ATH" && seenTeams.has("OAK")),
   );
   const parkIdentity = (name) =>
     venueIdentity(name, data.stadiumAliases || {}, ALL_MLB_STADIUMS || []);
@@ -1536,16 +1403,20 @@ const PassportPlanner = ({ data }) => {
       );
     }
   };
-  const currentParks = (ALL_MLB_STADIUMS || []).filter(
-    (v) => v.current && !visited.has(parkIdentity(v.name)),
-  );
   const [schedule, setSchedule] = useState([]);
   const [endDate, setEndDate] = useState("");
   const [itinerary, saveItinerary, itineraryError] = usePersonal(
     "itinerary",
     [],
   );
-  const [onlyMatches, setOnlyMatches] = useState(false);
+  const progress = useMemo(
+    () => ballparkGoalProgress(data, ALL_MLB_STADIUMS),
+    [data],
+  );
+  const [goalFocus, setGoalFocus] = useState("all");
+  const [withDad, setWithDad] = useState(true);
+  const [onlyMatches, setOnlyMatches] = useState(true);
+  const [scheduleLoaded, setScheduleLoaded] = useState(false);
   const [message, setMessage] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const loadSchedule = async () => {
@@ -1560,6 +1431,8 @@ const PassportPlanner = ({ data }) => {
       );
       return;
     }
+    setSchedule([]);
+    setScheduleLoaded(false);
     setMessage("Loading schedule…");
     try {
       const res = await fetch(
@@ -1568,6 +1441,7 @@ const PassportPlanner = ({ data }) => {
       if (!res.ok) throw Error();
       const payload = await res.json();
       setSchedule((payload.dates || []).flatMap((d) => d.games || []));
+      setScheduleLoaded(true);
       setMessage(
         payload.dates?.length
           ? "Schedule retrieved " +
@@ -1611,8 +1485,18 @@ const PassportPlanner = ({ data }) => {
         return false;
       })
       .map((g) => g.name);
-  const scheduleReasons = (g) => {
-    const reasons = scheduleGoals(g);
+  const matchedGoals = new Map(
+    schedule.map((game) => [
+      game.gamePk,
+      ballparkScheduleMatches(game, progress, parkIdentity, withDad, goalFocus),
+    ]),
+  );
+  const goalMatches = (game) => matchedGoals.get(game.gamePk) || [];
+  const calculateReasons = (g) => {
+    const reasons = [
+      ...goalMatches(g).map((goal) => goal.title),
+      ...scheduleGoals(g),
+    ];
     const venue = data.stadiumAliases?.[g.venue?.name] || g.venue?.name;
     if (venue && !visited.has(parkIdentity(venue)))
       reasons.push("Potential new ballpark");
@@ -1625,15 +1509,49 @@ const PassportPlanner = ({ data }) => {
     }
     return [...new Set(reasons)];
   };
+  const reasonsByGame = new Map(
+    schedule.map((game) => [game.gamePk, calculateReasons(game)]),
+  );
+  const scheduleReasons = (game) => reasonsByGame.get(game.gamePk) || [];
   const rankedSchedule = [...schedule].sort(
     (a, b) =>
+      goalMatches(b).length - goalMatches(a).length ||
       scheduleReasons(b).length - scheduleReasons(a).length ||
       a.gameDate.localeCompare(b.gameDate),
   );
   return (
     <div className="space-y-4">
       <section className="passport-panel">
-        <h1 className="text-2xl font-bold">What should I see next?</h1>
+        <h1 className="text-2xl font-bold">Your next ballpark visit</h1>
+        <p className="mt-2 text-slate-500">
+          Track the Orioles, the Orioles with Dad, and every ballpark with Dad.
+        </p>
+        <p className="mt-2 text-sm text-slate-500">
+          Progress covers all years at the {progress[0].parks.length} current
+          MLB home ballparks. Renamed parks count once. Dad goals use games
+          tagged Dad in Companions; the Orioles-with-Dad goal requires both at
+          the same game.
+        </p>
+      </section>
+      <div className="grid lg:grid-cols-3 gap-4">
+        {progress.map((goal) => (
+          <BallparkGoalCard
+            key={goal.id}
+            goal={goal}
+            onPlan={(selected) => {
+              setGoalFocus(selected.id);
+              if (selected.dad) setWithDad(true);
+              document
+                .getElementById("next-visit-schedule")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          />
+        ))}
+      </div>
+      <details className="passport-panel">
+        <summary className="text-lg font-bold cursor-pointer">
+          Other goals and watchlist
+        </summary>
         <p className="text-sm text-slate-500">
           Pin collections, players, teams, or ballparks. Player goals stay
           “status unverified” until current roster information confirms
@@ -1744,33 +1662,47 @@ const PassportPlanner = ({ data }) => {
             </div>
           </div>
         )}
-      </section>
-      <section className="passport-panel">
-        <h2 className="text-lg font-bold">Missing MLB teams</h2>
-        <p>
-          {missingTeams.map((t) => TEAM_CODE_TO_NAME[t]).join(" · ") ||
-            "You have seen all 30 current MLB franchises."}
-        </p>
-      </section>
-      <details className="passport-panel">
-        <summary className="text-lg font-bold">
-          Unvisited current ballparks ({currentParks.length})
-        </summary>
-        <p className="text-sm text-slate-500">
-          Based on the local stadium reference; closed parks are excluded.
-        </p>
-        {currentParks.map((p) => (
-          <p key={p.id}>
-            {p.name} · {p.team}
-          </p>
-        ))}
       </details>
-      <section className="passport-panel">
+      <section className="passport-panel" id="next-visit-schedule">
         <h2 className="text-lg font-bold">Find the most useful next visit</h2>
         <p className="text-sm text-slate-500">
-          Ranked by distinct pinned goals and potential new parks or franchises.
-          Check player rosters above to include their goals in rankings.
+          Games that fill your ballpark goals come first. Include Dad to find
+          visits that move your shared goals forward. Planned games count only
+          after they enter your attended-game archive.
         </p>
+        <div className="flex flex-wrap items-center gap-3 mt-3">
+          <label className="text-sm">
+            Planning goal
+            <select
+              aria-label="Planning goal"
+              className="passport-input block mt-1 max-w-full"
+              value={goalFocus}
+              onChange={(event) => {
+                setGoalFocus(event.target.value);
+                if (event.target.value.includes("dad")) setWithDad(true);
+              }}
+            >
+              <option value="all">All three ballpark goals</option>
+              {progress.map((goal) => (
+                <option key={goal.id} value={goal.id}>
+                  {goal.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            <input
+              type="checkbox"
+              checked={withDad}
+              onChange={(event) => {
+                setWithDad(event.target.checked);
+                if (!event.target.checked && goalFocus.includes("dad"))
+                  setGoalFocus("all");
+              }}
+            />{" "}
+            Planning with Dad
+          </label>
+        </div>
         <div className="flex flex-wrap gap-2 mt-2">
           <input
             type="date"
@@ -1800,8 +1732,25 @@ const PassportPlanner = ({ data }) => {
           </button>
         </div>
         <PassportNotice>{message}</PassportNotice>
+        {scheduleLoaded &&
+          onlyMatches &&
+          !rankedSchedule.some(
+            (game) =>
+              goalMatches(game).length ||
+              (goalFocus === "all" && scheduleGoals(game).length),
+          ) && (
+            <p className="mt-3" role="status">
+              No games match your remaining goals in this date range. Try other
+              dates or turn off Goal matches only.
+            </p>
+          )}
         {rankedSchedule
-          .filter((g) => !onlyMatches || scheduleReasons(g).length)
+          .filter(
+            (g) =>
+              !onlyMatches ||
+              goalMatches(g).length ||
+              (goalFocus === "all" && scheduleGoals(g).length),
+          )
           .map((g) => (
             <article key={g.gamePk} className="py-3 border-b">
               <strong>
@@ -1827,6 +1776,7 @@ const PassportPlanner = ({ data }) => {
                       gamePk: g.gamePk,
                       gameDate: g.gameDate,
                       isTimeTBA: !!g.isTimeTBA,
+                      withDad,
                       date: g.officialDate || g.gameDate.slice(0, 10),
                       matchup: `${g.teams.away.team.name} @ ${g.teams.home.team.name}`,
                       venue: g.venue?.name || "",
@@ -1861,7 +1811,7 @@ const PassportPlanner = ({ data }) => {
       <section className="passport-panel space-y-3">
         <h2 className="text-lg font-bold">Planned itinerary</h2>
         <p className="text-sm text-slate-500">
-          Saved privately on this device and included in your journal backup.
+          Saved privately on this device. Backups are available in Saved views.
           Calendar times follow the schedule as retrieved; check for later
           changes.
         </p>
@@ -1872,6 +1822,7 @@ const PassportPlanner = ({ data }) => {
             <div key={g.gamePk} className="flex justify-between gap-3">
               <span>
                 {g.date} · {g.matchup} · {g.venue}
+                {g.withDad ? " · With Dad" : ""}
               </span>
               <button
                 className="passport-button"
@@ -2097,6 +2048,92 @@ const PassportHealth = ({ data }) => {
     </section>
   );
 };
+const PassportBackup = () => {
+  const [message, setMessage] = useState("");
+  const backup = async () => {
+    try {
+      downloadPassport(
+        {
+          schemaVersion: 1,
+          views: readPersonal("views", []),
+          goals: readPersonal("goals", []),
+          itinerary: readPersonal("itinerary", []),
+          // Preserve legacy private data when exporting, without restoring its retired UI.
+          journal: readPersonal("journal", {}),
+          images: await photoStore("get"),
+        },
+        "my-baseball-passport-private-backup.json",
+      );
+      setMessage("Private backup exported.");
+    } catch {
+      setMessage("Could not export the backup. Please retry.");
+    }
+  };
+  const importBackup = async (file) => {
+    if (!file) return;
+    try {
+      const payload = validatePassportBackup(JSON.parse(await file.text()));
+      for (const row of payload.images || []) {
+        const existing = (await photoStore("get", row.gameId))?.images || [];
+        await photoStore("put", row.gameId, [
+          ...new Set([...existing, ...row.images]),
+        ]);
+      }
+      if (payload.journal)
+        localStorage.setItem(
+          "passport:journal",
+          JSON.stringify({
+            ...payload.journal,
+            ...readPersonal("journal", {}),
+          }),
+        );
+      for (const key of ["views", "goals", "itinerary"]) {
+        if (!payload[key]) continue;
+        const identity = (row) =>
+          key === "views"
+            ? row.name
+            : key === "itinerary"
+              ? row.gamePk
+              : row.id;
+        const merged = [...readPersonal(key, []), ...payload[key]].filter(
+          (row, i, rows) =>
+            rows.findIndex((other) => identity(other) === identity(row)) === i,
+        );
+        localStorage.setItem("passport:" + key, JSON.stringify(merged));
+      }
+      window.dispatchEvent(new Event("passport-personal"));
+      setMessage("Backup imported. Existing saved items were preserved.");
+    } catch {
+      setMessage(
+        "Could not finish importing. Check the backup and available browser storage, then retry.",
+      );
+    }
+  };
+  return (
+    <section className="passport-panel space-y-3">
+      <h2 className="text-lg font-bold">Private backups</h2>
+      <p className="text-sm text-slate-500">
+        Keep a copy of your saved views, pinned goals and itinerary before
+        changing devices.
+      </p>
+      <button className="passport-button" onClick={backup}>
+        Export private backup
+      </button>
+      <label className="block text-sm">
+        Import backup
+        <input
+          aria-label="Import backup"
+          type="file"
+          accept="application/json,.json"
+          className="block mt-2 max-w-full"
+          onChange={(event) => importBackup(event.target.files?.[0])}
+        />
+      </label>
+      <PassportNotice>{message}</PassportNotice>
+    </section>
+  );
+};
+
 const PassportSaved = () => {
   const [views, save, error] = usePersonal("views", []);
   const [offline, setOffline] = usePersonal("offline", []);
@@ -2104,8 +2141,8 @@ const PassportSaved = () => {
     <section className="passport-panel">
       <h1 className="text-2xl font-bold">Saved views</h1>
       <p className="text-sm text-slate-500">
-        Save your season, team, and ballpark filters from Browse. Views and
-        pinned goals are included in the private journal backup.
+        Save your season, team, and ballpark filters from Browse. Back up your
+        saved views, pinned goals and itinerary here.
       </p>
       {views.map((v) => (
         <div key={v.name} className="flex gap-2 justify-between border-b py-3">
@@ -2240,13 +2277,19 @@ const PassportDashboard = ({ data, allData, route, onResult }) => {
     ["recap", "Recap"],
     ["discover", "Discover"],
     ["collections", "Collections"],
-    ["journal", "Journal"],
     ["plan", "Next visit"],
     ["compare", "Compare"],
     ["saved", "Saved views"],
     ["health", "Data health"],
   ];
-  const view = route.subtab || "";
+  const view = route.subtab === "journal" ? "plan" : route.subtab || "";
+  useEffect(() => {
+    if (route.subtab === "journal")
+      navigatePassport(
+        { subtab: "plan", journalGame: null },
+        { replace: true },
+      );
+  }, [route.subtab]);
   return (
     <div className="space-y-4">
       <label className="block sm:hidden text-sm font-semibold no-print">
@@ -2301,10 +2344,14 @@ const PassportDashboard = ({ data, allData, route, onResult }) => {
       {view === "recap" && <PassportRecap {...{ data, allData, route }} />}
       {view === "discover" && <AnalysisHub data={allData} route={route} />}
       {view === "collections" && <PassportCollections data={allData} />}{" "}
-      {view === "journal" && <PassportJournal data={allData} route={route} />}{" "}
       {view === "plan" && <PassportPlanner data={allData} />}{" "}
       {view === "compare" && <PassportCompare data={allData} route={route} />}{" "}
-      {view === "saved" && <PassportSaved />}{" "}
+      {view === "saved" && (
+        <>
+          <PassportSaved />
+          <PassportBackup />
+        </>
+      )}{" "}
       {view === "health" && <PassportHealth data={allData} />}{" "}
       {view === "search" && (
         <PassportSearchPage data={allData} route={route} onResult={onResult} />

@@ -917,7 +917,6 @@ const AnalysisHub = ({ data, route }) => {
     ["arsenal", "Pitch arsenals"],
     ["personal", "Personal milestones"],
     ["context", "Then & now"],
-    ["trips", "Trips"],
     ["journeys", "Player journeys"],
     ["quiz", "Trivia"],
   ];
@@ -983,7 +982,6 @@ const AnalysisHub = ({ data, route }) => {
       {tool === "career" && <AnalysisCareer data={data} games={games} />}
       {tool === "personal" && <AnalysisMilestones data={data} games={games} />}
       {tool === "context" && <AnalysisContext data={data} games={games} />}
-      {tool === "trips" && <AnalysisTrips data={data} games={games} />}
       {tool === "journeys" && <AnalysisJourneys data={data} games={games} />}
       {tool === "quiz" && <AnalysisQuiz data={data} games={games} />}
     </div>
@@ -1188,116 +1186,6 @@ const calendarForGames = (rows) => {
     );
   });
   return [...lines, "END:VCALENDAR", ""].join("\r\n");
-};
-const AnalysisTrips = ({ games }) => {
-  const [journal] = usePersonal("journal", {}),
-    [trip, setTrip] = useState("");
-  const names = [
-    ...new Set(
-      Object.values(journal)
-        .map((r) => r.trip?.trim())
-        .filter(Boolean),
-    ),
-  ].sort();
-  const rows = games
-    .filter(
-      (g) =>
-        journal[g.gameId]?.trip?.trim() &&
-        (!trip || journal[g.gameId].trip.trim() === trip),
-    )
-    .map((g) => ({
-      ...g,
-      ...journal[g.gameId],
-      trip: journal[g.gameId].trip.trim(),
-      currency: journal[g.gameId].currency || "USD",
-    }));
-  const costs = {};
-  rows.forEach((r) => {
-    if (
-      r.ticketCost !== "" &&
-      r.ticketCost != null &&
-      Number.isFinite(Number(r.ticketCost))
-    )
-      costs[r.currency] = (costs[r.currency] || 0) + Number(r.ticketCost);
-  });
-  const ratings = rows.filter(
-    (r) => Number(r.rating) >= 1 && Number(r.rating) <= 5,
-  );
-  return (
-    <div className="space-y-4">
-      <section className="passport-panel space-y-3">
-        <h2 className="text-xl font-bold">Your baseball trips</h2>
-        <p className="text-sm text-slate-500">
-          Add a trip name, rating, and ticket cost in the game journal. These
-          records stay private in this browser and your private backup.
-        </p>
-        <AnalysisSelect
-          label="Trip"
-          value={trip}
-          onChange={setTrip}
-          options={names}
-        />
-        <p>
-          {rows.length} games ·{" "}
-          {new Set(rows.map((r) => r._venueKey || r.venue)).size} parks ·{" "}
-          {ratings.length
-            ? `${(ratings.reduce((n, r) => n + Number(r.rating), 0) / ratings.length).toFixed(1)} / 5 average rating (${ratings.length} rated)`
-            : "No ratings yet"}
-        </p>
-        <p>
-          {Object.entries(costs)
-            .map(([currency, value]) => `${currency} ${value.toFixed(2)}`)
-            .join(" · ") || "No ticket costs entered"}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <button
-            className="passport-button"
-            disabled={!rows.length}
-            onClick={() =>
-              downloadTextFile(
-                calendarForGames(rows),
-                "baseball-trip.ics",
-                "text/calendar",
-              )
-            }
-          >
-            Export game dates
-          </button>
-          <button
-            className="passport-button"
-            disabled={!rows.length}
-            onClick={() => downloadPassport(rows, "private-baseball-trip.json")}
-          >
-            Export private trip details
-          </button>
-          <button
-            className="passport-button"
-            onClick={() =>
-              navigatePassport({ tab: "dashboard", subtab: "journal" })
-            }
-          >
-            Open journal
-          </button>
-        </div>
-      </section>
-      <DataTable
-        title="Trip games"
-        data={rows}
-        columns={[
-          { key: "trip", label: "Trip" },
-          { key: "date", label: "Date" },
-          { key: "score", label: "Game" },
-          { key: "venue", label: "Ballpark" },
-          { key: "rating", label: "Rating / 5" },
-          { key: "ticketCost", label: "Ticket cost" },
-          { key: "currency", label: "Currency" },
-          analysisGameColumn,
-        ]}
-        defaultSortKey="date"
-        persistKey="analysis-trips"
-      />
-    </div>
-  );
 };
 const AnalysisJourneys = ({ data, games }) => {
   const archive = data.playerJourneys || {},

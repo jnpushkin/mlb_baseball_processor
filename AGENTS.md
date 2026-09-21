@@ -180,7 +180,7 @@ Fetches career game logs from MLB API to compute per-season and career highs for
 ## Architecture Notes
 - Milestone detection uses tiered pattern (only highest tier reported per category)
 - Career milestones track every 100 (e.g., Hit #100, #200, #300... up to #4000)
-- Website output is a static React app (10 primary tabs with grouped subtabs) assembled from `website/react_chunks/` and compiled by esbuild/Tailwind into hashed local assets. `react_chunks/passport.jsx` owns the shared route, scope, home, recap, journal, planner, comparisons, and health UI.
+- Website output is a static React app (10 primary tabs with grouped subtabs) assembled from `website/react_chunks/` and compiled by esbuild/Tailwind into hashed local assets. `react_chunks/passport.jsx` owns the shared route, scope, home, recap, planner, comparisons, and health UI.
 - Website-capable MLB runs write `data/shared_players.json`, then call the sibling NCAA processor's `python3 -m baseball_processor --refresh-shared-players` cache-only command before serialization. This keeps the Players > College tab current. Use `--skip-ncaa-player-refresh` or `MLB_PROCESSOR_SKIP_NCAA_REFRESH=1` only for local/debug runs.
 - All-time passing detection distinguishes "tied" vs "passed" events
 - Game deduplication by date+teams (prevents BREF + API duplicates)
@@ -255,6 +255,8 @@ When encountering repeated errors or discovering project-specific quirks:
 - New analysis libraries must be declared in `passportKeysForRoute`. Career-share numerators are regular-season only; withhold stale/undersized denominators and recalculate verified percentages when Browse scope changes. Sibling appearance journeys use stable cross-project IDs, never names alone.
 - Physical-park filtering uses `_venueKey`; era filtering deliberately uses the original venue name. Modern display aliases do not imply merging historical franchises such as OAK/ATH or MON/WSH.
 - The planner must use `venueIdentity` for visited parks, pinned park goals, and schedule recommendations. Exact display-name comparison mislabels Alfredo Harp Helú Stadium / Estadio Alfredo Harp Helu as unvisited. Fold accents and explicit aliases, preserving separate physical parks (e.g. the old and new Yankee Stadium).
+- Next Visit has three fixed lifetime goals: Orioles at all 30 current MLB home parks, Orioles with Dad at those parks, and any teams with Dad at those parks. The shared Orioles/Dad goal requires both on the same attended game, never an intersection of two independently visited-park sets. Use `_companions` / `companionData.gameCompanions` for Dad; former, international and spring parks are separate from the 30-park denominator. Planned itineraries do not count as attendance.
+- Journal and its dependent Trips tool are retired. Old journal links redirect to Next Visit. Private backups live in Saved Views; keep legacy notes/images compatible in backups without reintroducing their UI or deleting existing browser data.
 - Trip costs, ratings and itinerary entries remain private browser data and private backups. Validate imports before writing; never serialize them into the public archive.
 
 ## Do NOT

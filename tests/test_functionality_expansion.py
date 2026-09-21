@@ -123,7 +123,7 @@ def test_career_scope_backup_calendar_and_matchup_contracts():
         insights[insights.index("const analysisRate"):insights.index("const openAnalysis")],
         insights[insights.index("const matchupRows"):insights.index("const AnalysisPlays")],
         insights[insights.index("const careerShareRows"):insights.index("const AnalysisCareer")],
-        insights[insights.index("const escapeCalendar"):insights.index("const AnalysisTrips")],
+        insights[insights.index("const escapeCalendar"):insights.index("const AnalysisJourneys")],
         passport[passport.index("const validatePassportBackup"):passport.index("const usePersonal")],
     ])
     checks = r"""
