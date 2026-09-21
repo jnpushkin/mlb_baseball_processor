@@ -31,6 +31,42 @@ class BrefBackupParityTests(unittest.TestCase):
 
             self.assertEqual(expected, find_bref_html_for_game(game, html_dir))
 
+    def test_find_bref_html_matches_the_canonical_doubleheader_game_id(self):
+        game = {
+            "game_id": "SFN202608292",
+            "basic_info": {
+                "away_team_code": "ARI",
+                "home_team_code": "SF",
+                "date_yyyymmdd": "20260829",
+                "game_number": 2,
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            html_dir = Path(tmpdir)
+            game_one = html_dir / expected_html_filename("ARI", "SF", "20260829")
+            game_one.write_text(
+                '<link rel="canonical" href="https://www.baseball-reference.com/boxes/SFN/SFN202608291.shtml">',
+                encoding="utf-8",
+            )
+
+            self.assertIsNone(find_bref_html_for_game(game, html_dir))
+
+            game_two = html_dir / expected_html_filename("ARI", "SF", "20260829", 2)
+            game_two.write_text(
+                '<link rel="canonical" href="https://www.baseball-reference.com/boxes/SFN/SFN202608292.shtml">',
+                encoding="utf-8",
+            )
+
+            self.assertEqual(game_two, find_bref_html_for_game(game, html_dir))
+
+    def test_second_doubleheader_backup_filename_is_distinct(self):
+        game_one = expected_html_filename("ARI", "SF", "20260829", 1)
+        game_two = expected_html_filename("ARI", "SF", "20260829", 2)
+
+        self.assertNotEqual(game_one, game_two)
+        self.assertIn("Game 2", game_two)
+
     def test_load_api_cache_games_keeps_only_api_regular_games(self):
         api_game = {
             "game_id": "SFN202605220",

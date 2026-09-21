@@ -613,6 +613,14 @@ class NetworkReferenceUpdateTests(unittest.TestCase):
 
         self.assertEqual(["SFN202606090", "SFN202606091", "SFN202606092"], game_ids)
 
+    def test_infers_exact_game_id_from_second_doubleheader_backup_filename(self):
+        game_ids = _infer_bref_game_ids_from_backup_filename(
+            "Arizona Diamondbacks vs San Francisco Giants Box Score_ August 29, 2026 _ "
+            "Baseball-Reference.com (Game 2).html"
+        )
+
+        self.assertEqual(["SFN202608292"], game_ids)
+
     def test_process_html_file_uses_api_cache_for_downloaded_backup_without_parsing(self):
         api_game = {
             "game_id": "SFN202606090",

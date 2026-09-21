@@ -24,7 +24,13 @@ from ..engines.special_events_engine import SpecialEventsEngine
 from ..parsers.html_parser import parse_baseball_reference_boxscore
 from ..parsers.mlb_api_parser import normalize_api_batting_rows
 from ..processors.milestones_processor import MilestonesProcessor
-from ..scrapers.download_bref import HTML_DIR, TEAM_FULL_NAMES, expected_html_filename
+from ..scrapers.download_bref import (
+    HTML_DIR,
+    TEAM_FULL_NAMES,
+    bref_game_id,
+    expected_html_filename,
+    html_game_id,
+)
 from ..utils.constants import BASE_DIR, CACHE_DIR, STADIUM_ALIASES
 from ..utils.helpers import unify_team_code
 
@@ -86,9 +92,15 @@ def find_bref_html_for_game(game: dict[str, Any], html_dir: Path = HTML_DIR) -> 
     if not away or not home or len(date_str) != 8:
         return None
 
-    expected = Path(html_dir) / expected_html_filename(away, home, date_str)
-    if expected.exists():
-        return expected
+    game_number = basic.get("game_number")
+    candidates = []
+    for expected_name in (
+        expected_html_filename(away, home, date_str, game_number),
+        expected_html_filename(away, home, date_str),
+    ):
+        expected = Path(html_dir) / expected_name
+        if expected.exists():
+            candidates.append(expected)
 
     year = int(date_str[:4])
     month = int(date_str[4:6])
@@ -100,10 +112,15 @@ def find_bref_html_for_game(game: dict[str, Any], html_dir: Path = HTML_DIR) -> 
     for path in Path(html_dir).glob(f"*{month_name}*{day}*{year}*.html"):
         name = path.name
         if away_name in name and home_name in name:
-            return path
-        if away in name and home in name:
-            return path
-    return None
+            candidates.append(path)
+        elif away in name and home in name:
+            candidates.append(path)
+
+    candidates = list(dict.fromkeys(candidates))
+    target_game_id = bref_game_id(str(game.get("game_id") or ""))
+    if not target_game_id:
+        return candidates[0] if candidates else None
+    return next((path for path in candidates if html_game_id(path) == target_game_id), None)
 
 
 def load_api_cache_games(cache_dir: Path = CACHE_DIR, recent_days: int | None = None) -> list[tuple[Path, dict[str, Any]]]:
@@ -138,6 +155,7 @@ def _prepare_api_game(game: dict[str, Any]) -> dict[str, Any]:
     if not prepared.get("special_events", {}).get("leadoff_hrs"):
         special_engine.detect_leadoff_home_runs()
     special_engine.detect_grand_slams()
+    special_engine.detect_pinch_hit_hrs_from_substitutions()
     MilestoneEngine(prepared).process()
     return prepared
 

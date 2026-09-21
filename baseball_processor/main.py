@@ -1185,13 +1185,13 @@ def _infer_bref_game_ids_from_backup_filename(filename):
         return []
 
     match = re.match(
-        r"^(.+?) vs (.+?) Box Score_ ([A-Za-z]+) (\d{1,2}), (\d{4}) _ Baseball-Reference\.com(?:\(\d+\))?\.html$",
+        r"^(.+?) vs (.+?) Box Score_ ([A-Za-z]+) (\d{1,2}), (\d{4}) _ Baseball-Reference\.com(?: \(Game ([12])\))?(?:\(\d+\))?\.html$",
         os.path.basename(filename),
     )
     if not match:
         return []
 
-    _away_name, home_name, month_name, day_text, year_text = match.groups()
+    _away_name, home_name, month_name, day_text, year_text, game_number = match.groups()
     name_to_code = {name: code for code, name in TEAM_FULL_NAMES.items()}
     home_code = name_to_code.get(home_name)
     if not home_code:
@@ -1206,6 +1206,8 @@ def _infer_bref_game_ids_from_backup_filename(filename):
     if not bref_home:
         return []
 
+    if game_number:
+        return [f"{bref_home}{date_text}{game_number}"]
     return [f"{bref_home}{date_text}{suffix}" for suffix in ("0", "1", "2")]
 
 

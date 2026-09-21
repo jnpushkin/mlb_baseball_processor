@@ -71,7 +71,7 @@ def bref_url(game_id):
     return f'https://www.baseball-reference.com/boxes/{team_code}/{game_id}.shtml'
 
 
-def expected_html_filename(away_team, home_team, date_str):
+def expected_html_filename(away_team, home_team, date_str, game_number=None):
     """Build expected HTML filename matching BREF download format.
 
     Args:
@@ -87,14 +87,37 @@ def expected_html_filename(away_team, home_team, date_str):
     day = int(date_str[6:8])
     month_name = MONTH_NAMES.get(month, str(month))
 
-    return f"{away_name} vs {home_name} Box Score_ {month_name} {day}, {year} _ Baseball-Reference.com.html"
+    filename = f"{away_name} vs {home_name} Box Score_ {month_name} {day}, {year} _ Baseball-Reference.com"
+    if str(game_number or "") == "2":
+        filename += " (Game 2)"
+    return f"{filename}.html"
 
 
-def html_exists(away_team, home_team, date_str):
+def html_game_id(path):
+    """Return the BREF game ID from an HTML backup's canonical URL."""
+    try:
+        html = Path(path).read_text(encoding='utf-8', errors='ignore')
+    except OSError:
+        return None
+
+    canonical = re.search(
+        r'<link\b(?=[^>]*\brel=["\']canonical["\'])(?=[^>]*\bhref=["\']([^"\']+)["\'])[^>]*>',
+        html,
+        flags=re.IGNORECASE,
+    )
+    if not canonical:
+        return None
+    game_id_match = re.search(r'/([A-Z]{3}\d{9})\.shtml(?:[?#]|$)', canonical.group(1), flags=re.IGNORECASE)
+    return game_id_match.group(1).upper() if game_id_match else None
+
+
+def html_exists(away_team, home_team, date_str, game_id=None, game_number=None):
     """Check if a BREF HTML file already exists for this game."""
-    expected = expected_html_filename(away_team, home_team, date_str)
-    if (HTML_DIR / expected).exists():
-        return True
+    expected_names = {
+        expected_html_filename(away_team, home_team, date_str),
+        expected_html_filename(away_team, home_team, date_str, game_number),
+    }
+    candidates = [HTML_DIR / name for name in expected_names if (HTML_DIR / name).exists()]
 
     # Also check with fuzzy matching (date variations)
     year = int(date_str[:4])
@@ -109,12 +132,16 @@ def html_exists(away_team, home_team, date_str):
     for f in HTML_DIR.glob(pattern):
         fname = f.name
         if away_name in fname and home_name in fname:
-            return True
-        # Check with just last word of team name
-        if away_team in fname and home_team in fname:
-            return True
+            candidates.append(f)
+        elif away_team in fname and home_team in fname:
+            candidates.append(f)
 
-    return False
+    candidates = list(dict.fromkeys(candidates))
+    if not game_id:
+        return bool(candidates)
+
+    target_game_id = bref_game_id(game_id)
+    return any(html_game_id(path) == target_game_id for path in candidates)
 
 
 def run(all_games: bool = False, dry_run: bool = False, delay: float = 3.2,
@@ -166,7 +193,8 @@ def run(all_games: bool = False, dry_run: bool = False, delay: float = 3.2,
             continue
 
         # Check if HTML already exists
-        if html_exists(away, home, date_str):
+        game_number = bi.get('game_number')
+        if html_exists(away, home, date_str, game_id=game_id, game_number=game_number):
             continue
 
         bref_gid = bref_game_id(game_id)
@@ -177,7 +205,7 @@ def run(all_games: bool = False, dry_run: bool = False, delay: float = 3.2,
             'home': home,
             'date': date_str,
             'url': bref_url(bref_gid),
-            'filename': expected_html_filename(away, home, date_str),
+            'filename': expected_html_filename(away, home, date_str, game_number),
         })
 
     if not to_download:
