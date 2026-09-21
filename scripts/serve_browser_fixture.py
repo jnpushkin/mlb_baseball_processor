@@ -6,8 +6,8 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from baseball_processor.website.bundle import build_site
 from baseball_processor.website.analysis_data import game_story
+from baseball_processor.website.bundle import build_site
 
 root = Path(__file__).resolve().parents[1] / ".browser-fixture"
 games = []

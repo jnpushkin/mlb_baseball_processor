@@ -8,8 +8,8 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
+from ..utils.team_identity import display_team, normalize_website_teams
 from .react_app import ReactComponents
-from ..utils.team_identity import normalize_website_teams, display_team
 from .templates import HTMLTemplate
 
 SCHEMA_VERSION = 2

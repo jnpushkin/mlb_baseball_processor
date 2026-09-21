@@ -47,11 +47,14 @@ The deploy helper validates the manifest, stages exactly its files, and supplies
 ```bash
 python3 -m pip install -r requirements-dev.txt
 npm ci
+python3 -m ruff check baseball_processor/jobs.py baseball_processor/website/bundle.py baseball_processor/website/release.py scripts/rebuild_website.py scripts/serve_browser_fixture.py tests/test_passport_v2.py
 python3 -m pytest -q
 npx playwright install chromium
 npm run test:browser
+python3 -m baseball_processor.website.release .browser-fixture
 ```
 Browser tests use an isolated synthetic archive on port 8769; they do not add real games or publish the archive. The CI workflow checks Python regressions, browser journeys, and the fixture release manifest. `frontend/runtime.js`, `frontend/sw.js`, and `frontend/build.mjs` are source files; generated root assets and `sw.js` are ignored.
+Before pushing website changes, run the lint, Python, browser, and fixture-release checks in `.github/workflows/website.yml`; passing tests alone does not establish that CI passes. After pushing a CI repair, verify the new GitHub Actions run succeeds before reporting the repair complete.
 
 ## Scraping
 
