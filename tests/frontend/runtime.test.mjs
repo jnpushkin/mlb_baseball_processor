@@ -26,15 +26,30 @@ const deferred = () => {
   return { promise, resolve };
 };
 async function runtime(fetcher) {
+  let now = Date.now();
   const boot = deferred(),
     calls = [],
     errors = [],
+    events = {},
     saved = new Map([["passport:journal", "private note"]]);
+  const addEventListener = (name, fn) => {
+    events[name] = fn;
+  };
   const context = {
     Response,
     URL,
     setTimeout,
     clearTimeout,
+    setInterval: (fn) => {
+      events.interval = fn;
+    },
+    Date: class extends Date {
+      static now() {
+        return now;
+      }
+    },
+    addEventListener,
+    document: { visibilityState: "visible", addEventListener },
     __BOOT_URL: "boot.json",
     navigator: {},
     location: { protocol: "https:", href: "https://example.test/" },
@@ -55,8 +70,81 @@ async function runtime(fetcher) {
   context.window = context;
   vm.runInNewContext(source, context);
   await boot.promise;
-  return { context, calls, errors, saved };
+  return {
+    context,
+    calls,
+    errors,
+    saved,
+    events,
+    advance: (ms) => {
+      now += ms;
+    },
+  };
 }
+
+test("open tabs refresh visible player totals atomically without a missing file", async () => {
+  const late = deferred();
+  const {
+    context: app,
+    calls,
+    events,
+    advance,
+  } = await runtime((path) => {
+    if (path === "boot.json") return json(index());
+    if (path === "data.json") return json(index("new"));
+    if (path === "new-players.json") return late.promise;
+    return json([path]);
+  });
+  await app.loadPassportKeys(["players"]);
+  advance(60_000);
+  const update = events.focus();
+  await events.visibilitychange();
+  assert.equal(app.BASEBALL_DATA.__gameFiles.GAME, "old-game.json");
+  assert.equal(app.passportKeysLoaded(["players"]), true);
+  late.resolve(json(["new-players.json"]));
+  await update;
+  assert.equal(app.BASEBALL_DATA.__gameFiles.GAME, "new-game.json");
+  assert.deepEqual([...app.BASEBALL_DATA.players], ["new-players.json"]);
+  assert.equal(app.passportKeysLoaded(["players"]), true);
+  assert.equal(calls.filter((c) => c.path === "data.json").length, 1);
+  assert.equal(
+    calls.some((c) => c.path === "new-awards.json"),
+    false,
+  );
+});
+
+test("background checks skip hidden tabs and retry failed updates without losing data", async () => {
+  let failing = true;
+  const {
+    context: app,
+    calls,
+    events,
+    advance,
+    errors,
+  } = await runtime((path) => {
+    if (path === "boot.json") return json(index());
+    if (path === "data.json") return json(index("new"));
+    if (path === "new-players.json" && failing) return missing();
+    return json([path]);
+  });
+  await app.loadPassportKeys(["players"]);
+  advance(60_000);
+  app.document.visibilityState = "hidden";
+  await events.interval();
+  assert.equal(
+    calls.some((c) => c.path === "data.json"),
+    false,
+  );
+  app.document.visibilityState = "visible";
+  await events.visibilitychange();
+  assert.equal(app.BASEBALL_DATA.__gameFiles.GAME, "old-game.json");
+  assert.deepEqual([...app.BASEBALL_DATA.players], ["old-players.json"]);
+  assert.equal(errors.length, 0);
+  failing = false;
+  advance(60_000);
+  await events.interval();
+  assert.deepEqual([...app.BASEBALL_DATA.players], ["new-players.json"]);
+});
 
 test("concurrent missing sections refresh once and discard late old responses", async () => {
   const late = deferred(),

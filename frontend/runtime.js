@@ -21,7 +21,7 @@ async function fetchResponse(path, options) {
 async function fetchJSON(path, options) {
   return (await fetchResponse(path, options)).json();
 }
-function installIndex(data) {
+function validateIndex(data) {
   if (
     data?.__schemaVersion !== 2 ||
     !Array.isArray(data.games) ||
@@ -31,6 +31,9 @@ function installIndex(data) {
     throw new Error(
       "This release needs a site reload. Your saved notes will stay on this device.",
     );
+}
+function installIndex(data, preloaded = {}) {
+  validateIndex(data);
   const signature = JSON.stringify(data);
   if (signature === indexSignature) return;
   const previous = BASEBALL_DATA;
@@ -43,23 +46,67 @@ function installIndex(data) {
       retained[key] = previous[key];
     else loadedKeys.delete(key);
   }
+  for (const key of Object.keys(preloaded)) loadedKeys.add(key);
   indexSignature = signature;
-  BASEBALL_DATA = { ...data, ...retained, __generation: ++dataGeneration };
+  BASEBALL_DATA = {
+    ...data,
+    ...retained,
+    ...preloaded,
+    __generation: ++dataGeneration,
+  };
   DATA_LOAD_ERROR = null;
   window.__onDataReady?.(BASEBALL_DATA);
 }
-async function refreshIndex(failedGeneration) {
+async function refreshIndex(failedGeneration, preserveLoaded = false) {
   // Several sections can fail together after a deploy; share one refresh.
   if (failedGeneration !== dataGeneration) return;
   if (!refreshingIndex) {
     refreshingIndex = fetchJSON("data.json", { cache: "no-store" })
-      .then(installIndex)
+      .then(async (data) => {
+        validateIndex(data);
+        const preloaded = {};
+        if (preserveLoaded) {
+          // Swap the index and already-visible sections together so filters and
+          // in-progress forms survive a newly published game.
+          await Promise.all(
+            [...loadedKeys].map(async (key) => {
+              const path = data.__libraries[key];
+              if (path && path !== BASEBALL_DATA.__libraries[key])
+                preloaded[key] = await fetchJSON(path);
+            }),
+          );
+        }
+        if (failedGeneration === dataGeneration) installIndex(data, preloaded);
+      })
       .finally(() => {
         refreshingIndex = null;
       });
   }
   await refreshingIndex;
 }
+
+const UPDATE_INTERVAL = 60_000;
+let lastUpdateCheck = Date.now();
+async function checkForUpdates() {
+  if (
+    !BASEBALL_DATA ||
+    document.visibilityState === "hidden" ||
+    navigator.onLine === false
+  )
+    return;
+  if (Date.now() - lastUpdateCheck < UPDATE_INTERVAL) return;
+  lastUpdateCheck = Date.now();
+  try {
+    await refreshIndex(dataGeneration, true);
+  } catch {
+    // A temporary network/deploy failure must leave the working archive intact.
+  }
+}
+window.addEventListener("focus", checkForUpdates);
+window.addEventListener("online", checkForUpdates);
+window.addEventListener("hashchange", checkForUpdates);
+document.addEventListener("visibilitychange", checkForUpdates);
+setInterval(checkForUpdates, UPDATE_INTERVAL);
 async function fetchCurrentResource(getPath) {
   for (let attempt = 0; attempt < 2; attempt++) {
     const path = getPath();

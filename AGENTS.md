@@ -44,6 +44,7 @@ python3 -c 'import sys; from baseball_processor.main import deploy_to_surge; sys
 The deploy helper validates the manifest, stages exactly its files, and supplies both `index.html` and the named HTML shell. Use this same command if automatic deployment fails. **Do not deploy the project root or copy only HTML/JSON:** the compiled assets and service worker must ship together with their hashed data dependencies. The legacy deployment fallback remains only for older bundles without `release.json`.
 
 Releases retain two previous hashed indexes and all their data dependencies in `release.json.previousIndexes` so already-open tabs keep working. To restore an older locally available release during a repair, use `npm run build:website -- --retain-index data-index-<hash>.json`. Retention is bounded; the runtime also refreshes the stable `data.json` pointer on a missing hashed file and retries once. Never cache stable release pointers ahead of the network or merge an old in-flight section response into a newer index. Verify deployment transitions, not just a fresh-page load.
+Open visible tabs check for newly published data at most once per minute, including on focus, navigation, and reconnect. Background refreshes preload changed, already-loaded libraries and install them together with the index so player totals update without resetting filters or drafts. Failed background checks must leave the current archive usable; retained old files returning 200 does not mean the tab is current.
 
 ### Frontend checks
 ```bash
@@ -56,6 +57,7 @@ npm run test:browser
 python3 -m baseball_processor.website.release .browser-fixture
 ```
 Browser tests use an isolated synthetic archive on port 8769; they do not add real games or publish the archive. The CI workflow checks Python regressions, browser journeys, and the fixture release manifest. `frontend/runtime.js`, `frontend/sw.js`, and `frontend/build.mjs` are source files; generated root assets and `sw.js` are ignored.
+The compiled frontend's `ReactDOM` adapter must import `createRoot` from `react-dom/client` and `createPortal` from `react-dom`. The client entry point does not export portals; aliasing it as the entire `ReactDOM` namespace crashes the Games badge overflow popup. Keep a browser regression that opens the popup and follows a badge into its details.
 Before pushing website changes, run the lint, Python, browser, and fixture-release checks in `.github/workflows/website.yml`; passing tests alone does not establish that CI passes. After pushing a CI repair, verify the new GitHub Actions run succeeds before reporting the repair complete.
 
 ## Scraping

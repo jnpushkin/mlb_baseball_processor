@@ -66,6 +66,66 @@ test("game URL opens directly and dialog traps focus", async ({ page }) => {
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
+test("game badge overflow opens, closes, and links to badge details", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const milestones = [
+    "Career Hit #100",
+    "Career HR #100",
+    "Career RBI #100",
+    "Career Run #100",
+  ];
+  await page.route("**/data-careerFirstsByGame-*.json", (route) =>
+    route.fulfill({
+      json: {
+        TEST2026: milestones.map((milestone) => ({
+          player_id: "jose",
+          player_name: "José Ramírez",
+          milestone,
+          number: 100,
+        })),
+      },
+    }),
+  );
+  await page.goto("/#gamelog");
+  const row = page.getByRole("row").filter({
+    has: page.getByRole("button", { name: "09/14/2026", exact: true }),
+  });
+  const trigger = row.getByTitle("José Ramírez's Career Hit #100", {
+    exact: true,
+  });
+  const popup = page.locator("body > div.fixed").filter({
+    has: page.getByTitle("José Ramírez's Career Run #100", { exact: true }),
+  });
+  await trigger.hover();
+  await expect(popup).toBeVisible();
+  for (const milestone of milestones) {
+    await expect(
+      popup.getByTitle(`José Ramírez's ${milestone}`, { exact: true }),
+    ).toBeVisible();
+  }
+  await page.getByRole("tab", { name: "Games", exact: true }).hover();
+  await expect(popup).toHaveCount(0);
+  await trigger.hover();
+  await expect(popup).toBeVisible();
+  await popup
+    .getByTitle("José Ramírez's Career Run #100", { exact: true })
+    .click();
+  await expect(popup).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toContainText(
+    "José Ramírez's Career Run #100",
+  );
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(row).toBeVisible();
+  await expect(
+    page.getByText("Something went wrong", { exact: true }),
+  ).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test("failed section is retryable without losing the dashboard", async ({
   page,
 }) => {
@@ -82,6 +142,67 @@ test("failed section is retryable without losing the dashboard", async ({
   await expect(
     page.getByRole("heading", { name: /Hitter Statistics/ }),
   ).toBeVisible();
+});
+
+test("an open Players tab picks up a newly published game and keeps its filters", async ({
+  page,
+}) => {
+  await page.clock.install();
+  const index = await (await page.request.get("/data.json")).json();
+  const rows = await (
+    await page.request.get(`/${index.__libraries.playerGames}`)
+  ).json();
+  const newGame = {
+    ...index.games.find((g) => g.gameId === "TEST2026"),
+    gameId: "NEW2026",
+    date: "09/21/2026",
+  };
+  const newRow = {
+    ...rows.find((r) => r.gameId === "TEST2026"),
+    gameId: newGame.gameId,
+    date: newGame.date,
+    dateSort: "2026-09-21",
+    h: 4,
+    hr: 2,
+  };
+  const updated = {
+    ...index,
+    games: [...index.games, newGame],
+    __libraries: {
+      ...index.__libraries,
+      playerGames: "updated-player-games.json",
+    },
+  };
+  await page.route("**/data.json", (route) => route.fulfill({ json: updated }));
+  await page.route("**/updated-player-games.json", (route) =>
+    route.fulfill({ json: [...rows, newRow] }),
+  );
+  await page.goto("/#players?year=2026");
+  const row = page
+    .getByRole("row")
+    .filter({
+      has: page.getByRole("link", { name: "José Ramírez", exact: true }),
+    });
+  await expect(row.getByRole("cell").nth(2)).toHaveText("1");
+  await expect(row.getByRole("cell").nth(5)).toHaveText("3");
+  await page
+    .getByPlaceholder("Search players...", { exact: true })
+    .fill("José");
+  await page
+    .getByRole("combobox", { name: "Sort by", exact: true })
+    .selectOption("hr");
+  await page.clock.fastForward(60_000);
+  await expect(row.getByRole("cell").nth(2)).toHaveText("2");
+  await expect(row.getByRole("cell").nth(5)).toHaveText("7");
+  await expect(row.getByRole("cell").nth(9)).toHaveText("3");
+  await expect(
+    page.getByRole("combobox", { name: "Sort by", exact: true }),
+  ).toHaveValue("hr");
+  await expect(
+    page.getByPlaceholder("Search players...", { exact: true }),
+  ).toHaveValue("José");
+  await expect(page).toHaveURL(/#players\?year=2026$/);
+  await expect(page.getByText(/2 games attended/)).toBeVisible();
 });
 
 test("mobile sorting, full details, and game rows remain accessible", async ({

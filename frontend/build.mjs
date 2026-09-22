@@ -9,7 +9,9 @@ if (!source || !out)
 mkdirSync(path.join(out, "assets"), { recursive: true });
 const result = await build({
   stdin: {
-    contents: `import React from 'react';\nimport * as ReactDOM from 'react-dom/client';\nimport Chart from 'chart.js/auto';\nimport L from 'leaflet';\n${readFileSync(source, "utf8")}`,
+    // Shared chunks also run against the legacy ReactDOM browser global.
+    // The compiled build supplies that API from each function's actual module.
+    contents: `import React from 'react';\nimport { createPortal } from 'react-dom';\nimport { createRoot } from 'react-dom/client';\nimport Chart from 'chart.js/auto';\nimport L from 'leaflet';\nconst ReactDOM = { createRoot, createPortal };\n${readFileSync(source, "utf8")}`,
     resolveDir: process.cwd(),
     loader: "jsx",
   },
