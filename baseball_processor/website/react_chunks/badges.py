@@ -1193,8 +1193,8 @@ const PlayerBirthdays = ({ playerBios, allPlayers }) => {
 };
 
 const DebutPerformance = ({ r }) => {
-    if (r.ip && r.ip !== '' && r.ip !== '0.0') return <span className="font-mono small-text">{r.ip} IP, {r.h_p} H, {r.er} ER, {r.bb_p} BB, {r.so_p} SO{r.decision ? ` (${r.decision})` : ''}</span>;
-    if (r.ab > 0) {
+    if (r.ip && r.ip !== '' && (r.ip !== '0.0' || r.position === 'P')) return <span className="font-mono small-text">{r.ip} IP, {r.h_p} H, {r.er} ER, {r.bb_p} BB, {r.so_p} SO{r.decision ? ` (${r.decision})` : ''}</span>;
+    if (r.ab > 0 || r.bb > 0 || r.r > 0 || r.rbi > 0) {
         const parts = r.h > 0 ? [`${r.h}-${r.ab}`] : [`0-${r.ab}`];
         if (r.hr > 0) parts.push(`${r.hr} HR`);
         if (r.rbi > 0) parts.push(`${r.rbi} RBI`);
@@ -1203,729 +1203,7 @@ const DebutPerformance = ({ r }) => {
         if (r.so > 0) parts.push(`${r.so} SO`);
         return <span className="font-mono small-text">{parts.join(', ')}</span>;
     }
-    return <span className="text-slate-500 italic small-text">Defensive replacement</span>;
-};
-
-const PersonalRecords = ({ data }) => {
-    const [expandedRecord, setExpandedRecord] = useState(null);
-
-    const gameMap = useMemo(() => {
-        const map = {};
-        (data.games || []).forEach(game => { if (game.gameId) map[game.gameId] = game; });
-        return map;
-    }, [data.games]);
-
-    const HIDDEN_RECORDS = new Set(['Hits Leaders', 'Runs Leaders', 'Home Run Leaders', 'RBI Leaders',
-        'Doubles Leaders', 'Triples Leaders', 'Stolen Base Leaders', 'Walks Leaders (Hitting)',
-        'Batting Average Leaders (min. 10 AB)', 'On-Base Percentage Leaders (min. 10 AB)',
-        'OPS Leaders (min. 10 AB)', 'Wins Leaders', 'Strikeout Leaders (Pitching)',
-        'Save Leaders', 'Innings Pitched Leaders', 'ERA Leaders (min. 10 IP)',
-        'Career WPA Leaders (Top 3)', 'Day Games vs Night Games', 'Weekend vs Weekday Games',
-        'Percent of Possible Matchups Seen']);
-
-    // Section classification
-    const SECTION_MAP = {
-        'Total Hits Across All Games': 'cumulative',
-        'Total Home Runs Across All Games': 'cumulative',
-        'Total Runs Across All Games': 'cumulative',
-        'Total Strikeouts Across All Games': 'cumulative',
-        'Total Stolen Bases Across All Games': 'cumulative',
-        'Back-to-Back HR Events': 'rare',
-        'Back-to-Back-to-Back HR Events': 'rare',
-        'Back-to-Back-to-Back-to-Back HR Events': 'rare',
-        'Inside-the-Park Home Runs': 'rare',
-        'Cycles': 'rare',
-        'No-Hitters': 'rare',
-        'Biggest Victory': 'extremes',
-        'Biggest Comeback': 'extremes',
-        'Most Combined Runs': 'extremes',
-        'Most Runs by One Team': 'extremes',
-        'Most Runs in a Single Inning': 'extremes',
-        'Longest Game by Innings': 'environment',
-        'Longest Game by Time': 'environment',
-        'Shortest Game by Time': 'environment',
-        'Most Combined HRs': 'extremes',
-        'Most Combined Triples': 'extremes',
-        'Most HRs by One Team': 'extremes',
-        'Both Teams 10+ Runs': 'extremes',
-        'Coldest Game': 'environment',
-        'Hottest Game': 'environment',
-        'Average Temperature': 'environment',
-        'Highest Attendance': 'environment',
-        'Lowest Attendance': 'environment',
-        'Average Attendance': 'environment',
-        'Earliest Start Time': 'environment',
-        'Latest Start Time': 'environment',
-        'Highest Wind Speed': 'environment',
-        'Average Wind Speed': 'environment',
-        'Games with Precipitation': 'environment',
-        'Most Hits by One Team': 'individual-hitting',
-        'Most Combined Hits': 'extremes',
-        'Fewest Hits by One Team': 'individual-hitting',
-        'Fewest Combined Hits': 'extremes',
-        'Most RBIs in a Game': 'individual-hitting',
-        'Most SBs by One Player': 'individual-hitting',
-        'Most SBs by One Team': 'individual-hitting',
-        'Most Combined SBs in a Game': 'extremes',
-        'Most Walks by One Team': 'individual-pitching',
-        'Most Walks Issued by One Team': 'individual-pitching',
-        'Most Combined Walks': 'extremes',
-        'Fewest Combined Walks': 'extremes',
-        '20+ Hit Games by One Team': 'individual-hitting',
-        '4+ Hit Games': 'milestone-counts',
-        '5+ RBI Games': 'milestone-counts',
-        'Multi-HR Games': 'milestone-counts',
-        'Most Clutch Single Game (WPA)': 'individual-hitting',
-        'Most Pitching Strikeouts by One Team': 'individual-pitching',
-        'Most Combined Pitching Strikeouts': 'extremes',
-        'Fewest Combined Strikeouts': 'extremes',
-        'Most Pitches by One Pitcher': 'individual-pitching',
-        'Most Pitchers Used': 'individual-pitching',
-        'Fewest Pitchers Used': 'individual-pitching',
-        '10+ K Games': 'milestone-counts',
-        'Complete Games': 'milestone-counts',
-        'Shutouts': 'milestone-counts',
-        'Quality Starts': 'milestone-counts',
-        '1-Run Games': 'game-counts',
-        '1-0 Games': 'game-counts',
-        'Extra Inning Games': 'game-counts',
-        '10+ Run Innings': 'game-counts',
-        'Unique Players with a Hit': 'coverage',
-        'Unique Players with a Home Run': 'coverage',
-        'Unique Pitchers with a Win': 'coverage',
-        'Unique Pitchers with a Loss': 'coverage',
-        'Unique Pitchers with a Save': 'coverage',
-        'Most Teams Seen for a Player': 'coverage',
-        'Players with RISP Opportunities': 'coverage',
-        'Players with Bases Loaded Opportunities': 'coverage',
-    };
-
-    const sections = useMemo(() => {
-        const result = { cumulative: [], rare: [], extremes: [], environment: [],
-            'individual-hitting': [], 'individual-pitching': [], 'game-counts': [], 'milestone-counts': [], coverage: [] };
-        (data.summary || []).forEach(row => {
-            if (HIDDEN_RECORDS.has(row.record)) return;
-            const section = SECTION_MAP[row.record];
-            if (section && result[section]) result[section].push(row);
-            else if (!HIDDEN_RECORDS.has(row.record)) result.coverage.push(row);
-        });
-        return result;
-    }, [data.summary]);
-    const visibleRecordCount = Object.values(sections).reduce((sum, rows) => sum + rows.length, 0);
-
-    // ABS challenge records
-    const absRecords = useMemo(() => {
-        const countAbs = (abs) => {
-            // Savant-sourced reviews are authoritative when available
-            const reviews = abs.reviews || [];
-            if (reviews.length > 0) return { total: reviews.length, overturned: reviews.filter(r => r.overturned).length };
-            // Fallback for old cached data: summary totals
-            const total = ['away','home'].reduce((s, side) => s + (abs[side]?.usedSuccessful || 0) + (abs[side]?.usedFailed || 0), 0);
-            const overturned = ['away','home'].reduce((s, side) => s + (abs[side]?.usedSuccessful || 0), 0);
-            return { total, overturned };
-        };
-        const gamesWithAbs = (data.games || []).filter(g => {
-            const abs = g.absChallenges;
-            if (!abs) return false;
-            return countAbs(abs).total > 0;
-        }).map(g => {
-            const { total, overturned } = countAbs(g.absChallenges);
-            return { ...g, absTotal: total, absOverturned: overturned };
-        }).sort((a, b) => b.absTotal - a.absTotal);
-
-        const umpires = (data.umpireLog || []).filter(u => (u.absChallenges || 0) > 0);
-        const umpsWithRate = umpires.map(u => ({
-            ...u, overturnRate: Math.round((u.absOverturned || 0) / u.absChallenges * 100)
-        }));
-        const highestRate = [...umpsWithRate].sort((a, b) => b.overturnRate - a.overturnRate);
-        const lowestRate = [...umpsWithRate].sort((a, b) => a.overturnRate - b.overturnRate);
-
-        return {
-            totalGames: gamesWithAbs.length,
-            totalChallenges: gamesWithAbs.reduce((s, g) => s + g.absTotal, 0),
-            topByTotal: gamesWithAbs.slice(0, 5),
-            topByOverturned: [...gamesWithAbs].sort((a, b) => b.absOverturned - a.absOverturned).slice(0, 5),
-            highestRate: highestRate.slice(0, 5),
-            lowestRate: lowestRate.slice(0, 5),
-            umpiresByTotal: [...umpires].sort((a, b) => (b.absChallenges || 0) - (a.absChallenges || 0)).slice(0, 5),
-        };
-    }, [data.games, data.umpireLog]);
-
-    // Helper: navigate to game
-    const goToGame = (gameId) => {
-        requestGameDetails(gameId);
-    };
-
-    // Helper: parse detail/score/gameIds from a record
-    const parseRecord = (record) => {
-        const gameIds = (record.gameIds || '').split(',').map(id => id.trim()).filter(Boolean);
-        const games = gameIds.map(id => gameMap[id]).filter(Boolean);
-        const detailParts = (record.detail || '').split(';').map(d => d.trim()).filter(Boolean);
-        const scoreParts = (record.score || '').split(';').map(s => s.trim()).filter(Boolean);
-        return { gameIds, games, detailParts, scoreParts };
-    };
-
-    // Helper: render game buttons
-    const GameButtons = ({ games, max = 8 }) => games.length > 0 ? (
-        <div className="flex flex-wrap gap-1 mt-1.5">
-            {games.slice(0, max).map((g, gi) => (
-                <button key={gi} onClick={(e) => { e.stopPropagation(); goToGame(g.gameId); }}
-                    className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
-                    {g.date} {g.awayTeam}@{g.homeTeam}
-                </button>
-            ))}
-            {games.length > max && <span className="text-[10px] text-slate-400 self-center">+{games.length - max} more</span>}
-        </div>
-    ) : null;
-
-    // Helper: expandable record card (used in extremes and individual sections)
-    const RecordCard = ({ record, compact }) => {
-        const key = record.record;
-        const isExpanded = expandedRecord === key;
-        const { games, detailParts, scoreParts } = parseRecord(record);
-        const hasDetail = detailParts.length > 0 || games.length > 0;
-        // For single-game records, show full detail (both teams); for multi-game, show first entry
-        const previewText = detailParts.length > 0
-            ? (scoreParts.length <= 1 ? detailParts.join(' / ') : detailParts[0])
-            : games.length > 0 && games.length <= 3 ? games.map(g => `${g.awayTeam}@${g.homeTeam} ${g.date}`).join(', ')
-            : games.length > 3 ? `${games.length} games` : '';
-
-        return (
-            <div className={`bg-white rounded-lg border hover:shadow-sm transition-all overflow-hidden ${isExpanded ? 'border-blue-300 shadow-sm' : 'border-slate-200'} ${isExpanded && !compact ? 'md:col-span-2 lg:col-span-3' : ''}`}>
-                <div className={`${compact ? 'p-2.5' : 'p-3'} ${hasDetail ? 'cursor-pointer' : ''}`}
-                    onClick={() => hasDetail && setExpandedRecord(isExpanded ? null : key)}>
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                            <div className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-slate-900 leading-tight`}>{record.record}</div>
-                            {!isExpanded && previewText && (
-                                <div className="text-[11px] text-slate-500 mt-1 leading-snug"
-                                    style={{ display: '-webkit-box', WebkitLineClamp: compact ? 1 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {previewText}
-                                </div>
-                            )}
-                        </div>
-                        <div className={`${compact ? 'text-base' : 'text-xl'} font-bold text-blue-600 flex-shrink-0 leading-none`}>{record.value}</div>
-                    </div>
-                </div>
-                {isExpanded && hasDetail && (
-                    <div className="px-3 pb-3 border-t pt-3">
-                        {(() => {
-                            // Group details + scores into per-game blocks
-                            const grouped = [];
-                            detailParts.forEach((detail, di) => {
-                                const score = scoreParts[di] || '';
-                                const game = games[di] || null;
-                                const gameId = game?.gameId || score || di;
-                                const last = grouped[grouped.length - 1];
-                                if (last && (last.gameId === gameId || (!game && !score))) last.details.push(detail);
-                                else grouped.push({ details: [detail], score, game, gameId });
-                            });
-                            return (
-                                <div className={`grid grid-cols-1 ${grouped.length > 1 && !compact ? 'md:grid-cols-2' : ''} gap-2`}>
-                                {grouped.map((group, gi) => (
-                                <div key={gi} className="bg-slate-50 rounded-lg p-2.5 text-xs border border-slate-100">
-                                    {(group.score || group.game) && (
-                                        <div className="flex items-center justify-between mb-1">
-                                            {group.game && (
-                                                <button onClick={() => goToGame(group.game.gameId)}
-                                                    className="font-semibold text-blue-600 hover:underline">
-                                                    {group.game.awayTeam} @ {group.game.homeTeam} — {group.game.date}
-                                                </button>
-                                            )}
-                                            {group.score && <span className="text-slate-400 whitespace-nowrap">{group.score}</span>}
-                                        </div>
-                                    )}
-                                    <div className="space-y-0.5">
-                                        {group.details.map((d, di) => (
-                                            <div key={di} className="text-slate-700 leading-snug">{d}</div>
-                                        ))}
-                                    </div>
-                                </div>
-                                ))}
-                                </div>
-                            );
-                        })()}
-                        {games.length > 0 && detailParts.length === 0 && <GameButtons games={games} />}
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    // Cumulative short labels
-    const cumulativeLabels = {
-        'Total Hits Across All Games': { label: 'Hits', icon: 'H' },
-        'Total Home Runs Across All Games': { label: 'Home Runs', icon: 'HR' },
-        'Total Runs Across All Games': { label: 'Runs', icon: 'R' },
-        'Total Strikeouts Across All Games': { label: 'Strikeouts', icon: 'K' },
-        'Total Stolen Bases Across All Games': { label: 'Stolen Bases', icon: 'SB' },
-    };
-
-    const PillRecordSection = ({ title, records }) => {
-        if (!records.length) return null;
-        return (
-            <div>
-                <div className="flex items-center gap-2 mb-2">
-                    <div className="text-sm font-semibold text-slate-900">{title}</div>
-                    <div className="flex-1 h-px bg-slate-200"></div>
-                </div>
-                {expandedRecord && records.some(r => r.record === expandedRecord) && (
-                    <div className="fixed inset-0 z-[5]" onClick={() => setExpandedRecord(null)} />
-                )}
-                <div className="flex flex-wrap gap-2 relative z-10">
-                    {records.map(record => {
-                        const { games } = parseRecord(record);
-                        const hasContent = games.length > 0 || Boolean((record.detail || '').trim());
-                        const isExpanded = expandedRecord === record.record;
-                        return (
-                            <div key={record.record} className="relative">
-                                <button onClick={() => hasContent && setExpandedRecord(isExpanded ? null : record.record)}
-                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border transition-all ${isExpanded ? 'bg-blue-50 border-blue-300 text-blue-800' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'} ${hasContent ? 'cursor-pointer' : 'cursor-default'}`}>
-                                    <span className="font-medium">{record.record}</span>
-                                    <span className={`font-bold ${isExpanded ? 'text-blue-600' : 'text-slate-900'}`}>{record.value}</span>
-                                </button>
-                                {isExpanded && hasContent && (
-                                    <div className="absolute top-full left-0 mt-1 z-10 bg-white rounded-lg shadow-lg border border-slate-200 p-2 min-w-[200px] max-w-[400px]">
-                                        {record.detail && (
-                                            <div className="text-[11px] text-slate-600 mb-1.5 px-1">{record.detail}</div>
-                                        )}
-                                        {games.length > 0 && <GameButtons games={games} max={6} />}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
-    // Environment record lookup
-    const envLookup = useMemo(() => {
-        const map = {};
-        sections.environment.forEach(r => { map[r.record] = r; });
-        return map;
-    }, [sections.environment]);
-
-    const envVal = (name) => {
-        const r = envLookup[name];
-        return r ? r.value : '--';
-    };
-    const envGame = (name) => {
-        const r = envLookup[name];
-        if (!r) return null;
-        const { games } = parseRecord(r);
-        return games[0] || null;
-    };
-
-    return (
-        <div className="space-y-5">
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-900 p-5 text-white shadow-sm">
-                <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="max-w-3xl">
-                        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">Witnessed extremes</div>
-                        <h2 className="mt-1 text-2xl font-bold">Personal Record Book</h2>
-                        <p className="mt-2 text-sm leading-relaxed text-slate-200">
-                            The biggest, rarest, fastest, longest, and most unusual performances from your regular season and postseason visits.
-                        </p>
-                    </div>
-                    <div className="flex gap-3">
-                        <div className="rounded-lg bg-white/10 px-4 py-2 text-center backdrop-blur-sm">
-                            <div className="text-xl font-bold">{visibleRecordCount}</div>
-                            <div className="text-[11px] uppercase tracking-wide text-blue-100">records</div>
-                        </div>
-                        <div className="rounded-lg bg-white/10 px-4 py-2 text-center backdrop-blur-sm">
-                            <div className="text-xl font-bold">{(data.games || []).filter(g => g.gameType !== 'spring').length}</div>
-                            <div className="text-[11px] uppercase tracking-wide text-blue-100">games</div>
-                        </div>
-                    </div>
-                </div>
-                <div aria-hidden="true" className="absolute -right-6 -top-10 text-[145px] leading-none opacity-10">🏆</div>
-            </div>
-
-            {/* Section 1: Cumulative Totals */}
-            {sections.cumulative.length > 0 && (
-                <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl p-4 shadow-md">
-                    <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Regular season + postseason</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                        {sections.cumulative.map(r => {
-                            const info = cumulativeLabels[r.record] || { label: r.record, icon: '?' };
-                            return (
-                                <div key={r.record} className="text-center">
-                                    <div className="text-2xl font-bold text-white">{parseInt(r.value).toLocaleString()}</div>
-                                    <div className="text-[11px] text-slate-400 mt-0.5">{info.label}</div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* Section 2: Rare Moments */}
-            {sections.rare.filter(r => parseInt(r.value) > 0).length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="text-sm font-semibold text-slate-900">Rare Moments</div>
-                        <div className="flex-1 h-px bg-slate-200"></div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {sections.rare.filter(r => parseInt(r.value) > 0).map(record => {
-                            const { games, detailParts, scoreParts } = parseRecord(record);
-                            const isExpanded = expandedRecord === record.record;
-                            const alignGames = games.length === detailParts.length;
-                            return (
-                                <div key={record.record}
-                                    className={`bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl overflow-hidden transition-all ${isExpanded ? 'md:col-span-2 lg:col-span-3' : ''}`}>
-                                    <div className="p-4 cursor-pointer" onClick={() => setExpandedRecord(isExpanded ? null : record.record)}>
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className="text-sm font-bold text-amber-900">{record.record}</div>
-                                                {!isExpanded && detailParts.length > 0 && (
-                                                    <div className="text-xs text-amber-700 mt-1 truncate max-w-[300px]">{detailParts[0]}</div>
-                                                )}
-                                            </div>
-                                            <div className="text-3xl font-black text-amber-600">{record.value}</div>
-                                        </div>
-                                    </div>
-                                    {isExpanded && (detailParts.length > 0 || games.length > 0) && (
-                                        <div className="px-4 pb-4 space-y-2 border-t border-amber-200 pt-3">
-                                            {detailParts.map((d, di) => {
-                                                const game = alignGames ? games[di] : null;
-                                                return (
-                                                <div key={di} className="bg-white bg-opacity-70 rounded-lg p-2.5 text-xs border border-amber-100">
-                                                    <div className="flex items-center justify-between gap-2 mb-1">
-                                                        {game ? (
-                                                            <button onClick={() => goToGame(game.gameId)}
-                                                                className="font-semibold text-blue-600 hover:underline text-left">
-                                                                {game.date} {game.awayTeam} @ {game.homeTeam}
-                                                            </button>
-                                                        ) : (
-                                                            <span className="font-semibold text-amber-800">{record.record}</span>
-                                                        )}
-                                                        {scoreParts[di] && <span className="text-amber-600 whitespace-nowrap font-medium">{scoreParts[di]}</span>}
-                                                    </div>
-                                                    <div className="text-amber-950 leading-snug">{d}</div>
-                                                </div>
-                                                );
-                                            })}
-                                            {(!alignGames || detailParts.length === 0) && <GameButtons games={games} />}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* Section 3: Game Extremes */}
-            {sections.extremes.length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="text-sm font-semibold text-slate-900">Game Extremes</div>
-                        <div className="flex-1 h-px bg-slate-200"></div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {sections.extremes.map(record => <RecordCard key={record.record} record={record} />)}
-                    </div>
-                </div>
-            )}
-
-            {/* Section 4: Environment Dashboard */}
-            {sections.environment.length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="text-sm font-semibold text-slate-900">Game Environment</div>
-                        <div className="flex-1 h-px bg-slate-200"></div>
-                    </div>
-                    <div className="bg-white rounded-xl border border-slate-200 p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {/* Temperature */}
-                            <div>
-                                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Temperature</div>
-                                <div className="flex items-end gap-3">
-                                    {[{ label: 'Cold', name: 'Coldest Game', color: 'text-blue-600' },
-                                      { label: 'Avg', name: 'Average Temperature', color: 'text-slate-600' },
-                                      { label: 'Hot', name: 'Hottest Game', color: 'text-red-600' }].map(t => {
-                                        const game = envGame(t.name);
-                                        return (
-                                            <div key={t.label} className="text-center flex-1">
-                                                <div className={`text-lg font-bold ${t.color}`}>{envVal(t.name)}</div>
-                                                <div className="text-[10px] text-slate-400">{t.label}</div>
-                                                {game && <button onClick={() => goToGame(game.gameId)}
-                                                    className="text-[9px] text-blue-500 hover:underline mt-0.5 block mx-auto">{game.date}</button>}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                <div className="mt-2 h-1.5 rounded-full bg-gradient-to-r from-blue-400 via-slate-300 to-red-400 opacity-60"></div>
-                            </div>
-
-                            {/* Attendance */}
-                            <div>
-                                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Attendance</div>
-                                <div className="flex items-end gap-3">
-                                    {[{ label: 'Low', name: 'Lowest Attendance' },
-                                      { label: 'Avg', name: 'Average Attendance' },
-                                      { label: 'High', name: 'Highest Attendance' }].map(a => {
-                                        const game = envGame(a.name);
-                                        return (
-                                            <div key={a.label} className="text-center flex-1">
-                                                <div className="text-lg font-bold text-slate-800">{envVal(a.name)}</div>
-                                                <div className="text-[10px] text-slate-400">{a.label}</div>
-                                                {game && <button onClick={() => goToGame(game.gameId)}
-                                                    className="text-[9px] text-blue-500 hover:underline mt-0.5 block mx-auto">{game.date}</button>}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Game Duration */}
-                            <div>
-                                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Game Duration</div>
-                                <div className="flex items-end gap-3">
-                                    {[{ label: 'Shortest', name: 'Shortest Game by Time', color: 'text-green-600' },
-                                      { label: 'Longest', name: 'Longest Game by Time', color: 'text-orange-600' },
-                                      { label: 'Most Inn.', name: 'Longest Game by Innings', color: 'text-purple-600' }].map(d => {
-                                        const game = envGame(d.name);
-                                        return (
-                                            <div key={d.label} className="text-center flex-1">
-                                                <div className={`text-lg font-bold ${d.color}`}>{envVal(d.name)}</div>
-                                                <div className="text-[10px] text-slate-400">{d.label}</div>
-                                                {game && <button onClick={() => goToGame(game.gameId)}
-                                                    className="text-[9px] text-blue-500 hover:underline mt-0.5 block mx-auto">{game.date}</button>}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Timing & Weather */}
-                            <div>
-                                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Timing & Weather</div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {[{ label: 'Earliest Start', name: 'Earliest Start Time' },
-                                      { label: 'Latest Start', name: 'Latest Start Time' },
-                                      { label: 'Max Wind', name: 'Highest Wind Speed' },
-                                      { label: 'Rain Games', name: 'Games with Precipitation' }].map(item => (
-                                        <div key={item.label} className="bg-slate-50 rounded-lg p-2 text-center">
-                                            <div className="text-sm font-bold text-slate-800">{envVal(item.name)}</div>
-                                            <div className="text-[9px] text-slate-400">{item.label}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Section 5: Offensive Records */}
-            {sections['individual-hitting'].length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="text-sm font-semibold text-slate-900">Offensive Records</div>
-                        <div className="flex-1 h-px bg-slate-200"></div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {sections['individual-hitting'].map(record => (
-                            <RecordCard key={record.record} record={record} compact />
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Section 6: Pitching Records */}
-            {sections['individual-pitching'].length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="text-sm font-semibold text-slate-900">Pitching Records</div>
-                        <div className="flex-1 h-px bg-slate-200"></div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {sections['individual-pitching'].map(record => (
-                            <RecordCard key={record.record} record={record} compact />
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            <PillRecordSection title="Game Type Counts" records={sections['game-counts']} />
-            <PillRecordSection title="Milestone Counts" records={sections['milestone-counts']} />
-            <PillRecordSection title="Player Coverage" records={sections.coverage} />
-
-            {/* Section 7: ABS Challenge Records */}
-            {absRecords.totalGames > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-2 mt-4">
-                        <div className="text-sm font-semibold text-slate-900">ABS Challenge Records</div>
-                        <div className="flex-1 h-px bg-slate-200"></div>
-                        <span className="text-xs text-slate-400">{absRecords.totalChallenges} challenges in {absRecords.totalGames} games</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {absRecords.topByTotal.length > 0 && (
-                            <div className="bg-white border border-slate-200 rounded-lg p-4">
-                                <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Most Challenges in a Game</div>
-                                <div className="space-y-1.5">
-                                    {absRecords.topByTotal.map((g, i) => (
-                                        <div key={g.gameId} className="flex items-center gap-2 text-sm">
-                                            <span className="text-slate-400 w-4 text-right">{i + 1}.</span>
-                                            <span className="font-bold text-slate-800 w-6">{g.absTotal}</span>
-                                            <button onClick={() => goToGame(g.gameId)} className="text-blue-600 hover:underline">{g.awayTeam} @ {g.homeTeam}</button>
-                                            <span className="text-slate-400 ml-auto text-xs">{g.absOverturned} ovt · {g.date}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {absRecords.topByOverturned.length > 0 && (
-                            <div className="bg-white border border-slate-200 rounded-lg p-4">
-                                <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Most Overturned in a Game</div>
-                                <div className="space-y-1.5">
-                                    {absRecords.topByOverturned.map((g, i) => (
-                                        <div key={g.gameId} className="flex items-center gap-2 text-sm">
-                                            <span className="text-slate-400 w-4 text-right">{i + 1}.</span>
-                                            <span className="font-bold text-green-600 w-6">{g.absOverturned}</span>
-                                            <button onClick={() => goToGame(g.gameId)} className="text-blue-600 hover:underline">{g.awayTeam} @ {g.homeTeam}</button>
-                                            <span className="text-slate-400 ml-auto text-xs">{g.absTotal} total · {g.date}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {absRecords.umpiresByTotal.length > 0 && (
-                            <div className="bg-white border border-slate-200 rounded-lg p-4">
-                                <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Most Challenges Faced (HP Umpire)</div>
-                                <div className="space-y-1.5">
-                                    {absRecords.umpiresByTotal.map((u, i) => (
-                                        <div key={u.name} className="flex items-center gap-2 text-sm">
-                                            <span className="text-slate-400 w-4 text-right">{i + 1}.</span>
-                                            <span className="font-medium text-slate-800">{u.name}</span>
-                                            <span className="text-slate-400 ml-auto">{u.absChallenges} challenges, {u.absOverturned || 0} overturned</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {absRecords.highestRate.length > 0 && (
-                            <div className="bg-white border border-slate-200 rounded-lg p-4">
-                                <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Highest Overturn Rate</div>
-                                <div className="space-y-1.5">
-                                    {absRecords.highestRate.map((u, i) => (
-                                        <div key={u.name} className="flex items-center gap-2 text-sm">
-                                            <span className="text-slate-400 w-4 text-right">{i + 1}.</span>
-                                            <span className="font-medium text-slate-800">{u.name}</span>
-                                            <span className="text-green-600 font-bold ml-auto">{u.overturnRate}%</span>
-                                            <span className="text-slate-400 text-xs">({u.absOverturned || 0}/{u.absChallenges})</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {absRecords.lowestRate.length > 0 && (
-                            <div className="bg-white border border-slate-200 rounded-lg p-4">
-                                <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Lowest Overturn Rate</div>
-                                <div className="space-y-1.5">
-                                    {absRecords.lowestRate.map((u, i) => (
-                                        <div key={u.name} className="flex items-center gap-2 text-sm">
-                                            <span className="text-slate-400 w-4 text-right">{i + 1}.</span>
-                                            <span className="font-medium text-slate-800">{u.name}</span>
-                                            <span className="text-red-600 font-bold ml-auto">{u.overturnRate}%</span>
-                                            <span className="text-slate-400 text-xs">({u.absOverturned || 0}/{u.absChallenges})</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    {/* Player Challenge Leaderboard */}
-                    {(data.absPlayerStats || []).length > 0 && (() => {
-                        const [absSortKey, setAbsSortKey] = React.useState('challenges');
-                        const [absSortDir, setAbsSortDir] = React.useState('desc');
-                        const handleAbsSort = (key) => {
-                            if (absSortKey === key) setAbsSortDir(absSortDir === 'asc' ? 'desc' : 'asc');
-                            else { setAbsSortKey(key); setAbsSortDir('desc'); }
-                        };
-                        const sorted = [...(data.absPlayerStats || [])].sort((a, b) => {
-                            let aVal = a[absSortKey], bVal = b[absSortKey];
-                            if (absSortKey === 'name') { const r = String(aVal || '').localeCompare(String(bVal || '')); return absSortDir === 'asc' ? r : -r; }
-                            if (absSortKey === 'avgEdgeDistance') { aVal = aVal ?? 999; bVal = bVal ?? 999; }
-                            const r = (aVal || 0) - (bVal || 0);
-                            return absSortDir === 'asc' ? r : -r;
-                        });
-                        const AbsHeader = ({ k, label }) => (
-                            <th className={`px-2 py-2 text-center font-medium text-slate-500 cursor-pointer hover:bg-slate-100 ${k === 'name' ? 'text-left px-3' : ''}`}
-                                onClick={() => handleAbsSort(k)}>
-                                {label} {absSortKey === k && (absSortDir === 'asc' ? '↑' : '↓')}
-                            </th>
-                        );
-                        const RoleRateCell = ({ total, overturned, rate }) => {
-                            if (!total) return <span className="text-slate-400">-</span>;
-                            const resolvedRate = rate != null ? rate : Math.round(((overturned || 0) / total) * 100);
-                            const rateClass = resolvedRate >= 75 ? 'text-green-600' : resolvedRate >= 50 ? 'text-slate-700' : 'text-red-600';
-                            return (
-                                <div className="leading-tight">
-                                    <div className={`font-bold ${rateClass}`}>{resolvedRate}%</div>
-                                    <div className="text-[11px] text-slate-400">({overturned || 0}/{total})</div>
-                                </div>
-                            );
-                        };
-                        return (
-                        <div className="mt-3 bg-white border border-slate-200 rounded-lg p-4">
-                            <div className="mb-3">
-                                <div className="text-xs font-semibold text-slate-400 uppercase">Player Challenge Leaderboard</div>
-                                <div className="text-[11px] text-slate-500 mt-1">Role columns show success rate; small counts are overturned/challenges.</div>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-slate-50 border-b">
-                                        <tr>
-                                            <AbsHeader k="name" label="Player" />
-                                            <AbsHeader k="challenges" label="Challenges" />
-                                            <AbsHeader k="overturned" label="Overturned" />
-                                            <AbsHeader k="upheld" label="Upheld" />
-                                            <AbsHeader k="successRate" label="Success %" />
-                                            <AbsHeader k="batterSuccessRate" label="Batter %" />
-                                            <AbsHeader k="catcherSuccessRate" label="Catcher %" />
-                                            <AbsHeader k="pitcherSuccessRate" label="Pitcher %" />
-                                            <AbsHeader k="avgEdgeDistance" label="Avg Edge" />
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {sorted.map((p) => (
-                                            <tr key={p.name} className="hover:bg-blue-50">
-                                                <td className="px-3 py-2 font-medium text-slate-800">{p.name}</td>
-                                                <td className="px-2 py-2 text-center font-bold">{p.challenges}</td>
-                                                <td className="px-2 py-2 text-center text-green-600 font-medium">{p.overturned}</td>
-                                                <td className="px-2 py-2 text-center text-red-600 font-medium">{p.upheld}</td>
-                                                <td className="px-2 py-2 text-center">
-                                                    <span className={`font-bold ${p.successRate >= 75 ? 'text-green-600' : p.successRate >= 50 ? 'text-slate-700' : 'text-red-600'}`}>
-                                                        {p.successRate}%
-                                                    </span>
-                                                </td>
-                                                <td className="px-2 py-2 text-center text-slate-600">
-                                                    <RoleRateCell total={p.asBatter} overturned={p.batterOverturned} rate={p.batterSuccessRate} />
-                                                </td>
-                                                <td className="px-2 py-2 text-center text-slate-600">
-                                                    <RoleRateCell total={p.asCatcher} overturned={p.catcherOverturned} rate={p.catcherSuccessRate} />
-                                                </td>
-                                                <td className="px-2 py-2 text-center text-slate-600">
-                                                    <RoleRateCell total={p.asPitcher} overturned={p.pitcherOverturned} rate={p.pitcherSuccessRate} />
-                                                </td>
-                                                <td className="px-2 py-2 text-center text-slate-500">{p.avgEdgeDistance != null ? p.avgEdgeDistance.toFixed(3) : '-'}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        );
-                    })()}
-                </div>
-            )}
-        </div>
-    );
+    return <span className="text-slate-500 italic small-text">No batting line recorded</span>;
 };
 
 const CareerBookendsView = ({ rows, kind }) => {
@@ -1936,7 +1214,6 @@ const CareerBookendsView = ({ rows, kind }) => {
         description: 'The first chapter of a major-league career, captured in the exact game where you saw it begin.',
         latestLabel: 'Most recent witnessed debut',
         icon: '🌟',
-        gradient: 'from-emerald-950 via-teal-900 to-cyan-800',
         accent: 'text-emerald-700 bg-emerald-50 border-emerald-200',
     } : {
         eyebrow: 'Last appearances',
@@ -1944,11 +1221,10 @@ const CareerBookendsView = ({ rows, kind }) => {
         description: 'The closing line of a major-league career, preserved with the final performance you attended.',
         latestLabel: 'Most recent witnessed finale',
         icon: '👋',
-        gradient: 'from-slate-950 via-slate-800 to-amber-900',
         accent: 'text-amber-800 bg-amber-50 border-amber-200',
     };
     const sortedRows = useMemo(() => [...(rows || [])].sort((a, b) => {
-        const dateDiff = new Date(b.date || 0) - new Date(a.date || 0);
+        const dateDiff = toSortableDate(b.date).localeCompare(toSortableDate(a.date));
         return dateDiff || String(b.gameId || '').localeCompare(String(a.gameId || ''));
     }), [rows]);
     const latest = sortedRows[0];
@@ -1964,14 +1240,8 @@ const CareerBookendsView = ({ rows, kind }) => {
 
     return (
         <div className="space-y-4">
-            <div className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${config.gradient} p-5 text-white shadow-sm`}>
-                <div className="relative z-10 max-w-3xl">
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">{config.eyebrow}</div>
-                    <h2 className="mt-1 text-2xl font-bold">{config.title}</h2>
-                    <p className="mt-2 text-sm leading-relaxed text-white/80">{config.description}</p>
-                </div>
-                <div aria-hidden="true" className="absolute -right-7 -top-10 text-[145px] leading-none opacity-10">{config.icon}</div>
-            </div>
+            <SpecialHeader eyebrow={config.eyebrow} title={config.title}>{config.description}</SpecialHeader>
+            {!isDebut && <p className="text-sm text-slate-500">Final appearances reflect the current reference and can change if a player returns to MLB.</p>}
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {summaryCards.map(card => (
@@ -1997,7 +1267,7 @@ const CareerBookendsView = ({ rows, kind }) => {
                         </div>
                         <div className="flex flex-wrap items-center gap-3 text-sm">
                             <DebutPerformance r={latest} />
-                            <GameLink gameId={latest.gameId} />
+                            <SpecialGameButton gameId={latest.gameId} />
                         </div>
                     </div>
                 </div>
@@ -2012,7 +1282,7 @@ const CareerBookendsView = ({ rows, kind }) => {
                 filterOptions={[{ key: 'team', label: 'Teams' }, { key: 'position', label: 'Positions' }]}
                 mobileCard={(row) => (
                     <div className="space-y-3 p-4">
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                                 <div className="text-xs font-medium text-slate-500">{row.date}</div>
                                 <div className="mt-0.5 font-semibold text-slate-900"><PlayerLink playerId={row.playerId} name={row.player} /></div>
@@ -2022,7 +1292,7 @@ const CareerBookendsView = ({ rows, kind }) => {
                         <div className="text-sm text-slate-600"><strong className="text-slate-800">{row.team}</strong>{row.opponent ? ` vs ${row.opponent}` : ''}</div>
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <DebutPerformance r={row} />
-                            <GameLink gameId={row.gameId} />
+                            <SpecialGameButton gameId={row.gameId} />
                         </div>
                     </div>
                 )}
@@ -2033,7 +1303,7 @@ const CareerBookendsView = ({ rows, kind }) => {
                     ...(isDebut ? [{ key: 'opponent', label: 'vs' }] : []),
                     { key: 'position', label: 'Pos' },
                     { key: 'stats', label: isDebut ? 'Debut performance' : 'Final performance', render: (value, row) => <DebutPerformance r={row} /> },
-                    { key: 'gameId', label: 'Game', render: (value) => <GameLink gameId={value} /> },
+                    { key: 'gameId', label: 'Game', render: (value) => <SpecialGameButton gameId={value} /> },
                 ]}
             />
         </div>
@@ -2091,16 +1361,7 @@ const SignatureHRsView = ({ rows }) => {
 
     return (
         <div className="space-y-4">
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-900 via-blue-950 to-cyan-900 p-5 text-white shadow-sm">
-                <div className="relative z-10 max-w-3xl">
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">Witnessed landmarks</div>
-                    <h2 className="mt-1 text-2xl font-bold">Signature Home Runs</h2>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-200">
-                        Homers that reached baseball's iconic destinations, matched to the exact attended game by hitter, home-run event, and pitcher.
-                    </p>
-                </div>
-                <div aria-hidden="true" className="absolute -right-8 -top-12 text-[150px] leading-none opacity-10">⚾</div>
-            </div>
+            <SpecialHeader eyebrow="Witnessed landmarks" title="Signature Home Runs">Home runs you saw reach McCovey Cove, Eutaw Street, and other iconic destinations. Revisit the hitter, the pitcher, and the game behind each one.</SpecialHeader>
 
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
                 {summaryCards.map(card => (
@@ -2126,7 +1387,7 @@ const SignatureHRsView = ({ rows }) => {
                 ]}
                 mobileCard={(row) => (
                     <div className="space-y-3 p-4">
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                                 <div className="text-xs font-medium text-slate-500">{row.date}</div>
                                 <div className="mt-0.5 font-semibold text-slate-900"><PlayerLink playerId={row.playerId} name={row.player} /></div>
@@ -2136,7 +1397,7 @@ const SignatureHRsView = ({ rows }) => {
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
                             <span><strong className="text-slate-800">{row.team}</strong> vs {row.opponent}</span>
                             <span>off {row.pitcher}</span>
-                            <GameLink gameId={row.gameId} />
+                            <SpecialGameButton gameId={row.gameId} />
                         </div>
                     </div>
                 )}
@@ -2146,7 +1407,7 @@ const SignatureHRsView = ({ rows }) => {
                     { key: 'signatureNumber', label: 'Landmark', render: (value) => <SignatureHRBadge label={value} /> },
                     { key: 'team', label: 'Matchup', render: (value, row) => <span className="whitespace-nowrap"><strong>{value}</strong> <span className="text-slate-400">vs</span> {row.opponent}</span> },
                     { key: 'pitcher', label: 'Pitcher', render: (value) => <span className="whitespace-nowrap text-slate-600">off {value}</span> },
-                    { key: 'gameId', label: 'Game', render: (value) => <GameLink gameId={value} /> },
+                    { key: 'gameId', label: 'Game', render: (value) => <SpecialGameButton gameId={value} /> },
                 ]}
             />
         </div>
@@ -2154,16 +1415,20 @@ const SignatureHRsView = ({ rows }) => {
 };
 
 const SpecialTab = ({ data, initialSubtab, onSubtabChange }) => {
-    const [view, setView] = useState(initialSubtab || 'records');
-    useEffect(() => { setView(initialSubtab || 'records'); }, [initialSubtab]);
+    const resolveView = value => ['highlights', 'records', 'debuts', 'finals', 'splash'].includes(value) ? value : 'highlights';
+    const [view, setView] = useState(resolveView(initialSubtab));
+    useEffect(() => { setView(resolveView(initialSubtab)); }, [initialSubtab]);
+    const openView = next => { setView(next); onSubtabChange?.(next); };
     return (
         <div>
             <SubNav tabs={[
+                { id: 'highlights', label: 'Highlights' },
                 { id: 'records', label: 'Records' },
                 { id: 'debuts', label: 'Debuts' },
                 { id: 'finals', label: 'Final Games' },
                 { id: 'splash', label: 'Signature HRs' },
             ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
+            {view === 'highlights' && <SpecialHighlights data={data} onView={openView} />}
             {view === 'records' && <PersonalRecords data={data} />}
             {view === 'debuts' && <CareerBookendsView rows={data.debuts || []} kind="debut" />}
             {view === 'finals' && <CareerBookendsView rows={data.finalGames || []} kind="final" />}

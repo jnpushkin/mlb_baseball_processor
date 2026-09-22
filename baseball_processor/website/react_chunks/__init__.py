@@ -9,6 +9,7 @@ from .dashboard import CODE as DASHBOARD_CODE
 from .home_away import CODE as HOME_AWAY_CODE
 from .badges import CODE as BADGES_CODE
 from .special import CODE as SPECIAL_CODE
+from .special_features import CODE as SPECIAL_FEATURES_CODE
 from .explorer import CODE as EXPLORER_CODE
 from .passport import CODE as PASSPORT_CODE
 from .player_views import CODE as PLAYER_VIEWS_CODE
@@ -24,6 +25,7 @@ REACT_CHUNKS = [
     HOME_AWAY_CODE,
     BADGES_CODE,
     SPECIAL_CODE,
+    SPECIAL_FEATURES_CODE,
     EXPLORER_CODE,
     PASSPORT_CODE,
     INSIGHTS_CODE,

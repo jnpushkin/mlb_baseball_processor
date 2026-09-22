@@ -298,8 +298,8 @@ const App = () => {
                 </div>
             </nav>
             <main role="tabpanel" className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
-                <PassportScope data={rawData} route={route}/>
-                {!scoped && <p className="text-sm text-slate-500 mb-3">Lifetime archive · this collection does not use the Browse scope.</p>}
+                {tab !== 'special' && <PassportScope data={rawData} route={route}/>}
+                {!scoped && <p className="text-sm text-slate-500 mb-3">{tab === 'special' ? 'Lifetime archive · all your attended games' : 'Lifetime archive · this collection does not use the Browse scope.'}</p>}
                 {!ready ? <section className="passport-panel" role="status"><p>{sectionError||'Loading this section…'}</p>{sectionError&&<div className="flex gap-2 mt-3"><button className="passport-button" onClick={()=>setSectionRetry(sectionRetry+1)}>Retry section</button><button className="passport-button" onClick={()=>location.reload()}>Reload site</button></div>}</section> : <>
                 {tab === 'dashboard' && <PassportDashboard data={data} allData={rawData} route={route} onResult={handleSearchResult} />}
                 {tab === 'gamelog' && (data.games?.length ? <GameLogWithDetails games={data.games} playerGames={data.playerGames || []} pitcherGames={data.pitcherGames || []} careerFirstsByGame={data.careerFirstsByGame || {}} allTimePassingsByGame={data.allTimePassingsByGame || {}} debuts={data.debuts || []} finalGames={data.finalGames || []} /> : <EmptyState icon="📋" title="No Games" message="Add game HTML files to the Current Season Games folder and run the processor." />)}

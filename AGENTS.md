@@ -232,7 +232,7 @@ Open `http://127.0.0.1:8765/MLB%20Game%20Passport%20-%20BREF.html`. Keep every `
 4. **Milestones** - Game Milestones | All-Time Passings (with career firsts)
 5. **Venues** - Map & Tables | Calendar
 6. **Progress** - Division Checklist | Badges | Matchups
-7. **Special** - Records | Debuts | Final Games | Signature HRs
+7. **Special** - Highlights & witnessed-history timeline | Records | Debuts | Final Games | Signature HRs
 8. **Frivolities** - Jersey Numbers | Draft Picks | Origins | Birthdays | Home/Away | Scorigami | Umpires
 9. **Companions** - Game companion tracking
 10. **Orioles** - Team-specific dashboard
@@ -241,6 +241,7 @@ Open `http://127.0.0.1:8765/MLB%20Game%20Passport%20-%20BREF.html`. Keep every `
 - Add-game POST requests return durable job IDs. Job progress is stored in `cache/add_game_jobs.json`; saved, processed, and deployed stages must remain distinct. Interrupted jobs become retryable failures after restart.
 - The initial index deliberately omits full statistics, milestones, awards, biographies, draft data, and play-by-play. Add every new section dependency to `passportKeysForRoute`; retain navigation entries before their library has loaded.
 - Individual game payloads contain `_detailPlayerGames`, `_detailPitcherGames`, `_detailMilestones`, `_detailCareerFirsts`, and `_detailPassings`. Game dialogs must work from a copied URL and from an explicitly saved offline recap without global libraries.
+- Special's highlights, record explorer, and timeline live in `react_chunks/special_features.jsx`. Its landing page only needs `summary` and `signatureHRs` beyond the index; player details load statistics when opened. Match moments and record games by exact game ID, retaining doubleheader distinctions and distinct numbered home runs. Summary detail strings are not guaranteed to align one-to-one with `gameIds`; show related games separately instead of guessing pairings.
 - Route changes close entity dialogs themselves. Do not call a history-based close handler after navigating to a new section: that undoes the navigation. Subtab state must also reset when Back returns to a route with no explicit subtab.
 - Shared Browse filters scope the home/recap, games, milestone views, and player stat views. Historical collection sections show a lifetime label. Record Book statistics exclude spring training and must say so.
 - Private journal text, images, goals, and saved views stay in browser storage and private exports. They must never enter the public serialized archive. Import merges must preserve existing notes and images, validate all entries before writes, and report storage failures.

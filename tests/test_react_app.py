@@ -1,10 +1,40 @@
+import subprocess
 import unittest
+from pathlib import Path
 
 from baseball_processor.website.react_app import ReactComponents
+from baseball_processor.website.react_chunks.browser_utils import CODE as BROWSER_UTILS
 from baseball_processor.website.templates import HTMLTemplate
 
 
 class ReactAppTests(unittest.TestCase):
+    def test_special_moments_preserve_doubleheaders_and_multiple_landmark_homers(self):
+        source = (Path(__file__).resolve().parents[1] / "baseball_processor/website/react_chunks/special_features.jsx").read_text()
+        helpers = source.split("const SpecialHeader =")[0]
+        checks = r"""
+        const assert = require('node:assert/strict');
+        const games = [
+          {gameId:'GAME1',date:'09/21/2026'},
+          {gameId:'GAME2',date:'09/21/2026'},
+          {gameId:'OLD',date:'09/21/2004'},
+        ];
+        const debut = {playerId:'same',player:'Same Player',gameId:'GAME1'};
+        const hr = {playerId:'same',player:'Same Player',gameId:'GAME2',signatureNumber:'Splash Hit #10'};
+        const data = {games,debuts:[debut,debut],finalGames:[{...debut,gameId:'OLD'}],
+          signatureHRs:[hr,hr,{...hr,signatureNumber:'Splash Hit #11'}]};
+        const moments = buildSpecialMoments(data);
+        assert.equal(moments.length,4);
+        assert.equal(moments.at(-1).kind,'final');
+        assert.equal(moments[0].date,'09/21/2026');
+        assert.equal(moments.find(m=>m.kind==='debut').game.gameId,'GAME1');
+        assert.ok(moments.filter(m=>m.kind==='homer').every(m=>m.game.gameId==='GAME2'));
+        assert.deepEqual(specialRecordGames({gameIds:'GAME2, GAME2, UNKNOWN'},games).map(g=>g.gameId),['GAME2']);
+        assert.deepEqual(buildSpecialMoments({}),[]);
+        assert.equal(specialRecords({summary:[{record:'Hits Leaders'},{record:'No-Hitters',value:'0'}]}).length,1);
+        """
+        result = subprocess.run(["node", "-e", BROWSER_UTILS + helpers + checks], capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_app_code_starts_with_shared_react_bindings(self):
         code = ReactComponents.get_app_code()
 
