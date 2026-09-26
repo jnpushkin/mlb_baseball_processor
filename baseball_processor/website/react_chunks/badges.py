@@ -208,10 +208,16 @@ const JerseyCollection = ({ jerseyLog }) => {
     // Build grid of numbers 00-99, filtering spring training if needed
     const numbers = useMemo(() => {
         const grid = [];
-        const filterFn = (players) => includeSpring ? players : players.filter(p => {
-            // gameType is 'regular'/'postseason' for MLB games, 'spring'/'exhibition' otherwise
-            return p.gameType !== 'spring' && p.gameType !== 'exhibition';
-        });
+        const filterFn = (players) => {
+            const seen = new Set();
+            return players.filter(p => {
+                if (!includeSpring && (p.gameType === 'spring' || p.gameType === 'exhibition')) return false;
+                const identity = p.playerId || `${p.name}:${p.team}`;
+                if (seen.has(identity)) return false;
+                seen.add(identity);
+                return true;
+            });
+        };
         grid.push({ num: '00', players: filterFn(jerseyLog['00'] || []) });
         for (let i = 0; i <= 99; i++) {
             const key = String(i);
@@ -246,7 +252,7 @@ const JerseyCollection = ({ jerseyLog }) => {
                             <div className="small-text font-bold uppercase tracking-[0.16em] text-blue-600">Uniform archive</div>
                             <h2 className="mt-1 text-2xl font-bold text-slate-900">Jersey Number Collection</h2>
                             <p className="body-text text-slate-500 mt-1">
-                                Every number from 00–99, organized around what remains to be witnessed.
+                                Numbers worn in your attended games, including labeled Jackie Robinson Day tributes.
                             </p>
                         </div>
                         <div className="grid grid-cols-3 gap-2 text-center">
@@ -330,20 +336,48 @@ const JerseyCollection = ({ jerseyLog }) => {
                         const sb = db.length === 3 ? `${db[2]}${db[0].padStart(2,'0')}${db[1].padStart(2,'0')}` : '';
                         return sa.localeCompare(sb);
                     });
-                    return (
-                    <div className="mt-4 bg-blue-50 rounded-lg p-4">
-                        <h3 className="subsection-title font-bold mb-3">#{selectedNumber} — {sorted.length} player{sorted.length > 1 ? 's' : ''}</h3>
+                    const regular = sorted.filter(p => p.uniformContext !== 'jackie-robinson-day');
+                    const tributes = sorted.filter(p => p.uniformContext === 'jackie-robinson-day');
+                    const renderRows = entries => (
                         <div className="space-y-2">
-                            {sorted.map((p, i) => (
-                                <div key={`${p.playerId}-${i}`} className="flex items-center justify-between bg-white rounded p-2">
-                                    <div className="flex items-center gap-2">
-                                        <PlayerLink playerId={p.playerId} name={p.name} />
-                                        <span className="text-xs text-slate-500">{p.team}</span>
+                            {entries.map((p, i) => (
+                                <div key={`${p.playerId}-${i}`} className="flex flex-wrap items-center justify-between gap-2 bg-white rounded p-3">
+                                    <div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <PlayerLink playerId={p.playerId} name={p.name} />
+                                            <span className="text-xs text-slate-500">{p.team}</span>
+                                        </div>
+                                        {selectedNumber === '42' && <div className="mt-1 text-xs text-slate-500">
+                                            {p.uniformContext === 'jackie-robinson-day' ? 'Jackie Robinson Day tribute' : 'Regular uniform'}
+                                        </div>}
                                     </div>
                                     <span className="text-xs text-slate-400">{p.date}</span>
                                 </div>
                             ))}
                         </div>
+                    );
+                    return (
+                    <div className="mt-4 bg-blue-50 rounded-lg p-4">
+                        <h3 className="subsection-title font-bold mb-3">#{selectedNumber} — {sorted.length} player{sorted.length > 1 ? 's' : ''}</h3>
+                        {selectedNumber === '42' && (
+                            <p className="mb-4 text-sm text-slate-600">
+                                Retired across MLB in 1997. Existing wearers such as Mariano Rivera could keep #42;
+                                players also wear it for Jackie Robinson Day.
+                            </p>
+                        )}
+                        {selectedNumber === '42' ? (
+                            <div className="space-y-4">
+                                {regular.length > 0 && <section aria-label="Regular number 42 uniforms">
+                                    <h4 className="mb-2 font-semibold text-slate-700">Regular uniforms ({regular.length})</h4>
+                                    {renderRows(regular)}
+                                </section>}
+                                {tributes.length > 0 && <details className="rounded-lg border border-blue-200 p-3">
+                                    <summary className="cursor-pointer font-semibold text-slate-700">Jackie Robinson Day tributes ({tributes.length})</summary>
+                                    <p className="my-3 text-sm text-slate-500">First tribute appearance witnessed for each player.</p>
+                                    {renderRows(tributes)}
+                                </details>}
+                            </div>
+                        ) : renderRows(sorted)}
                     </div>
                     );
                 })()}

@@ -14,6 +14,7 @@ from ..engines.all_time_passing_engine import AllTimePassingEngine, find_passing
 from ..utils.constants import CACHE_DIR, REFERENCES_DIR, STADIUM_ALIASES
 from ..utils.companions import companion_map, normalize_companion_game_id
 from ..utils.helpers import is_inside_the_park_home_run_play
+from ..utils.jerseys import game_jersey
 from ..utils.stat_utils import parse_batting_detail_counts
 
 
@@ -3049,7 +3050,7 @@ class DataSerializer:
                         'name': p.get('name', ''),
                         'playerId': p.get('player_id', ''),
                         'position': p.get('pos', ''),
-                        'jerseyNumber': p.get('jersey_number', '')
+                        'jerseyNumber': game_jersey(p, raw_game, 'away')[0]
                     }
                     for p in lineups.get('away', [])
                 ],
@@ -3059,7 +3060,7 @@ class DataSerializer:
                         'name': p.get('name', ''),
                         'playerId': p.get('player_id', ''),
                         'position': p.get('pos', ''),
-                        'jerseyNumber': p.get('jersey_number', '')
+                        'jerseyNumber': game_jersey(p, raw_game, 'home')[0]
                     }
                     for p in lineups.get('home', [])
                 ]
@@ -4210,8 +4211,9 @@ class DataSerializer:
         """Build jersey number collection: track every number 00-99 seen."""
         # number -> [{name, team, gameId, date}]
         jersey_data = {}
+        sightings = set()
 
-        for game in raw_games:
+        for game in sorted(raw_games, key=lambda g: (str(g.get('basic_info', {}).get('date_yyyymmdd', '')), g.get('game_id', ''))):
             game_id = game.get('game_id', '')
             bi = game.get('basic_info', {})
             game_type = (bi.get('game_type') or 'regular').lower()
@@ -4224,7 +4226,7 @@ class DataSerializer:
                 team = bi.get(f'{side}_team_code', '')
                 for section in ['batting', 'pitching']:
                     for player in game.get(section, {}).get(side, []):
-                        jersey = player.get('jersey_number', '')
+                        jersey, context = game_jersey(player, game, side)
                         if not jersey:
                             continue
                         name = player.get('name', '')
@@ -4233,8 +4235,11 @@ class DataSerializer:
                         if jersey not in jersey_data:
                             jersey_data[jersey] = []
 
-                        # Only add first sighting per player per number
-                        if not any(e['playerId'] == player_id for e in jersey_data[jersey]):
+                        # Keep an MLB sighting even if spring training came first.
+                        identity = player_id or (name, team)
+                        sighting = (jersey, identity, game_type in ('spring', 'exhibition'))
+                        if sighting not in sightings:
+                            sightings.add(sighting)
                             jersey_data[jersey].append({
                                 'name': name,
                                 'playerId': player_id,
@@ -4242,6 +4247,7 @@ class DataSerializer:
                                 'gameId': game_id,
                                 'date': formatted_date,
                                 'gameType': game_type,
+                                'uniformContext': context,
                             })
 
         return jersey_data

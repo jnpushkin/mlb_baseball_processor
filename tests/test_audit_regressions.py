@@ -13,6 +13,66 @@ from baseball_processor import server
 from baseball_processor.main import _maybe_deploy_to_surge
 from baseball_processor.website.react_chunks.browser_utils import CODE
 from baseball_processor.website.serializers import DataSerializer
+from baseball_processor.utils.jerseys import game_jersey
+
+
+class JerseyNumberTests(unittest.TestCase):
+    @staticmethod
+    def game(date, player_id='pederjo01', number='42', game_type='regular'):
+        player = {'name': 'Test Player', 'player_id': player_id, 'jersey_number': number}
+        return {'game_id': f'SFN{date}0',
+                'basic_info': {'date_yyyymmdd': date, 'game_type': game_type, 'home_team_code': 'SF'},
+                'batting': {'home': [player]}, 'pitching': {'home': [dict(player)]},
+                'lineups': {'home': [dict(player)]}}
+
+    def test_bad_42_is_withheld_in_collection_and_lineup_without_mutating_source(self):
+        serializer = DataSerializer()
+        for date, player_id in [('20180526', 'iannech01'), ('20190702', 'givenmy01'),
+                                ('20190703', 'givenmy01'), ('20230408', 'pederjo01')]:
+            with self.subTest(date=date):
+                game = self.game(date, player_id)
+                self.assertEqual(serializer._serialize_jersey_log([game]), {})
+                self.assertEqual(serializer._extract_game_details(game)['lineups']['home'][0]['jerseyNumber'], '')
+                self.assertEqual(game['batting']['home'][0]['jersey_number'], '42')
+
+    def test_rivera_and_earlier_wearers_remain(self):
+        serializer = DataSerializer()
+        games = [self.game('20130911', 'riverma01'), self.game('20080822', 'riverma01'),
+                 self.game('20030501', 'vaughmo01')]
+        entries = serializer._serialize_jersey_log(games)['42']
+        self.assertEqual([(p['playerId'], p['date']) for p in entries],
+                         [('vaughmo01', '05/01/2003'), ('riverma01', '08/22/2008')])
+        self.assertTrue(all(p['uniformContext'] == 'regular' for p in entries))
+
+    def test_tribute_overrides_usual_number_for_actual_game_and_lineup(self):
+        serializer = DataSerializer()
+        for date in ('20160415', '20180415'):
+            game = self.game(date, number='31')
+            log = serializer._serialize_jersey_log([game])
+            self.assertEqual(list(log), ['42'])
+            self.assertEqual(len(log['42']), 1)  # Batting + pitching is one sighting.
+            self.assertEqual(log['42'][0]['uniformContext'], 'jackie-robinson-day')
+            self.assertEqual(serializer._extract_game_details(game)['lineups']['home'][0]['jerseyNumber'], '42')
+        for date, game_type in [('20080415', 'regular'), ('20200415', 'regular'),
+                                ('20260415', 'spring'), ('20260415', 'exhibition')]:
+            game = self.game(date, number='31', game_type=game_type)
+            self.assertEqual(game_jersey(game['batting']['home'][0], game, 'home'), ('31', 'regular'))
+
+    def test_delayed_tribute_requires_citation_and_only_applies_to_specified_side(self):
+        game = self.game('20260416')
+        player = game['batting']['home'][0]
+        game['uniform_tributes'] = {'home': {'type': 'jackie_robinson_day'}}
+        self.assertEqual(game_jersey(player, game, 'home'), ('', ''))
+        game['uniform_tributes']['home']['source'] = 'https://example.test/game-observance'
+        self.assertEqual(game_jersey(player, game, 'home'), ('42', 'jackie-robinson-day'))
+        self.assertEqual(game_jersey(player, game, 'away'), ('', ''))
+
+    def test_regular_sighting_survives_earlier_spring_game_and_number_zero(self):
+        games = [self.game('20260601', number='0'), self.game('20260301', number=0, game_type='spring'),
+                 self.game('20260401', number=0), self.game('20260501', number='00')]
+        log = DataSerializer()._serialize_jersey_log(games)
+        self.assertEqual([p['date'] for p in log['0']], ['03/01/2026', '04/01/2026'])
+        self.assertEqual(len(log['00']), 1)
 
 
 class DurationTests(unittest.TestCase):

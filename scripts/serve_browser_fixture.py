@@ -1,5 +1,6 @@
 """Synthetic browser regression site; contains no personal archive or live API writes."""
 
+import os
 import sys
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -104,7 +105,20 @@ data = {
     "firstRoundDraftPicks": {},
     "playerBios": {},
     "umpireLog": [],
-    "jerseyLog": {},
+    "jerseyLog": {
+        "42": [
+            {"playerId": "riverma01", "name": "Mariano Rivera", "team": "NYY", "gameId": "HISTORY",
+             "date": "08/22/2008", "gameType": "regular", "uniformContext": "regular"},
+            {"playerId": "jose", "name": "José Ramírez", "team": "CLE", "gameId": "TRIBUTE",
+             "date": "04/15/2023", "gameType": "regular", "uniformContext": "jackie-robinson-day"},
+        ],
+        "0": [
+            {"playerId": "jose", "name": "José Ramírez", "team": "CLE", "gameId": "SPRING",
+             "date": "03/01/2023", "gameType": "spring", "uniformContext": "regular"},
+            {"playerId": "jose", "name": "José Ramírez", "team": "CLE", "gameId": "TEST2024",
+             "date": "09/14/2024", "gameType": "regular", "uniformContext": "regular"},
+        ],
+    },
     "ncaaCrossRef": {},
 }
 events = []
@@ -127,4 +141,5 @@ data.update({
 })
 build_site(data, root / "index.html")
 if "--build-only" not in sys.argv:
-    ThreadingHTTPServer(("127.0.0.1", 8769), partial(SimpleHTTPRequestHandler, directory=str(root))).serve_forever()
+    port = int(os.environ.get("MLB_BROWSER_TEST_PORT", "8769"))
+    ThreadingHTTPServer(("127.0.0.1", port), partial(SimpleHTTPRequestHandler, directory=str(root))).serve_forever()
