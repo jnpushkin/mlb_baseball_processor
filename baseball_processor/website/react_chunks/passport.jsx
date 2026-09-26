@@ -22,13 +22,19 @@ const passportURL = (route) => {
   );
 };
 const navigatePassport = (patch, options = {}) => {
-  const next = { ...readPassportRoute(), ...patch };
+  const current = readPassportRoute();
+  const next = { ...current, ...patch };
+  if (
+    (next.tab !== current.tab || next.subtab !== current.subtab) &&
+    !("record" in patch)
+  )
+    delete next.record;
   const url = passportURL(next);
   if (url === location.hash) return;
   history.replaceState({ ...history.state, scroll: window.scrollY }, "");
   history[options.replace ? "replaceState" : "pushState"](
     {
-      scroll: 0,
+      scroll: options.preserveScroll ? window.scrollY : 0,
       passportParent: options.replace ? history.state?.passportParent : true,
     },
     "",
@@ -173,9 +179,31 @@ const PASSPORT_FEATURES = [
     "health",
     "coverage sources corrections freshness",
   ],
-  ["Special highlights", "special", "highlights", "witnessed history career moments timeline debuts final games"],
-  ["Personal record book", "special", "records", "records extremes biggest comeback longest game"],
+  [
+    "Special highlights",
+    "special",
+    "highlights",
+    "witnessed history career moments timeline debuts final games",
+  ],
+  [
+    "Personal record book",
+    "special",
+    "records",
+    "records extremes biggest comeback longest game",
+  ],
   ["Signature HRs", "special", "splash", "splash hits mccovey cove"],
+  [
+    "Milestone counts",
+    "milestones",
+    "counts",
+    "four hits five RBI ten strikeouts quality starts counts",
+  ],
+  [
+    "Lifetime totals and averages",
+    "dashboard",
+    "totals",
+    "total hits runs home runs average attendance temperature",
+  ],
   ["Umpires", "trivia", "umpires", "umpires abs"],
   ["Draft picks", "trivia", "drafts", "draft first round"],
   ["Awards", "players", "awards", "mvp cy young gold glove"],
@@ -310,7 +338,7 @@ const passportKeysForRoute = (route) => {
     ],
     venues: ["weatherTiming", "orioles"],
     progress: [...basic, "divisionChecklist", "matchupMatrix"],
-    special: ["summary", "signatureHRs"],
+    special: ["summary", "signatureHRs", "recordBook"],
     trivia: ["umpireLog", "jerseyLog", "playerGames", "pitcherGames"],
     companions: [],
     orioles: ["orioles"],
@@ -324,6 +352,13 @@ const passportKeysForRoute = (route) => {
       "careerLasts",
       "weatherTiming",
     ];
+  if (
+    (route.tab === "dashboard" && route.subtab === "totals") ||
+    (route.tab === "milestones" && route.subtab === "counts")
+  )
+    keys = ["summary"];
+  if (route.tab === "special" && route.subtab === "records")
+    keys = ["recordBook"];
   if (route.tab === "players" && route.subtab === "nostats")
     keys = [...keys, "playersWithoutStats"];
   if (route.subtab === "awards") keys = [...keys, "awardChecklists"];
@@ -2375,6 +2410,7 @@ const PassportDashboard = ({ data, allData, route, onResult }) => {
   const tabs = [
     ["", "Overview"],
     ["recap", "Recap"],
+    ["totals", "Totals"],
     ["discover", "Discover"],
     ["collections", "Collections"],
     ["plan", "Next visit"],
@@ -2441,6 +2477,7 @@ const PassportDashboard = ({ data, allData, route, onResult }) => {
         ))}
       </nav>
       {view === "" && <PassportHome {...{ data, allData, route }} />}
+      {view === "totals" && <ArchiveSummaries data={allData} kind="summary" />}
       {view === "recap" && <PassportRecap {...{ data, allData, route }} />}
       {view === "discover" && <AnalysisHub data={allData} route={route} />}
       {view === "collections" && <PassportCollections data={allData} />}{" "}

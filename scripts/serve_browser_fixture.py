@@ -26,6 +26,7 @@ for index, year in enumerate((2026, 2025, 2024)):
             "source": "mlb",
             "score": "SF 5 - 4 BAL",
             "attendance": 30000,
+            "temperature": {2024: 45, 2025: 78, 2026: 100}[year],
             "gameLength": "2:39",
             "firstSeenPlayerIds": ["jose"] if index == 0 else [],
             "playByPlay": [],
@@ -74,7 +75,7 @@ data = {
     "teams": [{"team": "SF", "games": 3}, {"team": "BAL", "games": 3}],
     "stadiums": [],
     "stadiumAliases": {},
-    "companionData": {"companions": {}, "gameCompanions": {}},
+    "companionData": {"companions": {}, "gameCompanions": {"TEST2024": ["Dad"]}},
     "divisionChecklist": {},
     "debuts": [
         {"gameId": "TEST2024", "date": "09/14/2024", "playerId": "jose", "player": "José Ramírez",

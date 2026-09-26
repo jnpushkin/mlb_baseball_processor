@@ -47,13 +47,14 @@ test("Special highlights connect moments to games without loading full player li
   ).toBeVisible();
 });
 
-test("record filters and keyboard dialogs reveal every tied game", async ({
+test("record filters, ties, rankings, history, and game return retain context", async ({
   page,
 }) => {
   await page.goto("/#special/records");
   await page
-    .getByLabel("Record category", { exact: true })
-    .selectOption("extremes");
+    .getByRole("group", { name: "Record category" })
+    .getByRole("button", { name: "Games", exact: true })
+    .click();
   await page
     .getByLabel("Search records", { exact: true })
     .fill("combined runs");
@@ -67,46 +68,172 @@ test("record filters and keyboard dialogs reveal every tied game", async ({
     exact: true,
   });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Open game" })).toHaveCount(
-    2,
-  );
-  await expect(dialog).toContainText("09/14/2026");
-  await expect(dialog).toContainText("09/14/2025");
-  await page.keyboard.press("Escape");
-  await expect(record).toBeFocused();
-  await record.click();
-  await dialog.getByRole("button", { name: "Open game" }).last().click();
+  await expect(
+    dialog.getByRole("button", { name: "Open game", exact: true }),
+  ).toHaveCount(3);
+  await expect(page).toHaveURL(/record=combined-runs/);
+  await dialog.getByRole("button", { name: "Top five", exact: true }).click();
+  await expect(dialog).toContainText("Top five places, including ties.");
+  await dialog
+    .getByRole("button", { name: "Record history", exact: true })
+    .click();
+  await expect(dialog).toContainText("First witnessed");
+  await expect(dialog).toContainText("Tied record");
+  await dialog.getByLabel("Find a related game", { exact: true }).fill("2025");
+  await expect(
+    dialog.getByRole("button", { name: "Open game", exact: true }),
+  ).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Open game", exact: true }).click();
   await expect(page.getByRole("dialog", { name: /SF at BAL/ })).toContainText(
     "09/14/2025",
   );
   await page.keyboard.press("Escape");
-  await page
-    .getByLabel("Search records", { exact: true })
-    .fill("No such record");
-  await expect(page.getByText("No records match these filters.")).toBeVisible();
-  await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(
-    page.getByRole("button", { name: /Coldest Game.*Explore record/ }),
-  ).toBeVisible();
+    dialog.getByLabel("Find a related game", { exact: true }),
+  ).toHaveValue("2025");
+  await expect(
+    dialog.getByRole("button", { name: "Record history", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
+  await expect(record).toBeFocused();
+  await expect(page.getByLabel("Search records", { exact: true })).toHaveValue(
+    "combined runs",
+  );
 });
 
-test("Special links and Back retain the highlights landing page", async ({
+test("personal scopes recompute the best and survive shared record links", async ({
   page,
 }) => {
-  await page.goto("/#special");
-  await page.getByRole("button", { name: /6 Record book/ }).click();
-  await expect(page).toHaveURL(/#special\/records$/);
+  await page.goto("/#special/records");
+  const hottest = page.getByRole("article", {
+    name: "Hottest Game",
+    exact: true,
+  });
+  await expect(hottest).toContainText("100");
+  await page
+    .getByLabel("Records for", { exact: true })
+    .selectOption("orioles-dad");
+  await expect(hottest).toContainText("45");
+  await expect(hottest).not.toContainText("100");
+  await hottest.getByRole("button").click();
+  const url = page.url();
+  await page.goto(url);
+  const dialog = page.getByRole("dialog", {
+    name: "Hottest Game",
+    exact: true,
+  });
+  await expect(dialog).toContainText("Orioles games with Dad");
+  await expect(dialog).toContainText("45");
   await expect(
-    page.getByRole("heading", { name: "Personal Record Book" }),
+    dialog.getByRole("button", { name: "Open game", exact: true }),
+  ).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByLabel("Records for", { exact: true })).toHaveValue(
+    "orioles-dad",
+  );
+  await page.getByText("More filters", { exact: false }).click();
+  await page.getByLabel("Season", { exact: true }).selectOption("2025");
+  await expect(
+    page.getByText("No games match these filters.", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Reset game filters", exact: true })
+    .click();
+  await expect(hottest).toContainText("100");
+});
+
+test("search preserves category and sort and features the matching record holder", async ({
+  page,
+}) => {
+  await page.goto("/#special/records");
+  const category = page.getByRole("group", { name: "Record category" });
+  await category.getByRole("button", { name: "Games", exact: true }).click();
+  await page.getByLabel("Record order", { exact: true }).selectOption("az");
+  await page.getByLabel("Search records", { exact: true }).fill("harp helu");
+  const card = page.getByRole("article", {
+    name: "Most Combined Runs",
+    exact: true,
+  });
+  await expect(card).toContainText("Alfredo Harp Helú Stadium");
+  await expect(
+    category.getByRole("button", { name: "Games", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByLabel("Search records", { exact: true }).fill("");
+  await expect(
+    category.getByRole("button", { name: "Games", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Record order", { exact: true })).toHaveValue(
+    "az",
+  );
+  await page.getByLabel("Search records", { exact: true }).fill("nonexistent");
+  await expect(
+    page.getByText("No records match these filters.", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Clear search and category", exact: true })
+    .click();
+  await expect(page.getByLabel("Record order", { exact: true })).toHaveValue(
+    "az",
+  );
+});
+
+test("counts and totals live in their own sections with game drilldowns", async ({
+  page,
+}) => {
+  await page.goto("/#special/records");
+  await page
+    .getByRole("link", { name: "Milestone counts", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Milestone counts", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: /1-Run Games.*Explore record/ })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "1-Run Games", exact: true });
+  await expect(
+    dialog.getByRole("button", { name: "Open game", exact: true }),
+  ).toHaveCount(3);
+  await dialog
+    .getByRole("button", { name: "Open game", exact: true })
+    .first()
+    .click();
+  await expect(page.getByRole("dialog", { name: /SF at BAL/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.goto("/#dashboard/totals");
+  await expect(
+    page.getByRole("heading", {
+      name: "Lifetime totals & averages",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("article", {
+      name: "Total Hits Across All Games",
+      exact: true,
+    }),
+  ).toContainText("1,234");
+});
+
+test("Special links and Back retain highlights", async ({ page }) => {
+  await page.goto("/#special");
+  await page.getByRole("button", { name: /\d+ Record book/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Personal records", exact: true }),
   ).toBeVisible();
   await page.goBack();
-  await expect(page).toHaveURL(/#special$/);
   await expect(
-    page.getByRole("heading", { name: "The games that stay with you" }),
+    page.getByRole("heading", {
+      name: "The games that stay with you",
+      exact: true,
+    }),
   ).toBeVisible();
 });
 
-test("Special views work on a phone in dark mode with direct recap links", async ({
+test("phone layout is compact, has no overflow, and supports dark-mode dialogs", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -115,118 +242,40 @@ test("Special views work on a phone in dark mode with direct recap links", async
   );
   for (const [route, heading] of [
     ["special", "The games that stay with you"],
-    ["special/records", "Personal Record Book"],
+    ["special/records", "Personal records"],
     ["special/debuts", "MLB Debuts Witnessed"],
     ["special/finals", "Final MLB Games Witnessed"],
     ["special/splash", "Signature Home Runs"],
   ]) {
-    await page.goto(`/#${route}`);
+    await page.goto("/#" + route);
     await expect(
       page.getByRole("heading", { name: heading, exact: true }),
     ).toBeVisible();
     expect(
       await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
+        () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    if (
-      ["special/debuts", "special/finals", "special/splash"].includes(route)
-    ) {
-      await page.getByRole("button", { name: "Open game" }).first().click();
-      await expect(
-        page.getByRole("dialog", { name: /SF at BAL/ }),
-      ).toBeVisible();
+    if (route === "special/records") {
+      const first = page
+        .getByTestId("record-results")
+        .getByRole("article")
+        .first();
+      const box = await first.boundingBox();
+      expect(box.y).toBeLessThan(850);
+      expect(box.height).toBeLessThan(200);
+      await first.getByRole("button").click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Top five", exact: true })
+        .click();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
       await page.keyboard.press("Escape");
     }
   }
-});
-
-test("record views distinguish totals and support ballpark search across entry types", async ({
-  page,
-}) => {
-  await page.goto("/#special/records");
-  const results = page.getByTestId("record-results");
-  await expect(results.getByRole("article")).toHaveCount(3);
-  await expect(
-    page.getByRole("region", {
-      name: "Latest game in the record book",
-      exact: true,
-    }),
-  ).toContainText("09/14/2026");
-  await page
-    .getByRole("button", { name: "Totals & averages 2", exact: true })
-    .click();
-  await expect(results.getByRole("article")).toHaveCount(2);
-  const total = results.getByRole("article", {
-    name: "Total Hits Across All Games",
-    exact: true,
-  });
-  await expect(total).toContainText("1,234");
-  await expect(total).toContainText("hits");
-  await expect(total.getByRole("button")).toHaveCount(0);
-  await expect(
-    results.getByRole("article", { name: "Average Attendance", exact: true }),
-  ).toContainText("Based on 3 games");
-  await page.getByLabel("Search records", { exact: true }).fill("harp helu");
-  await expect(
-    page.getByRole("button", { name: "Everything 6", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await expect(results.getByRole("article")).toHaveCount(2);
-  await expect(
-    results.getByRole("article", { name: "Coldest Game", exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Clear filters", exact: true })
-    .click();
-  await expect(results.getByRole("article")).toHaveCount(3);
-});
-
-test("record chronology and related-game search retain the selected view", async ({
-  page,
-}) => {
-  await page.goto("/#special/records");
-  const results = page.getByTestId("record-results");
-  await page.getByLabel("Record order", { exact: true }).selectOption("oldest");
-  await expect(results.getByRole("article").first()).toHaveAttribute(
-    "aria-label",
-    "Coldest Game",
-  );
-  await page.getByLabel("Record order", { exact: true }).selectOption("recent");
-  await expect(results.getByRole("article").last()).toHaveAttribute(
-    "aria-label",
-    "Coldest Game",
-  );
-  await page
-    .getByRole("button", { name: "Milestone counts 1", exact: true })
-    .click();
-  await results
-    .getByRole("button", { name: /1-Run Games.*Explore record/ })
-    .click();
-  const dialog = page.getByRole("dialog", { name: "1-Run Games", exact: true });
-  await expect(
-    dialog.getByRole("button", { name: "Open game", exact: true }),
-  ).toHaveCount(3);
-  await dialog.getByLabel("Find a related game", { exact: true }).fill("2025");
-  await expect(
-    dialog.getByRole("button", { name: "Open game", exact: true }),
-  ).toHaveCount(1);
-  await expect(dialog).toContainText("09/14/2025");
-  await dialog
-    .getByLabel("Find a related game", { exact: true })
-    .fill("missing team");
-  await expect(
-    dialog.getByText("No related games match this search."),
-  ).toBeVisible();
-  await dialog.getByLabel("Find a related game", { exact: true }).fill("2025");
-  await dialog.getByRole("button", { name: "Open game", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: /SF at BAL/ })).toContainText(
-    "09/14/2025",
-  );
-  await page.keyboard.press("Escape");
-  await expect(
-    page.getByRole("button", { name: "Milestone counts 1", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByLabel("Record order", { exact: true })).toHaveValue(
-    "recent",
-  );
 });

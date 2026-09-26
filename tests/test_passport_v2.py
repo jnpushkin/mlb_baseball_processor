@@ -280,7 +280,10 @@ class PassportSelectionTests(unittest.TestCase):
         assert.ok(!passportKeysForRoute({tab:'players',subtab:'hitters'}).includes('awardChecklists'));
         assert.ok(passportKeysForRoute({tab:'trivia',subtab:'drafts'}).includes('firstRoundDraftPicks'));
         const events=Array.from({length:30},(_,i)=>({type:'milestone',label:'José Ramírez',sub:'Home run '+i}));
-        assert.equal(passportSearch({...data,searchEvents:events},'home run').length,30);
+        assert.equal(passportSearch({...data,searchEvents:events},'home run').filter(r=>r.type==='milestone').length,30);
+        assert.ok(passportSearch(data,'lifetime totals').some(r=>r.subtab==='totals'));
+        assert.deepEqual(passportKeysForRoute({tab:'special',subtab:'records'}),['recordBook']);
+        assert.deepEqual(passportKeysForRoute({tab:'milestones',subtab:'counts'}),['summary']);
         assert.ok(passportKeysForRoute({tab:'dashboard',subtab:'search'}).includes('searchEvents'));
         const backup={schemaVersion:1,journal:{one:{notes:'test'}},goals:[{id:'1',name:'A park',kind:'ballpark'}],views:[{name:'2026',route:{year:'2026'},tables:{dt_test:'{}'}}]};
         assert.equal(validatePassportBackup(backup),backup);

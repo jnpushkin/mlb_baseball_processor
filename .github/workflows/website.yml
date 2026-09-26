@@ -14,8 +14,8 @@ jobs:
           cache: npm
       - run: python3 -m pip install -r requirements-dev.txt
       - run: npm ci
-      - run: ruff check baseball_processor/jobs.py baseball_processor/companion_manager.py baseball_processor/utils/companions.py baseball_processor/website/bundle.py baseball_processor/website/collection_goals.py baseball_processor/website/release.py scripts/rebuild_website.py scripts/serve_browser_fixture.py tests/test_passport_v2.py tests/test_collection_goals.py
-      - run: python3 -m pytest tests/test_passport_v2.py tests/test_audit_regressions.py tests/test_server.py tests/test_react_app.py tests/test_collection_goals.py -q
+      - run: ruff check baseball_processor/jobs.py baseball_processor/companion_manager.py baseball_processor/utils/companions.py baseball_processor/website/bundle.py baseball_processor/website/record_book.py baseball_processor/website/collection_goals.py baseball_processor/website/release.py scripts/rebuild_website.py scripts/serve_browser_fixture.py tests/test_passport_v2.py tests/test_collection_goals.py tests/test_record_book.py
+      - run: python3 -m pytest tests/test_passport_v2.py tests/test_audit_regressions.py tests/test_server.py tests/test_react_app.py tests/test_collection_goals.py tests/test_record_book.py -q
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
       - run: python3 -m baseball_processor.website.release .browser-fixture

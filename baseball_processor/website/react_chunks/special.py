@@ -1247,8 +1247,10 @@ const MilestonesTabV2 = ({ data, onTabChange, initialSubtab, onSubtabChange }) =
             <SubNav tabs={[
                 { id: 'milestones', label: 'Game Milestones' },
                 { id: 'history', label: 'All-Time Passings' },
+                { id: 'counts', label: 'Counts' },
             ]} active={view} onChange={setView} onSubtabChange={onSubtabChange} />
             {view === 'milestones' && ((data.milestones?.length || data.allMilestones?.length) ? <MilestonesView milestones={data.milestones || []} allMilestones={data.allMilestones || data.milestones || []} games={data.games || []} careerFirsts={data.careerFirsts || []} careerLasts={data.careerLasts || []} allTimePassings={data.allTimePassings || []} onTabChange={onTabChange} /> : <EmptyState icon="🏆" title="No Milestones" message="No milestones have been recorded yet." />)}
+            {view === 'counts' && <ArchiveSummaries data={data} kind="occurrences" />}
             {view === 'history' && <HistoryWitnessedView allTimePassings={data.allTimePassings || []} careerFirsts={data.careerFirsts || []} games={data.games || []} />}
         </div>
     );

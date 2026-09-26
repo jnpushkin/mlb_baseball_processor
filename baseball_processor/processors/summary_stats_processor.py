@@ -1312,6 +1312,26 @@ class SummaryStatsProcessor(BaseProcessor):
                 self.most_pitches_pitcher_scores.append(score_str)
                 self.most_pitches_pitcher_statlines.append(max_statline or "")
     
+    def _inclusive_summary_milestones(self):
+        """Summary thresholds include higher tiers and exclude spring games."""
+        eligible = {g.get('game_id') for g in self.games
+                    if g.get('basic_info', {}).get('game_type', 'regular') != 'spring'}
+        tables = {}
+        for key, frame in self.milestones.items():
+            tables[key] = frame[frame['GameID'].isin(eligible)].copy() if 'GameID' in frame else frame.copy()
+        for label, tiers in {
+            '4+ Hit Games': ['4+ Hit Games', '5+ Hit Games'],
+            '5+ RBI Games': ['5+ RBI Games', '6+ RBI Games'],
+            'Multi-HR Games': ['Multi-HR Games', '3+ HR Games'],
+            '10+ K Games': ['10+ K Games', '12+ K Games', '15+ K Games'],
+        }.items():
+            frames = [tables[t] for t in tiers if t in tables and not tables[t].empty]
+            if frames:
+                merged = pd.concat(frames, ignore_index=True)
+                identity = [c for c in ['GameID', 'Player', 'Team'] if c in merged]
+                tables[label] = merged.drop_duplicates(subset=identity) if identity else merged
+        return tables
+
     def _build_summary_rows(self, df_matchups):
         """Build the summary statistics rows."""
         summary_rows = []
@@ -1982,6 +2002,7 @@ class SummaryStatsProcessor(BaseProcessor):
                 "GameIDs": join_gameids_in_order(row[0] for row in rows)
             })
 
+        milestone_tables = self._inclusive_summary_milestones()
         # Individual Hitting Milestones
         hitting_milestones = [
             ("4+ Hit Games", "4+ Hit Games"),
@@ -1991,7 +2012,7 @@ class SummaryStatsProcessor(BaseProcessor):
         ]
 
         for record_name, milestone_key in hitting_milestones:
-            milestone_df = self.milestones.get(milestone_key, pd.DataFrame())
+            milestone_df = milestone_tables.get(milestone_key, pd.DataFrame())
             milestone_count = len(milestone_df) if not milestone_df.empty else 0
             
             # Only add if count > 0 (exclude empty milestones)
@@ -2024,7 +2045,7 @@ class SummaryStatsProcessor(BaseProcessor):
         ]
 
         # Handle Complete Games & Shutouts from combined sheet
-        cg_shutouts_df = self.milestones.get("Complete Games & Shutouts", pd.DataFrame())
+        cg_shutouts_df = milestone_tables.get("Complete Games & Shutouts", pd.DataFrame())
 
         for record_name, milestone_key in pitching_milestones:
             # FIXED: Declare fresh variables for each iteration
@@ -2050,27 +2071,18 @@ class SummaryStatsProcessor(BaseProcessor):
                         
             else:
                 # Regular milestone processing
-                milestone_df = self.milestones.get(milestone_key, pd.DataFrame())
+                milestone_df = milestone_tables.get(milestone_key, pd.DataFrame())
                 pitch_count = len(milestone_df) if not milestone_df.empty else 0
                 
                 if pitch_count > 0 and not milestone_df.empty and "GameID" in milestone_df.columns:
                     unique_ids = sorted(milestone_df["GameID"].unique())
                     
-                    # FIXED: Special handling for high-volume milestones like Quality Starts
-                    if pitch_count > 50:  # For very common milestones
-                        pitch_game_ids = ""  # Don't show Game IDs - too many
-                        if "Player" in milestone_df.columns:
-                            unique_players = len(milestone_df["Player"].unique())
-                            pitch_detail = f"{pitch_count} instances by {unique_players} different player{'s' if unique_players != 1 else ''}"
-                        else:
-                            pitch_detail = f"{pitch_count} instances across dataset (Game IDs omitted due to volume)"
+                    pitch_game_ids = join_sorted_gameids(unique_ids)
+                    if "Player" in milestone_df.columns:
+                        unique_players = len(milestone_df["Player"].unique())
+                        pitch_detail = f"{pitch_count} instances by {unique_players} different players"
                     else:
-                        pitch_game_ids = join_sorted_gameids(unique_ids)
-                        if "Player" in milestone_df.columns:
-                            unique_players = len(milestone_df["Player"].unique())
-                            pitch_detail = f"{pitch_count} instances by {unique_players} different player{'s' if unique_players != 1 else ''}"
-                        else:
-                            pitch_detail = f"{pitch_count} instances across dataset"
+                        pitch_detail = f"{pitch_count} instances across dataset"
                 else:
                     pitch_detail = f"{pitch_count} instances across dataset"
             

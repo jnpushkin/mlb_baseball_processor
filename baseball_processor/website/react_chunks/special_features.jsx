@@ -189,6 +189,8 @@ const specialRecordMetric = (record) => {
   else if (name.includes("Pitchers Used")) unit = "pitchers";
   else if (name.includes("Start Time")) unit = "local start";
   else if (name.includes("HR Events")) unit = "sequences";
+  else if (name === "10+ Run Innings") unit = "innings";
+  else if (name === "20+ Hit Games by One Team") unit = "team performances";
   else if (record.section === "milestone-counts") unit = "performances";
   else if (specialRecordKind(record) === "occurrences")
     unit = name === "Inside-the-Park Home Runs" ? "home runs" : "games";
@@ -447,8 +449,19 @@ const SpecialRecordDialog = ({ record, games, onClose }) => {
                       <p className="mt-1 text-sm text-slate-500">
                         {game.venue}
                       </p>
+                      {(record.performances || [])
+                        .filter((p) => p.gameId === game.gameId)
+                        .map((p, i) => (
+                          <p
+                            key={i}
+                            className="mt-2 text-sm font-medium text-slate-700"
+                          >
+                            {p.holder}
+                            {p.detail ? ` · ${p.detail}` : ""}
+                          </p>
+                        ))}
                     </div>
-                    <SpecialGameButton gameId={game.gameId} onOpen={onClose} />
+                    <SpecialGameButton gameId={game.gameId} />
                   </article>
                 ))}
               </div>
@@ -515,7 +528,7 @@ const SpecialRecordCard = ({ record, onSelect }) => {
       </span>
       {record.detail && (
         <span
-          className={`mt-3 block text-sm leading-relaxed text-slate-600 ${canExplore ? "line-clamp-2" : ""}`}
+          className={`mt-3 text-sm leading-relaxed text-slate-600 ${canExplore ? "line-clamp-2" : "block"}`}
         >
           {record.detail}
         </span>
@@ -565,247 +578,6 @@ const SpecialRecordCard = ({ record, onSelect }) => {
         <div className="p-5">{content}</div>
       )}
     </article>
-  );
-};
-const PersonalRecords = ({ data }) => {
-  const [search, setSearch] = useState("");
-  const [section, setSection] = useState("all");
-  const [view, setView] = useState("records");
-  const [order, setOrder] = useState("featured");
-  const [selected, setSelected] = useState(null);
-  const records = useMemo(
-    () => buildSpecialRecordBook(data),
-    [data.summary, data.games],
-  );
-  const inView = records.filter((r) => view === "all" || r.kind === view);
-  const filtered = sortSpecialRecords(
-    inView.filter(
-      (r) =>
-        (section === "all" || r.section === section) &&
-        r.searchText.includes(normalizeSearchText(search)),
-    ),
-    order,
-  );
-  const latestRecord = sortSpecialRecords(
-    records.filter((r) => r.kind === "records" && r.linkedGames.length),
-    "recent",
-  )[0];
-  const spotlight =
-    latestRecord &&
-    view === "records" &&
-    section === "all" &&
-    !search &&
-    order === "featured";
-  const grouped = section === "all" && !search && order === "featured";
-  const sections = grouped
-    ? Object.entries(SPECIAL_RECORD_LABELS)
-        .map(([key, label]) => ({
-          key,
-          label,
-          rows: filtered.filter((r) => r.section === key),
-        }))
-        .filter((s) => s.rows.length)
-    : [{ key: "results", label: null, rows: filtered }];
-  const reset = () => {
-    setSearch("");
-    setSection("all");
-    setView("records");
-    setOrder("featured");
-  };
-  return (
-    <div className="space-y-5">
-      <SpecialHeader
-        eyebrow="The games that set the bar"
-        title="Personal Record Book"
-      >
-        Your biggest scores, standout performances, and ballpark extremes—with
-        the games that made them memorable.
-      </SpecialHeader>
-      <div
-        className="grid grid-cols-2 gap-2 lg:grid-cols-4"
-        role="group"
-        aria-label="Record views"
-      >
-        {Object.entries(SPECIAL_RECORD_VIEWS).map(([key, item]) => {
-          const count = records.filter(
-            (r) => key === "all" || r.kind === key,
-          ).length;
-          return (
-            <button
-              key={key}
-              aria-pressed={view === key}
-              onClick={() => {
-                setView(key);
-                setSection("all");
-              }}
-              className={`flex min-h-14 items-center justify-between gap-2 rounded-xl border px-4 py-3 text-left text-sm font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 ${view === key ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
-            >
-              {item.label}
-              <span className="text-xs tabular-nums">{count}</span>
-            </button>
-          );
-        })}
-      </div>
-      {spotlight && (
-        <section
-          aria-label="Latest game in the record book"
-          className="overflow-hidden rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 sm:p-6"
-        >
-          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
-                Latest game in the record book · {latestRecord.latestDate}
-              </p>
-              <h3 className="mt-2 text-xl font-bold text-slate-900">
-                {latestRecord.record}
-              </h3>
-              <p className="mt-2 text-4xl font-bold tracking-tight text-blue-700">
-                {latestRecord.metric.value}
-                <span className="ml-2 text-sm font-medium tracking-normal text-slate-500">
-                  {latestRecord.metric.unit}
-                </span>
-              </p>
-              <p className="mt-3 text-sm font-semibold text-slate-700">
-                {latestRecord.linkedGames[0].score ||
-                  `${latestRecord.linkedGames[0].awayTeam} at ${latestRecord.linkedGames[0].homeTeam}`}
-              </p>
-              <p className="mt-1 text-sm text-slate-500">
-                {latestRecord.linkedGames[0].venue}
-                {latestRecord.linkedGames.length > 1
-                  ? ` · One of ${latestRecord.linkedGames.length} games sharing this record`
-                  : ""}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col">
-              <SpecialGameButton gameId={latestRecord.linkedGames[0].gameId}>
-                Revisit this game
-              </SpecialGameButton>
-              <button
-                onClick={() => setSelected(latestRecord)}
-                className="min-h-11 rounded-lg px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-              >
-                View record details →
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_13rem_13rem]">
-          <label className="text-sm font-semibold text-slate-700 sm:col-span-2 lg:col-span-1">
-            Search records
-            <input
-              className="mt-1 block min-h-11 w-full rounded-lg border border-slate-300 px-3 font-normal"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                if (e.target.value) setView("all");
-              }}
-              placeholder="Record, player, team, ballpark, or year"
-              type="search"
-            />
-          </label>
-          <label className="text-sm font-semibold text-slate-700">
-            Record category
-            <select
-              className="mt-1 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 font-normal"
-              value={section}
-              aria-label="Record category"
-              onChange={(e) => setSection(e.target.value)}
-            >
-              <option value="all">All categories</option>
-              {Object.entries(SPECIAL_RECORD_LABELS).map(([key, label]) => {
-                const count = inView.filter((r) => r.section === key).length;
-                return count ? (
-                  <option key={key} value={key}>
-                    {label} ({count})
-                  </option>
-                ) : null;
-              })}
-            </select>
-          </label>
-          <label className="text-sm font-semibold text-slate-700">
-            Record order
-            <select
-              className="mt-1 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 font-normal"
-              value={order}
-              aria-label="Record order"
-              onChange={(e) => setOrder(e.target.value)}
-            >
-              <option value="featured">Recommended</option>
-              <option value="recent">Most recently witnessed</option>
-              <option value="oldest">First witnessed</option>
-              <option value="az">A–Z</option>
-            </select>
-          </label>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="max-w-3xl text-sm text-slate-500">
-            {search
-              ? view === "all"
-                ? "Searching across all entry types. Category and ordering still apply."
-                : `Searching within ${SPECIAL_RECORD_VIEWS[view].label.toLowerCase()}.`
-              : SPECIAL_RECORD_VIEWS[view].description}
-          </p>
-          {(search ||
-            section !== "all" ||
-            view !== "records" ||
-            order !== "featured") && (
-            <button
-              onClick={reset}
-              className="min-h-11 rounded-lg px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
-      </div>
-      <p role="status" className="text-sm text-slate-500">
-        {filtered.length} {view === "records" ? "records" : "entries"} ·{" "}
-        {records.length} entries in your archive
-      </p>
-      {filtered.length ? (
-        <div data-testid="record-results" className="space-y-7">
-          {sections.map((group) => (
-            <section
-              key={group.key}
-              aria-label={group.label || "Matching records"}
-            >
-              {group.label && (
-                <h3 className="mb-3 flex items-center gap-3 text-lg font-bold text-slate-900">
-                  {group.label}
-                  <span className="text-sm font-normal text-slate-400">
-                    {group.rows.length}
-                  </span>
-                </h3>
-              )}
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {group.rows.map((record) => (
-                  <SpecialRecordCard
-                    key={record.record}
-                    record={record}
-                    onSelect={setSelected}
-                  />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-600">
-          {records.length
-            ? "No records match these filters."
-            : "Records will appear here when game summaries are available."}
-        </div>
-      )}
-      {selected && (
-        <SpecialRecordDialog
-          record={selected}
-          games={data.games || []}
-          onClose={() => setSelected(null)}
-        />
-      )}
-    </div>
   );
 };
 const SpecialMomentCard = ({ moment }) => {
@@ -896,7 +668,7 @@ const SpecialHighlights = ({ data, onView }) => {
         {[
           {
             label: "Record book",
-            value: records.length,
+            value: (data.recordBook || []).length,
             view: "records",
             detail: "Explore personal extremes",
           },

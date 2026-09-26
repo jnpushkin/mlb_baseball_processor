@@ -10,6 +10,7 @@ from pathlib import Path
 
 from ..utils.team_identity import display_team, normalize_website_teams
 from .react_app import ReactComponents
+from .record_book import build_record_book, repair_summary_counts
 from .templates import HTMLTemplate
 
 SCHEMA_VERSION = 2
@@ -80,6 +81,8 @@ def search_events(data):
 
 def build_site(data, output_file, *, retain_indexes=()):
     data = normalize_website_teams(data)
+    repair_summary_counts(data)
+    data["recordBook"] = build_record_book(data)
     for row in data.get("matchupMatrix", {}).get("matrix", []):
         for code in list(row):
             if code != display_team(code):
