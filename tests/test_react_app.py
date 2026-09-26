@@ -8,6 +8,47 @@ from baseball_processor.website.templates import HTMLTemplate
 
 
 class ReactAppTests(unittest.TestCase):
+    def test_record_book_classification_units_search_and_chronology(self):
+        source = (Path(__file__).resolve().parents[1] / "baseball_processor/website/react_chunks/special_features.jsx").read_text()
+        helpers = source.split("const SpecialHeader =")[0]
+        checks = r"""
+        const assert = require('node:assert/strict');
+        const data = {games:[
+            {gameId:'G1',date:'04/15/2018',homeTeam:'LAD',awayTeam:'ARI',venue:'Estadio Alfredo Harp Helú'},
+            {gameId:'G2',date:'09/25/2026',homeTeam:'SF',awayTeam:'LAD',venue:'Oracle Park'}
+        ], summary:[
+            {record:'Most Combined Runs',value:'27',gameIds:'G1,G2,G2,MISSING',detail:'José Ramírez'},
+            {record:'Shortest Game by Time',value:'1:53',gameIds:'G2'},
+            {record:'Total Hits Across All Games',value:'4851'},
+            {record:'Average Attendance',value:'30,939'},
+            {record:'1-Run Games',value:'75',gameIds:'G1'},
+            {record:'Fewest Combined Walks',value:'0',gameIds:'G1'},
+            {record:'Most Clutch Single Game (WPA)',value:'0.738',gameIds:'G1'}
+        ]};
+        const before = JSON.stringify(data);
+        const book = buildSpecialRecordBook(data);
+        const get = name => book.find(r => r.record === name);
+        const tied = get('Most Combined Runs');
+        assert.deepEqual(tied.linkedGames.map(g=>g.gameId),['G2','G1']);
+        assert.equal(tied.firstDate,'04/15/2018');
+        assert.equal(tied.latestDate,'09/25/2026');
+        for (const query of ['jose','harp helu','oracle','2018','lad','27']) assert.ok(tied.searchText.includes(query));
+        assert.deepEqual(get('Shortest Game by Time').metric,{value:'1h 53m',unit:'game time'});
+        assert.deepEqual(get('Total Hits Across All Games').metric,{value:'4,851',unit:'hits'});
+        assert.equal(get('Total Hits Across All Games').kind,'summary');
+        assert.equal(get('Average Attendance').kind,'summary');
+        assert.equal(get('1-Run Games').kind,'occurrences');
+        assert.equal(get('Fewest Combined Walks').metric.value,'0');
+        assert.equal(get('Most Clutch Single Game (WPA)').metric.value,'0.738');
+        assert.equal(sortSpecialRecords(book,'recent')[0].latestDate,'09/25/2026');
+        assert.equal(sortSpecialRecords(book,'oldest')[0].firstDate,'04/15/2018');
+        assert.equal(sortSpecialRecords(book,'oldest').at(-1).firstDate,'');
+        assert.equal(JSON.stringify(data),before);
+        assert.deepEqual(buildSpecialRecordBook({}),[]);
+        """
+        result = subprocess.run(["node", "-e", BROWSER_UTILS + helpers + checks], capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_special_moments_preserve_doubleheaders_and_multiple_landmark_homers(self):
         source = (Path(__file__).resolve().parents[1] / "baseball_processor/website/react_chunks/special_features.jsx").read_text()
         helpers = source.split("const SpecialHeader =")[0]

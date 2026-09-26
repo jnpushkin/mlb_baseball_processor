@@ -94,7 +94,7 @@ test("Special links and Back retain the highlights landing page", async ({
   page,
 }) => {
   await page.goto("/#special");
-  await page.getByRole("button", { name: /3 Record book/ }).click();
+  await page.getByRole("button", { name: /6 Record book/ }).click();
   await expect(page).toHaveURL(/#special\/records$/);
   await expect(
     page.getByRole("heading", { name: "Personal Record Book" }),
@@ -139,4 +139,94 @@ test("Special views work on a phone in dark mode with direct recap links", async
       await page.keyboard.press("Escape");
     }
   }
+});
+
+test("record views distinguish totals and support ballpark search across entry types", async ({
+  page,
+}) => {
+  await page.goto("/#special/records");
+  const results = page.getByTestId("record-results");
+  await expect(results.getByRole("article")).toHaveCount(3);
+  await expect(
+    page.getByRole("region", {
+      name: "Latest game in the record book",
+      exact: true,
+    }),
+  ).toContainText("09/14/2026");
+  await page
+    .getByRole("button", { name: "Totals & averages 2", exact: true })
+    .click();
+  await expect(results.getByRole("article")).toHaveCount(2);
+  const total = results.getByRole("article", {
+    name: "Total Hits Across All Games",
+    exact: true,
+  });
+  await expect(total).toContainText("1,234");
+  await expect(total).toContainText("hits");
+  await expect(total.getByRole("button")).toHaveCount(0);
+  await expect(
+    results.getByRole("article", { name: "Average Attendance", exact: true }),
+  ).toContainText("Based on 3 games");
+  await page.getByLabel("Search records", { exact: true }).fill("harp helu");
+  await expect(
+    page.getByRole("button", { name: "Everything 6", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(results.getByRole("article")).toHaveCount(2);
+  await expect(
+    results.getByRole("article", { name: "Coldest Game", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Clear filters", exact: true })
+    .click();
+  await expect(results.getByRole("article")).toHaveCount(3);
+});
+
+test("record chronology and related-game search retain the selected view", async ({
+  page,
+}) => {
+  await page.goto("/#special/records");
+  const results = page.getByTestId("record-results");
+  await page.getByLabel("Record order", { exact: true }).selectOption("oldest");
+  await expect(results.getByRole("article").first()).toHaveAttribute(
+    "aria-label",
+    "Coldest Game",
+  );
+  await page.getByLabel("Record order", { exact: true }).selectOption("recent");
+  await expect(results.getByRole("article").last()).toHaveAttribute(
+    "aria-label",
+    "Coldest Game",
+  );
+  await page
+    .getByRole("button", { name: "Milestone counts 1", exact: true })
+    .click();
+  await results
+    .getByRole("button", { name: /1-Run Games.*Explore record/ })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "1-Run Games", exact: true });
+  await expect(
+    dialog.getByRole("button", { name: "Open game", exact: true }),
+  ).toHaveCount(3);
+  await dialog.getByLabel("Find a related game", { exact: true }).fill("2025");
+  await expect(
+    dialog.getByRole("button", { name: "Open game", exact: true }),
+  ).toHaveCount(1);
+  await expect(dialog).toContainText("09/14/2025");
+  await dialog
+    .getByLabel("Find a related game", { exact: true })
+    .fill("missing team");
+  await expect(
+    dialog.getByText("No related games match this search."),
+  ).toBeVisible();
+  await dialog.getByLabel("Find a related game", { exact: true }).fill("2025");
+  await dialog.getByRole("button", { name: "Open game", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: /SF at BAL/ })).toContainText(
+    "09/14/2025",
+  );
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "Milestone counts 1", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Record order", { exact: true })).toHaveValue(
+    "recent",
+  );
 });
